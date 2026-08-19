@@ -1,0 +1,49 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum Level {
+  SCALED
+  INTERMEDIATE
+  RX
+}
+
+// SQLite has no native array type, so `lookingFor` is stored as a
+// JSON-encoded array of these values (see src/lib/lookingFor.ts).
+enum LookingFor {
+  COMP_PARTNER
+  TRAINING_FRIENDS
+  DEEPER_CONNECTION
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+
+  photo String? // path under /public, e.g. "/uploads/xyz.jpg"
+  bio   String?
+  age   Int?
+
+  // Profile fields below are optional at signup time and filled in via the
+  // profile edit form, so they're nullable even though every real profile
+  // is expected to have them.
+  area         String?
+  affiliateGym String?
+  level        Level?
+
+  weightKg           Float?
+  crossfitSinceYear  Int?
+  crossfitSinceMonth Int?
+
+  // JSON-encoded array of LookingFor values, e.g. ["COMP_PARTNER"]
+  lookingFor String?
+
+  createdAt DateTime @default(now())
+}
