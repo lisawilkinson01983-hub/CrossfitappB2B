@@ -3,12 +3,22 @@ import { z } from "zod";
 export const LEVELS = ["SCALED", "INTERMEDIATE", "RX"] as const;
 export type LevelOption = (typeof LEVELS)[number];
 
-export const LOOKING_FOR_OPTIONS = [
-  "COMP_PARTNER",
-  "TRAINING_FRIENDS",
-  "DEEPER_CONNECTION",
-] as const;
+export const GENDERS = ["MALE", "FEMALE", "PREFER_NOT_TO_DISCLOSE"] as const;
+export type GenderOption = (typeof GENDERS)[number];
+
+export const LOOKING_FOR_OPTIONS = ["TEAM_MATES", "FRIENDS", "DEEPER_CONNECTION"] as const;
 export type LookingForOption = (typeof LOOKING_FOR_OPTIONS)[number];
+
+export const PB_FIELDS = [
+  "deadliftKg",
+  "cleanKg",
+  "frontSquatKg",
+  "backSquatKg",
+  "ohsKg",
+  "snatchKg",
+  "benchPressKg",
+] as const;
+export type PbField = (typeof PB_FIELDS)[number];
 
 export const signupSchema = z.object({
   name: z.string().trim().min(1, "Name is required"),
@@ -20,18 +30,43 @@ export const signupSchema = z.object({
 const emptyToUndefined = (value: unknown) =>
   value === "" || value === null || value === undefined ? undefined : value;
 
+/** Form checkboxes send "on" when checked and nothing at all when unchecked. */
+const checkboxToBoolean = z.preprocess((v) => v === "on" || v === true, z.boolean());
+
+/** A three-way Yes/No/unanswered select, sent as "true" | "false" | "". */
+const optionalYesNo = z.preprocess(
+  emptyToUndefined,
+  z
+    .enum(["true", "false"])
+    .optional()
+    .transform((v) => (v === undefined ? undefined : v === "true"))
+);
+
+const optionalPositiveKg = z.preprocess(emptyToUndefined, z.coerce.number().positive().optional());
+
 export const profileSchema = z.object({
   name: z.string().trim().min(1, "Name is required"),
   bio: z.preprocess(emptyToUndefined, z.string().trim().max(2000).optional()),
   age: z.preprocess(emptyToUndefined, z.coerce.number().int().min(13).max(120).optional()),
+  gender: z.preprocess(emptyToUndefined, z.enum(GENDERS).optional()),
   area: z.string().trim().min(1, "Area is required"),
   affiliateGym: z.string().trim().min(1, "Affiliate gym is required"),
   level: z.enum(LEVELS, { errorMap: () => ({ message: "Select a level" }) }),
-  weightKg: z.preprocess(emptyToUndefined, z.coerce.number().positive().optional()),
+  weightKg: optionalPositiveKg,
   crossfitSinceYear: z.preprocess(
     emptyToUndefined,
     z.coerce.number().int().min(1970).max(new Date().getFullYear()).optional()
   ),
   crossfitSinceMonth: z.preprocess(emptyToUndefined, z.coerce.number().int().min(1).max(12).optional()),
   lookingFor: z.array(z.enum(LOOKING_FOR_OPTIONS)).default([]),
+  isSingle: optionalYesNo,
+  showSingleBadge: checkboxToBoolean,
+  isPrivate: checkboxToBoolean,
+  deadliftKg: optionalPositiveKg,
+  cleanKg: optionalPositiveKg,
+  frontSquatKg: optionalPositiveKg,
+  backSquatKg: optionalPositiveKg,
+  ohsKg: optionalPositiveKg,
+  snatchKg: optionalPositiveKg,
+  benchPressKg: optionalPositiveKg,
 });

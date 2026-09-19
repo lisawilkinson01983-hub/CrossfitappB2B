@@ -13,11 +13,17 @@ enum Level {
   RX
 }
 
+enum Gender {
+  MALE
+  FEMALE
+  PREFER_NOT_TO_DISCLOSE
+}
+
 // SQLite has no native array type, so `lookingFor` is stored as a
 // JSON-encoded array of these values (see src/lib/lookingFor.ts).
 enum LookingFor {
-  COMP_PARTNER
-  TRAINING_FRIENDS
+  TEAM_MATES
+  FRIENDS
   DEEPER_CONNECTION
 }
 
@@ -27,9 +33,10 @@ model User {
   email        String   @unique
   passwordHash String
 
-  photo String? // path under /public, e.g. "/uploads/xyz.jpg"
-  bio   String?
-  age   Int?
+  photo  String? // path under /public, e.g. "/uploads/xyz.jpg"
+  bio    String?
+  age    Int?
+  gender Gender?
 
   // Profile fields below are optional at signup time and filled in via the
   // profile edit form, so they're nullable even though every real profile
@@ -42,8 +49,32 @@ model User {
   crossfitSinceYear  Int?
   crossfitSinceMonth Int?
 
-  // JSON-encoded array of LookingFor values, e.g. ["COMP_PARTNER"]
+  // JSON-encoded array of LookingFor values, e.g. ["TEAM_MATES"]
   lookingFor String?
+
+  // Single status: isSingle is the underlying Yes/No answer; showSingleBadge
+  // is a separate, defaulted-off opt-in to actually display the badge.
+  isSingle        Boolean?
+  showSingleBadge Boolean @default(false)
+
+  // Governs whether new followers require approval once a follow system
+  // exists; stored now so the setting has somewhere to live.
+  isPrivate Boolean @default(false)
+
+  // Key PBs (kg). Stored as individual nullable columns rather than a JSON
+  // blob since SQLite has no native JSON column type.
+  deadliftKg   Float?
+  cleanKg      Float?
+  frontSquatKg Float?
+  backSquatKg  Float?
+  ohsKg        Float?
+  snatchKg     Float?
+  benchPressKg Float?
+
+  // Placeholders for future gym-platform integrations (Wodify/TeamUp/etc.);
+  // not wired to anything yet.
+  connectedPlatform String?
+  platformUserId    String?
 
   createdAt DateTime @default(now())
 }

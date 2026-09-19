@@ -5,7 +5,7 @@ import path from "path";
 import crypto from "crypto";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { profileSchema } from "@/lib/validation";
+import { PB_FIELDS, profileSchema } from "@/lib/validation";
 
 const ALLOWED_PHOTO_TYPES: Record<string, string> = {
   "image/jpeg": "jpg",
@@ -26,6 +26,7 @@ export async function PATCH(req: Request) {
     name: formData.get("name"),
     bio: formData.get("bio"),
     age: formData.get("age"),
+    gender: formData.get("gender"),
     area: formData.get("area"),
     affiliateGym: formData.get("affiliateGym"),
     level: formData.get("level"),
@@ -33,6 +34,16 @@ export async function PATCH(req: Request) {
     crossfitSinceYear: formData.get("crossfitSinceYear"),
     crossfitSinceMonth: formData.get("crossfitSinceMonth"),
     lookingFor: formData.getAll("lookingFor"),
+    isSingle: formData.get("isSingle"),
+    showSingleBadge: formData.get("showSingleBadge"),
+    isPrivate: formData.get("isPrivate"),
+    deadliftKg: formData.get("deadliftKg"),
+    cleanKg: formData.get("cleanKg"),
+    frontSquatKg: formData.get("frontSquatKg"),
+    backSquatKg: formData.get("backSquatKg"),
+    ohsKg: formData.get("ohsKg"),
+    snatchKg: formData.get("snatchKg"),
+    benchPressKg: formData.get("benchPressKg"),
   });
 
   if (!parsed.success) {
@@ -63,12 +74,15 @@ export async function PATCH(req: Request) {
 
   const data = parsed.data;
 
+  const pbData = Object.fromEntries(PB_FIELDS.map((field) => [field, data[field] ?? null]));
+
   await prisma.user.update({
     where: { id: session.user.id },
     data: {
       name: data.name,
       bio: data.bio ?? null,
       age: data.age ?? null,
+      gender: data.gender ?? null,
       area: data.area,
       affiliateGym: data.affiliateGym,
       level: data.level,
@@ -76,6 +90,10 @@ export async function PATCH(req: Request) {
       crossfitSinceYear: data.crossfitSinceYear ?? null,
       crossfitSinceMonth: data.crossfitSinceMonth ?? null,
       lookingFor: JSON.stringify(data.lookingFor ?? []),
+      isSingle: data.isSingle ?? null,
+      showSingleBadge: data.isSingle ? data.showSingleBadge : false,
+      isPrivate: data.isPrivate,
+      ...pbData,
       ...(photoPath ? { photo: photoPath } : {}),
     },
   });

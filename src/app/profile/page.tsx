@@ -4,7 +4,15 @@ import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { LEVEL_LABELS, LOOKING_FOR_LABELS, MONTH_NAMES, parseLookingFor } from "@/lib/labels";
+import {
+  GENDER_LABELS,
+  LEVEL_LABELS,
+  LOOKING_FOR_LABELS,
+  MONTH_NAMES,
+  PB_LABELS,
+  parseLookingFor,
+} from "@/lib/labels";
+import { PB_FIELDS } from "@/lib/validation";
 import { SignOutButton } from "@/components/SignOutButton";
 
 function Field({ label, value }: { label: string; value: string | null }) {
@@ -29,6 +37,12 @@ export default async function ProfilePage() {
       ? `${user.crossfitSinceMonth ? MONTH_NAMES[user.crossfitSinceMonth - 1] + " " : ""}${user.crossfitSinceYear}`
       : null;
 
+  const pbs = PB_FIELDS.map((field) => ({ label: PB_LABELS[field], value: user[field] })).filter(
+    (pb) => pb.value != null
+  );
+
+  const showSingleBadge = user.isSingle === true && user.showSingleBadge;
+
   return (
     <main className="mx-auto max-w-2xl px-4 py-8">
       <div className="flex items-center justify-between">
@@ -45,21 +59,36 @@ export default async function ProfilePage() {
       </div>
 
       <div className="mt-6 flex items-center gap-4">
-        {user.photo ? (
-          <Image
-            src={user.photo}
-            alt={`${user.name}'s photo`}
-            width={96}
-            height={96}
-            className="h-24 w-24 rounded-full object-cover"
-          />
-        ) : (
-          <div className="flex h-24 w-24 items-center justify-center rounded-full bg-gray-200 text-2xl font-semibold text-gray-500">
-            {user.name.charAt(0).toUpperCase()}
-          </div>
-        )}
+        <div className="relative h-24 w-24">
+          {user.photo ? (
+            <Image
+              src={user.photo}
+              alt={`${user.name}'s photo`}
+              width={96}
+              height={96}
+              className="h-24 w-24 rounded-full object-cover"
+            />
+          ) : (
+            <div className="flex h-24 w-24 items-center justify-center rounded-full bg-gray-200 text-2xl font-semibold text-gray-500">
+              {user.name.charAt(0).toUpperCase()}
+            </div>
+          )}
+          {showSingleBadge && (
+            <span
+              title="Single"
+              className="absolute -bottom-0.5 -right-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-white text-sm shadow"
+            >
+              💚
+            </span>
+          )}
+        </div>
         <div>
-          <p className="text-xl font-semibold">{user.name}</p>
+          <p className="text-xl font-semibold">
+            {user.name}
+            {user.isPrivate && (
+              <span className="ml-2 align-middle text-sm font-normal text-gray-500">🔒 Private</span>
+            )}
+          </p>
           <p className="text-gray-500">{user.email}</p>
         </div>
       </div>
@@ -67,6 +96,7 @@ export default async function ProfilePage() {
       <dl className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2">
         <Field label="Bio" value={user.bio} />
         <Field label="Age" value={user.age != null ? String(user.age) : null} />
+        <Field label="Gender" value={user.gender ? GENDER_LABELS[user.gender] : null} />
         <Field label="Area" value={user.area} />
         <Field label="Affiliate gym" value={user.affiliateGym} />
         <Field label="Level" value={user.level ? LEVEL_LABELS[user.level] : null} />
@@ -76,7 +106,27 @@ export default async function ProfilePage() {
           label="Looking for"
           value={lookingFor.length ? lookingFor.map((v) => LOOKING_FOR_LABELS[v]).join(", ") : null}
         />
+        <Field
+          label="Single"
+          value={user.isSingle == null ? null : user.isSingle ? "Yes" : "No"}
+        />
       </dl>
+
+      <div className="mt-8">
+        <h2 className="text-sm font-medium text-gray-500">Key PBs (kg)</h2>
+        {pbs.length ? (
+          <dl className="mt-2 grid grid-cols-2 gap-4 sm:grid-cols-3">
+            {pbs.map((pb) => (
+              <div key={pb.label}>
+                <dt className="text-xs text-gray-500">{pb.label}</dt>
+                <dd className="text-gray-900">{pb.value}</dd>
+              </div>
+            ))}
+          </dl>
+        ) : (
+          <p className="mt-1 text-gray-400">Not set</p>
+        )}
+      </div>
     </main>
   );
 }

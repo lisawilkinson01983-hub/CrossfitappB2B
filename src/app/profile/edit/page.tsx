@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { parseLookingFor } from "@/lib/labels";
+import { PB_FIELDS } from "@/lib/validation";
 import { EditProfileForm } from "./EditProfileForm";
 
 export default async function EditProfilePage() {
@@ -21,6 +22,7 @@ export default async function EditProfilePage() {
           photo: user.photo,
           bio: user.bio ?? "",
           age: user.age ?? "",
+          gender: user.gender ?? "",
           area: user.area ?? "",
           affiliateGym: user.affiliateGym ?? "",
           level: user.level ?? "",
@@ -28,6 +30,13 @@ export default async function EditProfilePage() {
           crossfitSinceYear: user.crossfitSinceYear ?? "",
           crossfitSinceMonth: user.crossfitSinceMonth ?? "",
           lookingFor: parseLookingFor(user.lookingFor),
+          isSingle: user.isSingle,
+          showSingleBadge: user.showSingleBadge,
+          isPrivate: user.isPrivate,
+          pbs: Object.fromEntries(PB_FIELDS.map((field) => [field, user[field] ?? ""])) as Record<
+            (typeof PB_FIELDS)[number],
+            number | ""
+          >,
         }}
       />
     </main>

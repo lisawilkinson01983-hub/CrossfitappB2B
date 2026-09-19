@@ -3,14 +3,24 @@
 import { useState, type FormEvent } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { LEVELS, LOOKING_FOR_OPTIONS, type LevelOption, type LookingForOption } from "@/lib/validation";
-import { LEVEL_LABELS, LOOKING_FOR_LABELS } from "@/lib/labels";
+import {
+  GENDERS,
+  LEVELS,
+  LOOKING_FOR_OPTIONS,
+  PB_FIELDS,
+  type GenderOption,
+  type LevelOption,
+  type LookingForOption,
+  type PbField,
+} from "@/lib/validation";
+import { GENDER_LABELS, LEVEL_LABELS, LOOKING_FOR_LABELS, PB_LABELS } from "@/lib/labels";
 
 type Initial = {
   name: string;
   photo: string | null;
   bio: string;
   age: number | "";
+  gender: GenderOption | "";
   area: string;
   affiliateGym: string;
   level: LevelOption | "";
@@ -18,7 +28,17 @@ type Initial = {
   crossfitSinceYear: number | "";
   crossfitSinceMonth: number | "";
   lookingFor: LookingForOption[];
+  isSingle: boolean | null;
+  showSingleBadge: boolean;
+  isPrivate: boolean;
+  pbs: Record<PbField, number | "">;
 };
+
+/** Renders isSingle's three states as a select: unanswered / yes / no. */
+function isSingleToSelectValue(value: boolean | null): string {
+  if (value === null) return "";
+  return value ? "true" : "false";
+}
 
 export function EditProfileForm({ initial }: { initial: Initial }) {
   const router = useRouter();
@@ -26,6 +46,7 @@ export function EditProfileForm({ initial }: { initial: Initial }) {
   const [name, setName] = useState(initial.name);
   const [bio, setBio] = useState(initial.bio);
   const [age, setAge] = useState(String(initial.age));
+  const [gender, setGender] = useState(initial.gender);
   const [area, setArea] = useState(initial.area);
   const [affiliateGym, setAffiliateGym] = useState(initial.affiliateGym);
   const [level, setLevel] = useState(initial.level);
@@ -33,6 +54,15 @@ export function EditProfileForm({ initial }: { initial: Initial }) {
   const [crossfitSinceYear, setCrossfitSinceYear] = useState(String(initial.crossfitSinceYear));
   const [crossfitSinceMonth, setCrossfitSinceMonth] = useState(String(initial.crossfitSinceMonth));
   const [lookingFor, setLookingFor] = useState<LookingForOption[]>(initial.lookingFor);
+  const [isSingle, setIsSingle] = useState(isSingleToSelectValue(initial.isSingle));
+  const [showSingleBadge, setShowSingleBadge] = useState(initial.showSingleBadge);
+  const [isPrivate, setIsPrivate] = useState(initial.isPrivate);
+  const [pbs, setPbs] = useState<Record<PbField, string>>(
+    Object.fromEntries(PB_FIELDS.map((field) => [field, String(initial.pbs[field])])) as Record<
+      PbField,
+      string
+    >
+  );
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(initial.photo);
 
@@ -60,6 +90,7 @@ export function EditProfileForm({ initial }: { initial: Initial }) {
     formData.set("name", name);
     formData.set("bio", bio);
     formData.set("age", age);
+    formData.set("gender", gender);
     formData.set("area", area);
     formData.set("affiliateGym", affiliateGym);
     formData.set("level", level);
@@ -67,6 +98,10 @@ export function EditProfileForm({ initial }: { initial: Initial }) {
     formData.set("crossfitSinceYear", crossfitSinceYear);
     formData.set("crossfitSinceMonth", crossfitSinceMonth);
     lookingFor.forEach((v) => formData.append("lookingFor", v));
+    formData.set("isSingle", isSingle);
+    if (showSingleBadge) formData.set("showSingleBadge", "on");
+    if (isPrivate) formData.set("isPrivate", "on");
+    PB_FIELDS.forEach((field) => formData.set(field, pbs[field]));
     if (photoFile) formData.set("photo", photoFile);
 
     const res = await fetch("/api/profile", { method: "PATCH", body: formData });
@@ -150,18 +185,22 @@ export function EditProfileForm({ initial }: { initial: Initial }) {
         </div>
 
         <div>
-          <label htmlFor="weightKg" className="block text-sm font-medium">
-            Weight (kg)
+          <label htmlFor="gender" className="block text-sm font-medium">
+            Gender
           </label>
-          <input
-            id="weightKg"
-            type="number"
-            step="0.1"
-            min={0}
-            value={weightKg}
-            onChange={(e) => setWeightKg(e.target.value)}
-            className="mt-1 w-full rounded border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
-          />
+          <select
+            id="gender"
+            value={gender}
+            onChange={(e) => setGender(e.target.value as GenderOption)}
+            className="mt-1 w-full rounded border border-gray-300 bg-white px-3 py-2 focus:border-blue-500 focus:outline-none"
+          >
+            <option value="">Prefer not to say / unset</option>
+            {GENDERS.map((g) => (
+              <option key={g} value={g}>
+                {GENDER_LABELS[g]}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 
@@ -216,6 +255,21 @@ export function EditProfileForm({ initial }: { initial: Initial }) {
       </div>
 
       <div>
+        <label htmlFor="weightKg" className="block text-sm font-medium">
+          Weight (kg)
+        </label>
+        <input
+          id="weightKg"
+          type="number"
+          step="0.1"
+          min={0}
+          value={weightKg}
+          onChange={(e) => setWeightKg(e.target.value)}
+          className="mt-1 w-full rounded border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
+        />
+      </div>
+
+      <div>
         <span className="block text-sm font-medium">CrossFitting since</span>
         <div className="mt-1 grid grid-cols-2 gap-4">
           <select
@@ -245,6 +299,28 @@ export function EditProfileForm({ initial }: { initial: Initial }) {
       </div>
 
       <fieldset>
+        <legend className="text-sm font-medium">Key PBs (kg)</legend>
+        <div className="mt-2 grid grid-cols-2 gap-4 sm:grid-cols-3">
+          {PB_FIELDS.map((field) => (
+            <div key={field}>
+              <label htmlFor={field} className="block text-xs text-gray-600">
+                {PB_LABELS[field]}
+              </label>
+              <input
+                id={field}
+                type="number"
+                step="0.5"
+                min={0}
+                value={pbs[field]}
+                onChange={(e) => setPbs((prev) => ({ ...prev, [field]: e.target.value }))}
+                className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+              />
+            </div>
+          ))}
+        </div>
+      </fieldset>
+
+      <fieldset>
         <legend className="text-sm font-medium">Looking for</legend>
         <div className="mt-2 flex flex-col gap-2">
           {LOOKING_FOR_OPTIONS.map((option) => (
@@ -259,6 +335,45 @@ export function EditProfileForm({ initial }: { initial: Initial }) {
           ))}
         </div>
       </fieldset>
+
+      <div>
+        <label htmlFor="isSingle" className="block text-sm font-medium">
+          Single?
+        </label>
+        <select
+          id="isSingle"
+          value={isSingle}
+          onChange={(e) => {
+            setIsSingle(e.target.value);
+            if (e.target.value !== "true") setShowSingleBadge(false);
+          }}
+          className="mt-1 w-full max-w-xs rounded border border-gray-300 bg-white px-3 py-2 focus:border-blue-500 focus:outline-none"
+        >
+          <option value="">Prefer not to say</option>
+          <option value="true">Yes</option>
+          <option value="false">No</option>
+        </select>
+
+        {isSingle === "true" && (
+          <label className="mt-2 flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={showSingleBadge}
+              onChange={(e) => setShowSingleBadge(e.target.checked)}
+            />
+            Show a single badge on my profile photo
+          </label>
+        )}
+      </div>
+
+      <label className="flex items-center gap-2 text-sm">
+        <input
+          type="checkbox"
+          checked={isPrivate}
+          onChange={(e) => setIsPrivate(e.target.checked)}
+        />
+        Private profile (new followers will need to be approved)
+      </label>
 
       <button
         type="submit"
