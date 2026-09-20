@@ -1,4 +1,11 @@
-import type { GenderOption, LevelOption, LookingForOption, PbField } from "./validation";
+import type {
+  GenderOption,
+  LevelOption,
+  LookingForOption,
+  PbField,
+  WorkoutIntensityOption,
+  WorkoutUnitOption,
+} from "./validation";
 
 export const LEVEL_LABELS: Record<LevelOption, string> = {
   SCALED: "Scaled",
@@ -26,6 +33,17 @@ export const PB_LABELS: Record<PbField, string> = {
   ohsKg: "OHS",
   snatchKg: "Snatch",
   benchPressKg: "Bench press",
+};
+
+export const WORKOUT_UNIT_LABELS: Record<WorkoutUnitOption, string> = {
+  TIME: "Time",
+  REPS: "Reps",
+  WEIGHT: "Weight",
+};
+
+export const WORKOUT_INTENSITY_LABELS: Record<WorkoutIntensityOption, string> = {
+  RX: "Rx",
+  SCALED: "Scaled",
 };
 
 export const MONTH_NAMES = [

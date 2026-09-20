@@ -9,6 +9,12 @@ export type GenderOption = (typeof GENDERS)[number];
 export const LOOKING_FOR_OPTIONS = ["TEAM_MATES", "FRIENDS", "DEEPER_CONNECTION"] as const;
 export type LookingForOption = (typeof LOOKING_FOR_OPTIONS)[number];
 
+export const WORKOUT_UNITS = ["TIME", "REPS", "WEIGHT"] as const;
+export type WorkoutUnitOption = (typeof WORKOUT_UNITS)[number];
+
+export const WORKOUT_INTENSITIES = ["RX", "SCALED"] as const;
+export type WorkoutIntensityOption = (typeof WORKOUT_INTENSITIES)[number];
+
 export const PB_FIELDS = [
   "deadliftKg",
   "cleanKg",
@@ -69,4 +75,14 @@ export const profileSchema = z.object({
   ohsKg: optionalPositiveKg,
   snatchKg: optionalPositiveKg,
   benchPressKg: optionalPositiveKg,
+});
+
+export const workoutSchema = z.object({
+  wodName: z.string().trim().min(1, "WOD name is required"),
+  score: z.string().trim().min(1, "Score is required"),
+  unit: z.enum(WORKOUT_UNITS, { errorMap: () => ({ message: "Select a unit" }) }),
+  intensity: z.enum(WORKOUT_INTENSITIES, { errorMap: () => ({ message: "Select Rx or Scaled" }) }),
+  notes: z.preprocess(emptyToUndefined, z.string().trim().max(2000).optional()),
+  isPb: checkboxToBoolean,
+  sharedToFeed: checkboxToBoolean,
 });

@@ -27,6 +27,19 @@ enum LookingFor {
   DEEPER_CONNECTION
 }
 
+enum WorkoutUnit {
+  TIME
+  REPS
+  WEIGHT
+}
+
+// A per-workout Rx/Scaled call, distinct from the athlete's overall Level
+// (which also allows INTERMEDIATE) — a single WOD is only ever Rx'd or scaled.
+enum WorkoutIntensity {
+  RX
+  SCALED
+}
+
 model User {
   id           String   @id @default(cuid())
   name         String
@@ -77,4 +90,33 @@ model User {
   platformUserId    String?
 
   createdAt DateTime @default(now())
+
+  workouts Workout[]
+}
+
+model Workout {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  wodName   String
+  score     String // free text: "12:34", "150 reps", "225 lb", "5 rounds + 10 reps", etc.
+  unit      WorkoutUnit
+  intensity WorkoutIntensity
+  notes     String?
+  photo     String? // path under /public, e.g. "/uploads/xyz.jpg"
+
+  isPb Boolean @default(false)
+
+  // Intent to share to the feed; the feed itself doesn't exist yet, so this
+  // is stored for when it does rather than acted on now.
+  sharedToFeed Boolean @default(false)
+
+  // "manual" for now; a platform name (wodify/teamup/boxmate) once Tier 2
+  // gym-platform integrations exist.
+  source String @default("manual")
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
 }

@@ -1,0 +1,60 @@
+import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+import { workoutSchema } from "@/lib/validation";
+import { PhotoUploadError, savePhotoUpload } from "@/lib/uploads";
+
+export async function POST(req: Request) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+  }
+
+  const formData = await req.formData();
+
+  const parsed = workoutSchema.safeParse({
+    wodName: formData.get("wodName"),
+    score: formData.get("score"),
+    unit: formData.get("unit"),
+    intensity: formData.get("intensity"),
+    notes: formData.get("notes"),
+    isPb: formData.get("isPb"),
+    sharedToFeed: formData.get("sharedToFeed"),
+  });
+
+  if (!parsed.success) {
+    return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
+  }
+
+  let photoPath: string | undefined;
+  const photo = formData.get("photo");
+  if (photo instanceof File && photo.size > 0) {
+    try {
+      photoPath = await savePhotoUpload(photo, session.user.id);
+    } catch (err) {
+      if (err instanceof PhotoUploadError) {
+        return NextResponse.json({ error: err.message }, { status: 400 });
+      }
+      throw err;
+    }
+  }
+
+  const data = parsed.data;
+
+  const workout = await prisma.workout.create({
+    data: {
+      userId: session.user.id,
+      wodName: data.wodName,
+      score: data.score,
+      unit: data.unit,
+      intensity: data.intensity,
+      notes: data.notes ?? null,
+      isPb: data.isPb,
+      sharedToFeed: data.sharedToFeed,
+      photo: photoPath ?? null,
+    },
+  });
+
+  return NextResponse.json({ ok: true, id: workout.id });
+}

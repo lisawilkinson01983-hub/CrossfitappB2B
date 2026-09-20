@@ -1,18 +1,9 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import { mkdir, writeFile } from "fs/promises";
-import path from "path";
-import crypto from "crypto";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PB_FIELDS, profileSchema } from "@/lib/validation";
-
-const ALLOWED_PHOTO_TYPES: Record<string, string> = {
-  "image/jpeg": "jpg",
-  "image/png": "png",
-  "image/webp": "webp",
-};
-const MAX_PHOTO_BYTES = 5 * 1024 * 1024; // 5MB
+import { PhotoUploadError, savePhotoUpload } from "@/lib/uploads";
 
 export async function PATCH(req: Request) {
   const session = await getServerSession(authOptions);
@@ -53,23 +44,14 @@ export async function PATCH(req: Request) {
   let photoPath: string | undefined;
   const photo = formData.get("photo");
   if (photo instanceof File && photo.size > 0) {
-    const ext = ALLOWED_PHOTO_TYPES[photo.type];
-    if (!ext) {
-      return NextResponse.json(
-        { error: "Photo must be a JPEG, PNG, or WebP image" },
-        { status: 400 }
-      );
+    try {
+      photoPath = await savePhotoUpload(photo, session.user.id);
+    } catch (err) {
+      if (err instanceof PhotoUploadError) {
+        return NextResponse.json({ error: err.message }, { status: 400 });
+      }
+      throw err;
     }
-    if (photo.size > MAX_PHOTO_BYTES) {
-      return NextResponse.json({ error: "Photo must be smaller than 5MB" }, { status: 400 });
-    }
-
-    const filename = `${session.user.id}-${crypto.randomUUID()}.${ext}`;
-    const uploadDir = path.join(process.cwd(), "public", "uploads");
-    await mkdir(uploadDir, { recursive: true });
-    const bytes = Buffer.from(await photo.arrayBuffer());
-    await writeFile(path.join(uploadDir, filename), bytes);
-    photoPath = `/uploads/${filename}`;
   }
 
   const data = parsed.data;

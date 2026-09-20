@@ -14,6 +14,7 @@ import {
 } from "@/lib/labels";
 import { PB_FIELDS } from "@/lib/validation";
 import { SignOutButton } from "@/components/SignOutButton";
+import { WorkoutCard } from "@/components/WorkoutCard";
 
 function Field({ label, value }: { label: string; value: string | null }) {
   return (
@@ -42,6 +43,12 @@ export default async function ProfilePage() {
   );
 
   const showSingleBadge = user.isSingle === true && user.showSingleBadge;
+
+  const recentWorkouts = await prisma.workout.findMany({
+    where: { userId: user.id },
+    orderBy: { createdAt: "desc" },
+    take: 3,
+  });
 
   return (
     <main className="mx-auto max-w-2xl px-4 py-8">
@@ -125,6 +132,31 @@ export default async function ProfilePage() {
           </dl>
         ) : (
           <p className="mt-1 text-gray-400">Not set</p>
+        )}
+      </div>
+
+      <div className="mt-8">
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-medium text-gray-500">Workout history</h2>
+          <div className="flex gap-3 text-sm">
+            <Link href="/workouts/new" className="text-blue-600 underline">
+              Log a workout
+            </Link>
+            {recentWorkouts.length > 0 && (
+              <Link href="/workouts" className="text-blue-600 underline">
+                View all
+              </Link>
+            )}
+          </div>
+        </div>
+        {recentWorkouts.length ? (
+          <div className="mt-2 flex flex-col gap-3">
+            {recentWorkouts.map((workout) => (
+              <WorkoutCard key={workout.id} workout={workout} />
+            ))}
+          </div>
+        ) : (
+          <p className="mt-1 text-gray-400">No workouts logged yet.</p>
         )}
       </div>
     </main>
