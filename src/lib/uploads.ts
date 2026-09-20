@@ -11,16 +11,27 @@ const MAX_PHOTO_BYTES = 5 * 1024 * 1024; // 5MB
 
 export class PhotoUploadError extends Error {}
 
-/** Validates and writes an uploaded photo under /public/uploads, returning its public path. */
+/**
+ * Directory uploaded photos are written to. Deliberately outside /public:
+ * on a host with a persistent disk (e.g. a Railway volume), this env var
+ * points at that disk; locally it defaults to a plain top-level folder.
+ * Files are served back out via the /media/[filename] route, not Next's
+ * static /public handling.
+ */
+export function uploadsDir(): string {
+  return process.env.UPLOADS_DIR || path.join(process.cwd(), "uploads");
+}
+
+/** Validates and writes an uploaded photo, returning its public /media/... path. */
 export async function savePhotoUpload(file: File, ownerId: string): Promise<string> {
   const ext = ALLOWED_PHOTO_TYPES[file.type];
   if (!ext) throw new PhotoUploadError("Photo must be a JPEG, PNG, or WebP image");
   if (file.size > MAX_PHOTO_BYTES) throw new PhotoUploadError("Photo must be smaller than 5MB");
 
   const filename = `${ownerId}-${crypto.randomUUID()}.${ext}`;
-  const uploadDir = path.join(process.cwd(), "public", "uploads");
-  await mkdir(uploadDir, { recursive: true });
+  const dir = uploadsDir();
+  await mkdir(dir, { recursive: true });
   const bytes = Buffer.from(await file.arrayBuffer());
-  await writeFile(path.join(uploadDir, filename), bytes);
-  return `/uploads/${filename}`;
+  await writeFile(path.join(dir, filename), bytes);
+  return `/media/${filename}`;
 }

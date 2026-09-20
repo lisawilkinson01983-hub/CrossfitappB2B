@@ -46,7 +46,7 @@ model User {
   email        String   @unique
   passwordHash String
 
-  photo  String? // path under /public, e.g. "/uploads/xyz.jpg"
+  photo  String? // served path, e.g. "/media/xyz.jpg" (see src/lib/uploads.ts)
   bio    String?
   age    Int?
   gender Gender?
@@ -104,7 +104,7 @@ model Workout {
   unit      WorkoutUnit
   intensity WorkoutIntensity
   notes     String?
-  photo     String? // path under /public, e.g. "/uploads/xyz.jpg"
+  photo     String? // served path, e.g. "/media/xyz.jpg" (see src/lib/uploads.ts)
 
   isPb Boolean @default(false)
 

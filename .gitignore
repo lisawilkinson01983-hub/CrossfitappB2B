@@ -17,9 +17,8 @@
 /prisma/dev.db
 /prisma/dev.db-journal
 
-# uploaded user content
-/public/uploads/*
-!/public/uploads/.gitkeep
+# uploaded user content (served via the /media route, see src/lib/uploads.ts)
+/uploads/
 
 # misc
 .DS_Store
