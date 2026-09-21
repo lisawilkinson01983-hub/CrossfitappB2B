@@ -29,7 +29,7 @@ const BLANK_INITIAL: Initial = {
   intensity: "",
   notes: "",
   isPb: false,
-  sharedToFeed: false,
+  sharedToFeed: true,
   photo: null,
 };
 
