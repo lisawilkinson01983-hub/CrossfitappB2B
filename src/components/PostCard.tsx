@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { LEVEL_LABELS, WORKOUT_INTENSITY_LABELS, WORKOUT_UNIT_LABELS } from "@/lib/labels";
 import type { LevelOption, WorkoutIntensityOption, WorkoutUnitOption } from "@/lib/validation";
@@ -94,7 +95,7 @@ export function PostCard({ post }: { post: PostCardData }) {
       }`}
     >
       <div className="flex items-start justify-between gap-4">
-        <div className="flex items-center gap-3">
+        <Link href={`/profile/${post.author.id}`} className="flex items-center gap-3">
           {post.author.photo ? (
             <Image
               src={post.author.photo}
@@ -110,7 +111,7 @@ export function PostCard({ post }: { post: PostCardData }) {
           )}
           <div>
             <div className="flex items-center gap-2">
-              <span className="font-semibold">{post.author.name}</span>
+              <span className="font-semibold hover:underline">{post.author.name}</span>
               {post.author.level && (
                 <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600">
                   {LEVEL_LABELS[post.author.level]}
@@ -120,7 +121,7 @@ export function PostCard({ post }: { post: PostCardData }) {
             </div>
             <p className="text-xs text-gray-400">{post.createdAt.toLocaleString()}</p>
           </div>
-        </div>
+        </Link>
         {post.isOwner && (
           <button
             type="button"
