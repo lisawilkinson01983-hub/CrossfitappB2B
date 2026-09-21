@@ -1,9 +1,11 @@
 @import "tailwindcss";
 
 @theme {
-  /* Box 2 Box brand palette — single fixed light theme, no dark mode. */
-  --color-b2b-bg: #fbf6fa;
-  --color-b2b-card: #ffffff;
+  /* Box 2 Box brand palette — single fixed light theme, no dark mode.
+     Cards carry a soft tint and sit on a white page, matching the
+     prototype (inverse of white cards on a tinted page). */
+  --color-b2b-bg: #ffffff;
+  --color-b2b-card: #f6eef7;
   --color-b2b-ink: #2b0a47;
 
   --color-b2b-pink: #eb4e94;

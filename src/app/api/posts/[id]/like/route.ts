@@ -24,6 +24,11 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
     await prisma.like.delete({ where: { id: existing.id } });
   } else {
     await prisma.like.create({ data: { userId: session.user.id, postId } });
+    if (post.userId !== session.user.id) {
+      await prisma.notification.create({
+        data: { userId: post.userId, actorId: session.user.id, type: "LIKE", postId },
+      });
+    }
   }
 
   const count = await prisma.like.count({ where: { postId } });

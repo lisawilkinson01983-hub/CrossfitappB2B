@@ -46,7 +46,7 @@ export default async function ConversationPage({
   });
 
   return (
-    <main className="mx-auto max-w-2xl px-4 py-8">
+    <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
       <NavBar />
       <div className="mt-6 flex items-center gap-3">
         <Link href="/messages" className="text-sm text-b2b-pink underline">

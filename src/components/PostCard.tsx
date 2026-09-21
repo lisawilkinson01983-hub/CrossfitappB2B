@@ -143,8 +143,11 @@ export function PostCard({ post, currentUserId }: { post: PostCardData; currentU
 
   return (
     <div
-      className={`rounded-xl border p-4 ${
-        isPb ? "border-yellow-400 bg-yellow-50" : "border-b2b-purple/10 bg-b2b-card"
+      id={`post-${post.id}`}
+      className={`rounded-xl border bg-b2b-card p-4 ${
+        isPb
+          ? "border-yellow-400 shadow-[0_0_0_1px_rgba(240,192,32,0.35),0_8px_20px_-12px_rgba(240,192,32,0.6)]"
+          : "border-b2b-purple/10"
       }`}
     >
       <div className="flex items-start justify-between gap-4">

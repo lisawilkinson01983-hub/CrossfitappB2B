@@ -28,6 +28,12 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     include: { user: { select: { id: true, name: true } } },
   });
 
+  if (post.userId !== session.user.id) {
+    await prisma.notification.create({
+      data: { userId: post.userId, actorId: session.user.id, type: "COMMENT", postId },
+    });
+  }
+
   // Shaped to match what the feed's initial server render sends down
   // (author, not the raw Prisma relation name user) — PostCard expects
   // comment.author on every comment, including ones it appends itself.

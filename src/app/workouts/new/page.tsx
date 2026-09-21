@@ -9,7 +9,7 @@ export default async function NewWorkoutPage() {
   if (!session?.user) redirect("/login");
 
   return (
-    <main className="mx-auto max-w-2xl px-4 py-8">
+    <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
       <NavBar />
       <h1 className="mt-6 text-2xl font-bold">Log a workout</h1>
       <WorkoutForm />

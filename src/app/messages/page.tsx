@@ -42,7 +42,7 @@ export default async function MessagesPage() {
     .sort((a, b) => b.sortAt.getTime() - a.sortAt.getTime());
 
   return (
-    <main className="mx-auto max-w-2xl px-4 py-8">
+    <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
       <NavBar />
       <h1 className="mt-6 text-2xl font-bold">Messages</h1>
 

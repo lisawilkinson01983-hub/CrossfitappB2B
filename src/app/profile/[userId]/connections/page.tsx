@@ -69,7 +69,7 @@ export default async function ConnectionsPage({
   const myMutedIds = new Set(myMutes.map((m) => m.mutedUserId));
 
   return (
-    <main className="mx-auto max-w-2xl px-4 py-8">
+    <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
       <NavBar />
 
       <h1 className="mt-6 text-2xl font-bold">{user.name}'s connections</h1>
