@@ -14,6 +14,9 @@ import {
   type PbField,
 } from "@/lib/validation";
 import { GENDER_LABELS, LEVEL_LABELS, LOOKING_FOR_LABELS, PB_LABELS } from "@/lib/labels";
+import { GYM_OPTIONS } from "@/lib/gyms";
+
+const OTHER_GYM = "OTHER";
 
 type Initial = {
   name: string;
@@ -49,6 +52,9 @@ export function EditProfileForm({ initial }: { initial: Initial }) {
   const [gender, setGender] = useState(initial.gender);
   const [area, setArea] = useState(initial.area);
   const [affiliateGym, setAffiliateGym] = useState(initial.affiliateGym);
+  const [isOtherGym, setIsOtherGym] = useState(
+    initial.affiliateGym !== "" && !(GYM_OPTIONS as readonly string[]).includes(initial.affiliateGym)
+  );
   const [level, setLevel] = useState(initial.level);
   const [weightKg, setWeightKg] = useState(String(initial.weightKg));
   const [crossfitSinceYear, setCrossfitSinceYear] = useState(String(initial.crossfitSinceYear));
@@ -222,14 +228,41 @@ export function EditProfileForm({ initial }: { initial: Initial }) {
         <label htmlFor="affiliateGym" className="block text-sm font-medium">
           Affiliate gym
         </label>
-        <input
+        <select
           id="affiliateGym"
-          type="text"
           required
-          value={affiliateGym}
-          onChange={(e) => setAffiliateGym(e.target.value)}
-          className="mt-1 w-full rounded border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
-        />
+          value={isOtherGym ? OTHER_GYM : affiliateGym}
+          onChange={(e) => {
+            if (e.target.value === OTHER_GYM) {
+              setIsOtherGym(true);
+              setAffiliateGym("");
+            } else {
+              setIsOtherGym(false);
+              setAffiliateGym(e.target.value);
+            }
+          }}
+          className="mt-1 w-full rounded border border-gray-300 bg-white px-3 py-2 focus:border-blue-500 focus:outline-none"
+        >
+          <option value="" disabled>
+            Select a gym
+          </option>
+          {GYM_OPTIONS.map((gym) => (
+            <option key={gym} value={gym}>
+              {gym}
+            </option>
+          ))}
+          <option value={OTHER_GYM}>Other (not listed)</option>
+        </select>
+        {isOtherGym && (
+          <input
+            type="text"
+            required
+            placeholder="Enter your gym name"
+            value={affiliateGym}
+            onChange={(e) => setAffiliateGym(e.target.value)}
+            className="mt-2 w-full rounded border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
+          />
+        )}
       </div>
 
       <div>

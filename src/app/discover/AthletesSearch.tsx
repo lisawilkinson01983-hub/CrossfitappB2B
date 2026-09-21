@@ -6,6 +6,7 @@ import { FollowButton, type FollowStatus } from "@/components/FollowButton";
 import { BlockMuteControls } from "@/components/BlockMuteControls";
 import { GENDERS, LEVELS, LOOKING_FOR_OPTIONS, type LookingForOption } from "@/lib/validation";
 import { GENDER_LABELS, LEVEL_LABELS, LOOKING_FOR_LABELS, parseLookingFor } from "@/lib/labels";
+import { GYM_OPTIONS } from "@/lib/gyms";
 
 // "Prefer not to disclose" is a profile-level privacy choice, not a search filter.
 const SEARCHABLE_GENDERS = GENDERS.filter((g) => g !== "PREFER_NOT_TO_DISCLOSE");
@@ -98,13 +99,19 @@ export async function AthletesSearch({
             <label htmlFor="gym" className="block text-sm font-medium">
               Affiliate gym
             </label>
-            <input
+            <select
               id="gym"
               name="gym"
-              type="text"
               defaultValue={gym}
-              className="mt-1 w-full rounded border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
-            />
+              className="mt-1 w-full rounded border border-gray-300 bg-white px-3 py-2 focus:border-blue-500 focus:outline-none"
+            >
+              <option value="">Any</option>
+              {GYM_OPTIONS.map((g) => (
+                <option key={g} value={g}>
+                  {g}
+                </option>
+              ))}
+            </select>
           </div>
           <div>
             <label htmlFor="area" className="block text-sm font-medium">
