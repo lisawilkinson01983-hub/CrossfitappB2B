@@ -12,8 +12,8 @@ export default function MissionPage() {
         One community.
       </h1>
       <p className="mt-4 max-w-md text-white/80">
-        Box 2 Box connects CrossFit athletes beyond their own affiliate — find training
-        partners, teammates, friends and maybe even something deeper.
+        Box 2 Box connects CrossFit athletes beyond their own affiliate, helping them find
+        training partners, teammates, friends and maybe even something deeper.
       </p>
       <p className="mt-4 max-w-md text-white/80">
         Share your wins, discover events, and build a network that doesn&apos;t stop at
