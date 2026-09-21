@@ -6,11 +6,18 @@ export default function MissionPage() {
     <main className="flex min-h-screen flex-col items-center justify-center bg-b2b-violet px-4 text-center text-white">
       <Logo size="sm" />
 
-      <h1 className="mt-8 text-3xl font-normal">Why Box 2 Box?</h1>
+      <h1 className="mt-8 text-3xl font-normal leading-tight">
+        Every box.
+        <br />
+        One community.
+      </h1>
       <p className="mt-4 max-w-md text-white/80">
-        CrossFit is bigger than any one box. Box 2 Box connects you with athletes across
-        every affiliate near you — training partners, friends, or something more —
-        wherever you call home.
+        Box 2 Box connects CrossFit athletes beyond their own affiliate — find training
+        partners, teammates, friends and maybe even something deeper.
+      </p>
+      <p className="mt-4 max-w-md text-white/80">
+        Share your wins, discover events, and build a network that doesn&apos;t stop at
+        your gym&apos;s front door.
       </p>
 
       <div className="mt-10 flex w-full max-w-xs flex-col gap-3">
