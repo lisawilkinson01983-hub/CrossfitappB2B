@@ -22,33 +22,33 @@ export function IncomingFollowRequests({ requests }: { requests: RequestItem[] }
   if (requests.length === 0) return null;
 
   return (
-    <div className="mt-8 rounded border border-gray-200 bg-b2b-card p-4">
-      <h2 className="text-sm font-medium text-gray-500">Follow requests</h2>
-      <div className="mt-2 flex flex-col gap-2">
-        {requests.map((req) => (
-          <div key={req.id} className="flex items-center justify-between text-sm">
-            <span>{req.requester.name}</span>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => respond(req.id, "accept")}
-                disabled={busyId === req.id}
-                className="rounded bg-b2b-pink px-2 py-1 text-xs font-medium text-white disabled:opacity-50"
-              >
-                Accept
-              </button>
-              <button
-                type="button"
-                onClick={() => respond(req.id, "decline")}
-                disabled={busyId === req.id}
-                className="rounded border border-gray-300 px-2 py-1 text-xs text-gray-700 disabled:opacity-50"
-              >
-                Decline
-              </button>
-            </div>
+    <div className="flex flex-col gap-2">
+      {requests.map((req) => (
+        <div
+          key={req.id}
+          className="flex items-center justify-between rounded-lg border border-b2b-purple/10 bg-b2b-bg px-3 py-2 text-sm"
+        >
+          <span>{req.requester.name}</span>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => respond(req.id, "accept")}
+              disabled={busyId === req.id}
+              className="rounded bg-b2b-pink px-2 py-1 text-xs font-medium text-white disabled:opacity-50"
+            >
+              Accept
+            </button>
+            <button
+              type="button"
+              onClick={() => respond(req.id, "decline")}
+              disabled={busyId === req.id}
+              className="rounded border border-b2b-purple/20 px-2 py-1 text-xs text-b2b-ink/70 disabled:opacity-50"
+            >
+              Decline
+            </button>
           </div>
-        ))}
-      </div>
+        </div>
+      ))}
     </div>
   );
 }

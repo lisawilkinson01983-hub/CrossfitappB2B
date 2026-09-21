@@ -10,12 +10,13 @@ import {
 } from "@/lib/labels";
 import { PB_FIELDS } from "@/lib/validation";
 import { OTHER_GYM } from "@/lib/gyms";
+import { SectionCard } from "@/components/SectionCard";
 
 function Field({ label, value }: { label: string; value: string | null }) {
   return (
     <div>
-      <dt className="text-sm font-medium text-gray-500">{label}</dt>
-      <dd className="mt-0.5 text-b2b-ink">{value ?? <span className="text-gray-400">Not set</span>}</dd>
+      <dt className="text-xs font-medium uppercase tracking-wide text-b2b-ink/40">{label}</dt>
+      <dd className="mt-0.5 text-b2b-ink">{value ?? <span className="text-b2b-ink/30">Not set</span>}</dd>
     </div>
   );
 }
@@ -39,73 +40,77 @@ export function ProfileDetails({ user, showEmail }: { user: User; showEmail: boo
       : user.affiliateGym;
 
   return (
-    <>
-      <div className="flex items-center gap-4">
-        <div className="relative h-24 w-24">
-          {user.photo ? (
-            <Image
-              src={user.photo}
-              alt={`${user.name}'s photo`}
-              width={96}
-              height={96}
-              className="h-24 w-24 rounded-full object-cover"
-            />
-          ) : (
-            <div className="flex h-24 w-24 items-center justify-center rounded-full bg-gray-200 text-2xl font-semibold text-gray-500">
-              {user.name.charAt(0).toUpperCase()}
-            </div>
-          )}
-          {showSingleBadge && (
-            <span
-              title="Single"
-              className="absolute -bottom-0.5 -right-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-b2b-card text-sm shadow"
-            >
-              💚
-            </span>
-          )}
-        </div>
-        <div>
-          <p className="text-xl font-semibold">
-            {user.name}
-            {user.isPrivate && (
-              <span className="ml-2 align-middle text-sm font-normal text-gray-500">🔒 Private</span>
+    <div className="flex flex-col gap-6">
+      <SectionCard>
+        <div className="flex items-center gap-4">
+          <div className="relative h-24 w-24">
+            {user.photo ? (
+              <Image
+                src={user.photo}
+                alt={`${user.name}'s photo`}
+                width={96}
+                height={96}
+                className="h-24 w-24 rounded-full object-cover"
+              />
+            ) : (
+              <div className="flex h-24 w-24 items-center justify-center rounded-full bg-b2b-purple/10 text-2xl font-semibold text-b2b-purple">
+                {user.name.charAt(0).toUpperCase()}
+              </div>
             )}
-          </p>
-          {showEmail && <p className="text-gray-500">{user.email}</p>}
+            {showSingleBadge && (
+              <span
+                title="Single"
+                className="absolute -bottom-0.5 -right-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-b2b-card text-sm shadow"
+              >
+                💚
+              </span>
+            )}
+          </div>
+          <div>
+            <p className="text-xl font-semibold">
+              {user.name}
+              {user.isPrivate && (
+                <span className="ml-2 align-middle text-sm font-normal text-b2b-ink/50">🔒 Private</span>
+              )}
+            </p>
+            {showEmail && <p className="text-b2b-ink/50">{user.email}</p>}
+          </div>
         </div>
-      </div>
 
-      <dl className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2">
-        <Field label="Bio" value={user.bio} />
-        <Field label="Age" value={user.age != null ? String(user.age) : null} />
-        <Field label="Gender" value={user.gender ? GENDER_LABELS[user.gender] : null} />
-        <Field label="Area" value={user.area} />
-        <Field label="Affiliate gym" value={affiliateGymDisplay} />
-        <Field label="Level" value={user.level ? LEVEL_LABELS[user.level] : null} />
-        <Field label="Weight (kg)" value={user.weightKg != null ? String(user.weightKg) : null} />
-        <Field label="CrossFitting since" value={crossfitSince} />
-        <Field
-          label="Looking for"
-          value={lookingFor.length ? lookingFor.map((v) => LOOKING_FOR_LABELS[v]).join(", ") : null}
-        />
-        <Field label="Single" value={user.isSingle == null ? null : user.isSingle ? "Yes" : "No"} />
-      </dl>
+        <dl className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2">
+          <Field label="Bio" value={user.bio} />
+          <Field label="Age" value={user.age != null ? String(user.age) : null} />
+          <Field label="Gender" value={user.gender ? GENDER_LABELS[user.gender] : null} />
+          <Field label="Area" value={user.area} />
+          <Field label="Affiliate gym" value={affiliateGymDisplay} />
+          <Field label="Level" value={user.level ? LEVEL_LABELS[user.level] : null} />
+          <Field label="Weight (kg)" value={user.weightKg != null ? String(user.weightKg) : null} />
+          <Field label="CrossFitting since" value={crossfitSince} />
+          <Field
+            label="Looking for"
+            value={lookingFor.length ? lookingFor.map((v) => LOOKING_FOR_LABELS[v]).join(", ") : null}
+          />
+          <Field label="Single" value={user.isSingle == null ? null : user.isSingle ? "Yes" : "No"} />
+        </dl>
+      </SectionCard>
 
-      <div className="mt-8">
-        <h2 className="text-sm font-medium text-gray-500">Key PBs (kg)</h2>
+      <SectionCard title="Key PBs (kg)">
         {pbs.length ? (
-          <dl className="mt-2 grid grid-cols-2 gap-4 sm:grid-cols-3">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             {pbs.map((pb) => (
-              <div key={pb.label}>
-                <dt className="text-xs text-gray-500">{pb.label}</dt>
-                <dd className="text-b2b-ink">{pb.value}</dd>
+              <div
+                key={pb.label}
+                className="rounded-lg border border-b2b-purple/10 bg-b2b-bg px-3 py-2"
+              >
+                <p className="text-xs text-b2b-ink/50">{pb.label}</p>
+                <p className="mt-0.5 text-lg font-semibold text-b2b-ink">{pb.value}</p>
               </div>
             ))}
-          </dl>
+          </div>
         ) : (
-          <p className="mt-1 text-gray-400">Not set</p>
+          <p className="text-b2b-ink/40">Not set</p>
         )}
-      </div>
-    </>
+      </SectionCard>
+    </div>
   );
 }

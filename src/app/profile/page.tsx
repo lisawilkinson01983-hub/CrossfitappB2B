@@ -5,6 +5,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NavBar } from "@/components/NavBar";
 import { ProfileDetails } from "@/components/ProfileDetails";
+import { SectionCard } from "@/components/SectionCard";
 import { WorkoutCard } from "@/components/WorkoutCard";
 import { IncomingFollowRequests } from "@/components/IncomingFollowRequests";
 import { GymUpdateNudge } from "@/components/GymUpdateNudge";
@@ -45,85 +46,93 @@ export default async function ProfilePage() {
     <main className="mx-auto max-w-2xl px-4 py-8">
       <NavBar />
 
-      <div className="mt-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Your profile</h1>
-        <Link
-          href="/profile/edit"
-          className="rounded bg-b2b-pink px-3 py-1.5 text-sm font-medium text-white hover:bg-b2b-pink-dark"
-        >
-          Edit profile
-        </Link>
-      </div>
-
-      <div className="mt-4 flex gap-4 text-sm">
-        <Link href={`/profile/${user.id}/connections?tab=followers`} className="text-b2b-pink underline">
-          {followerCount} followers
-        </Link>
-        <Link href={`/profile/${user.id}/connections?tab=following`} className="text-b2b-pink underline">
-          {followingCount} following
-        </Link>
-      </div>
-
-      {suggestedGym && <GymUpdateNudge suggestedGym={suggestedGym} />}
-
-      <div className="mt-6">
-        <ProfileDetails user={user} showEmail />
-      </div>
-
-      <IncomingFollowRequests
-        requests={incomingRequests.map((r) => ({ id: r.id, requester: r.requester }))}
-      />
-
-      {competingIn.length > 0 && (
-        <div className="mt-8">
+      <div className="mt-6 flex flex-col gap-6">
+        <SectionCard>
           <div className="flex items-center justify-between">
-            <h2 className="text-sm font-medium text-gray-500">Competing in</h2>
-            <Link href="/discover?view=events" className="text-sm text-b2b-pink underline">
-              Browse events
+            <h1 className="text-2xl font-bold">Your profile</h1>
+            <Link
+              href="/profile/edit"
+              className="rounded bg-b2b-pink px-3 py-1.5 text-sm font-medium text-white hover:bg-b2b-pink-dark"
+            >
+              Edit profile
             </Link>
           </div>
-          <div className="mt-2 flex flex-col gap-2">
-            {competingIn.map((event) => (
-              <div key={event.id} className="rounded border border-gray-200 bg-b2b-card p-3">
-                <p className="font-medium">{event.name}</p>
-                <p className="text-sm text-gray-500">
-                  {event.date.toLocaleDateString(undefined, {
-                    weekday: "short",
-                    year: "numeric",
-                    month: "short",
-                    day: "numeric",
-                  })}{" "}
-                  · {event.location}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
-      <div className="mt-8">
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-medium text-gray-500">Workout history</h2>
-          <div className="flex gap-3 text-sm">
-            <Link href="/workouts/new" className="text-b2b-pink underline">
-              Log a workout
+          <div className="mt-4 flex gap-4 text-sm">
+            <Link href={`/profile/${user.id}/connections?tab=followers`} className="text-b2b-pink underline">
+              {followerCount} followers
             </Link>
-            {recentWorkouts.length > 0 && (
-              <Link href="/workouts" className="text-b2b-pink underline">
-                View all
-              </Link>
-            )}
+            <Link href={`/profile/${user.id}/connections?tab=following`} className="text-b2b-pink underline">
+              {followingCount} following
+            </Link>
           </div>
-        </div>
-        {recentWorkouts.length ? (
-          <div className="mt-2 flex flex-col gap-3">
-            {recentWorkouts.map((workout) => (
-              <WorkoutCard key={workout.id} workout={workout} />
-            ))}
-          </div>
-        ) : (
-          <p className="mt-1 text-gray-400">No workouts logged yet.</p>
+
+          {suggestedGym && <GymUpdateNudge suggestedGym={suggestedGym} />}
+        </SectionCard>
+
+        <ProfileDetails user={user} showEmail />
+
+        {incomingRequests.length > 0 && (
+          <SectionCard title="Follow requests">
+            <IncomingFollowRequests
+              requests={incomingRequests.map((r) => ({ id: r.id, requester: r.requester }))}
+            />
+          </SectionCard>
         )}
+
+        {competingIn.length > 0 && (
+          <SectionCard
+            title="Competing in"
+            action={
+              <Link href="/discover?view=events" className="text-sm text-b2b-pink underline">
+                Browse events
+              </Link>
+            }
+          >
+            <div className="flex flex-col gap-3">
+              {competingIn.map((event) => (
+                <div key={event.id} className="rounded-lg border border-b2b-purple/10 bg-b2b-bg p-3">
+                  <p className="font-medium">{event.name}</p>
+                  <p className="text-sm text-b2b-ink/50">
+                    {event.date.toLocaleDateString(undefined, {
+                      weekday: "short",
+                      year: "numeric",
+                      month: "short",
+                      day: "numeric",
+                    })}{" "}
+                    · {event.location}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </SectionCard>
+        )}
+
+        <SectionCard
+          title="Workout history"
+          action={
+            <div className="flex gap-3 text-sm">
+              <Link href="/workouts/new" className="text-b2b-pink underline">
+                Log a workout
+              </Link>
+              {recentWorkouts.length > 0 && (
+                <Link href="/workouts" className="text-b2b-pink underline">
+                  View all
+                </Link>
+              )}
+            </div>
+          }
+        >
+          {recentWorkouts.length ? (
+            <div className="flex flex-col gap-3">
+              {recentWorkouts.map((workout) => (
+                <WorkoutCard key={workout.id} workout={workout} />
+              ))}
+            </div>
+          ) : (
+            <p className="text-b2b-ink/40">No workouts logged yet.</p>
+          )}
+        </SectionCard>
       </div>
     </main>
   );

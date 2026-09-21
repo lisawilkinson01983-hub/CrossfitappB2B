@@ -5,6 +5,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NavBar } from "@/components/NavBar";
 import { ProfileDetails } from "@/components/ProfileDetails";
+import { SectionCard } from "@/components/SectionCard";
 import { WorkoutCard } from "@/components/WorkoutCard";
 import { FollowButton, type FollowStatus } from "@/components/FollowButton";
 import { MessageButton } from "@/components/MessageButton";
@@ -59,52 +60,53 @@ export default async function UserProfilePage({
     <main className="mx-auto max-w-2xl px-4 py-8">
       <NavBar />
 
-      <div className="mt-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold">{user.name}</h1>
-        <div className="flex items-center gap-2">
-          <MessageButton targetUserId={user.id} />
-          <FollowButton targetUserId={user.id} initialStatus={followStatus} />
-        </div>
-      </div>
-
-      <div className="mt-1">
-        <BlockMuteControls
-          targetUserId={user.id}
-          initialBlocked={Boolean(blockRow)}
-          initialMuted={Boolean(muteRow)}
-        />
-      </div>
-
-      {sharedLookingFor.length > 0 && (
-        <p className="mt-2 text-sm text-b2b-pink">
-          You're both looking for {sharedLookingFor.map((tag) => LOOKING_FOR_LABELS[tag]).join(" & ")}
-        </p>
-      )}
-
-      <div className="mt-4 flex gap-4 text-sm">
-        <Link href={`/profile/${user.id}/connections?tab=followers`} className="text-b2b-pink underline">
-          {followerCount} followers
-        </Link>
-        <Link href={`/profile/${user.id}/connections?tab=following`} className="text-b2b-pink underline">
-          {followingCount} following
-        </Link>
-      </div>
-
-      <div className="mt-6">
-        <ProfileDetails user={user} showEmail={false} />
-      </div>
-
-      <div className="mt-8">
-        <h2 className="text-sm font-medium text-gray-500">Workout history</h2>
-        {recentWorkouts.length ? (
-          <div className="mt-2 flex flex-col gap-3">
-            {recentWorkouts.map((workout) => (
-              <WorkoutCard key={workout.id} workout={workout} />
-            ))}
+      <div className="mt-6 flex flex-col gap-6">
+        <SectionCard>
+          <div className="flex items-center justify-between">
+            <h1 className="text-2xl font-bold">{user.name}</h1>
+            <div className="flex items-center gap-2">
+              <MessageButton targetUserId={user.id} />
+              <FollowButton targetUserId={user.id} initialStatus={followStatus} />
+            </div>
           </div>
-        ) : (
-          <p className="mt-1 text-gray-400">No workouts logged yet.</p>
-        )}
+
+          <div className="mt-1">
+            <BlockMuteControls
+              targetUserId={user.id}
+              initialBlocked={Boolean(blockRow)}
+              initialMuted={Boolean(muteRow)}
+            />
+          </div>
+
+          {sharedLookingFor.length > 0 && (
+            <p className="mt-2 text-sm text-b2b-pink">
+              You're both looking for {sharedLookingFor.map((tag) => LOOKING_FOR_LABELS[tag]).join(" & ")}
+            </p>
+          )}
+
+          <div className="mt-4 flex gap-4 text-sm">
+            <Link href={`/profile/${user.id}/connections?tab=followers`} className="text-b2b-pink underline">
+              {followerCount} followers
+            </Link>
+            <Link href={`/profile/${user.id}/connections?tab=following`} className="text-b2b-pink underline">
+              {followingCount} following
+            </Link>
+          </div>
+        </SectionCard>
+
+        <ProfileDetails user={user} showEmail={false} />
+
+        <SectionCard title="Workout history">
+          {recentWorkouts.length ? (
+            <div className="flex flex-col gap-3">
+              {recentWorkouts.map((workout) => (
+                <WorkoutCard key={workout.id} workout={workout} />
+              ))}
+            </div>
+          ) : (
+            <p className="text-b2b-ink/40">No workouts logged yet.</p>
+          )}
+        </SectionCard>
       </div>
     </main>
   );
