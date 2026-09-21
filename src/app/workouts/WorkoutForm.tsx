@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
@@ -10,6 +10,10 @@ import {
   type WorkoutUnitOption,
 } from "@/lib/validation";
 import { WORKOUT_INTENSITY_LABELS, WORKOUT_UNIT_LABELS } from "@/lib/labels";
+import { MAX_VIDEO_SECONDS } from "@/lib/media";
+import { readVideoDuration } from "@/lib/readVideoDuration";
+
+type Attachment = { kind: "photo" | "video"; file: File };
 
 type Initial = {
   wodName: string;
@@ -20,6 +24,7 @@ type Initial = {
   isPb: boolean;
   sharedToFeed: boolean;
   photo: string | null;
+  video: string | null;
 };
 
 const BLANK_INITIAL: Initial = {
@@ -31,6 +36,7 @@ const BLANK_INITIAL: Initial = {
   isPb: false,
   sharedToFeed: true,
   photo: null,
+  video: null,
 };
 
 /** Used both to log a new workout and to edit an existing one — pass workoutId + initial to edit. */
@@ -40,17 +46,50 @@ export function WorkoutForm({ workoutId, initial }: { workoutId?: string; initia
   const start = initial ?? BLANK_INITIAL;
 
   const [wodName, setWodName] = useState(start.wodName);
-  const [score, setScore] = useState(start.score);
+  const [score, setScore] = useState(start.unit === "ROUNDS_REPS" ? "" : start.score);
+  const [rounds, setRounds] = useState(() =>
+    start.unit === "ROUNDS_REPS" ? (start.score.split("+")[0]?.trim() ?? "") : ""
+  );
+  const [reps, setReps] = useState(() =>
+    start.unit === "ROUNDS_REPS" ? (start.score.split("+")[1]?.trim() ?? "") : ""
+  );
   const [unit, setUnit] = useState<WorkoutUnitOption | "">(start.unit);
   const [intensity, setIntensity] = useState<WorkoutIntensityOption | "">(start.intensity);
   const [notes, setNotes] = useState(start.notes);
   const [isPb, setIsPb] = useState(start.isPb);
   const [sharedToFeed, setSharedToFeed] = useState(start.sharedToFeed);
-  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [attachment, setAttachment] = useState<Attachment | null>(null);
   const [existingPhoto] = useState(start.photo);
+  const [existingVideo] = useState(start.video);
+  const photoInputRef = useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
 
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  async function handleFileChange(kind: "photo" | "video", e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0] ?? null;
+    e.target.value = "";
+    if (!file) return;
+
+    if (kind === "video") {
+      try {
+        const duration = await readVideoDuration(file);
+        if (duration > MAX_VIDEO_SECONDS + 0.5) {
+          setError(
+            `Videos must be ${MAX_VIDEO_SECONDS} seconds or under (this one is ${Math.round(duration)}s)`
+          );
+          return;
+        }
+      } catch {
+        // Can't preview the duration client-side — let the server be the
+        // authority rather than blocking the attach here.
+      }
+    }
+
+    setError(null);
+    setAttachment({ kind, file });
+  }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -59,13 +98,13 @@ export function WorkoutForm({ workoutId, initial }: { workoutId?: string; initia
 
     const formData = new FormData();
     formData.set("wodName", wodName);
-    formData.set("score", score);
+    formData.set("score", unit === "ROUNDS_REPS" ? `${rounds}+${reps}` : score);
     formData.set("unit", unit);
     formData.set("intensity", intensity);
     formData.set("notes", notes);
     if (isPb) formData.set("isPb", "on");
     if (sharedToFeed) formData.set("sharedToFeed", "on");
-    if (photoFile) formData.set("photo", photoFile);
+    if (attachment) formData.set(attachment.kind, attachment.file);
 
     const res = await fetch(isEditing ? `/api/workouts/${workoutId}` : "/api/workouts", {
       method: isEditing ? "PATCH" : "POST",
@@ -108,15 +147,40 @@ export function WorkoutForm({ workoutId, initial }: { workoutId?: string; initia
           <label htmlFor="score" className="block text-sm font-medium">
             Score
           </label>
-          <input
-            id="score"
-            type="text"
-            required
-            placeholder='e.g. "4:32" or "225 lb"'
-            value={score}
-            onChange={(e) => setScore(e.target.value)}
-            className="mt-1 w-full rounded border border-gray-300 px-3 py-2 focus:border-b2b-pink focus:outline-none"
-          />
+          {unit === "ROUNDS_REPS" ? (
+            <div className="mt-1 flex items-center gap-2">
+              <input
+                id="score"
+                type="number"
+                min={0}
+                required
+                placeholder="Rounds"
+                value={rounds}
+                onChange={(e) => setRounds(e.target.value)}
+                className="w-full rounded border border-gray-300 px-3 py-2 focus:border-b2b-pink focus:outline-none"
+              />
+              <span className="text-b2b-ink/40">+</span>
+              <input
+                type="number"
+                min={0}
+                required
+                placeholder="Reps"
+                value={reps}
+                onChange={(e) => setReps(e.target.value)}
+                className="w-full rounded border border-gray-300 px-3 py-2 focus:border-b2b-pink focus:outline-none"
+              />
+            </div>
+          ) : (
+            <input
+              id="score"
+              type="text"
+              required
+              placeholder='e.g. "4:32" or "225 lb"'
+              value={score}
+              onChange={(e) => setScore(e.target.value)}
+              className="mt-1 w-full rounded border border-gray-300 px-3 py-2 focus:border-b2b-pink focus:outline-none"
+            />
+          )}
         </div>
 
         <div>
@@ -174,8 +238,9 @@ export function WorkoutForm({ workoutId, initial }: { workoutId?: string; initia
       </div>
 
       <div>
-        <label className="block text-sm font-medium">Photo</label>
-        {existingPhoto && !photoFile && (
+        <span className="block text-sm font-medium">Photo or video</span>
+
+        {!attachment && existingPhoto && (
           <Image
             src={existingPhoto}
             alt="Current workout photo"
@@ -184,13 +249,67 @@ export function WorkoutForm({ workoutId, initial }: { workoutId?: string; initia
             className="mt-2 rounded object-cover"
           />
         )}
+        {!attachment && existingVideo && (
+          <video src={existingVideo} controls className="mt-2 max-h-40 rounded bg-black" />
+        )}
+
         <input
+          ref={photoInputRef}
           type="file"
           accept="image/jpeg,image/png,image/webp"
-          onChange={(e) => setPhotoFile(e.target.files?.[0] ?? null)}
-          className="mt-2"
+          onChange={(e) => handleFileChange("photo", e)}
+          className="hidden"
         />
-        {isEditing && <p className="mt-1 text-xs text-b2b-ink/40">Choose a file to replace the current photo.</p>}
+        <input
+          ref={videoInputRef}
+          type="file"
+          accept="video/mp4,video/quicktime"
+          onChange={(e) => handleFileChange("video", e)}
+          className="hidden"
+        />
+
+        <div className="mt-2 flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => photoInputRef.current?.click()}
+            className={`rounded-full border px-3 py-1.5 text-sm font-medium ${
+              attachment?.kind === "photo"
+                ? "border-b2b-pink bg-b2b-pink/10 text-b2b-pink"
+                : "border-b2b-purple/20 text-b2b-ink/60 hover:border-b2b-pink hover:text-b2b-pink"
+            }`}
+          >
+            📷 Photo
+          </button>
+          <button
+            type="button"
+            onClick={() => videoInputRef.current?.click()}
+            className={`rounded-full border px-3 py-1.5 text-sm font-medium ${
+              attachment?.kind === "video"
+                ? "border-b2b-pink bg-b2b-pink/10 text-b2b-pink"
+                : "border-b2b-purple/20 text-b2b-ink/60 hover:border-b2b-pink hover:text-b2b-pink"
+            }`}
+          >
+            🎥 Video
+          </button>
+        </div>
+
+        {attachment && (
+          <div className="mt-3 flex items-center justify-between rounded border border-b2b-purple/10 bg-b2b-bg px-3 py-2 text-sm text-b2b-ink/60">
+            <span className="truncate">{attachment.file.name}</span>
+            <button
+              type="button"
+              onClick={() => setAttachment(null)}
+              aria-label="Remove attachment"
+              className="ml-2 text-lg leading-none text-b2b-ink/40 hover:text-b2b-ink"
+            >
+              ×
+            </button>
+          </div>
+        )}
+
+        {isEditing && (
+          <p className="mt-1 text-xs text-b2b-ink/40">Choose a photo or video to replace the current one.</p>
+        )}
       </div>
 
       <label className="flex items-center gap-2 text-sm">

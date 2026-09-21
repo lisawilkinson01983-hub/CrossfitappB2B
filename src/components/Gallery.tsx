@@ -16,10 +16,10 @@ export async function Gallery({ userId }: { userId: string }) {
       select: { id: true, photo: true, video: true, createdAt: true },
     }),
     prisma.workout.findMany({
-      where: { userId, photo: { not: null } },
+      where: { userId, OR: [{ photo: { not: null } }, { video: { not: null } }] },
       orderBy: { createdAt: "desc" },
       take: GALLERY_LIMIT,
-      select: { id: true, photo: true, createdAt: true },
+      select: { id: true, photo: true, video: true, createdAt: true },
     }),
   ]);
 
@@ -32,8 +32,8 @@ export async function Gallery({ userId }: { userId: string }) {
     })),
     ...workouts.map((w) => ({
       key: `workout-${w.id}`,
-      type: "photo" as const,
-      url: w.photo!,
+      type: (w.video ? "video" : "photo") as MediaItem["type"],
+      url: (w.video ?? w.photo)!,
       createdAt: w.createdAt,
     })),
   ]

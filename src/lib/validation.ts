@@ -10,7 +10,7 @@ export type GenderOption = (typeof GENDERS)[number];
 export const LOOKING_FOR_OPTIONS = ["TEAM_MATES", "FRIENDS", "DEEPER_CONNECTION"] as const;
 export type LookingForOption = (typeof LOOKING_FOR_OPTIONS)[number];
 
-export const WORKOUT_UNITS = ["TIME", "REPS", "WEIGHT"] as const;
+export const WORKOUT_UNITS = ["TIME", "REPS", "WEIGHT", "ROUNDS_REPS"] as const;
 export type WorkoutUnitOption = (typeof WORKOUT_UNITS)[number];
 
 export const WORKOUT_INTENSITIES = ["RX", "SCALED"] as const;

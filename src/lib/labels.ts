@@ -48,6 +48,7 @@ export const WORKOUT_UNIT_LABELS: Record<WorkoutUnitOption, string> = {
   TIME: "Time",
   REPS: "Reps",
   WEIGHT: "Weight",
+  ROUNDS_REPS: "Rounds + Reps",
 };
 
 export const WORKOUT_INTENSITY_LABELS: Record<WorkoutIntensityOption, string> = {

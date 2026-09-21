@@ -31,6 +31,7 @@ enum WorkoutUnit {
   TIME
   REPS
   WEIGHT
+  ROUNDS_REPS
 }
 
 // A per-workout Rx/Scaled call, distinct from the athlete's overall Level
@@ -162,11 +163,12 @@ model Workout {
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   wodName   String
-  score     String // free text: "12:34", "150 reps", "225 lb", "5 rounds + 10 reps", etc.
+  score     String // free text, e.g. "12:34", "150 reps", "225 lb"; "5+10" (rounds+reps) when unit is ROUNDS_REPS
   unit      WorkoutUnit
   intensity WorkoutIntensity
   notes     String?
   photo     String? // served path, e.g. "/media/xyz.jpg" (see src/lib/uploads.ts)
+  video     String? // served path, e.g. "/media/xyz.mp4" — mutually exclusive with photo
 
   isPb Boolean @default(false)
 

@@ -12,6 +12,7 @@ type WorkoutCardData = {
   intensity: WorkoutIntensityOption;
   notes: string | null;
   photo: string | null;
+  video: string | null;
   isPb: boolean;
   sharedToFeed: boolean;
   createdAt: Date;
@@ -58,6 +59,12 @@ export function WorkoutCard({
           height={200}
           className="mt-2 rounded object-cover"
         />
+      )}
+
+      {workout.video && (
+        <video controls className="mt-2 max-h-64 w-full rounded bg-black">
+          <source src={workout.video} />
+        </video>
       )}
 
       <div className="mt-2 flex items-center justify-between">

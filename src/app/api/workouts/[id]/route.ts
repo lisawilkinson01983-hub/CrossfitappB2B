@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { workoutSchema } from "@/lib/validation";
-import { PhotoUploadError, savePhotoUpload } from "@/lib/uploads";
+import { PhotoUploadError, VideoUploadError, savePhotoUpload, saveVideoUpload } from "@/lib/uploads";
 import { parseFormData } from "@/lib/http";
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -38,9 +38,14 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
   }
 
-  let photoPath: string | undefined;
   const photo = formData.get("photo");
-  if (photo instanceof File && photo.size > 0) {
+  const hasPhoto = photo instanceof File && photo.size > 0;
+  const video = formData.get("video");
+  const hasVideo = video instanceof File && video.size > 0;
+
+  let photoPath: string | undefined;
+  let videoPath: string | undefined;
+  if (hasPhoto && photo instanceof File) {
     try {
       photoPath = await savePhotoUpload(photo, session.user.id);
     } catch (err) {
@@ -49,10 +54,22 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       }
       throw err;
     }
+  } else if (hasVideo && video instanceof File) {
+    try {
+      videoPath = await saveVideoUpload(video, session.user.id);
+    } catch (err) {
+      if (err instanceof VideoUploadError) {
+        return NextResponse.json({ error: err.message }, { status: 400 });
+      }
+      throw err;
+    }
   }
 
   const data = parsed.data;
-  const finalPhoto = photoPath ?? existing.photo;
+  // A newly uploaded photo/video replaces whichever of the pair was there
+  // before, since a workout only ever has one attachment at a time.
+  const finalPhoto = hasVideo ? null : (photoPath ?? existing.photo);
+  const finalVideo = hasPhoto ? null : (videoPath ?? existing.video);
 
   await prisma.workout.update({
     where: { id },
@@ -64,17 +81,24 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       notes: data.notes ?? null,
       isPb: data.isPb,
       sharedToFeed: data.sharedToFeed,
-      ...(photoPath ? { photo: photoPath } : {}),
+      photo: finalPhoto,
+      video: finalVideo,
     },
   });
 
   const linkedPost = await prisma.post.findFirst({ where: { linkedWorkoutId: id } });
 
   if (data.sharedToFeed) {
-    const postData: { type: "PR" | "WORKOUT"; contentText: string | null; photo: string | null } = {
+    const postData: {
+      type: "PR" | "WORKOUT";
+      contentText: string | null;
+      photo: string | null;
+      video: string | null;
+    } = {
       type: data.isPb ? "PR" : "WORKOUT",
       contentText: data.notes ?? null,
       photo: finalPhoto,
+      video: finalVideo,
     };
     if (linkedPost) {
       await prisma.post.update({ where: { id: linkedPost.id }, data: postData });
