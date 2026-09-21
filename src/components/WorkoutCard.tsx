@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import { WORKOUT_INTENSITY_LABELS, WORKOUT_UNIT_LABELS } from "@/lib/labels";
 import type { WorkoutIntensityOption, WorkoutUnitOption } from "@/lib/validation";
 import { DeleteWorkoutButton } from "./DeleteWorkoutButton";
@@ -63,7 +64,14 @@ export function WorkoutCard({
         ) : (
           <span className="text-xs text-gray-400">Private</span>
         )}
-        {showDelete && <DeleteWorkoutButton id={workout.id} />}
+        {showDelete && (
+          <div className="flex items-center gap-3">
+            <Link href={`/workouts/${workout.id}/edit`} className="text-xs text-b2b-pink hover:underline">
+              Edit
+            </Link>
+            <DeleteWorkoutButton id={workout.id} />
+          </div>
+        )}
       </div>
     </div>
   );

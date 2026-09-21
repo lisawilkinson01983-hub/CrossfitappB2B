@@ -43,7 +43,7 @@ export type PostCardData = {
   }[];
 };
 
-export function PostCard({ post }: { post: PostCardData }) {
+export function PostCard({ post, currentUserId }: { post: PostCardData; currentUserId: string }) {
   const router = useRouter();
   const isPb = post.type === "PR";
 
@@ -55,8 +55,16 @@ export function PostCard({ post }: { post: PostCardData }) {
   const [comments, setComments] = useState(post.comments);
   const [commentText, setCommentText] = useState("");
   const [commentBusy, setCommentBusy] = useState(false);
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+  const [editCommentText, setEditCommentText] = useState("");
+  const [commentSaving, setCommentSaving] = useState(false);
 
   const [deleting, setDeleting] = useState(false);
+  const [editingPost, setEditingPost] = useState(false);
+  const [editPostText, setEditPostText] = useState(post.contentText ?? "");
+  const [contentText, setContentText] = useState(post.contentText);
+  const [postSaving, setPostSaving] = useState(false);
+  const [postError, setPostError] = useState<string | null>(null);
 
   async function toggleLike() {
     if (likeBusy) return;
@@ -87,12 +95,50 @@ export function PostCard({ post }: { post: PostCardData }) {
     }
   }
 
+  function startEditComment(id: string, text: string) {
+    setEditingCommentId(id);
+    setEditCommentText(text);
+  }
+
+  async function submitEditComment(id: string) {
+    if (!editCommentText.trim() || commentSaving) return;
+    setCommentSaving(true);
+    const res = await fetch(`/api/comments/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text: editCommentText }),
+    });
+    setCommentSaving(false);
+    if (res.ok) {
+      setComments((prev) => prev.map((c) => (c.id === id ? { ...c, text: editCommentText } : c)));
+      setEditingCommentId(null);
+    }
+  }
+
   async function handleDelete() {
     if (!confirm("Delete this post?")) return;
     setDeleting(true);
     const res = await fetch(`/api/posts/${post.id}`, { method: "DELETE" });
     setDeleting(false);
     if (res.ok) router.refresh();
+  }
+
+  async function submitEditPost() {
+    setPostSaving(true);
+    setPostError(null);
+    const res = await fetch(`/api/posts/${post.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ contentText: editPostText }),
+    });
+    setPostSaving(false);
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      setPostError(body.error ?? "Something went wrong. Please try again.");
+      return;
+    }
+    setContentText(editPostText.trim() ? editPostText : null);
+    setEditingPost(false);
   }
 
   return (
@@ -135,14 +181,27 @@ export function PostCard({ post }: { post: PostCardData }) {
           </div>
         </Link>
         {post.isOwner && (
-          <button
-            type="button"
-            onClick={handleDelete}
-            disabled={deleting}
-            className="text-xs text-red-600 hover:underline disabled:opacity-50"
-          >
-            {deleting ? "Deleting..." : "Delete"}
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                setEditPostText(contentText ?? "");
+                setPostError(null);
+                setEditingPost(true);
+              }}
+              className="text-xs text-b2b-pink hover:underline"
+            >
+              Edit
+            </button>
+            <button
+              type="button"
+              onClick={handleDelete}
+              disabled={deleting}
+              className="text-xs text-red-600 hover:underline disabled:opacity-50"
+            >
+              {deleting ? "Deleting..." : "Delete"}
+            </button>
+          </div>
         )}
       </div>
 
@@ -171,7 +230,36 @@ export function PostCard({ post }: { post: PostCardData }) {
         </p>
       )}
 
-      {post.contentText && <p className="mt-2 whitespace-pre-wrap text-b2b-ink">{post.contentText}</p>}
+      {editingPost ? (
+        <div className="mt-2 flex flex-col gap-2">
+          {postError && <p className="text-sm text-red-600">{postError}</p>}
+          <textarea
+            rows={3}
+            value={editPostText}
+            onChange={(e) => setEditPostText(e.target.value)}
+            className="w-full rounded border border-gray-300 px-2 py-1 text-sm focus:border-b2b-pink focus:outline-none"
+          />
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={submitEditPost}
+              disabled={postSaving}
+              className="rounded bg-b2b-pink px-3 py-1 text-sm text-white hover:bg-b2b-pink-dark disabled:opacity-50"
+            >
+              {postSaving ? "Saving..." : "Save"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setEditingPost(false)}
+              className="text-sm text-b2b-ink/50 hover:underline"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      ) : (
+        contentText && <p className="mt-2 whitespace-pre-wrap text-b2b-ink">{contentText}</p>
+      )}
 
       {post.photo && (
         <Image
@@ -209,12 +297,47 @@ export function PostCard({ post }: { post: PostCardData }) {
 
       {showComments && (
         <div className="mt-3 flex flex-col gap-2 border-t border-gray-100 pt-3">
-          {comments.map((comment) => (
-            <p key={comment.id} className="text-sm">
-              <span className="font-semibold">{comment.author.name}</span>{" "}
-              <span className="text-gray-800">{comment.text}</span>
-            </p>
-          ))}
+          {comments.map((comment) =>
+            editingCommentId === comment.id ? (
+              <div key={comment.id} className="flex gap-2">
+                <input
+                  type="text"
+                  value={editCommentText}
+                  onChange={(e) => setEditCommentText(e.target.value)}
+                  className="flex-1 rounded border border-gray-300 px-2 py-1 text-sm focus:border-b2b-pink focus:outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={() => submitEditComment(comment.id)}
+                  disabled={commentSaving || !editCommentText.trim()}
+                  className="rounded bg-b2b-pink px-3 py-1 text-sm text-white hover:bg-b2b-pink-dark disabled:opacity-50"
+                >
+                  Save
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEditingCommentId(null)}
+                  className="text-sm text-b2b-ink/50 hover:underline"
+                >
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <p key={comment.id} className="text-sm">
+                <span className="font-semibold">{comment.author.name}</span>{" "}
+                <span className="text-gray-800">{comment.text}</span>{" "}
+                {comment.author.id === currentUserId && (
+                  <button
+                    type="button"
+                    onClick={() => startEditComment(comment.id, comment.text)}
+                    className="text-xs text-b2b-pink hover:underline"
+                  >
+                    Edit
+                  </button>
+                )}
+              </p>
+            )
+          )}
           <form onSubmit={submitComment} className="mt-1 flex gap-2">
             <input
               type="text"

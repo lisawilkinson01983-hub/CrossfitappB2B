@@ -4,7 +4,6 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { workoutSchema } from "@/lib/validation";
 import { PhotoUploadError, savePhotoUpload } from "@/lib/uploads";
-import { WORKOUT_INTENSITY_LABELS, WORKOUT_UNIT_LABELS } from "@/lib/labels";
 import { parseFormData } from "@/lib/http";
 
 export async function POST(req: Request) {
@@ -62,12 +61,14 @@ export async function POST(req: Request) {
   });
 
   if (data.sharedToFeed) {
-    const summary = `${data.wodName} — ${data.score} (${WORKOUT_UNIT_LABELS[data.unit]}) · ${WORKOUT_INTENSITY_LABELS[data.intensity]}`;
+    // contentText is just the notes — the wodName/score/intensity summary
+    // is already shown from linkedWorkout, so repeating it here would
+    // just double up the same line in the feed.
     await prisma.post.create({
       data: {
         userId: session.user.id,
         type: data.isPb ? "PR" : "WORKOUT",
-        contentText: data.notes ? `${summary}\n${data.notes}` : summary,
+        contentText: data.notes ?? null,
         photo: photoPath ?? null,
         linkedWorkoutId: workout.id,
       },

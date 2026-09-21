@@ -52,6 +52,7 @@ export default async function FeedPage() {
           {posts.map((post) => (
             <PostCard
               key={post.id}
+              currentUserId={session.user.id}
               post={{
                 id: post.id,
                 type: post.type,

@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { NavBar } from "@/components/NavBar";
-import { NewWorkoutForm } from "./NewWorkoutForm";
+import { WorkoutForm } from "../WorkoutForm";
 
 export default async function NewWorkoutPage() {
   const session = await getServerSession(authOptions);
@@ -12,7 +12,7 @@ export default async function NewWorkoutPage() {
     <main className="mx-auto max-w-2xl px-4 py-8">
       <NavBar />
       <h1 className="mt-6 text-2xl font-bold">Log a workout</h1>
-      <NewWorkoutForm />
+      <WorkoutForm />
     </main>
   );
 }

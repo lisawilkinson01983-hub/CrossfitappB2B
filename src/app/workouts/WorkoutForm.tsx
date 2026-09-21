@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
   WORKOUT_INTENSITIES,
@@ -10,17 +11,43 @@ import {
 } from "@/lib/validation";
 import { WORKOUT_INTENSITY_LABELS, WORKOUT_UNIT_LABELS } from "@/lib/labels";
 
-export function NewWorkoutForm() {
-  const router = useRouter();
+type Initial = {
+  wodName: string;
+  score: string;
+  unit: WorkoutUnitOption | "";
+  intensity: WorkoutIntensityOption | "";
+  notes: string;
+  isPb: boolean;
+  sharedToFeed: boolean;
+  photo: string | null;
+};
 
-  const [wodName, setWodName] = useState("");
-  const [score, setScore] = useState("");
-  const [unit, setUnit] = useState<WorkoutUnitOption | "">("");
-  const [intensity, setIntensity] = useState<WorkoutIntensityOption | "">("");
-  const [notes, setNotes] = useState("");
-  const [isPb, setIsPb] = useState(false);
-  const [sharedToFeed, setSharedToFeed] = useState(false);
+const BLANK_INITIAL: Initial = {
+  wodName: "",
+  score: "",
+  unit: "",
+  intensity: "",
+  notes: "",
+  isPb: false,
+  sharedToFeed: false,
+  photo: null,
+};
+
+/** Used both to log a new workout and to edit an existing one — pass workoutId + initial to edit. */
+export function WorkoutForm({ workoutId, initial }: { workoutId?: string; initial?: Initial }) {
+  const router = useRouter();
+  const isEditing = Boolean(workoutId);
+  const start = initial ?? BLANK_INITIAL;
+
+  const [wodName, setWodName] = useState(start.wodName);
+  const [score, setScore] = useState(start.score);
+  const [unit, setUnit] = useState<WorkoutUnitOption | "">(start.unit);
+  const [intensity, setIntensity] = useState<WorkoutIntensityOption | "">(start.intensity);
+  const [notes, setNotes] = useState(start.notes);
+  const [isPb, setIsPb] = useState(start.isPb);
+  const [sharedToFeed, setSharedToFeed] = useState(start.sharedToFeed);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [existingPhoto] = useState(start.photo);
 
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -40,7 +67,10 @@ export function NewWorkoutForm() {
     if (sharedToFeed) formData.set("sharedToFeed", "on");
     if (photoFile) formData.set("photo", photoFile);
 
-    const res = await fetch("/api/workouts", { method: "POST", body: formData });
+    const res = await fetch(isEditing ? `/api/workouts/${workoutId}` : "/api/workouts", {
+      method: isEditing ? "PATCH" : "POST",
+      body: formData,
+    });
 
     setSubmitting(false);
 
@@ -145,12 +175,22 @@ export function NewWorkoutForm() {
 
       <div>
         <label className="block text-sm font-medium">Photo</label>
+        {existingPhoto && !photoFile && (
+          <Image
+            src={existingPhoto}
+            alt="Current workout photo"
+            width={100}
+            height={100}
+            className="mt-2 rounded object-cover"
+          />
+        )}
         <input
           type="file"
           accept="image/jpeg,image/png,image/webp"
           onChange={(e) => setPhotoFile(e.target.files?.[0] ?? null)}
           className="mt-2"
         />
+        {isEditing && <p className="mt-1 text-xs text-b2b-ink/40">Choose a file to replace the current photo.</p>}
       </div>
 
       <label className="flex items-center gap-2 text-sm">
@@ -172,7 +212,7 @@ export function NewWorkoutForm() {
         disabled={submitting}
         className="rounded bg-b2b-pink px-4 py-2 font-medium text-white hover:bg-b2b-pink-dark disabled:opacity-50"
       >
-        {submitting ? "Saving..." : "Log workout"}
+        {submitting ? "Saving..." : isEditing ? "Save changes" : "Log workout"}
       </button>
     </form>
   );
