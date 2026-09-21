@@ -1,5 +1,4 @@
 import Link from "next/link";
-import Image from "next/image";
 import { redirect, notFound } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -8,6 +7,8 @@ import { NavBar } from "@/components/NavBar";
 import { FollowButton, type FollowStatus } from "@/components/FollowButton";
 import { MessageButton } from "@/components/MessageButton";
 import { BlockMuteControls } from "@/components/BlockMuteControls";
+import { Avatar } from "@/components/Avatar";
+import { showsSingleBadge } from "@/lib/labels";
 
 export default async function ConnectionsPage({
   params,
@@ -107,19 +108,7 @@ export default async function ConnectionsPage({
                 className="flex items-center justify-between rounded border border-gray-200 bg-b2b-card p-3"
               >
                 <Link href={isMe ? "/profile" : `/profile/${row.id}`} className="flex items-center gap-3">
-                  {row.photo ? (
-                    <Image
-                      src={row.photo}
-                      alt={row.name}
-                      width={40}
-                      height={40}
-                      className="h-10 w-10 rounded-full object-cover"
-                    />
-                  ) : (
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-200 text-sm font-semibold text-gray-500">
-                      {row.name.charAt(0).toUpperCase()}
-                    </div>
-                  )}
+                  <Avatar photo={row.photo} name={row.name} size={40} showSingleBadge={showsSingleBadge(row)} />
                   <span className="font-medium">{row.name}</span>
                 </Link>
                 {!isMe && (

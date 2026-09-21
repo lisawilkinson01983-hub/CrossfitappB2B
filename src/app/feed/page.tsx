@@ -21,7 +21,17 @@ export default async function FeedPage() {
     where: { userId: { notIn: hiddenUserIds } },
     orderBy: { createdAt: "desc" },
     include: {
-      user: { select: { id: true, name: true, photo: true, level: true, affiliateGym: true } },
+      user: {
+        select: {
+          id: true,
+          name: true,
+          photo: true,
+          level: true,
+          affiliateGym: true,
+          isSingle: true,
+          showSingleBadge: true,
+        },
+      },
       linkedWorkout: { select: { wodName: true, score: true, unit: true, intensity: true } },
       linkedEvent: { select: { name: true, date: true, location: true } },
       likes: { select: { userId: true } },

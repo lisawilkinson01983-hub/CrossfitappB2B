@@ -4,8 +4,15 @@ import { useState, type FormEvent } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { LEVEL_BADGE_CLASSES, LEVEL_LABELS, WORKOUT_INTENSITY_LABELS, WORKOUT_UNIT_LABELS } from "@/lib/labels";
+import {
+  LEVEL_BADGE_CLASSES,
+  LEVEL_LABELS,
+  WORKOUT_INTENSITY_LABELS,
+  WORKOUT_UNIT_LABELS,
+  showsSingleBadge,
+} from "@/lib/labels";
 import type { LevelOption, WorkoutIntensityOption, WorkoutUnitOption } from "@/lib/validation";
+import { Avatar } from "@/components/Avatar";
 
 export type PostCardData = {
   id: string;
@@ -21,6 +28,8 @@ export type PostCardData = {
     photo: string | null;
     level: LevelOption | null;
     affiliateGym: string | null;
+    isSingle: boolean | null;
+    showSingleBadge: boolean;
   };
   linkedWorkout: {
     wodName: string;
@@ -152,19 +161,12 @@ export function PostCard({ post, currentUserId }: { post: PostCardData; currentU
     >
       <div className="flex items-start justify-between gap-4">
         <Link href={`/profile/${post.author.id}`} className="flex items-center gap-3">
-          {post.author.photo ? (
-            <Image
-              src={post.author.photo}
-              alt={post.author.name}
-              width={40}
-              height={40}
-              className="h-10 w-10 rounded-full object-cover"
-            />
-          ) : (
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-200 text-sm font-semibold text-gray-500">
-              {post.author.name.charAt(0).toUpperCase()}
-            </div>
-          )}
+          <Avatar
+            photo={post.author.photo}
+            name={post.author.name}
+            size={40}
+            showSingleBadge={showsSingleBadge(post.author)}
+          />
           <div>
             <div className="flex items-center gap-2">
               <span className="font-semibold hover:underline">{post.author.name}</span>

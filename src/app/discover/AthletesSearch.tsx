@@ -1,13 +1,20 @@
 import Link from "next/link";
-import Image from "next/image";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { FollowButton, type FollowStatus } from "@/components/FollowButton";
 import { BlockMuteControls } from "@/components/BlockMuteControls";
 import { GENDERS, LEVELS, LOOKING_FOR_OPTIONS, type LookingForOption } from "@/lib/validation";
-import { GENDER_LABELS, LEVEL_BADGE_CLASSES, LEVEL_LABELS, LOOKING_FOR_LABELS, parseLookingFor } from "@/lib/labels";
+import {
+  GENDER_LABELS,
+  LEVEL_BADGE_CLASSES,
+  LEVEL_LABELS,
+  LOOKING_FOR_LABELS,
+  parseLookingFor,
+  showsSingleBadge,
+} from "@/lib/labels";
 import { AFFILIATE_GYM_VALUES } from "@/lib/gyms";
 import { SectionCard } from "@/components/SectionCard";
+import { Avatar } from "@/components/Avatar";
 
 // "Prefer not to disclose" is a profile-level privacy choice, not a search filter.
 const SEARCHABLE_GENDERS = GENDERS.filter((g) => g !== "PREFER_NOT_TO_DISCLOSE");
@@ -60,6 +67,8 @@ export async function AthletesSearch({
       affiliateGym: true,
       isPrivate: true,
       lookingFor: true,
+      isSingle: true,
+      showSingleBadge: true,
     },
     orderBy: { name: "asc" },
   });
@@ -213,19 +222,7 @@ export async function AthletesSearch({
                 className="flex items-center justify-between rounded-xl border border-b2b-purple/10 bg-b2b-card p-3"
               >
                 <Link href={`/profile/${user.id}`} className="flex items-center gap-3">
-                  {user.photo ? (
-                    <Image
-                      src={user.photo}
-                      alt={user.name}
-                      width={48}
-                      height={48}
-                      className="h-12 w-12 rounded-full object-cover"
-                    />
-                  ) : (
-                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-200 text-sm font-semibold text-gray-500">
-                      {user.name.charAt(0).toUpperCase()}
-                    </div>
-                  )}
+                  <Avatar photo={user.photo} name={user.name} size={48} showSingleBadge={showsSingleBadge(user)} />
                   <div>
                     <p className="font-medium">
                       {user.name}

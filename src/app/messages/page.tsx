@@ -1,10 +1,11 @@
 import Link from "next/link";
-import Image from "next/image";
 import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NavBar } from "@/components/NavBar";
+import { Avatar } from "@/components/Avatar";
+import { showsSingleBadge } from "@/lib/labels";
 
 export default async function MessagesPage() {
   const session = await getServerSession(authOptions);
@@ -13,8 +14,12 @@ export default async function MessagesPage() {
   const conversations = await prisma.conversation.findMany({
     where: { OR: [{ userOneId: session.user.id }, { userTwoId: session.user.id }] },
     include: {
-      userOne: { select: { id: true, name: true, photo: true } },
-      userTwo: { select: { id: true, name: true, photo: true } },
+      userOne: {
+        select: { id: true, name: true, photo: true, isSingle: true, showSingleBadge: true },
+      },
+      userTwo: {
+        select: { id: true, name: true, photo: true, isSingle: true, showSingleBadge: true },
+      },
       messages: { orderBy: { createdAt: "desc" }, take: 1 },
     },
   });
@@ -58,19 +63,12 @@ export default async function MessagesPage() {
               href={`/messages/${row.id}`}
               className="flex items-center gap-3 rounded border border-gray-200 bg-b2b-card p-3 hover:bg-gray-50"
             >
-              {row.otherUser.photo ? (
-                <Image
-                  src={row.otherUser.photo}
-                  alt={row.otherUser.name}
-                  width={44}
-                  height={44}
-                  className="h-11 w-11 rounded-full object-cover"
-                />
-              ) : (
-                <div className="flex h-11 w-11 items-center justify-center rounded-full bg-gray-200 text-sm font-semibold text-gray-500">
-                  {row.otherUser.name.charAt(0).toUpperCase()}
-                </div>
-              )}
+              <Avatar
+                photo={row.otherUser.photo}
+                name={row.otherUser.name}
+                size={44}
+                showSingleBadge={showsSingleBadge(row.otherUser)}
+              />
               <div className="min-w-0 flex-1">
                 <p className="font-medium">{row.otherUser.name}</p>
                 <p className="truncate text-sm text-gray-500">

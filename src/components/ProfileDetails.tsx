@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import type { User } from "@prisma/client";
@@ -10,10 +9,12 @@ import {
   MONTH_NAMES,
   PB_LABELS,
   parseLookingFor,
+  showsSingleBadge,
 } from "@/lib/labels";
 import { PB_FIELDS } from "@/lib/validation";
 import { AFFILIATE_GYMS, OTHER_GYM } from "@/lib/gyms";
 import { SectionCard } from "@/components/SectionCard";
+import { Avatar } from "@/components/Avatar";
 import { prisma } from "@/lib/prisma";
 
 function Badge({ label, className }: { label: string; className: string }) {
@@ -46,7 +47,7 @@ export async function ProfileDetails({
   );
 
   const showRelationshipStatus = user.isSingle != null && user.showRelationshipStatus;
-  const showSingleBadge = user.isSingle === true && user.showSingleBadge;
+  const showSingleBadge = showsSingleBadge(user);
 
   const affiliateGymDisplay =
     user.affiliateGym === OTHER_GYM
@@ -111,29 +112,7 @@ export async function ProfileDetails({
     <div className="flex flex-col gap-6">
       <SectionCard>
         <div className="flex flex-col items-center gap-3 text-center">
-          <div className="relative h-28 w-28">
-            {user.photo ? (
-              <Image
-                src={user.photo}
-                alt={`${user.name}'s photo`}
-                width={112}
-                height={112}
-                className="h-28 w-28 rounded-full object-cover"
-              />
-            ) : (
-              <div className="flex h-28 w-28 items-center justify-center rounded-full bg-b2b-purple/10 text-3xl font-semibold text-b2b-purple">
-                {user.name.charAt(0).toUpperCase()}
-              </div>
-            )}
-            {showSingleBadge && (
-              <span
-                title="Single"
-                className="absolute bottom-0 right-0 flex h-7 w-7 items-center justify-center rounded-full bg-b2b-card text-base shadow"
-              >
-                💚
-              </span>
-            )}
-          </div>
+          <Avatar photo={user.photo} name={user.name} size={112} showSingleBadge={showSingleBadge} />
 
           <div>
             <p className="text-xl font-semibold">

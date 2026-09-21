@@ -70,6 +70,11 @@ export const MONTH_NAMES = [
   "December",
 ];
 
+/** The green-heart badge only ever shows when isSingle is true and the user opted into it. */
+export function showsSingleBadge(user: { isSingle: boolean | null; showSingleBadge: boolean }): boolean {
+  return user.isSingle === true && user.showSingleBadge;
+}
+
 export function parseLookingFor(value: string | null): LookingForOption[] {
   if (!value) return [];
   try {
