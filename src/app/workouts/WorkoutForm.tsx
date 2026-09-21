@@ -85,7 +85,7 @@ export function WorkoutForm({ workoutId, initial }: { workoutId?: string; initia
   }
 
   return (
-    <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-5">
+    <form onSubmit={handleSubmit} className="flex flex-col gap-5">
       {error && <p className="rounded bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
 
       <div>

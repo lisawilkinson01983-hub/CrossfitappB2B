@@ -1,6 +1,6 @@
-import Image from "next/image";
 import { prisma } from "@/lib/prisma";
 import { SectionCard } from "@/components/SectionCard";
+import { GalleryLightbox } from "@/components/GalleryLightbox";
 
 const GALLERY_LIMIT = 9;
 
@@ -47,25 +47,7 @@ export async function Gallery({ userId }: { userId: string }) {
           No photos or videos yet — share one from the feed or log a workout with a photo.
         </p>
       ) : (
-        <div className="flex gap-3 overflow-x-auto pb-1">
-          {items.map((item) => (
-            <div
-              key={item.key}
-              className="relative aspect-square w-24 flex-shrink-0 overflow-hidden rounded-lg bg-b2b-bg"
-            >
-              {item.type === "video" ? (
-                <>
-                  <video src={item.url} muted className="h-full w-full object-cover" />
-                  <span className="absolute bottom-1 right-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-[10px] text-white">
-                    ▶
-                  </span>
-                </>
-              ) : (
-                <Image src={item.url} alt="Uploaded photo" fill sizes="96px" className="object-cover" />
-              )}
-            </div>
-          ))}
-        </div>
+        <GalleryLightbox items={items.map(({ key, type, url }) => ({ key, type, url }))} />
       )}
     </SectionCard>
   );

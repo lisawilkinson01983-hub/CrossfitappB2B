@@ -62,40 +62,32 @@ export default async function UserProfilePage({
       <NavBar />
 
       <div className="mt-6 flex flex-col gap-6">
-        <SectionCard>
-          <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold">{user.name}</h1>
-            <div className="flex items-center gap-2">
+        <ProfileDetails
+          user={user}
+          showEmail={false}
+          followerCount={followerCount}
+          followingCount={followingCount}
+          actions={
+            <>
               <MessageButton targetUserId={user.id} />
               <FollowButton targetUserId={user.id} initialStatus={followStatus} />
-            </div>
-          </div>
-
-          <div className="mt-1">
-            <BlockMuteControls
-              targetUserId={user.id}
-              initialBlocked={Boolean(blockRow)}
-              initialMuted={Boolean(muteRow)}
-            />
-          </div>
-
-          {sharedLookingFor.length > 0 && (
-            <p className="mt-2 text-sm text-b2b-pink">
-              You're both looking for {sharedLookingFor.map((tag) => LOOKING_FOR_LABELS[tag]).join(" & ")}
-            </p>
-          )}
-
-          <div className="mt-4 flex gap-4 text-sm">
-            <Link href={`/profile/${user.id}/connections?tab=followers`} className="text-b2b-pink underline">
-              {followerCount} followers
-            </Link>
-            <Link href={`/profile/${user.id}/connections?tab=following`} className="text-b2b-pink underline">
-              {followingCount} following
-            </Link>
-          </div>
-        </SectionCard>
-
-        <ProfileDetails user={user} showEmail={false} />
+            </>
+          }
+          belowActions={
+            <>
+              <BlockMuteControls
+                targetUserId={user.id}
+                initialBlocked={Boolean(blockRow)}
+                initialMuted={Boolean(muteRow)}
+              />
+              {sharedLookingFor.length > 0 && (
+                <p className="text-sm text-b2b-pink">
+                  You're both looking for {sharedLookingFor.map((tag) => LOOKING_FOR_LABELS[tag]).join(" & ")}
+                </p>
+              )}
+            </>
+          }
+        />
 
         <Gallery userId={user.id} />
 

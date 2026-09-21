@@ -48,32 +48,21 @@ export default async function ProfilePage() {
       <NavBar />
 
       <div className="mt-6 flex flex-col gap-6">
-        <SectionCard>
-          <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold">Your profile</h1>
-            <div className="flex items-center gap-3">
-              <Link
-                href="/profile/edit"
-                className="rounded bg-b2b-pink px-3 py-1.5 text-sm font-medium text-white hover:bg-b2b-pink-dark"
-              >
-                Edit profile
-              </Link>
-            </div>
-          </div>
-
-          <div className="mt-4 flex gap-4 text-sm">
-            <Link href={`/profile/${user.id}/connections?tab=followers`} className="text-b2b-pink underline">
-              {followerCount} followers
+        <ProfileDetails
+          user={user}
+          showEmail
+          followerCount={followerCount}
+          followingCount={followingCount}
+          actions={
+            <Link
+              href="/profile/edit"
+              className="rounded bg-b2b-pink px-3 py-1.5 text-sm font-medium text-white hover:bg-b2b-pink-dark"
+            >
+              Edit profile
             </Link>
-            <Link href={`/profile/${user.id}/connections?tab=following`} className="text-b2b-pink underline">
-              {followingCount} following
-            </Link>
-          </div>
-
-          {suggestedGym && <GymUpdateNudge suggestedGym={suggestedGym} />}
-        </SectionCard>
-
-        <ProfileDetails user={user} showEmail />
+          }
+          belowActions={suggestedGym && <GymUpdateNudge suggestedGym={suggestedGym} />}
+        />
 
         <Gallery userId={user.id} />
 

@@ -41,6 +41,7 @@ export const PB_LABELS: Record<PbField, string> = {
   ohsKg: "OHS",
   snatchKg: "Snatch",
   benchPressKg: "Bench press",
+  splitJerkKg: "Split jerk",
 };
 
 export const WORKOUT_UNIT_LABELS: Record<WorkoutUnitOption, string> = {

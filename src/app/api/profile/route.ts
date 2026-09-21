@@ -37,13 +37,7 @@ export async function PATCH(req: Request) {
     showSingleBadge: formData.get("showSingleBadge"),
     showAge: formData.get("showAge"),
     isPrivate: formData.get("isPrivate"),
-    deadliftKg: formData.get("deadliftKg"),
-    cleanKg: formData.get("cleanKg"),
-    frontSquatKg: formData.get("frontSquatKg"),
-    backSquatKg: formData.get("backSquatKg"),
-    ohsKg: formData.get("ohsKg"),
-    snatchKg: formData.get("snatchKg"),
-    benchPressKg: formData.get("benchPressKg"),
+    ...Object.fromEntries(PB_FIELDS.map((field) => [field, formData.get(field)])),
   });
 
   if (!parsed.success) {

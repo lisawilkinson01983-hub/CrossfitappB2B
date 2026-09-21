@@ -24,6 +24,7 @@ export const PB_FIELDS = [
   "ohsKg",
   "snatchKg",
   "benchPressKg",
+  "splitJerkKg",
 ] as const;
 export type PbField = (typeof PB_FIELDS)[number];
 
@@ -80,6 +81,7 @@ export const profileSchema = z
     ohsKg: optionalPositiveKg,
     snatchKg: optionalPositiveKg,
     benchPressKg: optionalPositiveKg,
+    splitJerkKg: optionalPositiveKg,
   })
   .refine((data) => data.affiliateGym !== OTHER_GYM || !!data.affiliateGymOther, {
     message: "Enter your gym name",

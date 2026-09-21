@@ -22,7 +22,7 @@ export function GymUpdateNudge({ suggestedGym }: { suggestedGym: string }) {
   if (dismissed) return null;
 
   return (
-    <div className="mt-4 flex items-center justify-between rounded border border-b2b-purple/20 bg-b2b-purple/5 px-4 py-3 text-sm">
+    <div className="flex w-full items-center justify-between rounded border border-b2b-purple/20 bg-b2b-purple/5 px-4 py-3 text-sm">
       <p>
         <strong>{suggestedGym}</strong> is now on our list — switch to it?
       </p>

@@ -1,8 +1,10 @@
 import Image from "next/image";
 import Link from "next/link";
+import type { ReactNode } from "react";
 import type { User } from "@prisma/client";
 import {
   GENDER_LABELS,
+  LEVEL_BADGE_CLASSES,
   LEVEL_LABELS,
   LOOKING_FOR_LABELS,
   MONTH_NAMES,
@@ -14,26 +16,25 @@ import { AFFILIATE_GYMS, OTHER_GYM } from "@/lib/gyms";
 import { SectionCard } from "@/components/SectionCard";
 import { prisma } from "@/lib/prisma";
 
-function Field({ label, value, href }: { label: string; value: string | null; href?: string }) {
-  return (
-    <div>
-      <dt className="text-xs font-medium uppercase tracking-wide text-b2b-ink/40">{label}</dt>
-      <dd className="mt-0.5 text-b2b-ink">
-        {value == null ? (
-          <span className="text-b2b-ink/30">Not set</span>
-        ) : href ? (
-          <Link href={href} className="text-b2b-pink underline">
-            {value}
-          </Link>
-        ) : (
-          value
-        )}
-      </dd>
-    </div>
-  );
+function Badge({ label, className }: { label: string; className: string }) {
+  return <span className={`rounded-full px-3 py-1 text-xs font-medium ${className}`}>{label}</span>;
 }
 
-export async function ProfileDetails({ user, showEmail }: { user: User; showEmail: boolean }) {
+export async function ProfileDetails({
+  user,
+  showEmail,
+  followerCount,
+  followingCount,
+  actions,
+  belowActions,
+}: {
+  user: User;
+  showEmail: boolean;
+  followerCount: number;
+  followingCount: number;
+  actions?: ReactNode;
+  belowActions?: ReactNode;
+}) {
   const lookingFor = parseLookingFor(user.lookingFor);
   const crossfitSince =
     user.crossfitSinceYear != null
@@ -60,33 +61,80 @@ export async function ProfileDetails({ user, showEmail }: { user: User; showEmai
     : null;
   const gymHref = gymPage ? `/gyms/${encodeURIComponent(gymPage.name)}` : undefined;
 
+  const badges: ReactNode[] = [];
+  if (user.level) {
+    badges.push(
+      <Badge key="level" label={LEVEL_LABELS[user.level]} className={LEVEL_BADGE_CLASSES[user.level]} />
+    );
+  }
+  if (user.showAge && user.age != null) {
+    badges.push(<Badge key="age" label={`${user.age} yrs`} className="bg-gray-100 text-gray-600" />);
+  }
+  if (user.gender) {
+    badges.push(
+      <Badge key="gender" label={GENDER_LABELS[user.gender]} className="bg-gray-100 text-gray-600" />
+    );
+  }
+  if (showRelationshipStatus) {
+    badges.push(
+      <Badge
+        key="relationship"
+        label={user.isSingle ? "Single" : "Not single"}
+        className="bg-gray-100 text-gray-600"
+      />
+    );
+  }
+  if (user.showLookingFor && lookingFor.length > 0) {
+    for (const tag of lookingFor) {
+      badges.push(
+        <Badge key={`lf-${tag}`} label={LOOKING_FOR_LABELS[tag]} className="bg-b2b-purple/10 text-b2b-purple" />
+      );
+    }
+  }
+
+  const metaParts: ReactNode[] = [];
+  if (user.area) metaParts.push(<span key="area">{user.area}</span>);
+  if (affiliateGymDisplay) {
+    metaParts.push(
+      gymHref ? (
+        <Link key="gym" href={gymHref} className="text-b2b-pink underline">
+          {affiliateGymDisplay}
+        </Link>
+      ) : (
+        <span key="gym">{affiliateGymDisplay}</span>
+      )
+    );
+  }
+  if (crossfitSince) metaParts.push(<span key="since">CrossFitting since {crossfitSince}</span>);
+
   return (
     <div className="flex flex-col gap-6">
       <SectionCard>
-        <div className="flex items-center gap-4">
-          <div className="relative h-24 w-24">
+        <div className="flex flex-col items-center gap-3 text-center">
+          <div className="relative h-28 w-28">
             {user.photo ? (
               <Image
                 src={user.photo}
                 alt={`${user.name}'s photo`}
-                width={96}
-                height={96}
-                className="h-24 w-24 rounded-full object-cover"
+                width={112}
+                height={112}
+                className="h-28 w-28 rounded-full object-cover"
               />
             ) : (
-              <div className="flex h-24 w-24 items-center justify-center rounded-full bg-b2b-purple/10 text-2xl font-semibold text-b2b-purple">
+              <div className="flex h-28 w-28 items-center justify-center rounded-full bg-b2b-purple/10 text-3xl font-semibold text-b2b-purple">
                 {user.name.charAt(0).toUpperCase()}
               </div>
             )}
             {showSingleBadge && (
               <span
                 title="Single"
-                className="absolute -bottom-0.5 -right-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-b2b-card text-sm shadow"
+                className="absolute bottom-0 right-0 flex h-7 w-7 items-center justify-center rounded-full bg-b2b-card text-base shadow"
               >
                 💚
               </span>
             )}
           </div>
+
           <div>
             <p className="text-xl font-semibold">
               {user.name}
@@ -94,28 +142,37 @@ export async function ProfileDetails({ user, showEmail }: { user: User; showEmai
                 <span className="ml-2 align-middle text-sm font-normal text-b2b-ink/50">🔒 Private</span>
               )}
             </p>
-            {showEmail && <p className="text-b2b-ink/50">{user.email}</p>}
+            {showEmail && <p className="text-sm text-b2b-ink/50">{user.email}</p>}
           </div>
-        </div>
 
-        <dl className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2">
-          <Field label="Bio" value={user.bio} />
-          {user.showAge && <Field label="Age" value={user.age != null ? String(user.age) : null} />}
-          <Field label="Gender" value={user.gender ? GENDER_LABELS[user.gender] : null} />
-          <Field label="Area" value={user.area} />
-          <Field label="Affiliate gym" value={affiliateGymDisplay} href={gymHref} />
-          <Field label="Level" value={user.level ? LEVEL_LABELS[user.level] : null} />
-          <Field label="CrossFitting since" value={crossfitSince} />
-          {user.showLookingFor && (
-            <Field
-              label="Looking for"
-              value={lookingFor.length ? lookingFor.map((v) => LOOKING_FOR_LABELS[v]).join(", ") : null}
-            />
+          {actions && <div className="flex items-center gap-2">{actions}</div>}
+
+          <div className="flex gap-4 text-sm">
+            <Link href={`/profile/${user.id}/connections?tab=followers`} className="text-b2b-pink underline">
+              {followerCount} followers
+            </Link>
+            <Link href={`/profile/${user.id}/connections?tab=following`} className="text-b2b-pink underline">
+              {followingCount} following
+            </Link>
+          </div>
+
+          {belowActions}
+
+          {user.bio && <p className="max-w-sm text-sm italic text-b2b-ink/70">&ldquo;{user.bio}&rdquo;</p>}
+
+          {badges.length > 0 && <div className="flex flex-wrap justify-center gap-2">{badges}</div>}
+
+          {metaParts.length > 0 && (
+            <p className="text-sm text-b2b-ink/50">
+              {metaParts.map((part, i) => (
+                <span key={i}>
+                  {i > 0 && " · "}
+                  {part}
+                </span>
+              ))}
+            </p>
           )}
-          {showRelationshipStatus && (
-            <Field label="Relationship status" value={user.isSingle ? "Single" : "Not single"} />
-          )}
-        </dl>
+        </div>
       </SectionCard>
 
       <SectionCard title="Key PBs (kg)">
