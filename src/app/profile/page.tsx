@@ -15,19 +15,24 @@ export default async function ProfilePage() {
   const user = await prisma.user.findUnique({ where: { id: session.user.id } });
   if (!user) redirect("/login");
 
-  const [recentWorkouts, followerCount, followingCount, incomingRequests] = await Promise.all([
-    prisma.workout.findMany({
-      where: { userId: user.id },
-      orderBy: { createdAt: "desc" },
-      take: 3,
-    }),
-    prisma.follow.count({ where: { followingId: user.id } }),
-    prisma.follow.count({ where: { followerId: user.id } }),
-    prisma.followRequest.findMany({
-      where: { targetId: user.id, status: "PENDING" },
-      include: { requester: { select: { id: true, name: true } } },
-    }),
-  ]);
+  const [recentWorkouts, followerCount, followingCount, incomingRequests, competingIn] =
+    await Promise.all([
+      prisma.workout.findMany({
+        where: { userId: user.id },
+        orderBy: { createdAt: "desc" },
+        take: 3,
+      }),
+      prisma.follow.count({ where: { followingId: user.id } }),
+      prisma.follow.count({ where: { followerId: user.id } }),
+      prisma.followRequest.findMany({
+        where: { targetId: user.id, status: "PENDING" },
+        include: { requester: { select: { id: true, name: true } } },
+      }),
+      prisma.event.findMany({
+        where: { participants: { some: { userId: user.id } } },
+        orderBy: { date: "asc" },
+      }),
+    ]);
 
   return (
     <main className="mx-auto max-w-2xl px-4 py-8">
@@ -59,6 +64,33 @@ export default async function ProfilePage() {
       <IncomingFollowRequests
         requests={incomingRequests.map((r) => ({ id: r.id, requester: r.requester }))}
       />
+
+      {competingIn.length > 0 && (
+        <div className="mt-8">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-medium text-gray-500">Competing in</h2>
+            <Link href="/discover?view=events" className="text-sm text-blue-600 underline">
+              Browse events
+            </Link>
+          </div>
+          <div className="mt-2 flex flex-col gap-2">
+            {competingIn.map((event) => (
+              <div key={event.id} className="rounded border border-gray-200 bg-white p-3">
+                <p className="font-medium">{event.name}</p>
+                <p className="text-sm text-gray-500">
+                  {event.date.toLocaleDateString(undefined, {
+                    weekday: "short",
+                    year: "numeric",
+                    month: "short",
+                    day: "numeric",
+                  })}{" "}
+                  · {event.location}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="mt-8">
         <div className="flex items-center justify-between">

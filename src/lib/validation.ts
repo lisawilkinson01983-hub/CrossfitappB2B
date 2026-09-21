@@ -100,3 +100,11 @@ export const commentSchema = z.object({
 export const messageSchema = z.object({
   text: z.string().trim().min(1, "Message can't be empty").max(2000),
 });
+
+export const eventSchema = z.object({
+  name: z.string().trim().min(1, "Event name is required"),
+  date: z.coerce.date({ errorMap: () => ({ message: "Enter a valid date" }) }),
+  location: z.string().trim().min(1, "Location is required"),
+  description: z.preprocess(emptyToUndefined, z.string().trim().max(2000).optional()),
+  tag: z.preprocess(emptyToUndefined, z.string().trim().max(100).optional()),
+});

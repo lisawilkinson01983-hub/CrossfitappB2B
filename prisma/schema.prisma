@@ -117,6 +117,9 @@ model User {
   conversationsAsUserOne Conversation[] @relation("ConversationsAsUserOne")
   conversationsAsUserTwo Conversation[] @relation("ConversationsAsUserTwo")
   sentMessages           Message[]
+
+  createdEvents        Event[]
+  eventParticipations  EventParticipant[]
 }
 
 model Workout {
@@ -268,4 +271,43 @@ model Message {
   readAt    DateTime?
 
   @@index([conversationId])
+}
+
+model Event {
+  id String @id @default(cuid())
+
+  name        String
+  date        DateTime
+  location    String
+  description String?
+  tag         String? // free text, e.g. "Team size: 3", "Charity", "RX division"
+
+  // No admin/role system exists yet, so any signed-in user can add an event
+  // for now, same as posts or workouts — "manually curated" just means
+  // there's no aggregator feed behind it yet, not that it's staff-only.
+  createdById String
+  createdBy   User   @relation(fields: [createdById], references: [id], onDelete: Cascade)
+
+  // "manual" for now; an aggregator name (compete-zone/etc.) once Tier 2
+  // partnered event feeds exist.
+  source String @default("manual")
+
+  createdAt DateTime @default(now())
+
+  participants EventParticipant[]
+
+  @@index([date])
+}
+
+model EventParticipant {
+  id      String @id @default(cuid())
+  userId  String
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  eventId String
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, eventId])
+  @@index([eventId])
 }
