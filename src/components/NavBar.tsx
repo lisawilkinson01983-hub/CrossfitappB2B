@@ -41,7 +41,12 @@ export async function NavBar() {
           Workouts
         </Link>
       </div>
-      <SignOutButton />
+      <div className="flex items-center gap-4">
+        <Link href="/settings" className="text-sm font-medium text-gray-700 hover:text-blue-600">
+          Settings
+        </Link>
+        <SignOutButton />
+      </div>
     </nav>
   );
 }

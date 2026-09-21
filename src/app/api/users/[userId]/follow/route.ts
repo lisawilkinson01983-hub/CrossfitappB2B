@@ -21,6 +21,18 @@ export async function POST(_req: Request, { params }: { params: Promise<{ userId
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
+  const block = await prisma.block.findFirst({
+    where: {
+      OR: [
+        { blockerId: followerId, blockedId: targetId },
+        { blockerId: targetId, blockedId: followerId },
+      ],
+    },
+  });
+  if (block) {
+    return NextResponse.json({ error: "You can't follow this user" }, { status: 403 });
+  }
+
   const alreadyFollowing = await prisma.follow.findUnique({
     where: { followerId_followingId: { followerId, followingId: targetId } },
   });

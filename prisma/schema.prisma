@@ -120,6 +120,12 @@ model User {
 
   createdEvents        Event[]
   eventParticipations  EventParticipant[]
+
+  blocksMade     Block[] @relation("BlocksMade")
+  blocksReceived Block[] @relation("BlocksReceived")
+
+  mutesMade     Mute[] @relation("MutesMade")
+  mutesReceived Mute[] @relation("MutesReceived")
 }
 
 model Workout {
@@ -310,4 +316,34 @@ model EventParticipant {
 
   @@unique([userId, eventId])
   @@index([eventId])
+}
+
+model Block {
+  id String @id @default(cuid())
+
+  blockerId String
+  blocker   User   @relation("BlocksMade", fields: [blockerId], references: [id], onDelete: Cascade)
+
+  blockedId String
+  blocked   User   @relation("BlocksReceived", fields: [blockedId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([blockerId, blockedId])
+  @@index([blockedId])
+}
+
+model Mute {
+  id String @id @default(cuid())
+
+  userId String
+  user   User   @relation("MutesMade", fields: [userId], references: [id], onDelete: Cascade)
+
+  mutedUserId String
+  mutedUser   User   @relation("MutesReceived", fields: [mutedUserId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, mutedUserId])
+  @@index([mutedUserId])
 }

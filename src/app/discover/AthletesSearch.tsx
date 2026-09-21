@@ -3,6 +3,7 @@ import Image from "next/image";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { FollowButton, type FollowStatus } from "@/components/FollowButton";
+import { BlockMuteControls } from "@/components/BlockMuteControls";
 import { GENDERS, LEVELS, LOOKING_FOR_OPTIONS, type LookingForOption } from "@/lib/validation";
 import { GENDER_LABELS, LEVEL_LABELS, LOOKING_FOR_LABELS, parseLookingFor } from "@/lib/labels";
 
@@ -33,8 +34,13 @@ export async function AthletesSearch({
     LOOKING_FOR_OPTIONS.includes(v as LookingForOption)
   );
 
+  const blocked = await prisma.block.findMany({
+    where: { blockerId: currentUserId },
+    select: { blockedId: true },
+  });
+
   const where: Prisma.UserWhereInput = {
-    id: { not: currentUserId },
+    id: { not: currentUserId, notIn: blocked.map((b) => b.blockedId) },
     ...(gym ? { affiliateGym: { contains: gym } } : {}),
     ...(area ? { area: { contains: area } } : {}),
     ...(gender ? { gender } : {}),
@@ -65,7 +71,7 @@ export async function AthletesSearch({
   }
 
   const resultIds = results.map((r) => r.id);
-  const [myFollows, myPendingRequests] = await Promise.all([
+  const [myFollows, myPendingRequests, myMutes] = await Promise.all([
     prisma.follow.findMany({
       where: { followerId: currentUserId, followingId: { in: resultIds } },
       select: { followingId: true },
@@ -74,9 +80,14 @@ export async function AthletesSearch({
       where: { requesterId: currentUserId, targetId: { in: resultIds }, status: "PENDING" },
       select: { targetId: true },
     }),
+    prisma.mute.findMany({
+      where: { userId: currentUserId, mutedUserId: { in: resultIds } },
+      select: { mutedUserId: true },
+    }),
   ]);
   const myFollowingIds = new Set(myFollows.map((f) => f.followingId));
   const myPendingIds = new Set(myPendingRequests.map((r) => r.targetId));
+  const myMutedIds = new Set(myMutes.map((m) => m.mutedUserId));
 
   return (
     <>
@@ -220,7 +231,14 @@ export async function AthletesSearch({
                     </p>
                   </div>
                 </Link>
-                <FollowButton targetUserId={user.id} initialStatus={status} />
+                <div className="flex flex-col items-end gap-1">
+                  <FollowButton targetUserId={user.id} initialStatus={status} />
+                  <BlockMuteControls
+                    targetUserId={user.id}
+                    initialBlocked={false}
+                    initialMuted={myMutedIds.has(user.id)}
+                  />
+                </div>
               </div>
             );
           })}

@@ -7,6 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { NavBar } from "@/components/NavBar";
 import { FollowButton, type FollowStatus } from "@/components/FollowButton";
 import { MessageButton } from "@/components/MessageButton";
+import { BlockMuteControls } from "@/components/BlockMuteControls";
 
 export default async function ConnectionsPage({
   params,
@@ -44,7 +45,7 @@ export default async function ConnectionsPage({
 
   const rowIds = rows.map((r) => r.id);
 
-  const [myFollows, myPendingRequests] = await Promise.all([
+  const [myFollows, myPendingRequests, myBlocks, myMutes] = await Promise.all([
     prisma.follow.findMany({
       where: { followerId: session.user.id, followingId: { in: rowIds } },
       select: { followingId: true },
@@ -53,9 +54,19 @@ export default async function ConnectionsPage({
       where: { requesterId: session.user.id, targetId: { in: rowIds }, status: "PENDING" },
       select: { targetId: true },
     }),
+    prisma.block.findMany({
+      where: { blockerId: session.user.id, blockedId: { in: rowIds } },
+      select: { blockedId: true },
+    }),
+    prisma.mute.findMany({
+      where: { userId: session.user.id, mutedUserId: { in: rowIds } },
+      select: { mutedUserId: true },
+    }),
   ]);
   const myFollowingIds = new Set(myFollows.map((f) => f.followingId));
   const myPendingIds = new Set(myPendingRequests.map((r) => r.targetId));
+  const myBlockedIds = new Set(myBlocks.map((b) => b.blockedId));
+  const myMutedIds = new Set(myMutes.map((m) => m.mutedUserId));
 
   return (
     <main className="mx-auto max-w-2xl px-4 py-8">
@@ -112,9 +123,16 @@ export default async function ConnectionsPage({
                   <span className="font-medium">{row.name}</span>
                 </Link>
                 {!isMe && (
-                  <div className="flex gap-2">
-                    <MessageButton targetUserId={row.id} />
-                    <FollowButton targetUserId={row.id} initialStatus={status} />
+                  <div className="flex flex-col items-end gap-1">
+                    <div className="flex gap-2">
+                      <MessageButton targetUserId={row.id} />
+                      <FollowButton targetUserId={row.id} initialStatus={status} />
+                    </div>
+                    <BlockMuteControls
+                      targetUserId={row.id}
+                      initialBlocked={myBlockedIds.has(row.id)}
+                      initialMuted={myMutedIds.has(row.id)}
+                    />
                   </div>
                 )}
               </div>

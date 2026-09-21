@@ -101,6 +101,22 @@ export const messageSchema = z.object({
   text: z.string().trim().min(1, "Message can't be empty").max(2000),
 });
 
+export const changeEmailSchema = z.object({
+  currentPassword: z.string().min(1, "Enter your current password"),
+  newEmail: z.string().trim().email("Enter a valid email address"),
+});
+
+export const changePasswordSchema = z
+  .object({
+    currentPassword: z.string().min(1, "Enter your current password"),
+    newPassword: z.string().min(8, "New password must be at least 8 characters"),
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    message: "Passwords don't match",
+    path: ["confirmPassword"],
+  });
+
 export const eventSchema = z.object({
   name: z.string().trim().min(1, "Event name is required"),
   date: z.coerce.date({ errorMap: () => ({ message: "Enter a valid date" }) }),

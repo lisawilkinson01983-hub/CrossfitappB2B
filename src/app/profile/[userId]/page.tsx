@@ -8,6 +8,7 @@ import { ProfileDetails } from "@/components/ProfileDetails";
 import { WorkoutCard } from "@/components/WorkoutCard";
 import { FollowButton, type FollowStatus } from "@/components/FollowButton";
 import { MessageButton } from "@/components/MessageButton";
+import { BlockMuteControls } from "@/components/BlockMuteControls";
 import { LOOKING_FOR_LABELS, parseLookingFor } from "@/lib/labels";
 
 export default async function UserProfilePage({
@@ -24,7 +25,7 @@ export default async function UserProfilePage({
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user) notFound();
 
-  const [followerCount, followingCount, existingFollow, pendingRequest, recentWorkouts, me] =
+  const [followerCount, followingCount, existingFollow, pendingRequest, recentWorkouts, me, blockRow, muteRow] =
     await Promise.all([
       prisma.follow.count({ where: { followingId: user.id } }),
       prisma.follow.count({ where: { followerId: user.id } }),
@@ -36,6 +37,12 @@ export default async function UserProfilePage({
       }),
       prisma.workout.findMany({ where: { userId: user.id }, orderBy: { createdAt: "desc" }, take: 3 }),
       prisma.user.findUnique({ where: { id: session.user.id }, select: { lookingFor: true } }),
+      prisma.block.findUnique({
+        where: { blockerId_blockedId: { blockerId: session.user.id, blockedId: user.id } },
+      }),
+      prisma.mute.findUnique({
+        where: { userId_mutedUserId: { userId: session.user.id, mutedUserId: user.id } },
+      }),
     ]);
 
   const followStatus: FollowStatus = existingFollow
@@ -54,10 +61,18 @@ export default async function UserProfilePage({
 
       <div className="mt-6 flex items-center justify-between">
         <h1 className="text-2xl font-bold">{user.name}</h1>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
           <MessageButton targetUserId={user.id} />
           <FollowButton targetUserId={user.id} initialStatus={followStatus} />
         </div>
+      </div>
+
+      <div className="mt-1">
+        <BlockMuteControls
+          targetUserId={user.id}
+          initialBlocked={Boolean(blockRow)}
+          initialMuted={Boolean(muteRow)}
+        />
       </div>
 
       {sharedLookingFor.length > 0 && (

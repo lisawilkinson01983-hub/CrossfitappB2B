@@ -10,7 +10,14 @@ export default async function FeedPage() {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) redirect("/login");
 
+  const [blocked, muted] = await Promise.all([
+    prisma.block.findMany({ where: { blockerId: session.user.id }, select: { blockedId: true } }),
+    prisma.mute.findMany({ where: { userId: session.user.id }, select: { mutedUserId: true } }),
+  ]);
+  const hiddenUserIds = [...blocked.map((b) => b.blockedId), ...muted.map((m) => m.mutedUserId)];
+
   const posts = await prisma.post.findMany({
+    where: { userId: { notIn: hiddenUserIds } },
     orderBy: { createdAt: "desc" },
     include: {
       user: { select: { id: true, name: true, photo: true, level: true } },
