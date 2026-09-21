@@ -403,3 +403,19 @@ model Notification {
 
   @@index([userId])
 }
+
+// A details page for one of the fixed gyms in src/lib/gyms.ts (AFFILIATE_GYMS).
+// No in-app creation UI — added directly (e.g. via Prisma Studio), same as
+// Event, so the page only exists once someone's actually written it up.
+// "name" matches User.affiliateGym's string exactly.
+model Gym {
+  id String @id @default(cuid())
+
+  name        String  @unique
+  description String?
+  address     String?
+  website     String?
+  photo       String? // served path, e.g. "/media/xyz.jpg" (see src/lib/uploads.ts)
+
+  createdAt DateTime @default(now())
+}

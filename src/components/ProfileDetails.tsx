@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import type { User } from "@prisma/client";
 import {
   GENDER_LABELS,
@@ -9,19 +10,30 @@ import {
   parseLookingFor,
 } from "@/lib/labels";
 import { PB_FIELDS } from "@/lib/validation";
-import { OTHER_GYM } from "@/lib/gyms";
+import { AFFILIATE_GYMS, OTHER_GYM } from "@/lib/gyms";
 import { SectionCard } from "@/components/SectionCard";
+import { prisma } from "@/lib/prisma";
 
-function Field({ label, value }: { label: string; value: string | null }) {
+function Field({ label, value, href }: { label: string; value: string | null; href?: string }) {
   return (
     <div>
       <dt className="text-xs font-medium uppercase tracking-wide text-b2b-ink/40">{label}</dt>
-      <dd className="mt-0.5 text-b2b-ink">{value ?? <span className="text-b2b-ink/30">Not set</span>}</dd>
+      <dd className="mt-0.5 text-b2b-ink">
+        {value == null ? (
+          <span className="text-b2b-ink/30">Not set</span>
+        ) : href ? (
+          <Link href={href} className="text-b2b-pink underline">
+            {value}
+          </Link>
+        ) : (
+          value
+        )}
+      </dd>
     </div>
   );
 }
 
-export function ProfileDetails({ user, showEmail }: { user: User; showEmail: boolean }) {
+export async function ProfileDetails({ user, showEmail }: { user: User; showEmail: boolean }) {
   const lookingFor = parseLookingFor(user.lookingFor);
   const crossfitSince =
     user.crossfitSinceYear != null
@@ -39,6 +51,14 @@ export function ProfileDetails({ user, showEmail }: { user: User; showEmail: boo
     user.affiliateGym === OTHER_GYM
       ? `Other${user.affiliateGymOther ? ` — ${user.affiliateGymOther}` : ""}`
       : user.affiliateGym;
+
+  const isKnownGym =
+    user.affiliateGym != null &&
+    (AFFILIATE_GYMS as readonly string[]).includes(user.affiliateGym);
+  const gymPage = isKnownGym
+    ? await prisma.gym.findUnique({ where: { name: user.affiliateGym! } })
+    : null;
+  const gymHref = gymPage ? `/gyms/${encodeURIComponent(gymPage.name)}` : undefined;
 
   return (
     <div className="flex flex-col gap-6">
@@ -83,7 +103,7 @@ export function ProfileDetails({ user, showEmail }: { user: User; showEmail: boo
           {user.showAge && <Field label="Age" value={user.age != null ? String(user.age) : null} />}
           <Field label="Gender" value={user.gender ? GENDER_LABELS[user.gender] : null} />
           <Field label="Area" value={user.area} />
-          <Field label="Affiliate gym" value={affiliateGymDisplay} />
+          <Field label="Affiliate gym" value={affiliateGymDisplay} href={gymHref} />
           <Field label="Level" value={user.level ? LEVEL_LABELS[user.level] : null} />
           <Field label="CrossFitting since" value={crossfitSince} />
           {user.showLookingFor && (
