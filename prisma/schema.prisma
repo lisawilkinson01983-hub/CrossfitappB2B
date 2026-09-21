@@ -113,6 +113,10 @@ model User {
 
   sentFollowRequests     FollowRequest[] @relation("SentFollowRequests")
   receivedFollowRequests FollowRequest[] @relation("ReceivedFollowRequests")
+
+  conversationsAsUserOne Conversation[] @relation("ConversationsAsUserOne")
+  conversationsAsUserTwo Conversation[] @relation("ConversationsAsUserTwo")
+  sentMessages           Message[]
 }
 
 model Workout {
@@ -227,4 +231,41 @@ model FollowRequest {
 
   @@unique([requesterId, targetId])
   @@index([targetId])
+}
+
+// One row per pair of participants. userOneId/userTwoId are always stored in
+// a canonical order (lexicographically smaller id first — see
+// src/lib/conversations.ts) so the unique constraint catches a duplicate
+// conversation regardless of who started it.
+model Conversation {
+  id String @id @default(cuid())
+
+  userOneId String
+  userOne   User   @relation("ConversationsAsUserOne", fields: [userOneId], references: [id], onDelete: Cascade)
+
+  userTwoId String
+  userTwo   User   @relation("ConversationsAsUserTwo", fields: [userTwoId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  messages Message[]
+
+  @@unique([userOneId, userTwoId])
+  @@index([userTwoId])
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  senderId String
+  sender   User   @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  text String
+
+  createdAt DateTime  @default(now())
+  readAt    DateTime?
+
+  @@index([conversationId])
 }

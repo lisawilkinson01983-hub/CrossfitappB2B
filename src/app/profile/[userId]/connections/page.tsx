@@ -6,6 +6,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NavBar } from "@/components/NavBar";
 import { FollowButton, type FollowStatus } from "@/components/FollowButton";
+import { MessageButton } from "@/components/MessageButton";
 
 export default async function ConnectionsPage({
   params,
@@ -110,7 +111,12 @@ export default async function ConnectionsPage({
                   )}
                   <span className="font-medium">{row.name}</span>
                 </Link>
-                {!isMe && <FollowButton targetUserId={row.id} initialStatus={status} />}
+                {!isMe && (
+                  <div className="flex gap-2">
+                    <MessageButton targetUserId={row.id} />
+                    <FollowButton targetUserId={row.id} initialStatus={status} />
+                  </div>
+                )}
               </div>
             );
           })}

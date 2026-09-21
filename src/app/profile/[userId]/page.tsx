@@ -7,6 +7,8 @@ import { NavBar } from "@/components/NavBar";
 import { ProfileDetails } from "@/components/ProfileDetails";
 import { WorkoutCard } from "@/components/WorkoutCard";
 import { FollowButton, type FollowStatus } from "@/components/FollowButton";
+import { MessageButton } from "@/components/MessageButton";
+import { LOOKING_FOR_LABELS, parseLookingFor } from "@/lib/labels";
 
 export default async function UserProfilePage({
   params,
@@ -22,7 +24,7 @@ export default async function UserProfilePage({
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user) notFound();
 
-  const [followerCount, followingCount, existingFollow, pendingRequest, recentWorkouts] =
+  const [followerCount, followingCount, existingFollow, pendingRequest, recentWorkouts, me] =
     await Promise.all([
       prisma.follow.count({ where: { followingId: user.id } }),
       prisma.follow.count({ where: { followerId: user.id } }),
@@ -33,6 +35,7 @@ export default async function UserProfilePage({
         where: { requesterId_targetId: { requesterId: session.user.id, targetId: user.id } },
       }),
       prisma.workout.findMany({ where: { userId: user.id }, orderBy: { createdAt: "desc" }, take: 3 }),
+      prisma.user.findUnique({ where: { id: session.user.id }, select: { lookingFor: true } }),
     ]);
 
   const followStatus: FollowStatus = existingFollow
@@ -41,14 +44,27 @@ export default async function UserProfilePage({
       ? "pending"
       : "none";
 
+  const sharedLookingFor = parseLookingFor(me?.lookingFor ?? null).filter((tag) =>
+    parseLookingFor(user.lookingFor).includes(tag)
+  );
+
   return (
     <main className="mx-auto max-w-2xl px-4 py-8">
       <NavBar />
 
       <div className="mt-6 flex items-center justify-between">
         <h1 className="text-2xl font-bold">{user.name}</h1>
-        <FollowButton targetUserId={user.id} initialStatus={followStatus} />
+        <div className="flex gap-2">
+          <MessageButton targetUserId={user.id} />
+          <FollowButton targetUserId={user.id} initialStatus={followStatus} />
+        </div>
       </div>
+
+      {sharedLookingFor.length > 0 && (
+        <p className="mt-2 text-sm text-pink-600">
+          You're both looking for {sharedLookingFor.map((tag) => LOOKING_FOR_LABELS[tag]).join(" & ")}
+        </p>
+      )}
 
       <div className="mt-4 flex gap-4 text-sm">
         <Link href={`/profile/${user.id}/connections?tab=followers`} className="text-blue-600 underline">
