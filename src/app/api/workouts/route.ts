@@ -4,6 +4,8 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { workoutSchema } from "@/lib/validation";
 import { PhotoUploadError, savePhotoUpload } from "@/lib/uploads";
+import { WORKOUT_INTENSITY_LABELS, WORKOUT_UNIT_LABELS } from "@/lib/labels";
+import { parseFormData } from "@/lib/http";
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
@@ -11,7 +13,10 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
 
-  const formData = await req.formData();
+  const formData = await parseFormData(req);
+  if (!formData) {
+    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+  }
 
   const parsed = workoutSchema.safeParse({
     wodName: formData.get("wodName"),
@@ -55,6 +60,19 @@ export async function POST(req: Request) {
       photo: photoPath ?? null,
     },
   });
+
+  if (data.sharedToFeed) {
+    const summary = `${data.wodName} — ${data.score} (${WORKOUT_UNIT_LABELS[data.unit]}) · ${WORKOUT_INTENSITY_LABELS[data.intensity]}`;
+    await prisma.post.create({
+      data: {
+        userId: session.user.id,
+        type: data.isPb ? "PR" : "WORKOUT",
+        contentText: data.notes ? `${summary}\n${data.notes}` : summary,
+        photo: photoPath ?? null,
+        linkedWorkoutId: workout.id,
+      },
+    });
+  }
 
   return NextResponse.json({ ok: true, id: workout.id });
 }

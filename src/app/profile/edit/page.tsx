@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { parseLookingFor } from "@/lib/labels";
 import { PB_FIELDS } from "@/lib/validation";
+import { NavBar } from "@/components/NavBar";
 import { EditProfileForm } from "./EditProfileForm";
 
 export default async function EditProfilePage() {
@@ -15,7 +16,8 @@ export default async function EditProfilePage() {
 
   return (
     <main className="mx-auto max-w-2xl px-4 py-8">
-      <h1 className="text-2xl font-bold">Edit profile</h1>
+      <NavBar />
+      <h1 className="mt-6 text-2xl font-bold">Edit profile</h1>
       <EditProfileForm
         initial={{
           name: user.name,

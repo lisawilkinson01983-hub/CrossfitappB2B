@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PB_FIELDS, profileSchema } from "@/lib/validation";
 import { PhotoUploadError, savePhotoUpload } from "@/lib/uploads";
+import { parseFormData } from "@/lib/http";
 
 export async function PATCH(req: Request) {
   const session = await getServerSession(authOptions);
@@ -11,7 +12,10 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
 
-  const formData = await req.formData();
+  const formData = await parseFormData(req);
+  if (!formData) {
+    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+  }
 
   const parsed = profileSchema.safeParse({
     name: formData.get("name"),

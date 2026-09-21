@@ -13,7 +13,7 @@ import {
   parseLookingFor,
 } from "@/lib/labels";
 import { PB_FIELDS } from "@/lib/validation";
-import { SignOutButton } from "@/components/SignOutButton";
+import { NavBar } from "@/components/NavBar";
 import { WorkoutCard } from "@/components/WorkoutCard";
 
 function Field({ label, value }: { label: string; value: string | null }) {
@@ -52,17 +52,16 @@ export default async function ProfilePage() {
 
   return (
     <main className="mx-auto max-w-2xl px-4 py-8">
-      <div className="flex items-center justify-between">
+      <NavBar />
+
+      <div className="mt-6 flex items-center justify-between">
         <h1 className="text-2xl font-bold">Your profile</h1>
-        <div className="flex gap-2">
-          <Link
-            href="/profile/edit"
-            className="rounded bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700"
-          >
-            Edit profile
-          </Link>
-          <SignOutButton />
-        </div>
+        <Link
+          href="/profile/edit"
+          className="rounded bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700"
+        >
+          Edit profile
+        </Link>
       </div>
 
       <div className="mt-6 flex items-center gap-4">

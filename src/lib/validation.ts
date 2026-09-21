@@ -86,3 +86,13 @@ export const workoutSchema = z.object({
   isPb: checkboxToBoolean,
   sharedToFeed: checkboxToBoolean,
 });
+
+// contentText alone doesn't say whether a photo came along too, so "must have
+// text or a photo" is checked in the route handler, not here.
+export const postSchema = z.object({
+  contentText: z.preprocess(emptyToUndefined, z.string().trim().max(2000).optional()),
+});
+
+export const commentSchema = z.object({
+  text: z.string().trim().min(1, "Comment can't be empty").max(1000),
+});

@@ -40,6 +40,12 @@ enum WorkoutIntensity {
   SCALED
 }
 
+enum PostType {
+  WORKOUT
+  PR
+  UPDATE
+}
+
 model User {
   id           String   @id @default(cuid())
   name         String
@@ -92,6 +98,9 @@ model User {
   createdAt DateTime @default(now())
 
   workouts Workout[]
+  posts    Post[]
+  likes    Like[]
+  comments Comment[]
 }
 
 model Workout {
@@ -119,4 +128,56 @@ model Workout {
   createdAt DateTime @default(now())
 
   @@index([userId])
+
+  posts Post[]
+}
+
+model Post {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  type        PostType
+  contentText String?
+  photo       String? // served path, e.g. "/media/xyz.jpg" (see src/lib/uploads.ts)
+
+  // Set when auto-created from a workout logged with "share to feed" on.
+  // Deleting that workout removes this post too, since it has nothing left to show.
+  linkedWorkoutId String?
+  linkedWorkout   Workout? @relation(fields: [linkedWorkoutId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  likes    Like[]
+  comments Comment[]
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model Like {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  postId String
+  post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, postId])
+  @@index([postId])
+}
+
+model Comment {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  postId String
+  post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  text String
+
+  createdAt DateTime @default(now())
+
+  @@index([postId])
 }

@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { WorkoutCard } from "@/components/WorkoutCard";
+import { NavBar } from "@/components/NavBar";
 
 export default async function WorkoutsPage() {
   const session = await getServerSession(authOptions);
@@ -16,7 +17,9 @@ export default async function WorkoutsPage() {
 
   return (
     <main className="mx-auto max-w-2xl px-4 py-8">
-      <div className="flex items-center justify-between">
+      <NavBar />
+
+      <div className="mt-6 flex items-center justify-between">
         <h1 className="text-2xl font-bold">Workout history</h1>
         <Link
           href="/workouts/new"
