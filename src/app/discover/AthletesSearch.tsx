@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { FollowButton, type FollowStatus } from "@/components/FollowButton";
 import { BlockMuteControls } from "@/components/BlockMuteControls";
 import { GENDERS, LEVELS, LOOKING_FOR_OPTIONS, type LookingForOption } from "@/lib/validation";
-import { GENDER_LABELS, LEVEL_LABELS, LOOKING_FOR_LABELS, parseLookingFor } from "@/lib/labels";
+import { GENDER_LABELS, LEVEL_BADGE_CLASSES, LEVEL_LABELS, LOOKING_FOR_LABELS, parseLookingFor } from "@/lib/labels";
 import { AFFILIATE_GYM_VALUES } from "@/lib/gyms";
 
 // "Prefer not to disclose" is a profile-level privacy choice, not a search filter.
@@ -92,7 +92,7 @@ export async function AthletesSearch({
 
   return (
     <>
-      <form method="GET" className="mt-4 flex flex-col gap-4 rounded border border-gray-200 bg-white p-4">
+      <form method="GET" className="mt-4 flex flex-col gap-4 rounded border border-gray-200 bg-b2b-card p-4">
         <input type="hidden" name="view" value="athletes" />
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
@@ -103,7 +103,7 @@ export async function AthletesSearch({
               id="gym"
               name="gym"
               defaultValue={gym ?? ""}
-              className="mt-1 w-full rounded border border-gray-300 bg-white px-3 py-2 focus:border-blue-500 focus:outline-none"
+              className="mt-1 w-full rounded border border-gray-300 bg-b2b-card px-3 py-2 focus:border-b2b-pink focus:outline-none"
             >
               <option value="">Any</option>
               {AFFILIATE_GYM_VALUES.map((g) => (
@@ -122,7 +122,7 @@ export async function AthletesSearch({
               name="area"
               type="text"
               defaultValue={area}
-              className="mt-1 w-full rounded border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
+              className="mt-1 w-full rounded border border-gray-300 px-3 py-2 focus:border-b2b-pink focus:outline-none"
             />
           </div>
           <div>
@@ -133,7 +133,7 @@ export async function AthletesSearch({
               id="gender"
               name="gender"
               defaultValue={gender ?? ""}
-              className="mt-1 w-full rounded border border-gray-300 bg-white px-3 py-2 focus:border-blue-500 focus:outline-none"
+              className="mt-1 w-full rounded border border-gray-300 bg-b2b-card px-3 py-2 focus:border-b2b-pink focus:outline-none"
             >
               <option value="">Any</option>
               {SEARCHABLE_GENDERS.map((g) => (
@@ -151,7 +151,7 @@ export async function AthletesSearch({
               id="level"
               name="level"
               defaultValue={level ?? ""}
-              className="mt-1 w-full rounded border border-gray-300 bg-white px-3 py-2 focus:border-blue-500 focus:outline-none"
+              className="mt-1 w-full rounded border border-gray-300 bg-b2b-card px-3 py-2 focus:border-b2b-pink focus:outline-none"
             >
               <option value="">Any</option>
               {LEVELS.map((l) => (
@@ -183,7 +183,7 @@ export async function AthletesSearch({
         <div className="flex gap-3">
           <button
             type="submit"
-            className="rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+            className="rounded bg-b2b-pink px-4 py-2 text-sm font-medium text-white hover:bg-b2b-pink-dark"
           >
             Search
           </button>
@@ -207,7 +207,7 @@ export async function AthletesSearch({
             return (
               <div
                 key={user.id}
-                className="flex items-center justify-between rounded border border-gray-200 bg-white p-3"
+                className="flex items-center justify-between rounded border border-gray-200 bg-b2b-card p-3"
               >
                 <Link href={`/profile/${user.id}`} className="flex items-center gap-3">
                   {user.photo ? (
@@ -228,7 +228,9 @@ export async function AthletesSearch({
                       {user.name}
                       {user.isPrivate && <span className="ml-1 text-sm">🔒</span>}
                       {user.level && (
-                        <span className="ml-2 rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600">
+                        <span
+                          className={`ml-2 rounded-full px-2 py-0.5 text-xs ${LEVEL_BADGE_CLASSES[user.level]}`}
+                        >
                           {LEVEL_LABELS[user.level]}
                         </span>
                       )}

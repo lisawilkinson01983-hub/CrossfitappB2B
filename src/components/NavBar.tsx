@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { Logo } from "./Logo";
 import { SignOutButton } from "./SignOutButton";
 
 export async function NavBar() {
@@ -18,31 +19,30 @@ export async function NavBar() {
     : 0;
 
   return (
-    <nav className="flex items-center justify-between border-b border-gray-200 pb-4">
-      <div className="flex gap-4 text-sm font-medium">
-        <Link href="/feed" className="text-gray-700 hover:text-blue-600">
+    <nav className="flex flex-wrap items-center justify-between gap-3 border-b border-b2b-purple/10 pb-4">
+      <Logo size="sm" href="/feed" />
+      <div className="flex flex-wrap items-center gap-4 text-sm font-medium">
+        <Link href="/feed" className="text-b2b-ink/80 hover:text-b2b-pink">
           Feed
         </Link>
-        <Link href="/discover" className="text-gray-700 hover:text-blue-600">
+        <Link href="/discover" className="text-b2b-ink/80 hover:text-b2b-pink">
           Discover
         </Link>
-        <Link href="/messages" className="flex items-center gap-1 text-gray-700 hover:text-blue-600">
+        <Link href="/messages" className="flex items-center gap-1 text-b2b-ink/80 hover:text-b2b-pink">
           Messages
           {unreadCount > 0 && (
-            <span className="rounded-full bg-pink-600 px-1.5 py-0.5 text-xs font-medium text-white">
+            <span className="rounded-full bg-b2b-pink px-1.5 py-0.5 text-xs font-medium text-white">
               {unreadCount}
             </span>
           )}
         </Link>
-        <Link href="/profile" className="text-gray-700 hover:text-blue-600">
+        <Link href="/profile" className="text-b2b-ink/80 hover:text-b2b-pink">
           Profile
         </Link>
-        <Link href="/workouts" className="text-gray-700 hover:text-blue-600">
+        <Link href="/workouts" className="text-b2b-ink/80 hover:text-b2b-pink">
           Workouts
         </Link>
-      </div>
-      <div className="flex items-center gap-4">
-        <Link href="/settings" className="text-sm font-medium text-gray-700 hover:text-blue-600">
+        <Link href="/settings" className="text-b2b-ink/80 hover:text-b2b-pink">
           Settings
         </Link>
         <SignOutButton />

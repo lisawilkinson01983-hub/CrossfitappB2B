@@ -49,17 +49,17 @@ export default async function ProfilePage() {
         <h1 className="text-2xl font-bold">Your profile</h1>
         <Link
           href="/profile/edit"
-          className="rounded bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700"
+          className="rounded bg-b2b-pink px-3 py-1.5 text-sm font-medium text-white hover:bg-b2b-pink-dark"
         >
           Edit profile
         </Link>
       </div>
 
       <div className="mt-4 flex gap-4 text-sm">
-        <Link href={`/profile/${user.id}/connections?tab=followers`} className="text-blue-600 underline">
+        <Link href={`/profile/${user.id}/connections?tab=followers`} className="text-b2b-pink underline">
           {followerCount} followers
         </Link>
-        <Link href={`/profile/${user.id}/connections?tab=following`} className="text-blue-600 underline">
+        <Link href={`/profile/${user.id}/connections?tab=following`} className="text-b2b-pink underline">
           {followingCount} following
         </Link>
       </div>
@@ -78,13 +78,13 @@ export default async function ProfilePage() {
         <div className="mt-8">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-medium text-gray-500">Competing in</h2>
-            <Link href="/discover?view=events" className="text-sm text-blue-600 underline">
+            <Link href="/discover?view=events" className="text-sm text-b2b-pink underline">
               Browse events
             </Link>
           </div>
           <div className="mt-2 flex flex-col gap-2">
             {competingIn.map((event) => (
-              <div key={event.id} className="rounded border border-gray-200 bg-white p-3">
+              <div key={event.id} className="rounded border border-gray-200 bg-b2b-card p-3">
                 <p className="font-medium">{event.name}</p>
                 <p className="text-sm text-gray-500">
                   {event.date.toLocaleDateString(undefined, {
@@ -105,11 +105,11 @@ export default async function ProfilePage() {
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-medium text-gray-500">Workout history</h2>
           <div className="flex gap-3 text-sm">
-            <Link href="/workouts/new" className="text-blue-600 underline">
+            <Link href="/workouts/new" className="text-b2b-pink underline">
               Log a workout
             </Link>
             {recentWorkouts.length > 0 && (
-              <Link href="/workouts" className="text-blue-600 underline">
+              <Link href="/workouts" className="text-b2b-pink underline">
                 View all
               </Link>
             )}

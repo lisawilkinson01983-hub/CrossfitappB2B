@@ -4,7 +4,7 @@ import { useState, type FormEvent } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { LEVEL_LABELS, WORKOUT_INTENSITY_LABELS, WORKOUT_UNIT_LABELS } from "@/lib/labels";
+import { LEVEL_BADGE_CLASSES, LEVEL_LABELS, WORKOUT_INTENSITY_LABELS, WORKOUT_UNIT_LABELS } from "@/lib/labels";
 import type { LevelOption, WorkoutIntensityOption, WorkoutUnitOption } from "@/lib/validation";
 
 export type PostCardData = {
@@ -91,7 +91,7 @@ export function PostCard({ post }: { post: PostCardData }) {
   return (
     <div
       className={`rounded border p-4 ${
-        isPb ? "border-yellow-400 bg-yellow-50" : "border-gray-200 bg-white"
+        isPb ? "border-yellow-400 bg-yellow-50" : "border-gray-200 bg-b2b-card"
       }`}
     >
       <div className="flex items-start justify-between gap-4">
@@ -113,7 +113,9 @@ export function PostCard({ post }: { post: PostCardData }) {
             <div className="flex items-center gap-2">
               <span className="font-semibold hover:underline">{post.author.name}</span>
               {post.author.level && (
-                <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600">
+                <span
+                  className={`rounded-full px-2 py-0.5 text-xs ${LEVEL_BADGE_CLASSES[post.author.level]}`}
+                >
                   {LEVEL_LABELS[post.author.level]}
                 </span>
               )}
@@ -142,7 +144,7 @@ export function PostCard({ post }: { post: PostCardData }) {
         </p>
       )}
 
-      {post.contentText && <p className="mt-2 whitespace-pre-wrap text-gray-900">{post.contentText}</p>}
+      {post.contentText && <p className="mt-2 whitespace-pre-wrap text-b2b-ink">{post.contentText}</p>}
 
       {post.photo && (
         <Image
@@ -159,7 +161,7 @@ export function PostCard({ post }: { post: PostCardData }) {
           type="button"
           onClick={toggleLike}
           disabled={likeBusy}
-          className={`font-medium ${liked ? "text-pink-600" : "text-gray-600"} hover:underline disabled:opacity-50`}
+          className={`font-medium ${liked ? "text-b2b-pink" : "text-gray-600"} hover:underline disabled:opacity-50`}
         >
           {liked ? "♥ Liked" : "♡ Like"} {likeCount > 0 && `(${likeCount})`}
         </button>
@@ -186,12 +188,12 @@ export function PostCard({ post }: { post: PostCardData }) {
               placeholder="Add a comment..."
               value={commentText}
               onChange={(e) => setCommentText(e.target.value)}
-              className="flex-1 rounded border border-gray-300 px-2 py-1 text-sm focus:border-blue-500 focus:outline-none"
+              className="flex-1 rounded border border-gray-300 px-2 py-1 text-sm focus:border-b2b-pink focus:outline-none"
             />
             <button
               type="submit"
               disabled={commentBusy || !commentText.trim()}
-              className="rounded bg-gray-800 px-3 py-1 text-sm text-white disabled:opacity-50"
+              className="rounded bg-b2b-pink px-3 py-1 text-sm text-white hover:bg-b2b-pink-dark disabled:opacity-50"
             >
               Reply
             </button>

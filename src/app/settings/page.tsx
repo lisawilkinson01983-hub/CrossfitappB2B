@@ -36,10 +36,10 @@ export default async function SettingsPage() {
       <NavBar />
       <h1 className="mt-6 text-2xl font-bold">Settings</h1>
 
-      <section className="mt-6 rounded border border-gray-200 bg-white p-4">
+      <section className="mt-6 rounded border border-gray-200 bg-b2b-card p-4">
         <h2 className="font-semibold">Account</h2>
         <p className="mt-1 text-sm">
-          <Link href="/profile/edit" className="text-blue-600 underline">
+          <Link href="/profile/edit" className="text-b2b-pink underline">
             Edit your profile
           </Link>
         </p>
@@ -59,12 +59,12 @@ export default async function SettingsPage() {
         </div>
       </section>
 
-      <section className="mt-6 rounded border border-gray-200 bg-white p-4">
+      <section className="mt-6 rounded border border-gray-200 bg-b2b-card p-4">
         <h2 className="font-semibold">Privacy &amp; Safety</h2>
 
         <p className="mt-2 text-sm text-gray-600">
           Your profile is currently <strong>{user.isPrivate ? "private" : "public"}</strong>.{" "}
-          <Link href="/profile/edit" className="text-blue-600 underline">
+          <Link href="/profile/edit" className="text-b2b-pink underline">
             Change this
           </Link>
         </p>

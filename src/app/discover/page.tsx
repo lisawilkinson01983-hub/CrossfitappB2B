@@ -27,13 +27,13 @@ export default async function DiscoverPage({
       <div className="mt-4 flex gap-4 border-b border-gray-200 text-sm font-medium">
         <Link
           href="/discover?view=athletes"
-          className={`pb-2 ${view === "athletes" ? "border-b-2 border-blue-600 text-blue-600" : "text-gray-500"}`}
+          className={`pb-2 ${view === "athletes" ? "border-b-2 border-b2b-purple text-b2b-purple" : "text-gray-500"}`}
         >
           Athletes
         </Link>
         <Link
           href="/discover?view=events"
-          className={`pb-2 ${view === "events" ? "border-b-2 border-blue-600 text-blue-600" : "text-gray-500"}`}
+          className={`pb-2 ${view === "events" ? "border-b-2 border-b2b-purple text-b2b-purple" : "text-gray-500"}`}
         >
           Events
         </Link>

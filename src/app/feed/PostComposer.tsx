@@ -41,7 +41,7 @@ export function PostComposer() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="rounded border border-gray-200 bg-white p-4">
+    <form onSubmit={handleSubmit} className="rounded border border-gray-200 bg-b2b-card p-4">
       {error && (
         <p className="mb-3 rounded bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>
       )}
@@ -50,7 +50,7 @@ export function PostComposer() {
         placeholder="Share something with the community..."
         value={contentText}
         onChange={(e) => setContentText(e.target.value)}
-        className="w-full rounded border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
+        className="w-full rounded border border-gray-300 px-3 py-2 focus:border-b2b-pink focus:outline-none"
       />
       <div className="mt-3 flex items-center justify-between">
         <input
@@ -62,7 +62,7 @@ export function PostComposer() {
         <button
           type="submit"
           disabled={submitting}
-          className="rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+          className="rounded bg-b2b-pink px-4 py-2 text-sm font-medium text-white hover:bg-b2b-pink-dark disabled:opacity-50"
         >
           {submitting ? "Posting..." : "Post"}
         </button>

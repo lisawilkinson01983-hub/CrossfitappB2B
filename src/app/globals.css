@@ -1,1 +1,33 @@
 @import "tailwindcss";
+
+@theme {
+  /* Box 2 Box brand palette — single fixed light theme, no dark mode. */
+  --color-b2b-bg: #fbf6fa;
+  --color-b2b-card: #ffffff;
+  --color-b2b-ink: #2b0a47;
+
+  --color-b2b-pink: #eb4e94;
+  --color-b2b-pink-dark: #d53d82;
+
+  --color-b2b-purple: #7a2fb8;
+  --color-b2b-purple-dark: #64279c;
+
+  /* Only used on the Welcome/Mission screens — the one place that departs
+     from the light theme. */
+  --color-b2b-violet: #17032e;
+
+  --font-display: var(--font-bebas-neue);
+  --font-sans: var(--font-inter);
+}
+
+body {
+  background-color: var(--color-b2b-bg);
+  color: var(--color-b2b-ink);
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  letter-spacing: 0.02em;
+}

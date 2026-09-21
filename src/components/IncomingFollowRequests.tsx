@@ -22,7 +22,7 @@ export function IncomingFollowRequests({ requests }: { requests: RequestItem[] }
   if (requests.length === 0) return null;
 
   return (
-    <div className="mt-8 rounded border border-gray-200 bg-white p-4">
+    <div className="mt-8 rounded border border-gray-200 bg-b2b-card p-4">
       <h2 className="text-sm font-medium text-gray-500">Follow requests</h2>
       <div className="mt-2 flex flex-col gap-2">
         {requests.map((req) => (
@@ -33,7 +33,7 @@ export function IncomingFollowRequests({ requests }: { requests: RequestItem[] }
                 type="button"
                 onClick={() => respond(req.id, "accept")}
                 disabled={busyId === req.id}
-                className="rounded bg-blue-600 px-2 py-1 text-xs font-medium text-white disabled:opacity-50"
+                className="rounded bg-b2b-pink px-2 py-1 text-xs font-medium text-white disabled:opacity-50"
               >
                 Accept
               </button>

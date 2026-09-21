@@ -13,7 +13,7 @@ export async function EventsList({ currentUserId }: { currentUserId: string }) {
       <div className="mt-4 flex justify-end">
         <Link
           href="/discover/events/new"
-          className="rounded bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700"
+          className="rounded bg-b2b-pink px-3 py-1.5 text-sm font-medium text-white hover:bg-b2b-pink-dark"
         >
           Add an event
         </Link>
@@ -26,7 +26,7 @@ export async function EventsList({ currentUserId }: { currentUserId: string }) {
           {events.map((event) => {
             const isParticipating = event.participants.some((p) => p.userId === currentUserId);
             return (
-              <div key={event.id} className="rounded border border-gray-200 bg-white p-4">
+              <div key={event.id} className="rounded border border-gray-200 bg-b2b-card p-4">
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <p className="font-semibold">

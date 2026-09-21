@@ -59,7 +59,7 @@ export function ChatThread({
 
   return (
     <div className="flex flex-col">
-      <div className="flex max-h-[60vh] min-h-[300px] flex-col gap-2 overflow-y-auto rounded border border-gray-200 bg-white p-4">
+      <div className="flex max-h-[60vh] min-h-[300px] flex-col gap-2 overflow-y-auto rounded border border-gray-200 bg-b2b-card p-4">
         {messages.length === 0 && (
           <p className="text-sm text-gray-400">No messages yet — say hello.</p>
         )}
@@ -69,11 +69,11 @@ export function ChatThread({
             <div key={message.id} className={`flex ${isMine ? "justify-end" : "justify-start"}`}>
               <div
                 className={`max-w-[75%] rounded px-3 py-2 text-sm ${
-                  isMine ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-900"
+                  isMine ? "bg-b2b-pink text-white" : "bg-gray-100 text-b2b-ink"
                 }`}
               >
                 <p>{message.text}</p>
-                <p className={`mt-1 text-xs ${isMine ? "text-blue-100" : "text-gray-500"}`}>
+                <p className={`mt-1 text-xs ${isMine ? "text-white/70" : "text-gray-500"}`}>
                   {new Date(message.createdAt).toLocaleTimeString([], {
                     hour: "2-digit",
                     minute: "2-digit",
@@ -92,12 +92,12 @@ export function ChatThread({
           placeholder="Type a message..."
           value={text}
           onChange={(e) => setText(e.target.value)}
-          className="flex-1 rounded border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
+          className="flex-1 rounded border border-gray-300 px-3 py-2 focus:border-b2b-pink focus:outline-none"
         />
         <button
           type="submit"
           disabled={sending || !text.trim()}
-          className="rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+          className="rounded bg-b2b-pink px-4 py-2 text-sm font-medium text-white hover:bg-b2b-pink-dark disabled:opacity-50"
         >
           Send
         </button>

@@ -49,7 +49,7 @@ export default async function ConversationPage({
     <main className="mx-auto max-w-2xl px-4 py-8">
       <NavBar />
       <div className="mt-6 flex items-center gap-3">
-        <Link href="/messages" className="text-sm text-blue-600 underline">
+        <Link href="/messages" className="text-sm text-b2b-pink underline">
           ← All messages
         </Link>
         <h1 className="text-2xl font-bold">{otherUser.name}</h1>

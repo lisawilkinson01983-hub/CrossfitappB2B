@@ -56,7 +56,7 @@ export default async function MessagesPage() {
             <Link
               key={row.id}
               href={`/messages/${row.id}`}
-              className="flex items-center gap-3 rounded border border-gray-200 bg-white p-3 hover:bg-gray-50"
+              className="flex items-center gap-3 rounded border border-gray-200 bg-b2b-card p-3 hover:bg-gray-50"
             >
               {row.otherUser.photo ? (
                 <Image
@@ -78,7 +78,7 @@ export default async function MessagesPage() {
                 </p>
               </div>
               {row.unreadCount > 0 && (
-                <span className="rounded-full bg-pink-600 px-2 py-0.5 text-xs font-medium text-white">
+                <span className="rounded-full bg-b2b-pink px-2 py-0.5 text-xs font-medium text-white">
                   {row.unreadCount}
                 </span>
               )}

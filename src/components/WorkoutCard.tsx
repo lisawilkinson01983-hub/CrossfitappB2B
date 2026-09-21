@@ -26,7 +26,7 @@ export function WorkoutCard({
   return (
     <div
       className={`rounded border p-4 ${
-        workout.isPb ? "border-yellow-400 bg-yellow-50" : "border-gray-200 bg-white"
+        workout.isPb ? "border-yellow-400 bg-yellow-50" : "border-gray-200 bg-b2b-card"
       }`}
     >
       <div className="flex items-start justify-between gap-4">
@@ -59,7 +59,7 @@ export function WorkoutCard({
 
       <div className="mt-2 flex items-center justify-between">
         {workout.sharedToFeed ? (
-          <span className="text-xs text-blue-600">Shared to feed</span>
+          <span className="text-xs text-b2b-pink">Shared to feed</span>
         ) : (
           <span className="text-xs text-gray-400">Private</span>
         )}

@@ -33,7 +33,7 @@ export function ParticipateButton({
       className={`rounded px-3 py-1.5 text-sm font-medium disabled:opacity-50 ${
         participating
           ? "border border-gray-300 text-gray-700 hover:bg-gray-100"
-          : "bg-blue-600 text-white hover:bg-blue-700"
+          : "bg-b2b-pink text-white hover:bg-b2b-pink-dark"
       }`}
     >
       {busy ? "..." : participating ? "I'm in ✓" : "I'm participating"}

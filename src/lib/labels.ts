@@ -13,6 +13,14 @@ export const LEVEL_LABELS: Record<LevelOption, string> = {
   RX: "Rx",
 };
 
+// RX badges use the primary pink accent, Intermediate the secondary purple,
+// per the brand spec; Scaled has no accent assigned, so it stays neutral.
+export const LEVEL_BADGE_CLASSES: Record<LevelOption, string> = {
+  SCALED: "bg-gray-100 text-gray-600",
+  INTERMEDIATE: "bg-b2b-purple/10 text-b2b-purple",
+  RX: "bg-b2b-pink/10 text-b2b-pink",
+};
+
 export const GENDER_LABELS: Record<GenderOption, string> = {
   MALE: "Male",
   FEMALE: "Female",

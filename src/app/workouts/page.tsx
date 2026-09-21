@@ -23,7 +23,7 @@ export default async function WorkoutsPage() {
         <h1 className="text-2xl font-bold">Workout history</h1>
         <Link
           href="/workouts/new"
-          className="rounded bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700"
+          className="rounded bg-b2b-pink px-3 py-1.5 text-sm font-medium text-white hover:bg-b2b-pink-dark"
         >
           Log a workout
         </Link>

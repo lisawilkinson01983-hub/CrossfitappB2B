@@ -68,7 +68,7 @@ export function FollowButton({
       type="button"
       onClick={follow}
       disabled={busy}
-      className="rounded bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+      className="rounded bg-b2b-pink px-3 py-1.5 text-sm font-medium text-white hover:bg-b2b-pink-dark disabled:opacity-50"
     >
       {busy ? "..." : "Follow"}
     </button>

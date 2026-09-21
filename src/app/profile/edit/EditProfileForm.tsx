@@ -156,7 +156,7 @@ export function EditProfileForm({ initial }: { initial: Initial }) {
           required
           value={name}
           onChange={(e) => setName(e.target.value)}
-          className="mt-1 w-full rounded border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
+          className="mt-1 w-full rounded border border-gray-300 px-3 py-2 focus:border-b2b-pink focus:outline-none"
         />
       </div>
 
@@ -169,7 +169,7 @@ export function EditProfileForm({ initial }: { initial: Initial }) {
           rows={3}
           value={bio}
           onChange={(e) => setBio(e.target.value)}
-          className="mt-1 w-full rounded border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
+          className="mt-1 w-full rounded border border-gray-300 px-3 py-2 focus:border-b2b-pink focus:outline-none"
         />
       </div>
 
@@ -185,7 +185,7 @@ export function EditProfileForm({ initial }: { initial: Initial }) {
             max={120}
             value={age}
             onChange={(e) => setAge(e.target.value)}
-            className="mt-1 w-full rounded border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
+            className="mt-1 w-full rounded border border-gray-300 px-3 py-2 focus:border-b2b-pink focus:outline-none"
           />
         </div>
 
@@ -197,7 +197,7 @@ export function EditProfileForm({ initial }: { initial: Initial }) {
             id="gender"
             value={gender}
             onChange={(e) => setGender(e.target.value as GenderOption)}
-            className="mt-1 w-full rounded border border-gray-300 bg-white px-3 py-2 focus:border-blue-500 focus:outline-none"
+            className="mt-1 w-full rounded border border-gray-300 bg-b2b-card px-3 py-2 focus:border-b2b-pink focus:outline-none"
           >
             <option value="">Prefer not to say / unset</option>
             {GENDERS.map((g) => (
@@ -219,7 +219,7 @@ export function EditProfileForm({ initial }: { initial: Initial }) {
           required
           value={area}
           onChange={(e) => setArea(e.target.value)}
-          className="mt-1 w-full rounded border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
+          className="mt-1 w-full rounded border border-gray-300 px-3 py-2 focus:border-b2b-pink focus:outline-none"
         />
       </div>
 
@@ -232,7 +232,7 @@ export function EditProfileForm({ initial }: { initial: Initial }) {
           required
           value={affiliateGym}
           onChange={(e) => setAffiliateGym(e.target.value)}
-          className="mt-1 w-full rounded border border-gray-300 bg-white px-3 py-2 focus:border-blue-500 focus:outline-none"
+          className="mt-1 w-full rounded border border-gray-300 bg-b2b-card px-3 py-2 focus:border-b2b-pink focus:outline-none"
         >
           <option value="" disabled>
             Select a gym
@@ -251,7 +251,7 @@ export function EditProfileForm({ initial }: { initial: Initial }) {
             placeholder="Enter your gym name"
             value={affiliateGymOther}
             onChange={(e) => setAffiliateGymOther(e.target.value)}
-            className="mt-2 w-full rounded border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
+            className="mt-2 w-full rounded border border-gray-300 px-3 py-2 focus:border-b2b-pink focus:outline-none"
           />
         )}
       </div>
@@ -265,7 +265,7 @@ export function EditProfileForm({ initial }: { initial: Initial }) {
           required
           value={level}
           onChange={(e) => setLevel(e.target.value as LevelOption)}
-          className="mt-1 w-full rounded border border-gray-300 bg-white px-3 py-2 focus:border-blue-500 focus:outline-none"
+          className="mt-1 w-full rounded border border-gray-300 bg-b2b-card px-3 py-2 focus:border-b2b-pink focus:outline-none"
         >
           <option value="" disabled>
             Select a level
@@ -289,7 +289,7 @@ export function EditProfileForm({ initial }: { initial: Initial }) {
           min={0}
           value={weightKg}
           onChange={(e) => setWeightKg(e.target.value)}
-          className="mt-1 w-full rounded border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
+          className="mt-1 w-full rounded border border-gray-300 px-3 py-2 focus:border-b2b-pink focus:outline-none"
         />
       </div>
 
@@ -300,7 +300,7 @@ export function EditProfileForm({ initial }: { initial: Initial }) {
             aria-label="Month started CrossFit"
             value={crossfitSinceMonth}
             onChange={(e) => setCrossfitSinceMonth(e.target.value)}
-            className="rounded border border-gray-300 bg-white px-3 py-2 focus:border-blue-500 focus:outline-none"
+            className="rounded border border-gray-300 bg-b2b-card px-3 py-2 focus:border-b2b-pink focus:outline-none"
           >
             <option value="">Month</option>
             {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
@@ -317,7 +317,7 @@ export function EditProfileForm({ initial }: { initial: Initial }) {
             max={new Date().getFullYear()}
             value={crossfitSinceYear}
             onChange={(e) => setCrossfitSinceYear(e.target.value)}
-            className="rounded border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
+            className="rounded border border-gray-300 px-3 py-2 focus:border-b2b-pink focus:outline-none"
           />
         </div>
       </div>
@@ -337,7 +337,7 @@ export function EditProfileForm({ initial }: { initial: Initial }) {
                 min={0}
                 value={pbs[field]}
                 onChange={(e) => setPbs((prev) => ({ ...prev, [field]: e.target.value }))}
-                className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+                className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-b2b-pink focus:outline-none"
               />
             </div>
           ))}
@@ -371,7 +371,7 @@ export function EditProfileForm({ initial }: { initial: Initial }) {
             setIsSingle(e.target.value);
             if (e.target.value !== "true") setShowSingleBadge(false);
           }}
-          className="mt-1 w-full max-w-xs rounded border border-gray-300 bg-white px-3 py-2 focus:border-blue-500 focus:outline-none"
+          className="mt-1 w-full max-w-xs rounded border border-gray-300 bg-b2b-card px-3 py-2 focus:border-b2b-pink focus:outline-none"
         >
           <option value="">Prefer not to say</option>
           <option value="true">Yes</option>
@@ -402,7 +402,7 @@ export function EditProfileForm({ initial }: { initial: Initial }) {
       <button
         type="submit"
         disabled={submitting}
-        className="rounded bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+        className="rounded bg-b2b-pink px-4 py-2 font-medium text-white hover:bg-b2b-pink-dark disabled:opacity-50"
       >
         {submitting ? "Saving..." : "Save profile"}
       </button>

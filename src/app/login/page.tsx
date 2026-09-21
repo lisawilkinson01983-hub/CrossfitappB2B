@@ -8,7 +8,7 @@ export default function LoginPage() {
       <LoginForm />
       <p className="mt-4 text-sm text-gray-600">
         No account?{" "}
-        <Link href="/signup" className="text-blue-600 underline">
+        <Link href="/signup" className="text-b2b-pink underline">
           Sign up
         </Link>
       </p>

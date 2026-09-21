@@ -76,16 +76,16 @@ export default async function UserProfilePage({
       </div>
 
       {sharedLookingFor.length > 0 && (
-        <p className="mt-2 text-sm text-pink-600">
+        <p className="mt-2 text-sm text-b2b-pink">
           You're both looking for {sharedLookingFor.map((tag) => LOOKING_FOR_LABELS[tag]).join(" & ")}
         </p>
       )}
 
       <div className="mt-4 flex gap-4 text-sm">
-        <Link href={`/profile/${user.id}/connections?tab=followers`} className="text-blue-600 underline">
+        <Link href={`/profile/${user.id}/connections?tab=followers`} className="text-b2b-pink underline">
           {followerCount} followers
         </Link>
-        <Link href={`/profile/${user.id}/connections?tab=following`} className="text-blue-600 underline">
+        <Link href={`/profile/${user.id}/connections?tab=following`} className="text-b2b-pink underline">
           {followingCount} following
         </Link>
       </div>

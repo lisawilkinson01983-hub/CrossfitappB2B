@@ -15,7 +15,7 @@ function Field({ label, value }: { label: string; value: string | null }) {
   return (
     <div>
       <dt className="text-sm font-medium text-gray-500">{label}</dt>
-      <dd className="mt-0.5 text-gray-900">{value ?? <span className="text-gray-400">Not set</span>}</dd>
+      <dd className="mt-0.5 text-b2b-ink">{value ?? <span className="text-gray-400">Not set</span>}</dd>
     </div>
   );
 }
@@ -58,7 +58,7 @@ export function ProfileDetails({ user, showEmail }: { user: User; showEmail: boo
           {showSingleBadge && (
             <span
               title="Single"
-              className="absolute -bottom-0.5 -right-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-white text-sm shadow"
+              className="absolute -bottom-0.5 -right-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-b2b-card text-sm shadow"
             >
               💚
             </span>
@@ -98,7 +98,7 @@ export function ProfileDetails({ user, showEmail }: { user: User; showEmail: boo
             {pbs.map((pb) => (
               <div key={pb.label}>
                 <dt className="text-xs text-gray-500">{pb.label}</dt>
-                <dd className="text-gray-900">{pb.value}</dd>
+                <dd className="text-b2b-ink">{pb.value}</dd>
               </div>
             ))}
           </dl>
