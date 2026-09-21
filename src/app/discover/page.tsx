@@ -4,9 +4,9 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { NavBar } from "@/components/NavBar";
 import { AthletesSearch, type AthleteSearchParams } from "./AthletesSearch";
-import { EventsList } from "./EventsList";
+import { EventsList, type EventSearchParams } from "./EventsList";
 
-type SearchParams = AthleteSearchParams & { view?: string };
+type SearchParams = AthleteSearchParams & EventSearchParams & { view?: string };
 
 export default async function DiscoverPage({
   searchParams,
@@ -42,7 +42,7 @@ export default async function DiscoverPage({
       {view === "athletes" ? (
         <AthletesSearch sp={sp} currentUserId={session.user.id} />
       ) : (
-        <EventsList currentUserId={session.user.id} />
+        <EventsList sp={sp} currentUserId={session.user.id} />
       )}
     </main>
   );
