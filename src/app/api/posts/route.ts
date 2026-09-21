@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { postSchema } from "@/lib/validation";
-import { PhotoUploadError, savePhotoUpload } from "@/lib/uploads";
+import { PhotoUploadError, VideoUploadError, savePhotoUpload, saveVideoUpload } from "@/lib/uploads";
 import { parseFormData } from "@/lib/http";
 
 export async function POST(req: Request) {
@@ -24,17 +24,29 @@ export async function POST(req: Request) {
 
   const photo = formData.get("photo");
   const hasPhoto = photo instanceof File && photo.size > 0;
+  const video = formData.get("video");
+  const hasVideo = video instanceof File && video.size > 0;
 
-  if (!parsed.data.contentText && !hasPhoto) {
-    return NextResponse.json({ error: "Write something or add a photo" }, { status: 400 });
+  if (!parsed.data.contentText && !hasPhoto && !hasVideo) {
+    return NextResponse.json({ error: "Write something, or add a photo or video" }, { status: 400 });
   }
 
   let photoPath: string | undefined;
+  let videoPath: string | undefined;
   if (hasPhoto && photo instanceof File) {
     try {
       photoPath = await savePhotoUpload(photo, session.user.id);
     } catch (err) {
       if (err instanceof PhotoUploadError) {
+        return NextResponse.json({ error: err.message }, { status: 400 });
+      }
+      throw err;
+    }
+  } else if (hasVideo && video instanceof File) {
+    try {
+      videoPath = await saveVideoUpload(video, session.user.id);
+    } catch (err) {
+      if (err instanceof VideoUploadError) {
         return NextResponse.json({ error: err.message }, { status: 400 });
       }
       throw err;
@@ -47,6 +59,7 @@ export async function POST(req: Request) {
       type: "UPDATE",
       contentText: parsed.data.contentText ?? null,
       photo: photoPath ?? null,
+      video: videoPath ?? null,
     },
   });
 

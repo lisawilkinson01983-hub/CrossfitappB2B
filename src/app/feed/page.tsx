@@ -56,6 +56,7 @@ export default async function FeedPage() {
                 type: post.type,
                 contentText: post.contentText,
                 photo: post.photo,
+                video: post.video,
                 createdAt: post.createdAt,
                 isOwner: post.userId === session.user.id,
                 author: post.user,

@@ -8,6 +8,9 @@ const CONTENT_TYPES: Record<string, string> = {
   ".jpeg": "image/jpeg",
   ".png": "image/png",
   ".webp": "image/webp",
+  ".mp4": "video/mp4",
+  ".webm": "video/webm",
+  ".mov": "video/quicktime",
 };
 
 export async function GET(_req: Request, { params }: { params: Promise<{ filename: string }> }) {

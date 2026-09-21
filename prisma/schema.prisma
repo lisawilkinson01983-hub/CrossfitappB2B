@@ -178,6 +178,7 @@ model Post {
   type        PostType
   contentText String?
   photo       String? // served path, e.g. "/media/xyz.jpg" (see src/lib/uploads.ts)
+  video       String? // served path, e.g. "/media/xyz.mp4" — mutually exclusive with photo
 
   // Set when auto-created from a workout logged with "share to feed" on.
   // Deleting that workout removes this post too, since it has nothing left to show.

@@ -12,6 +12,7 @@ export type PostCardData = {
   type: "WORKOUT" | "PR" | "UPDATE";
   contentText: string | null;
   photo: string | null;
+  video: string | null;
   createdAt: Date;
   isOwner: boolean;
   author: {
@@ -158,6 +159,12 @@ export function PostCard({ post }: { post: PostCardData }) {
           height={500}
           className="mt-3 max-h-96 w-full rounded object-cover"
         />
+      )}
+
+      {post.video && (
+        <video controls className="mt-3 max-h-96 w-full rounded bg-black">
+          <source src={post.video} />
+        </video>
       )}
 
       <div className="mt-3 flex items-center gap-4 border-t border-gray-100 pt-3 text-sm">
