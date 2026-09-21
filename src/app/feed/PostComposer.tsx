@@ -2,8 +2,26 @@
 
 import { useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import { MAX_VIDEO_SECONDS } from "@/lib/media";
 
 type Attachment = { kind: "photo" | "video"; file: File };
+
+/** Reads a video file's duration in the browser, without uploading it. */
+function readVideoDuration(file: File): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const video = document.createElement("video");
+    video.preload = "metadata";
+    video.onloadedmetadata = () => {
+      URL.revokeObjectURL(video.src);
+      resolve(video.duration);
+    };
+    video.onerror = () => {
+      URL.revokeObjectURL(video.src);
+      reject(new Error("Could not read video"));
+    };
+    video.src = URL.createObjectURL(file);
+  });
+}
 
 export function PostComposer() {
   const [contentText, setContentText] = useState("");
@@ -14,10 +32,28 @@ export function PostComposer() {
   const photoInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
 
-  function handleFileChange(kind: "photo" | "video", e: ChangeEvent<HTMLInputElement>) {
+  async function handleFileChange(kind: "photo" | "video", e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0] ?? null;
-    if (file) setAttachment({ kind, file });
     e.target.value = "";
+    if (!file) return;
+
+    if (kind === "video") {
+      try {
+        const duration = await readVideoDuration(file);
+        if (duration > MAX_VIDEO_SECONDS + 0.5) {
+          setError(
+            `Videos must be ${MAX_VIDEO_SECONDS} seconds or under (this one is ${Math.round(duration)}s)`
+          );
+          return;
+        }
+      } catch {
+        // Can't preview the duration client-side — let the server be the
+        // authority rather than blocking the attach here.
+      }
+    }
+
+    setError(null);
+    setAttachment({ kind, file });
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -74,7 +110,7 @@ export function PostComposer() {
         <input
           ref={videoInputRef}
           type="file"
-          accept="video/mp4,video/webm,video/quicktime"
+          accept="video/mp4,video/quicktime"
           onChange={(e) => handleFileChange("video", e)}
           className="hidden"
         />
