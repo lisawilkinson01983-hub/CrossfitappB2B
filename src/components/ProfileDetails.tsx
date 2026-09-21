@@ -32,7 +32,8 @@ export function ProfileDetails({ user, showEmail }: { user: User; showEmail: boo
     (pb) => pb.value != null
   );
 
-  const showSingleBadge = user.isSingle === true && user.showSingleBadge;
+  const showRelationshipStatus = user.isSingle != null && user.showRelationshipStatus;
+  const showSingleBadge = showRelationshipStatus && user.isSingle === true;
 
   const affiliateGymDisplay =
     user.affiliateGym === OTHER_GYM
@@ -79,18 +80,21 @@ export function ProfileDetails({ user, showEmail }: { user: User; showEmail: boo
 
         <dl className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2">
           <Field label="Bio" value={user.bio} />
-          <Field label="Age" value={user.age != null ? String(user.age) : null} />
+          {user.showAge && <Field label="Age" value={user.age != null ? String(user.age) : null} />}
           <Field label="Gender" value={user.gender ? GENDER_LABELS[user.gender] : null} />
           <Field label="Area" value={user.area} />
           <Field label="Affiliate gym" value={affiliateGymDisplay} />
           <Field label="Level" value={user.level ? LEVEL_LABELS[user.level] : null} />
-          <Field label="Weight (kg)" value={user.weightKg != null ? String(user.weightKg) : null} />
           <Field label="CrossFitting since" value={crossfitSince} />
-          <Field
-            label="Looking for"
-            value={lookingFor.length ? lookingFor.map((v) => LOOKING_FOR_LABELS[v]).join(", ") : null}
-          />
-          <Field label="Single" value={user.isSingle == null ? null : user.isSingle ? "Yes" : "No"} />
+          {user.showLookingFor && (
+            <Field
+              label="Looking for"
+              value={lookingFor.length ? lookingFor.map((v) => LOOKING_FOR_LABELS[v]).join(", ") : null}
+            />
+          )}
+          {showRelationshipStatus && (
+            <Field label="Relationship status" value={user.isSingle ? "Single" : "Not single"} />
+          )}
         </dl>
       </SectionCard>
 

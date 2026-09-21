@@ -25,8 +25,8 @@ export function WorkoutCard({
 }) {
   return (
     <div
-      className={`rounded border p-4 ${
-        workout.isPb ? "border-yellow-400 bg-yellow-50" : "border-gray-200 bg-b2b-card"
+      className={`rounded-xl border p-4 ${
+        workout.isPb ? "border-yellow-400 bg-yellow-50" : "border-b2b-purple/10 bg-b2b-card"
       }`}
     >
       <div className="flex items-start justify-between gap-4">

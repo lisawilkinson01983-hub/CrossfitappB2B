@@ -61,15 +61,16 @@ export const profileSchema = z
     affiliateGym: z.enum(AFFILIATE_GYM_VALUES, { errorMap: () => ({ message: "Select a gym" }) }),
     affiliateGymOther: z.preprocess(emptyToUndefined, z.string().trim().max(200).optional()),
     level: z.enum(LEVELS, { errorMap: () => ({ message: "Select a level" }) }),
-    weightKg: optionalPositiveKg,
     crossfitSinceYear: z.preprocess(
       emptyToUndefined,
       z.coerce.number().int().min(1970).max(new Date().getFullYear()).optional()
     ),
     crossfitSinceMonth: z.preprocess(emptyToUndefined, z.coerce.number().int().min(1).max(12).optional()),
     lookingFor: z.array(z.enum(LOOKING_FOR_OPTIONS)).default([]),
+    showLookingFor: checkboxToBoolean,
     isSingle: optionalYesNo,
-    showSingleBadge: checkboxToBoolean,
+    showRelationshipStatus: checkboxToBoolean,
+    showAge: checkboxToBoolean,
     isPrivate: checkboxToBoolean,
     deadliftKg: optionalPositiveKg,
     cleanKg: optionalPositiveKg,

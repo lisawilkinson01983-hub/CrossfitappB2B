@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NavBar } from "@/components/NavBar";
 import { PostCard } from "@/components/PostCard";
+import { SectionCard } from "@/components/SectionCard";
 import { PostComposer } from "./PostComposer";
 
 export default async function FeedPage() {
@@ -20,7 +21,7 @@ export default async function FeedPage() {
     where: { userId: { notIn: hiddenUserIds } },
     orderBy: { createdAt: "desc" },
     include: {
-      user: { select: { id: true, name: true, photo: true, level: true } },
+      user: { select: { id: true, name: true, photo: true, level: true, affiliateGym: true } },
       linkedWorkout: { select: { wodName: true, score: true, unit: true, intensity: true } },
       likes: { select: { userId: true } },
       comments: {
@@ -36,11 +37,13 @@ export default async function FeedPage() {
       <h1 className="mt-6 text-2xl font-bold">Feed</h1>
 
       <div className="mt-4">
-        <PostComposer />
+        <SectionCard>
+          <PostComposer />
+        </SectionCard>
       </div>
 
       {posts.length === 0 ? (
-        <p className="mt-6 text-gray-500">
+        <p className="mt-6 text-b2b-ink/50">
           No posts yet — be the first to share something, or share a workout from your log.
         </p>
       ) : (

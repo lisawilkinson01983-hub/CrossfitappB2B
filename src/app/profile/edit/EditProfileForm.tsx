@@ -26,12 +26,13 @@ type Initial = {
   affiliateGym: string;
   affiliateGymOther: string;
   level: LevelOption | "";
-  weightKg: number | "";
   crossfitSinceYear: number | "";
   crossfitSinceMonth: number | "";
   lookingFor: LookingForOption[];
+  showLookingFor: boolean;
   isSingle: boolean | null;
-  showSingleBadge: boolean;
+  showRelationshipStatus: boolean;
+  showAge: boolean;
   isPrivate: boolean;
   pbs: Record<PbField, number | "">;
 };
@@ -54,12 +55,13 @@ export function EditProfileForm({ initial }: { initial: Initial }) {
   const [affiliateGymOther, setAffiliateGymOther] = useState(initial.affiliateGymOther);
   const isOtherGym = affiliateGym === OTHER_GYM;
   const [level, setLevel] = useState(initial.level);
-  const [weightKg, setWeightKg] = useState(String(initial.weightKg));
   const [crossfitSinceYear, setCrossfitSinceYear] = useState(String(initial.crossfitSinceYear));
   const [crossfitSinceMonth, setCrossfitSinceMonth] = useState(String(initial.crossfitSinceMonth));
   const [lookingFor, setLookingFor] = useState<LookingForOption[]>(initial.lookingFor);
+  const [showLookingFor, setShowLookingFor] = useState(initial.showLookingFor);
   const [isSingle, setIsSingle] = useState(isSingleToSelectValue(initial.isSingle));
-  const [showSingleBadge, setShowSingleBadge] = useState(initial.showSingleBadge);
+  const [showRelationshipStatus, setShowRelationshipStatus] = useState(initial.showRelationshipStatus);
+  const [showAge, setShowAge] = useState(initial.showAge);
   const [isPrivate, setIsPrivate] = useState(initial.isPrivate);
   const [pbs, setPbs] = useState<Record<PbField, string>>(
     Object.fromEntries(PB_FIELDS.map((field) => [field, String(initial.pbs[field])])) as Record<
@@ -99,12 +101,13 @@ export function EditProfileForm({ initial }: { initial: Initial }) {
     formData.set("affiliateGym", affiliateGym);
     formData.set("affiliateGymOther", affiliateGymOther);
     formData.set("level", level);
-    formData.set("weightKg", weightKg);
     formData.set("crossfitSinceYear", crossfitSinceYear);
     formData.set("crossfitSinceMonth", crossfitSinceMonth);
     lookingFor.forEach((v) => formData.append("lookingFor", v));
+    if (showLookingFor) formData.set("showLookingFor", "on");
     formData.set("isSingle", isSingle);
-    if (showSingleBadge) formData.set("showSingleBadge", "on");
+    if (showRelationshipStatus) formData.set("showRelationshipStatus", "on");
+    if (showAge) formData.set("showAge", "on");
     if (isPrivate) formData.set("isPrivate", "on");
     PB_FIELDS.forEach((field) => formData.set(field, pbs[field]));
     if (photoFile) formData.set("photo", photoFile);
@@ -187,6 +190,10 @@ export function EditProfileForm({ initial }: { initial: Initial }) {
             onChange={(e) => setAge(e.target.value)}
             className="mt-1 w-full rounded border border-gray-300 px-3 py-2 focus:border-b2b-pink focus:outline-none"
           />
+          <label className="mt-2 flex items-center gap-2 text-sm">
+            <input type="checkbox" checked={showAge} onChange={(e) => setShowAge(e.target.checked)} />
+            Display my age on my profile
+          </label>
         </div>
 
         <div>
@@ -279,21 +286,6 @@ export function EditProfileForm({ initial }: { initial: Initial }) {
       </div>
 
       <div>
-        <label htmlFor="weightKg" className="block text-sm font-medium">
-          Weight (kg)
-        </label>
-        <input
-          id="weightKg"
-          type="number"
-          step="0.1"
-          min={0}
-          value={weightKg}
-          onChange={(e) => setWeightKg(e.target.value)}
-          className="mt-1 w-full rounded border border-gray-300 px-3 py-2 focus:border-b2b-pink focus:outline-none"
-        />
-      </div>
-
-      <div>
         <span className="block text-sm font-medium">CrossFitting since</span>
         <div className="mt-1 grid grid-cols-2 gap-4">
           <select
@@ -358,34 +350,42 @@ export function EditProfileForm({ initial }: { initial: Initial }) {
             </label>
           ))}
         </div>
+        <label className="mt-2 flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={showLookingFor}
+            onChange={(e) => setShowLookingFor(e.target.checked)}
+          />
+          Display my looking-for tags on my profile
+        </label>
       </fieldset>
 
       <div>
         <label htmlFor="isSingle" className="block text-sm font-medium">
-          Single?
+          Relationship status
         </label>
         <select
           id="isSingle"
           value={isSingle}
           onChange={(e) => {
             setIsSingle(e.target.value);
-            if (e.target.value !== "true") setShowSingleBadge(false);
+            if (e.target.value === "") setShowRelationshipStatus(false);
           }}
           className="mt-1 w-full max-w-xs rounded border border-gray-300 bg-b2b-card px-3 py-2 focus:border-b2b-pink focus:outline-none"
         >
           <option value="">Prefer not to say</option>
-          <option value="true">Yes</option>
-          <option value="false">No</option>
+          <option value="true">Single</option>
+          <option value="false">Not single</option>
         </select>
 
-        {isSingle === "true" && (
+        {isSingle !== "" && (
           <label className="mt-2 flex items-center gap-2 text-sm">
             <input
               type="checkbox"
-              checked={showSingleBadge}
-              onChange={(e) => setShowSingleBadge(e.target.checked)}
+              checked={showRelationshipStatus}
+              onChange={(e) => setShowRelationshipStatus(e.target.checked)}
             />
-            Show a single badge on my profile photo
+            Display my relationship status on my profile
           </label>
         )}
       </div>

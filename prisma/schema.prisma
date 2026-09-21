@@ -76,17 +76,24 @@ model User {
   affiliateGymOther String?
   level             Level?
 
-  weightKg           Float?
   crossfitSinceYear  Int?
   crossfitSinceMonth Int?
 
   // JSON-encoded array of LookingFor values, e.g. ["TEAM_MATES"]
   lookingFor String?
 
-  // Single status: isSingle is the underlying Yes/No answer; showSingleBadge
-  // is a separate, defaulted-off opt-in to actually display the badge.
-  isSingle        Boolean?
-  showSingleBadge Boolean @default(false)
+  // Age, relationship status, and looking-for tags are all collected, but
+  // each is only ever displayed on the profile if the matching show* flag
+  // (defaulted off) has been opted into via the edit-profile form.
+  showAge Boolean @default(false)
+
+  // Single status: isSingle is the underlying Yes/No answer; showRelationshipStatus
+  // is a separate, defaulted-off opt-in to actually display it (and, when
+  // single, the avatar badge).
+  isSingle               Boolean?
+  showRelationshipStatus Boolean @default(false)
+
+  showLookingFor Boolean @default(false)
 
   // Governs whether new followers require approval once a follow system
   // exists; stored now so the setting has somewhere to live.

@@ -7,6 +7,7 @@ import { BlockMuteControls } from "@/components/BlockMuteControls";
 import { GENDERS, LEVELS, LOOKING_FOR_OPTIONS, type LookingForOption } from "@/lib/validation";
 import { GENDER_LABELS, LEVEL_BADGE_CLASSES, LEVEL_LABELS, LOOKING_FOR_LABELS, parseLookingFor } from "@/lib/labels";
 import { AFFILIATE_GYM_VALUES } from "@/lib/gyms";
+import { SectionCard } from "@/components/SectionCard";
 
 // "Prefer not to disclose" is a profile-level privacy choice, not a search filter.
 const SEARCHABLE_GENDERS = GENDERS.filter((g) => g !== "PREFER_NOT_TO_DISCLOSE");
@@ -91,8 +92,9 @@ export async function AthletesSearch({
   const myMutedIds = new Set(myMutes.map((m) => m.mutedUserId));
 
   return (
-    <>
-      <form method="GET" className="mt-4 flex flex-col gap-4 rounded border border-gray-200 bg-b2b-card p-4">
+    <div className="mt-4 flex flex-col gap-6">
+      <SectionCard>
+      <form method="GET" className="flex flex-col gap-4">
         <input type="hidden" name="view" value="athletes" />
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
@@ -187,16 +189,17 @@ export async function AthletesSearch({
           >
             Search
           </button>
-          <Link href="/discover" className="self-center text-sm text-gray-500 hover:underline">
+          <Link href="/discover" className="self-center text-sm text-b2b-ink/50 hover:underline">
             Clear filters
           </Link>
         </div>
       </form>
+      </SectionCard>
 
       {results.length === 0 ? (
-        <p className="mt-6 text-gray-500">No athletes match those filters.</p>
+        <p className="text-b2b-ink/50">No athletes match those filters.</p>
       ) : (
-        <div className="mt-6 flex flex-col gap-3">
+        <div className="flex flex-col gap-3">
           {results.map((user) => {
             const status: FollowStatus = myFollowingIds.has(user.id)
               ? "following"
@@ -207,7 +210,7 @@ export async function AthletesSearch({
             return (
               <div
                 key={user.id}
-                className="flex items-center justify-between rounded border border-gray-200 bg-b2b-card p-3"
+                className="flex items-center justify-between rounded-xl border border-b2b-purple/10 bg-b2b-card p-3"
               >
                 <Link href={`/profile/${user.id}`} className="flex items-center gap-3">
                   {user.photo ? (
@@ -235,7 +238,7 @@ export async function AthletesSearch({
                         </span>
                       )}
                     </p>
-                    <p className="text-sm text-gray-500">
+                    <p className="text-sm text-b2b-ink/50">
                       {[user.area, user.affiliateGym].filter(Boolean).join(" · ")}
                     </p>
                   </div>
@@ -253,6 +256,6 @@ export async function AthletesSearch({
           })}
         </div>
       )}
-    </>
+    </div>
   );
 }

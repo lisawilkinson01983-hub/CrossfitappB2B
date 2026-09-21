@@ -41,7 +41,7 @@ export function PostComposer() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="rounded border border-gray-200 bg-b2b-card p-4">
+    <form onSubmit={handleSubmit}>
       {error && (
         <p className="mb-3 rounded bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>
       )}

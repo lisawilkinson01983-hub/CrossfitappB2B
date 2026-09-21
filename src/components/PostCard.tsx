@@ -19,6 +19,7 @@ export type PostCardData = {
     name: string;
     photo: string | null;
     level: LevelOption | null;
+    affiliateGym: string | null;
   };
   linkedWorkout: {
     wodName: string;
@@ -90,8 +91,8 @@ export function PostCard({ post }: { post: PostCardData }) {
 
   return (
     <div
-      className={`rounded border p-4 ${
-        isPb ? "border-yellow-400 bg-yellow-50" : "border-gray-200 bg-b2b-card"
+      className={`rounded-xl border p-4 ${
+        isPb ? "border-yellow-400 bg-yellow-50" : "border-b2b-purple/10 bg-b2b-card"
       }`}
     >
       <div className="flex items-start justify-between gap-4">
@@ -121,7 +122,10 @@ export function PostCard({ post }: { post: PostCardData }) {
               )}
               {isPb && <span className="text-sm font-semibold text-yellow-600">★ PB</span>}
             </div>
-            <p className="text-xs text-gray-400">{post.createdAt.toLocaleString()}</p>
+            <p className="text-xs text-b2b-ink/40">
+              {post.author.affiliateGym && `${post.author.affiliateGym} · `}
+              {post.createdAt.toLocaleString()}
+            </p>
           </div>
         </Link>
         {post.isOwner && (
