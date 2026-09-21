@@ -5,6 +5,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NavBar } from "@/components/NavBar";
 import { ProfileDetails } from "@/components/ProfileDetails";
+import { Gallery } from "@/components/Gallery";
 import { SectionCard } from "@/components/SectionCard";
 import { WorkoutCard } from "@/components/WorkoutCard";
 import { FollowButton, type FollowStatus } from "@/components/FollowButton";
@@ -95,6 +96,8 @@ export default async function UserProfilePage({
         </SectionCard>
 
         <ProfileDetails user={user} showEmail={false} />
+
+        <Gallery userId={user.id} />
 
         <SectionCard title="Workout history">
           {recentWorkouts.length ? (

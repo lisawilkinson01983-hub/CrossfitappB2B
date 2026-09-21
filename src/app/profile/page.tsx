@@ -5,6 +5,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NavBar } from "@/components/NavBar";
 import { ProfileDetails } from "@/components/ProfileDetails";
+import { Gallery } from "@/components/Gallery";
 import { SectionCard } from "@/components/SectionCard";
 import { WorkoutCard } from "@/components/WorkoutCard";
 import { IncomingFollowRequests } from "@/components/IncomingFollowRequests";
@@ -71,6 +72,8 @@ export default async function ProfilePage() {
         </SectionCard>
 
         <ProfileDetails user={user} showEmail />
+
+        <Gallery userId={user.id} />
 
         {incomingRequests.length > 0 && (
           <SectionCard title="Follow requests">
