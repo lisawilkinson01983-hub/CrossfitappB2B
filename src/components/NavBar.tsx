@@ -8,6 +8,9 @@ export function NavBar() {
         <Link href="/feed" className="text-gray-700 hover:text-blue-600">
           Feed
         </Link>
+        <Link href="/discover" className="text-gray-700 hover:text-blue-600">
+          Discover
+        </Link>
         <Link href="/profile" className="text-gray-700 hover:text-blue-600">
           Profile
         </Link>
