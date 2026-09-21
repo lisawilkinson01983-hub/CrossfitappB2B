@@ -47,6 +47,7 @@ export default async function EditProfilePage() {
           showLookingFor: user.showLookingFor,
           isSingle: user.isSingle,
           showRelationshipStatus: user.showRelationshipStatus,
+          showSingleBadge: user.showSingleBadge,
           showAge: user.showAge,
           isPrivate: user.isPrivate,
           pbs: Object.fromEntries(PB_FIELDS.map((field) => [field, user[field] ?? ""])) as Record<

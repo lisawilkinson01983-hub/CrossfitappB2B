@@ -32,6 +32,7 @@ type Initial = {
   showLookingFor: boolean;
   isSingle: boolean | null;
   showRelationshipStatus: boolean;
+  showSingleBadge: boolean;
   showAge: boolean;
   isPrivate: boolean;
   pbs: Record<PbField, number | "">;
@@ -61,6 +62,7 @@ export function EditProfileForm({ initial }: { initial: Initial }) {
   const [showLookingFor, setShowLookingFor] = useState(initial.showLookingFor);
   const [isSingle, setIsSingle] = useState(isSingleToSelectValue(initial.isSingle));
   const [showRelationshipStatus, setShowRelationshipStatus] = useState(initial.showRelationshipStatus);
+  const [showSingleBadge, setShowSingleBadge] = useState(initial.showSingleBadge);
   const [showAge, setShowAge] = useState(initial.showAge);
   const [isPrivate, setIsPrivate] = useState(initial.isPrivate);
   const [pbs, setPbs] = useState<Record<PbField, string>>(
@@ -107,6 +109,7 @@ export function EditProfileForm({ initial }: { initial: Initial }) {
     if (showLookingFor) formData.set("showLookingFor", "on");
     formData.set("isSingle", isSingle);
     if (showRelationshipStatus) formData.set("showRelationshipStatus", "on");
+    if (showSingleBadge) formData.set("showSingleBadge", "on");
     if (showAge) formData.set("showAge", "on");
     if (isPrivate) formData.set("isPrivate", "on");
     PB_FIELDS.forEach((field) => formData.set(field, pbs[field]));
@@ -370,6 +373,7 @@ export function EditProfileForm({ initial }: { initial: Initial }) {
           onChange={(e) => {
             setIsSingle(e.target.value);
             if (e.target.value === "") setShowRelationshipStatus(false);
+            if (e.target.value !== "true") setShowSingleBadge(false);
           }}
           className="mt-1 w-full max-w-xs rounded border border-gray-300 bg-b2b-card px-3 py-2 focus:border-b2b-pink focus:outline-none"
         >
@@ -386,6 +390,17 @@ export function EditProfileForm({ initial }: { initial: Initial }) {
               onChange={(e) => setShowRelationshipStatus(e.target.checked)}
             />
             Display my relationship status on my profile
+          </label>
+        )}
+
+        {isSingle === "true" && (
+          <label className="mt-2 flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={showSingleBadge}
+              onChange={(e) => setShowSingleBadge(e.target.checked)}
+            />
+            Show a single badge (💚) on my profile photo
           </label>
         )}
       </div>

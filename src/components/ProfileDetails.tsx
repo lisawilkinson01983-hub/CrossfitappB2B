@@ -33,7 +33,7 @@ export function ProfileDetails({ user, showEmail }: { user: User; showEmail: boo
   );
 
   const showRelationshipStatus = user.isSingle != null && user.showRelationshipStatus;
-  const showSingleBadge = showRelationshipStatus && user.isSingle === true;
+  const showSingleBadge = user.isSingle === true && user.showSingleBadge;
 
   const affiliateGymDisplay =
     user.affiliateGym === OTHER_GYM

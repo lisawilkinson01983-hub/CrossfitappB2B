@@ -70,6 +70,7 @@ export const profileSchema = z
     showLookingFor: checkboxToBoolean,
     isSingle: optionalYesNo,
     showRelationshipStatus: checkboxToBoolean,
+    showSingleBadge: checkboxToBoolean,
     showAge: checkboxToBoolean,
     isPrivate: checkboxToBoolean,
     deadliftKg: optionalPositiveKg,

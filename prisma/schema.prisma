@@ -87,11 +87,13 @@ model User {
   // (defaulted off) has been opted into via the edit-profile form.
   showAge Boolean @default(false)
 
-  // Single status: isSingle is the underlying Yes/No answer; showRelationshipStatus
-  // is a separate, defaulted-off opt-in to actually display it (and, when
-  // single, the avatar badge).
+  // Single status: isSingle is the underlying Yes/No answer. showRelationshipStatus
+  // is a defaulted-off opt-in to display it as text; showSingleBadge is a
+  // separate defaulted-off opt-in for the green-heart avatar badge, only
+  // meaningful (and only ever true) when isSingle is true.
   isSingle               Boolean?
   showRelationshipStatus Boolean @default(false)
+  showSingleBadge        Boolean @default(false)
 
   showLookingFor Boolean @default(false)
 
