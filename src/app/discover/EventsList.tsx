@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Image from "next/image";
 import { prisma } from "@/lib/prisma";
 import { ParticipateButton } from "@/components/ParticipateButton";
 
@@ -10,23 +10,23 @@ export async function EventsList({ currentUserId }: { currentUserId: string }) {
 
   return (
     <>
-      <div className="mt-4 flex justify-end">
-        <Link
-          href="/discover/events/new"
-          className="rounded bg-b2b-pink px-3 py-1.5 text-sm font-medium text-white hover:bg-b2b-pink-dark"
-        >
-          Add an event
-        </Link>
-      </div>
-
       {events.length === 0 ? (
-        <p className="mt-6 text-b2b-ink/50">No events yet — be the first to add one.</p>
+        <p className="mt-6 text-b2b-ink/50">No events yet — check back soon.</p>
       ) : (
         <div className="mt-4 flex flex-col gap-3">
           {events.map((event) => {
             const isParticipating = event.participants.some((p) => p.userId === currentUserId);
             return (
               <div key={event.id} className="rounded-xl border border-b2b-purple/10 bg-b2b-card p-4">
+                {event.photo && (
+                  <Image
+                    src={event.photo}
+                    alt={event.name}
+                    width={500}
+                    height={260}
+                    className="mb-3 max-h-52 w-full rounded-lg object-cover"
+                  />
+                )}
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <p className="font-semibold">
