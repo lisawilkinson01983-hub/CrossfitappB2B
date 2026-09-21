@@ -72,6 +72,10 @@ model User {
   // profile edit form, so they're nullable even though every real profile
   // is expected to have them.
   area         String?
+  // Geocoded from `area` (see src/lib/geocode.ts) so events can be filtered
+  // by distance. Null until `area` is set/changed and geocoding succeeds.
+  areaLat Float?
+  areaLng Float?
   // One of the fixed values in src/lib/gyms.ts (a listed gym, "Unaffiliated",
   // or "Other") — never free text, so search stays exact and reliable.
   affiliateGym String?
@@ -319,6 +323,11 @@ model Event {
   description String?
   tag         String? // free text, e.g. "Team size: 3", "Charity", "RX division"
   photo       String? // served path, e.g. "/media/xyz.jpg" (see src/lib/uploads.ts)
+
+  // Geocoded from `location` (see src/lib/geocode.ts), lazily on first read,
+  // so Discover can filter by distance from the athlete's own area.
+  lat Float?
+  lng Float?
 
   // No in-app creation UI — events are added directly (e.g. via Prisma
   // Studio) or, eventually, ingested from a partnered aggregator, to keep

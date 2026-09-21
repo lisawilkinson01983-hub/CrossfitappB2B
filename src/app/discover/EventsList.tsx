@@ -3,6 +3,7 @@ import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { ParticipateButton } from "@/components/ParticipateButton";
 import { SectionCard } from "@/components/SectionCard";
+import { geocode, distanceMiles } from "@/lib/geocode";
 
 const TIME_RANGES = {
   week: { label: "Next 7 days", days: 7 },
@@ -11,10 +12,30 @@ const TIME_RANGES = {
 } as const;
 type TimeRange = keyof typeof TIME_RANGES;
 
+const DISTANCE_RANGES = [10, 25, 50, 100] as const;
+type DistanceRange = (typeof DISTANCE_RANGES)[number];
+
 export type EventSearchParams = {
   q?: string;
   time?: string;
+  distance?: string;
 };
+
+// Events are added directly to the database (no in-app creation form), so
+// they may not have been geocoded yet — do it lazily on first read and cache
+// the result on the row.
+async function ensureEventCoords(event: { id: string; location: string; lat: number | null; lng: number | null }) {
+  if (event.lat !== null && event.lng !== null) return { lat: event.lat, lng: event.lng };
+
+  const coords = await geocode(event.location);
+  if (!coords) return null;
+
+  await prisma.event.update({
+    where: { id: event.id },
+    data: { lat: coords.lat, lng: coords.lng },
+  });
+  return coords;
+}
 
 export async function EventsList({
   sp,
@@ -25,17 +46,41 @@ export async function EventsList({
 }) {
   const q = typeof sp.q === "string" ? sp.q.trim() : "";
   const time = (Object.keys(TIME_RANGES) as TimeRange[]).find((t) => t === sp.time);
+  const distance = DISTANCE_RANGES.find((d) => String(d) === sp.distance);
 
   const where: Prisma.EventWhereInput = {
     ...(q ? { OR: [{ name: { contains: q } }, { location: { contains: q } }] } : {}),
     ...(time ? { date: { lte: new Date(Date.now() + TIME_RANGES[time].days * 86400000) } } : {}),
   };
 
-  const events = await prisma.event.findMany({
-    where,
-    orderBy: { date: "asc" },
-    include: { participants: { select: { userId: true } } },
-  });
+  const [events, currentUser] = await Promise.all([
+    prisma.event.findMany({
+      where,
+      orderBy: { date: "asc" },
+      include: { participants: { select: { userId: true } } },
+    }),
+    prisma.user.findUnique({
+      where: { id: currentUserId },
+      select: { areaLat: true, areaLng: true },
+    }),
+  ]);
+
+  const myCoords =
+    currentUser?.areaLat != null && currentUser?.areaLng != null
+      ? { lat: currentUser.areaLat, lng: currentUser.areaLng }
+      : null;
+
+  const eventsWithDistance = await Promise.all(
+    events.map(async (event) => {
+      const coords = myCoords ? await ensureEventCoords(event) : null;
+      const miles = coords && myCoords ? distanceMiles(myCoords, coords) : null;
+      return { event, miles };
+    }),
+  );
+
+  const visibleEvents = distance
+    ? eventsWithDistance.filter(({ miles }) => miles !== null && miles <= distance)
+    : eventsWithDistance;
 
   return (
     <div className="mt-4 flex flex-col gap-6">
@@ -54,6 +99,30 @@ export async function EventsList({
               defaultValue={q}
               className="w-full rounded border border-gray-300 px-3 py-2 focus:border-b2b-pink focus:outline-none"
             />
+          </div>
+          <div>
+            <label htmlFor="distance" className="block text-sm font-medium">
+              Distance
+            </label>
+            <select
+              id="distance"
+              name="distance"
+              defaultValue={distance ? String(distance) : ""}
+              disabled={!myCoords}
+              className="mt-1 w-full max-w-xs rounded border border-gray-300 bg-b2b-card px-3 py-2 focus:border-b2b-pink focus:outline-none disabled:opacity-50"
+            >
+              <option value="">Any distance</option>
+              {DISTANCE_RANGES.map((d) => (
+                <option key={d} value={d}>
+                  Within {d} miles
+                </option>
+              ))}
+            </select>
+            {!myCoords && (
+              <p className="mt-1 text-xs text-b2b-ink/40">
+                Set your area on your profile to filter events by distance.
+              </p>
+            )}
           </div>
           <div>
             <label htmlFor="time" className="block text-sm font-medium">
@@ -90,11 +159,11 @@ export async function EventsList({
         </form>
       </SectionCard>
 
-      {events.length === 0 ? (
+      {visibleEvents.length === 0 ? (
         <p className="text-b2b-ink/50">No events match those filters.</p>
       ) : (
         <div className="flex flex-col gap-3">
-          {events.map((event) => {
+          {visibleEvents.map(({ event, miles }) => {
             const isParticipating = event.participants.some((p) => p.userId === currentUserId);
             return (
               <div key={event.id} className="rounded-xl border border-b2b-purple/10 bg-b2b-card p-4">
@@ -125,6 +194,7 @@ export async function EventsList({
                         day: "numeric",
                       })}{" "}
                       · {event.location}
+                      {miles !== null && <> · {miles < 1 ? "<1" : Math.round(miles)} miles away</>}
                     </p>
                   </div>
                   <ParticipateButton eventId={event.id} initialParticipating={isParticipating} />

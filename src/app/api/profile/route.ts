@@ -6,6 +6,7 @@ import { PB_FIELDS, profileSchema } from "@/lib/validation";
 import { OTHER_GYM } from "@/lib/gyms";
 import { PhotoUploadError, savePhotoUpload } from "@/lib/uploads";
 import { parseFormData } from "@/lib/http";
+import { geocode } from "@/lib/geocode";
 
 export async function PATCH(req: Request) {
   const session = await getServerSession(authOptions);
@@ -66,6 +67,16 @@ export async function PATCH(req: Request) {
 
   const pbData = Object.fromEntries(PB_FIELDS.map((field) => [field, data[field] ?? null]));
 
+  const current = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { area: true },
+  });
+  let areaCoords: { areaLat: number | null; areaLng: number | null } | undefined;
+  if (data.area !== current?.area) {
+    const coords = data.area ? await geocode(data.area) : null;
+    areaCoords = { areaLat: coords?.lat ?? null, areaLng: coords?.lng ?? null };
+  }
+
   await prisma.user.update({
     where: { id: session.user.id },
     data: {
@@ -74,6 +85,7 @@ export async function PATCH(req: Request) {
       age: data.age ?? null,
       gender: data.gender ?? null,
       area: data.area,
+      ...areaCoords,
       affiliateGym: data.affiliateGym,
       affiliateGymOther: data.affiliateGym === OTHER_GYM ? data.affiliateGymOther : null,
       level: data.level,
