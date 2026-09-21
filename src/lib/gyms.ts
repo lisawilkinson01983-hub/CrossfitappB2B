@@ -1,6 +1,5 @@
 // Fixed list of local affiliate gyms shown as quick-pick options in the
-// profile form and the Discover filter. "Other" (profile form only) lets
-// someone whose gym isn't listed yet type it in instead.
+// profile form and the Discover filter.
 export const AFFILIATE_GYMS = [
   "CrossFit Uckfield",
   "CrossFit Crowborough",
@@ -11,7 +10,14 @@ export const AFFILIATE_GYMS = [
 // For people who haven't joined a gym yet (e.g. still finding out more).
 export const UNAFFILIATED = "Unaffiliated";
 
-// The full set of selectable options before "Other" — gyms plus the
-// not-yet-affiliated case, shown together in both the profile form and the
-// Discover filter.
+// Selected when a gym isn't listed yet. The actual name they typed is kept
+// separately (User.affiliateGymOther) rather than stored here, so this field
+// stays a small fixed set of values and search stays exact and reliable.
+export const OTHER_GYM = "Other";
+
+// The full set of values User.affiliateGym can actually hold.
+export const AFFILIATE_GYM_VALUES = [...AFFILIATE_GYMS, UNAFFILIATED, OTHER_GYM] as const;
+export type AffiliateGymValue = (typeof AFFILIATE_GYM_VALUES)[number];
+
+// What the profile form's dropdown shows before its final "Other" option.
 export const GYM_OPTIONS = [...AFFILIATE_GYMS, UNAFFILIATED] as const;

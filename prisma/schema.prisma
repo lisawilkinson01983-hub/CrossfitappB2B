@@ -67,8 +67,14 @@ model User {
   // profile edit form, so they're nullable even though every real profile
   // is expected to have them.
   area         String?
+  // One of the fixed values in src/lib/gyms.ts (a listed gym, "Unaffiliated",
+  // or "Other") — never free text, so search stays exact and reliable.
   affiliateGym String?
-  level        Level?
+  // Only set when affiliateGym is "Other": what they actually typed, kept
+  // for reference so it can be added to the official list later. Never
+  // searched/filtered on.
+  affiliateGymOther String?
+  level             Level?
 
   weightKg           Float?
   crossfitSinceYear  Int?

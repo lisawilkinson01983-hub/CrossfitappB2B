@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { AFFILIATE_GYM_VALUES, OTHER_GYM } from "./gyms";
 
 export const LEVELS = ["SCALED", "INTERMEDIATE", "RX"] as const;
 export type LevelOption = (typeof LEVELS)[number];
@@ -50,32 +51,38 @@ const optionalYesNo = z.preprocess(
 
 const optionalPositiveKg = z.preprocess(emptyToUndefined, z.coerce.number().positive().optional());
 
-export const profileSchema = z.object({
-  name: z.string().trim().min(1, "Name is required"),
-  bio: z.preprocess(emptyToUndefined, z.string().trim().max(2000).optional()),
-  age: z.preprocess(emptyToUndefined, z.coerce.number().int().min(13).max(120).optional()),
-  gender: z.preprocess(emptyToUndefined, z.enum(GENDERS).optional()),
-  area: z.string().trim().min(1, "Area is required"),
-  affiliateGym: z.string().trim().min(1, "Affiliate gym is required"),
-  level: z.enum(LEVELS, { errorMap: () => ({ message: "Select a level" }) }),
-  weightKg: optionalPositiveKg,
-  crossfitSinceYear: z.preprocess(
-    emptyToUndefined,
-    z.coerce.number().int().min(1970).max(new Date().getFullYear()).optional()
-  ),
-  crossfitSinceMonth: z.preprocess(emptyToUndefined, z.coerce.number().int().min(1).max(12).optional()),
-  lookingFor: z.array(z.enum(LOOKING_FOR_OPTIONS)).default([]),
-  isSingle: optionalYesNo,
-  showSingleBadge: checkboxToBoolean,
-  isPrivate: checkboxToBoolean,
-  deadliftKg: optionalPositiveKg,
-  cleanKg: optionalPositiveKg,
-  frontSquatKg: optionalPositiveKg,
-  backSquatKg: optionalPositiveKg,
-  ohsKg: optionalPositiveKg,
-  snatchKg: optionalPositiveKg,
-  benchPressKg: optionalPositiveKg,
-});
+export const profileSchema = z
+  .object({
+    name: z.string().trim().min(1, "Name is required"),
+    bio: z.preprocess(emptyToUndefined, z.string().trim().max(2000).optional()),
+    age: z.preprocess(emptyToUndefined, z.coerce.number().int().min(13).max(120).optional()),
+    gender: z.preprocess(emptyToUndefined, z.enum(GENDERS).optional()),
+    area: z.string().trim().min(1, "Area is required"),
+    affiliateGym: z.enum(AFFILIATE_GYM_VALUES, { errorMap: () => ({ message: "Select a gym" }) }),
+    affiliateGymOther: z.preprocess(emptyToUndefined, z.string().trim().max(200).optional()),
+    level: z.enum(LEVELS, { errorMap: () => ({ message: "Select a level" }) }),
+    weightKg: optionalPositiveKg,
+    crossfitSinceYear: z.preprocess(
+      emptyToUndefined,
+      z.coerce.number().int().min(1970).max(new Date().getFullYear()).optional()
+    ),
+    crossfitSinceMonth: z.preprocess(emptyToUndefined, z.coerce.number().int().min(1).max(12).optional()),
+    lookingFor: z.array(z.enum(LOOKING_FOR_OPTIONS)).default([]),
+    isSingle: optionalYesNo,
+    showSingleBadge: checkboxToBoolean,
+    isPrivate: checkboxToBoolean,
+    deadliftKg: optionalPositiveKg,
+    cleanKg: optionalPositiveKg,
+    frontSquatKg: optionalPositiveKg,
+    backSquatKg: optionalPositiveKg,
+    ohsKg: optionalPositiveKg,
+    snatchKg: optionalPositiveKg,
+    benchPressKg: optionalPositiveKg,
+  })
+  .refine((data) => data.affiliateGym !== OTHER_GYM || !!data.affiliateGymOther, {
+    message: "Enter your gym name",
+    path: ["affiliateGymOther"],
+  });
 
 export const workoutSchema = z.object({
   wodName: z.string().trim().min(1, "WOD name is required"),

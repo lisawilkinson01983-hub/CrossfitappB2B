@@ -9,6 +9,7 @@ import {
   parseLookingFor,
 } from "@/lib/labels";
 import { PB_FIELDS } from "@/lib/validation";
+import { OTHER_GYM } from "@/lib/gyms";
 
 function Field({ label, value }: { label: string; value: string | null }) {
   return (
@@ -31,6 +32,11 @@ export function ProfileDetails({ user, showEmail }: { user: User; showEmail: boo
   );
 
   const showSingleBadge = user.isSingle === true && user.showSingleBadge;
+
+  const affiliateGymDisplay =
+    user.affiliateGym === OTHER_GYM
+      ? `Other${user.affiliateGymOther ? ` — ${user.affiliateGymOther}` : ""}`
+      : user.affiliateGym;
 
   return (
     <>
@@ -74,7 +80,7 @@ export function ProfileDetails({ user, showEmail }: { user: User; showEmail: boo
         <Field label="Age" value={user.age != null ? String(user.age) : null} />
         <Field label="Gender" value={user.gender ? GENDER_LABELS[user.gender] : null} />
         <Field label="Area" value={user.area} />
-        <Field label="Affiliate gym" value={user.affiliateGym} />
+        <Field label="Affiliate gym" value={affiliateGymDisplay} />
         <Field label="Level" value={user.level ? LEVEL_LABELS[user.level] : null} />
         <Field label="Weight (kg)" value={user.weightKg != null ? String(user.weightKg) : null} />
         <Field label="CrossFitting since" value={crossfitSince} />

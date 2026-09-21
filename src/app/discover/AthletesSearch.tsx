@@ -6,7 +6,7 @@ import { FollowButton, type FollowStatus } from "@/components/FollowButton";
 import { BlockMuteControls } from "@/components/BlockMuteControls";
 import { GENDERS, LEVELS, LOOKING_FOR_OPTIONS, type LookingForOption } from "@/lib/validation";
 import { GENDER_LABELS, LEVEL_LABELS, LOOKING_FOR_LABELS, parseLookingFor } from "@/lib/labels";
-import { GYM_OPTIONS } from "@/lib/gyms";
+import { AFFILIATE_GYM_VALUES } from "@/lib/gyms";
 
 // "Prefer not to disclose" is a profile-level privacy choice, not a search filter.
 const SEARCHABLE_GENDERS = GENDERS.filter((g) => g !== "PREFER_NOT_TO_DISCLOSE");
@@ -26,7 +26,7 @@ export async function AthletesSearch({
   sp: AthleteSearchParams;
   currentUserId: string;
 }) {
-  const gym = typeof sp.gym === "string" ? sp.gym.trim() : "";
+  const gym = AFFILIATE_GYM_VALUES.find((g) => g === sp.gym);
   const area = typeof sp.area === "string" ? sp.area.trim() : "";
   const gender = SEARCHABLE_GENDERS.find((g) => g === sp.gender);
   const level = LEVELS.find((l) => l === sp.level);
@@ -42,7 +42,7 @@ export async function AthletesSearch({
 
   const where: Prisma.UserWhereInput = {
     id: { not: currentUserId, notIn: blocked.map((b) => b.blockedId) },
-    ...(gym ? { affiliateGym: { contains: gym } } : {}),
+    ...(gym ? { affiliateGym: gym } : {}),
     ...(area ? { area: { contains: area } } : {}),
     ...(gender ? { gender } : {}),
     ...(level ? { level } : {}),
@@ -102,11 +102,11 @@ export async function AthletesSearch({
             <select
               id="gym"
               name="gym"
-              defaultValue={gym}
+              defaultValue={gym ?? ""}
               className="mt-1 w-full rounded border border-gray-300 bg-white px-3 py-2 focus:border-blue-500 focus:outline-none"
             >
               <option value="">Any</option>
-              {GYM_OPTIONS.map((g) => (
+              {AFFILIATE_GYM_VALUES.map((g) => (
                 <option key={g} value={g}>
                   {g}
                 </option>

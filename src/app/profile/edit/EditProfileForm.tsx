@@ -14,9 +14,7 @@ import {
   type PbField,
 } from "@/lib/validation";
 import { GENDER_LABELS, LEVEL_LABELS, LOOKING_FOR_LABELS, PB_LABELS } from "@/lib/labels";
-import { GYM_OPTIONS } from "@/lib/gyms";
-
-const OTHER_GYM = "OTHER";
+import { GYM_OPTIONS, OTHER_GYM } from "@/lib/gyms";
 
 type Initial = {
   name: string;
@@ -26,6 +24,7 @@ type Initial = {
   gender: GenderOption | "";
   area: string;
   affiliateGym: string;
+  affiliateGymOther: string;
   level: LevelOption | "";
   weightKg: number | "";
   crossfitSinceYear: number | "";
@@ -52,9 +51,8 @@ export function EditProfileForm({ initial }: { initial: Initial }) {
   const [gender, setGender] = useState(initial.gender);
   const [area, setArea] = useState(initial.area);
   const [affiliateGym, setAffiliateGym] = useState(initial.affiliateGym);
-  const [isOtherGym, setIsOtherGym] = useState(
-    initial.affiliateGym !== "" && !(GYM_OPTIONS as readonly string[]).includes(initial.affiliateGym)
-  );
+  const [affiliateGymOther, setAffiliateGymOther] = useState(initial.affiliateGymOther);
+  const isOtherGym = affiliateGym === OTHER_GYM;
   const [level, setLevel] = useState(initial.level);
   const [weightKg, setWeightKg] = useState(String(initial.weightKg));
   const [crossfitSinceYear, setCrossfitSinceYear] = useState(String(initial.crossfitSinceYear));
@@ -99,6 +97,7 @@ export function EditProfileForm({ initial }: { initial: Initial }) {
     formData.set("gender", gender);
     formData.set("area", area);
     formData.set("affiliateGym", affiliateGym);
+    formData.set("affiliateGymOther", affiliateGymOther);
     formData.set("level", level);
     formData.set("weightKg", weightKg);
     formData.set("crossfitSinceYear", crossfitSinceYear);
@@ -231,16 +230,8 @@ export function EditProfileForm({ initial }: { initial: Initial }) {
         <select
           id="affiliateGym"
           required
-          value={isOtherGym ? OTHER_GYM : affiliateGym}
-          onChange={(e) => {
-            if (e.target.value === OTHER_GYM) {
-              setIsOtherGym(true);
-              setAffiliateGym("");
-            } else {
-              setIsOtherGym(false);
-              setAffiliateGym(e.target.value);
-            }
-          }}
+          value={affiliateGym}
+          onChange={(e) => setAffiliateGym(e.target.value)}
           className="mt-1 w-full rounded border border-gray-300 bg-white px-3 py-2 focus:border-blue-500 focus:outline-none"
         >
           <option value="" disabled>
@@ -258,8 +249,8 @@ export function EditProfileForm({ initial }: { initial: Initial }) {
             type="text"
             required
             placeholder="Enter your gym name"
-            value={affiliateGym}
-            onChange={(e) => setAffiliateGym(e.target.value)}
+            value={affiliateGymOther}
+            onChange={(e) => setAffiliateGymOther(e.target.value)}
             className="mt-2 w-full rounded border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
           />
         )}

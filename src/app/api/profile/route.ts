@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PB_FIELDS, profileSchema } from "@/lib/validation";
+import { OTHER_GYM } from "@/lib/gyms";
 import { PhotoUploadError, savePhotoUpload } from "@/lib/uploads";
 import { parseFormData } from "@/lib/http";
 
@@ -24,6 +25,7 @@ export async function PATCH(req: Request) {
     gender: formData.get("gender"),
     area: formData.get("area"),
     affiliateGym: formData.get("affiliateGym"),
+    affiliateGymOther: formData.get("affiliateGymOther"),
     level: formData.get("level"),
     weightKg: formData.get("weightKg"),
     crossfitSinceYear: formData.get("crossfitSinceYear"),
@@ -71,6 +73,7 @@ export async function PATCH(req: Request) {
       gender: data.gender ?? null,
       area: data.area,
       affiliateGym: data.affiliateGym,
+      affiliateGymOther: data.affiliateGym === OTHER_GYM ? data.affiliateGymOther : null,
       level: data.level,
       weightKg: data.weightKg ?? null,
       crossfitSinceYear: data.crossfitSinceYear ?? null,

@@ -7,6 +7,8 @@ import { NavBar } from "@/components/NavBar";
 import { ProfileDetails } from "@/components/ProfileDetails";
 import { WorkoutCard } from "@/components/WorkoutCard";
 import { IncomingFollowRequests } from "@/components/IncomingFollowRequests";
+import { GymUpdateNudge } from "@/components/GymUpdateNudge";
+import { AFFILIATE_GYMS, OTHER_GYM } from "@/lib/gyms";
 
 export default async function ProfilePage() {
   const session = await getServerSession(authOptions);
@@ -34,6 +36,11 @@ export default async function ProfilePage() {
       }),
     ]);
 
+  const suggestedGym =
+    user.affiliateGym === OTHER_GYM && user.affiliateGymOther
+      ? AFFILIATE_GYMS.find((g) => g.toLowerCase() === user.affiliateGymOther!.trim().toLowerCase())
+      : undefined;
+
   return (
     <main className="mx-auto max-w-2xl px-4 py-8">
       <NavBar />
@@ -56,6 +63,8 @@ export default async function ProfilePage() {
           {followingCount} following
         </Link>
       </div>
+
+      {suggestedGym && <GymUpdateNudge suggestedGym={suggestedGym} />}
 
       <div className="mt-6">
         <ProfileDetails user={user} showEmail />
