@@ -187,6 +187,12 @@ model Post {
   linkedWorkoutId String?
   linkedWorkout   Workout? @relation(fields: [linkedWorkoutId], references: [id], onDelete: Cascade)
 
+  // Set when auto-created from joining an event's participant list. Deleting
+  // the event removes this post too; un-joining removes it explicitly
+  // (see the participate route) since the event itself still exists.
+  linkedEventId String?
+  linkedEvent   Event?  @relation(fields: [linkedEventId], references: [id], onDelete: Cascade)
+
   createdAt DateTime @default(now())
 
   likes    Like[]
@@ -317,6 +323,7 @@ model Event {
   createdAt DateTime @default(now())
 
   participants EventParticipant[]
+  posts        Post[]
 
   @@index([date])
 }

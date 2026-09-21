@@ -22,8 +22,12 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
 
   if (existing) {
     await prisma.eventParticipant.delete({ where: { id: existing.id } });
+    await prisma.post.deleteMany({ where: { userId: session.user.id, linkedEventId: eventId } });
   } else {
     await prisma.eventParticipant.create({ data: { userId: session.user.id, eventId } });
+    await prisma.post.create({
+      data: { userId: session.user.id, type: "UPDATE", linkedEventId: eventId },
+    });
   }
 
   return NextResponse.json({ participating: !existing });

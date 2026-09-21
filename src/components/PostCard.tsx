@@ -28,6 +28,11 @@ export type PostCardData = {
     unit: WorkoutUnitOption;
     intensity: WorkoutIntensityOption;
   } | null;
+  linkedEvent: {
+    name: string;
+    date: Date;
+    location: string;
+  } | null;
   likeCount: number;
   likedByMe: boolean;
   comments: {
@@ -146,6 +151,23 @@ export function PostCard({ post }: { post: PostCardData }) {
           {post.linkedWorkout.wodName} · {post.linkedWorkout.score} (
           {WORKOUT_UNIT_LABELS[post.linkedWorkout.unit]}) ·{" "}
           {WORKOUT_INTENSITY_LABELS[post.linkedWorkout.intensity]}
+        </p>
+      )}
+
+      {post.linkedEvent && (
+        <p className="mt-3 text-sm text-b2b-ink">
+          🏆 Competing in <span className="font-semibold">{post.linkedEvent.name}</span>
+          <span className="text-b2b-ink/50">
+            {" "}
+            ·{" "}
+            {post.linkedEvent.date.toLocaleDateString(undefined, {
+              weekday: "short",
+              year: "numeric",
+              month: "short",
+              day: "numeric",
+            })}{" "}
+            · {post.linkedEvent.location}
+          </span>
         </p>
       )}
 

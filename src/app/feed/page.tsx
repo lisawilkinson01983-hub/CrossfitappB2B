@@ -23,6 +23,7 @@ export default async function FeedPage() {
     include: {
       user: { select: { id: true, name: true, photo: true, level: true, affiliateGym: true } },
       linkedWorkout: { select: { wodName: true, score: true, unit: true, intensity: true } },
+      linkedEvent: { select: { name: true, date: true, location: true } },
       likes: { select: { userId: true } },
       comments: {
         orderBy: { createdAt: "asc" },
@@ -61,6 +62,7 @@ export default async function FeedPage() {
                 isOwner: post.userId === session.user.id,
                 author: post.user,
                 linkedWorkout: post.linkedWorkout,
+                linkedEvent: post.linkedEvent,
                 likeCount: post.likes.length,
                 likedByMe: post.likes.some((like) => like.userId === session.user.id),
                 comments: post.comments.map((comment) => ({
