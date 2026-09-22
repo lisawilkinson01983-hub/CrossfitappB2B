@@ -136,15 +136,20 @@ async function renderInviteCard(name: string, photo: string | null): Promise<Blo
 
   ctx.fillStyle = "#ffffff";
   ctx.textAlign = "center";
-  ctx.font = "600 46px Arial, sans-serif";
-  ctx.fillText(`${name} is on Box 2 Box`, WIDTH / 2, avatarY + avatarSize + 90);
+  ctx.font = "700 54px Arial, sans-serif";
+  ctx.fillText(name, WIDTH / 2, avatarY + avatarSize + 90);
 
+  ctx.font = "500 40px Arial, sans-serif";
+  ctx.fillStyle = "rgba(255,255,255,0.85)";
+  ctx.fillText("I am on Box 2 Box", WIDTH / 2, avatarY + avatarSize + 150);
+
+  ctx.fillStyle = "#ffffff";
   ctx.font = "800 92px Arial, sans-serif";
   const headlineEnd = wrapCenteredText(
     ctx,
-    "CONNECT. SHARE. THRIVE.",
+    "CONNECT. SHARE. INSPIRE.",
     WIDTH / 2,
-    avatarY + avatarSize + 210,
+    avatarY + avatarSize + 270,
     WIDTH - 140,
     102
   );
