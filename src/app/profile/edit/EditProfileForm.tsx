@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
@@ -73,6 +73,7 @@ export function EditProfileForm({ initial }: { initial: Initial }) {
   );
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(initial.photo);
+  const photoInputRef = useRef<HTMLInputElement>(null);
 
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -130,7 +131,7 @@ export function EditProfileForm({ initial }: { initial: Initial }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-5">
+    <form onSubmit={handleSubmit} className="flex flex-col gap-5">
       {error && <p className="rounded bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
 
       <div>
@@ -148,7 +149,20 @@ export function EditProfileForm({ initial }: { initial: Initial }) {
           ) : (
             <div className="h-20 w-20 rounded-full bg-gray-200" />
           )}
-          <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handlePhotoChange} />
+          <input
+            ref={photoInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            onChange={handlePhotoChange}
+            className="hidden"
+          />
+          <button
+            type="button"
+            onClick={() => photoInputRef.current?.click()}
+            className="rounded-full border border-b2b-purple/20 px-3 py-1.5 text-sm font-medium text-b2b-ink/60 hover:border-b2b-pink hover:text-b2b-pink"
+          >
+            📷 Change photo
+          </button>
         </div>
       </div>
 

@@ -5,6 +5,8 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NavBar } from "@/components/NavBar";
 import { SectionCard } from "@/components/SectionCard";
+import { Avatar } from "@/components/Avatar";
+import { showsSingleBadge } from "@/lib/labels";
 
 export default async function NotificationsPage() {
   const session = await getServerSession(authOptions);
@@ -21,7 +23,7 @@ export default async function NotificationsPage() {
     orderBy: { createdAt: "desc" },
     take: 50,
     include: {
-      actor: { select: { id: true, name: true } },
+      actor: { select: { id: true, name: true, photo: true, isSingle: true, showSingleBadge: true } },
       post: { select: { id: true } },
     },
   });
@@ -41,9 +43,15 @@ export default async function NotificationsPage() {
                 <Link
                   key={n.id}
                   href={n.post ? `/feed#post-${n.post.id}` : `/profile/${n.actor.id}`}
-                  className="flex items-center justify-between gap-3 py-3 hover:bg-b2b-purple/5"
+                  className="flex items-center gap-3 py-3 hover:bg-b2b-purple/5"
                 >
-                  <p className="text-sm">
+                  <Avatar
+                    photo={n.actor.photo}
+                    name={n.actor.name}
+                    size={40}
+                    showSingleBadge={showsSingleBadge(n.actor)}
+                  />
+                  <p className="flex-1 text-sm">
                     <span className="font-semibold">{n.actor.name}</span>{" "}
                     {n.type === "LIKE" ? "liked your post" : "commented on your post"}
                   </p>

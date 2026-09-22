@@ -6,6 +6,7 @@ import { parseLookingFor } from "@/lib/labels";
 import { PB_FIELDS } from "@/lib/validation";
 import { AFFILIATE_GYM_VALUES, OTHER_GYM } from "@/lib/gyms";
 import { NavBar } from "@/components/NavBar";
+import { SectionCard } from "@/components/SectionCard";
 import { EditProfileForm } from "./EditProfileForm";
 
 export default async function EditProfilePage() {
@@ -29,33 +30,36 @@ export default async function EditProfilePage() {
   return (
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
       <NavBar />
-      <h1 className="mt-6 text-2xl font-bold">Edit profile</h1>
-      <EditProfileForm
-        initial={{
-          name: user.name,
-          photo: user.photo,
-          bio: user.bio ?? "",
-          age: user.age ?? "",
-          gender: user.gender ?? "",
-          area: user.area ?? "",
-          affiliateGym: initialAffiliateGym,
-          affiliateGymOther: initialAffiliateGymOther,
-          level: user.level ?? "",
-          crossfitSinceYear: user.crossfitSinceYear ?? "",
-          crossfitSinceMonth: user.crossfitSinceMonth ?? "",
-          lookingFor: parseLookingFor(user.lookingFor),
-          showLookingFor: user.showLookingFor,
-          isSingle: user.isSingle,
-          showRelationshipStatus: user.showRelationshipStatus,
-          showSingleBadge: user.showSingleBadge,
-          showAge: user.showAge,
-          isPrivate: user.isPrivate,
-          pbs: Object.fromEntries(PB_FIELDS.map((field) => [field, user[field] ?? ""])) as Record<
-            (typeof PB_FIELDS)[number],
-            number | ""
-          >,
-        }}
-      />
+      <div className="mt-6">
+        <SectionCard title="Edit profile">
+          <EditProfileForm
+            initial={{
+              name: user.name,
+              photo: user.photo,
+              bio: user.bio ?? "",
+              age: user.age ?? "",
+              gender: user.gender ?? "",
+              area: user.area ?? "",
+              affiliateGym: initialAffiliateGym,
+              affiliateGymOther: initialAffiliateGymOther,
+              level: user.level ?? "",
+              crossfitSinceYear: user.crossfitSinceYear ?? "",
+              crossfitSinceMonth: user.crossfitSinceMonth ?? "",
+              lookingFor: parseLookingFor(user.lookingFor),
+              showLookingFor: user.showLookingFor,
+              isSingle: user.isSingle,
+              showRelationshipStatus: user.showRelationshipStatus,
+              showSingleBadge: user.showSingleBadge,
+              showAge: user.showAge,
+              isPrivate: user.isPrivate,
+              pbs: Object.fromEntries(PB_FIELDS.map((field) => [field, user[field] ?? ""])) as Record<
+                (typeof PB_FIELDS)[number],
+                number | ""
+              >,
+            }}
+          />
+        </SectionCard>
+      </div>
     </main>
   );
 }
