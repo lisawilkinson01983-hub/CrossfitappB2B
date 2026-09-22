@@ -10,6 +10,7 @@ import { SectionCard } from "@/components/SectionCard";
 import { WorkoutCard } from "@/components/WorkoutCard";
 import { IncomingFollowRequests } from "@/components/IncomingFollowRequests";
 import { GymUpdateNudge } from "@/components/GymUpdateNudge";
+import { ShareInviteCard } from "@/components/ShareInviteCard";
 import { AFFILIATE_GYMS, OTHER_GYM } from "@/lib/gyms";
 
 export default async function ProfilePage() {
@@ -54,12 +55,15 @@ export default async function ProfilePage() {
           followerCount={followerCount}
           followingCount={followingCount}
           actions={
-            <Link
-              href="/profile/edit"
-              className="rounded bg-b2b-pink px-3 py-1.5 text-sm font-medium text-white hover:bg-b2b-pink-dark"
-            >
-              Edit profile
-            </Link>
+            <>
+              <Link
+                href="/profile/edit"
+                className="rounded bg-b2b-pink px-3 py-1.5 text-sm font-medium text-white hover:bg-b2b-pink-dark"
+              >
+                Edit profile
+              </Link>
+              <ShareInviteCard name={user.name} photo={user.photo} />
+            </>
           }
           belowActions={suggestedGym && <GymUpdateNudge suggestedGym={suggestedGym} />}
         />
