@@ -4,6 +4,7 @@ import { useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { MAX_VIDEO_SECONDS } from "@/lib/media";
 import { readVideoDuration } from "@/lib/readVideoDuration";
+import { MentionTextarea } from "@/components/MentionTextarea";
 
 type Attachment = { kind: "photo" | "video"; file: File };
 
@@ -75,11 +76,11 @@ export function PostComposer() {
       {error && (
         <p className="mb-3 rounded bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>
       )}
-      <textarea
+      <MentionTextarea
         rows={3}
-        placeholder="Share something with the community..."
+        placeholder="Share something with the community... (type @ to tag someone)"
         value={contentText}
-        onChange={(e) => setContentText(e.target.value)}
+        onChange={setContentText}
         className="w-full rounded border border-gray-300 px-3 py-2 focus:border-b2b-pink focus:outline-none"
       />
 

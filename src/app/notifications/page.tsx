@@ -53,7 +53,15 @@ export default async function NotificationsPage() {
                   />
                   <p className="flex-1 text-sm">
                     <span className="font-semibold">{n.actor.name}</span>{" "}
-                    {n.type === "LIKE" ? "liked your post" : "commented on your post"}
+                    {n.type === "LIKE"
+                      ? "liked your post"
+                      : n.type === "COMMENT"
+                        ? "commented on your post"
+                        : n.type === "REPLY"
+                          ? "replied to your comment"
+                          : n.type === "COMMENT_LIKE"
+                            ? "liked your comment"
+                            : "mentioned you"}
                   </p>
                   <span className="whitespace-nowrap text-xs text-b2b-ink/40">
                     {n.createdAt.toLocaleDateString()}

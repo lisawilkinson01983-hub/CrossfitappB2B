@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { ParticipateButton } from "@/components/ParticipateButton";
@@ -200,7 +201,9 @@ export async function EventsList({
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <p className="font-semibold">
-                      {event.name}
+                      <Link href={`/events/${event.id}`} className="hover:underline">
+                        {event.name}
+                      </Link>
                       {event.tag && (
                         <span className="ml-2 rounded-full bg-b2b-purple/10 px-2 py-0.5 text-xs text-b2b-purple">
                           {event.tag}

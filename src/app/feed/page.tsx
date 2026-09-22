@@ -33,11 +33,14 @@ export default async function FeedPage() {
         },
       },
       linkedWorkout: { select: { wodName: true, score: true, unit: true, intensity: true } },
-      linkedEvent: { select: { name: true, date: true, location: true } },
+      linkedEvent: { select: { id: true, name: true, date: true, location: true } },
       likes: { select: { userId: true } },
       comments: {
         orderBy: { createdAt: "asc" },
-        include: { user: { select: { id: true, name: true } } },
+        include: {
+          user: { select: { id: true, name: true } },
+          likes: { select: { userId: true } },
+        },
       },
     },
   });
@@ -81,6 +84,9 @@ export default async function FeedPage() {
                   text: comment.text,
                   createdAt: comment.createdAt,
                   author: comment.user,
+                  parentId: comment.parentId,
+                  likeCount: comment.likes.length,
+                  likedByMe: comment.likes.some((like) => like.userId === session.user.id),
                 })),
               }}
             />

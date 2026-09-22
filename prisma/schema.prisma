@@ -61,6 +61,9 @@ enum FollowRequestStatus {
 enum NotificationType {
   LIKE
   COMMENT
+  REPLY
+  COMMENT_LIKE
+  MENTION
 }
 
 model User {
@@ -160,10 +163,11 @@ model User {
 
   createdAt DateTime @default(now())
 
-  workouts Workout[]
-  posts    Post[]
-  likes    Like[]
-  comments Comment[]
+  workouts     Workout[]
+  posts        Post[]
+  likes        Like[]
+  comments     Comment[]
+  commentLikes CommentLike[]
 
   following Follow[] @relation("Following")
   followers Follow[] @relation("Followers")
@@ -269,11 +273,35 @@ model Comment {
   postId String
   post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
 
+  // Set when this comment is a reply to another comment on the same post;
+  // null for a top-level comment. One level of self-reference is enough —
+  // the UI flattens deeper reply chains under their top-level ancestor.
+  parentId String?
+  parent   Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies  Comment[] @relation("CommentReplies")
+
   text String
 
   createdAt DateTime @default(now())
 
+  likes         CommentLike[]
+  notifications Notification[]
+
   @@index([postId])
+  @@index([parentId])
+}
+
+model CommentLike {
+  id        String  @id @default(cuid())
+  userId    String
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  commentId String
+  comment   Comment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, commentId])
+  @@index([commentId])
 }
 
 model Follow {
@@ -440,6 +468,11 @@ model Notification {
 
   postId String?
   post   Post?   @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  // Set for REPLY/COMMENT_LIKE, and for MENTION when the mention was inside
+  // a comment rather than the post body itself.
+  commentId String?
+  comment   Comment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
 
   readAt    DateTime?
   createdAt DateTime  @default(now())

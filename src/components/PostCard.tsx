@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -13,6 +12,20 @@ import {
 } from "@/lib/labels";
 import type { LevelOption, WorkoutIntensityOption, WorkoutUnitOption } from "@/lib/validation";
 import { Avatar } from "@/components/Avatar";
+import { ExpandableImage } from "@/components/ExpandableImage";
+import { MentionText } from "@/components/MentionText";
+import { MentionTextarea } from "@/components/MentionTextarea";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
+
+export type CommentData = {
+  id: string;
+  text: string;
+  createdAt: Date;
+  author: { id: string; name: string };
+  parentId: string | null;
+  likeCount: number;
+  likedByMe: boolean;
+};
 
 export type PostCardData = {
   id: string;
@@ -38,19 +51,18 @@ export type PostCardData = {
     intensity: WorkoutIntensityOption;
   } | null;
   linkedEvent: {
+    id: string;
     name: string;
     date: Date;
     location: string;
   } | null;
   likeCount: number;
   likedByMe: boolean;
-  comments: {
-    id: string;
-    text: string;
-    createdAt: Date;
-    author: { id: string; name: string };
-  }[];
+  comments: CommentData[];
 };
+
+const textareaClass =
+  "flex-1 resize-none rounded border border-gray-300 px-2 py-1.5 text-sm focus:border-b2b-pink focus:outline-none";
 
 export function PostCard({ post, currentUserId }: { post: PostCardData; currentUserId: string }) {
   const router = useRouter();
@@ -67,8 +79,13 @@ export function PostCard({ post, currentUserId }: { post: PostCardData; currentU
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
   const [editCommentText, setEditCommentText] = useState("");
   const [commentSaving, setCommentSaving] = useState(false);
+  const [busyLikeIds, setBusyLikeIds] = useState<Set<string>>(new Set());
+  const [replyingToId, setReplyingToId] = useState<string | null>(null);
+  const [replyText, setReplyText] = useState("");
+  const [replyBusy, setReplyBusy] = useState(false);
 
   const [deleting, setDeleting] = useState(false);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [editingPost, setEditingPost] = useState(false);
   const [editPostText, setEditPostText] = useState(post.contentText ?? "");
   const [contentText, setContentText] = useState(post.contentText);
@@ -87,6 +104,23 @@ export function PostCard({ post, currentUserId }: { post: PostCardData; currentU
     }
   }
 
+  async function toggleCommentLike(commentId: string) {
+    if (busyLikeIds.has(commentId)) return;
+    setBusyLikeIds((prev) => new Set(prev).add(commentId));
+    const res = await fetch(`/api/comments/${commentId}/like`, { method: "POST" });
+    setBusyLikeIds((prev) => {
+      const next = new Set(prev);
+      next.delete(commentId);
+      return next;
+    });
+    if (res.ok) {
+      const body = await res.json();
+      setComments((prev) =>
+        prev.map((c) => (c.id === commentId ? { ...c, likedByMe: body.liked, likeCount: body.count } : c))
+      );
+    }
+  }
+
   async function submitComment(e: FormEvent) {
     e.preventDefault();
     if (!commentText.trim() || commentBusy) return;
@@ -101,6 +135,28 @@ export function PostCard({ post, currentUserId }: { post: PostCardData; currentU
       const body = await res.json();
       setComments((prev) => [...prev, body.comment]);
       setCommentText("");
+    }
+  }
+
+  function startReply(commentId: string) {
+    setReplyingToId((prev) => (prev === commentId ? null : commentId));
+    setReplyText("");
+  }
+
+  async function submitReply(parentId: string) {
+    if (!replyText.trim() || replyBusy) return;
+    setReplyBusy(true);
+    const res = await fetch(`/api/posts/${post.id}/comments`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text: replyText, parentId }),
+    });
+    setReplyBusy(false);
+    if (res.ok) {
+      const body = await res.json();
+      setComments((prev) => [...prev, body.comment]);
+      setReplyText("");
+      setReplyingToId(null);
     }
   }
 
@@ -124,11 +180,11 @@ export function PostCard({ post, currentUserId }: { post: PostCardData; currentU
     }
   }
 
-  async function handleDelete() {
-    if (!confirm("Delete this post?")) return;
+  async function confirmDelete() {
     setDeleting(true);
     const res = await fetch(`/api/posts/${post.id}`, { method: "DELETE" });
     setDeleting(false);
+    setConfirmDeleteOpen(false);
     if (res.ok) router.refresh();
   }
 
@@ -148,6 +204,107 @@ export function PostCard({ post, currentUserId }: { post: PostCardData; currentU
     }
     setContentText(editPostText.trim() ? editPostText : null);
     setEditingPost(false);
+  }
+
+  const repliesByParent = new Map<string, CommentData[]>();
+  for (const c of comments) {
+    if (!c.parentId) continue;
+    const list = repliesByParent.get(c.parentId) ?? [];
+    list.push(c);
+    repliesByParent.set(c.parentId, list);
+  }
+  const topLevelComments = comments.filter((c) => !c.parentId);
+
+  function renderComment(comment: CommentData, depth: number) {
+    const isEditing = editingCommentId === comment.id;
+    const isReplying = replyingToId === comment.id;
+    const replies = repliesByParent.get(comment.id) ?? [];
+
+    return (
+      <div key={comment.id} className="flex flex-col gap-1" style={{ marginLeft: depth * 20 }}>
+        {isEditing ? (
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={editCommentText}
+              onChange={(e) => setEditCommentText(e.target.value)}
+              className="flex-1 rounded border border-gray-300 px-2 py-1 text-sm focus:border-b2b-pink focus:outline-none"
+            />
+            <button
+              type="button"
+              onClick={() => submitEditComment(comment.id)}
+              disabled={commentSaving || !editCommentText.trim()}
+              className="rounded bg-b2b-pink px-3 py-1 text-sm text-white hover:bg-b2b-pink-dark disabled:opacity-50"
+            >
+              Save
+            </button>
+            <button
+              type="button"
+              onClick={() => setEditingCommentId(null)}
+              className="text-sm text-b2b-ink/50 hover:underline"
+            >
+              Cancel
+            </button>
+          </div>
+        ) : (
+          <div className="text-sm">
+            <p>
+              <span className="font-semibold">{comment.author.name}</span>{" "}
+              <MentionText text={comment.text} className="text-gray-800" />
+            </p>
+            <div className="mt-0.5 flex items-center gap-3 text-xs text-b2b-ink/50">
+              <button
+                type="button"
+                onClick={() => toggleCommentLike(comment.id)}
+                className={comment.likedByMe ? "font-medium text-b2b-pink" : "hover:underline"}
+              >
+                {comment.likedByMe ? "♥ Liked" : "♡ Like"} {comment.likeCount > 0 && `(${comment.likeCount})`}
+              </button>
+              <button type="button" onClick={() => startReply(comment.id)} className="hover:underline">
+                Reply
+              </button>
+              {comment.author.id === currentUserId && (
+                <button
+                  type="button"
+                  onClick={() => startEditComment(comment.id, comment.text)}
+                  className="text-b2b-pink hover:underline"
+                >
+                  Edit
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {isReplying && (
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              submitReply(comment.id);
+            }}
+            className="mt-1 flex gap-2"
+          >
+            <MentionTextarea
+              rows={1}
+              value={replyText}
+              onChange={setReplyText}
+              placeholder={`Reply to ${comment.author.name}...`}
+              className={textareaClass}
+              autoFocus
+            />
+            <button
+              type="submit"
+              disabled={replyBusy || !replyText.trim()}
+              className="h-fit rounded bg-b2b-pink px-3 py-1.5 text-sm text-white hover:bg-b2b-pink-dark disabled:opacity-50"
+            >
+              Reply
+            </button>
+          </form>
+        )}
+
+        {replies.map((reply) => renderComment(reply, depth + 1))}
+      </div>
+    );
   }
 
   return (
@@ -200,11 +357,10 @@ export function PostCard({ post, currentUserId }: { post: PostCardData; currentU
             </button>
             <button
               type="button"
-              onClick={handleDelete}
-              disabled={deleting}
-              className="text-xs text-red-600 hover:underline disabled:opacity-50"
+              onClick={() => setConfirmDeleteOpen(true)}
+              className="text-xs text-red-600 hover:underline"
             >
-              {deleting ? "Deleting..." : "Delete"}
+              Delete
             </button>
           </div>
         )}
@@ -220,7 +376,10 @@ export function PostCard({ post, currentUserId }: { post: PostCardData; currentU
 
       {post.linkedEvent && (
         <p className="mt-3 text-sm text-b2b-ink">
-          🏆 Competing in <span className="font-semibold">{post.linkedEvent.name}</span>
+          🏆 Competing in{" "}
+          <Link href={`/events/${post.linkedEvent.id}`} className="font-semibold hover:underline">
+            {post.linkedEvent.name}
+          </Link>
           <span className="text-b2b-ink/50">
             {" "}
             ·{" "}
@@ -238,10 +397,10 @@ export function PostCard({ post, currentUserId }: { post: PostCardData; currentU
       {editingPost ? (
         <div className="mt-2 flex flex-col gap-2">
           {postError && <p className="text-sm text-red-600">{postError}</p>}
-          <textarea
+          <MentionTextarea
             rows={3}
             value={editPostText}
-            onChange={(e) => setEditPostText(e.target.value)}
+            onChange={setEditPostText}
             className="w-full rounded border border-gray-300 px-2 py-1 text-sm focus:border-b2b-pink focus:outline-none"
           />
           <div className="flex gap-3">
@@ -263,15 +422,17 @@ export function PostCard({ post, currentUserId }: { post: PostCardData; currentU
           </div>
         </div>
       ) : (
-        contentText && <p className="mt-2 whitespace-pre-wrap text-b2b-ink">{contentText}</p>
+        contentText && (
+          <p className="mt-2 whitespace-pre-wrap text-b2b-ink">
+            <MentionText text={contentText} />
+          </p>
+        )
       )}
 
       {post.photo && (
-        <Image
+        <ExpandableImage
           src={post.photo}
           alt="Post photo"
-          width={500}
-          height={500}
           className="mt-3 max-h-96 w-full rounded object-cover"
         />
       )}
@@ -301,66 +462,34 @@ export function PostCard({ post, currentUserId }: { post: PostCardData; currentU
       </div>
 
       {showComments && (
-        <div className="mt-3 flex flex-col gap-2 border-t border-gray-100 pt-3">
-          {comments.map((comment) =>
-            editingCommentId === comment.id ? (
-              <div key={comment.id} className="flex gap-2">
-                <input
-                  type="text"
-                  value={editCommentText}
-                  onChange={(e) => setEditCommentText(e.target.value)}
-                  className="flex-1 rounded border border-gray-300 px-2 py-1 text-sm focus:border-b2b-pink focus:outline-none"
-                />
-                <button
-                  type="button"
-                  onClick={() => submitEditComment(comment.id)}
-                  disabled={commentSaving || !editCommentText.trim()}
-                  className="rounded bg-b2b-pink px-3 py-1 text-sm text-white hover:bg-b2b-pink-dark disabled:opacity-50"
-                >
-                  Save
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setEditingCommentId(null)}
-                  className="text-sm text-b2b-ink/50 hover:underline"
-                >
-                  Cancel
-                </button>
-              </div>
-            ) : (
-              <p key={comment.id} className="text-sm">
-                <span className="font-semibold">{comment.author.name}</span>{" "}
-                <span className="text-gray-800">{comment.text}</span>{" "}
-                {comment.author.id === currentUserId && (
-                  <button
-                    type="button"
-                    onClick={() => startEditComment(comment.id, comment.text)}
-                    className="text-xs text-b2b-pink hover:underline"
-                  >
-                    Edit
-                  </button>
-                )}
-              </p>
-            )
-          )}
+        <div className="mt-3 flex flex-col gap-3 border-t border-gray-100 pt-3">
+          {topLevelComments.map((c) => renderComment(c, 0))}
           <form onSubmit={submitComment} className="mt-1 flex gap-2">
-            <input
-              type="text"
-              placeholder="Add a comment..."
+            <MentionTextarea
+              rows={1}
               value={commentText}
-              onChange={(e) => setCommentText(e.target.value)}
-              className="flex-1 rounded border border-gray-300 px-2 py-1 text-sm focus:border-b2b-pink focus:outline-none"
+              onChange={setCommentText}
+              placeholder="Add a comment..."
+              className={textareaClass}
             />
             <button
               type="submit"
               disabled={commentBusy || !commentText.trim()}
-              className="rounded bg-b2b-pink px-3 py-1 text-sm text-white hover:bg-b2b-pink-dark disabled:opacity-50"
+              className="h-fit rounded bg-b2b-pink px-3 py-1.5 text-sm text-white hover:bg-b2b-pink-dark disabled:opacity-50"
             >
-              Reply
+              Comment
             </button>
           </form>
         </div>
       )}
+
+      <ConfirmDialog
+        open={confirmDeleteOpen}
+        message="This will permanently remove the post, along with its comments and likes."
+        onConfirm={confirmDelete}
+        onCancel={() => setConfirmDeleteOpen(false)}
+        confirming={deleting}
+      />
     </div>
   );
 }

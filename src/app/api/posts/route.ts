@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { postSchema } from "@/lib/validation";
 import { PhotoUploadError, VideoUploadError, savePhotoUpload, saveVideoUpload } from "@/lib/uploads";
 import { parseFormData } from "@/lib/http";
+import { notifyMentions } from "@/lib/notify";
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
@@ -62,6 +63,8 @@ export async function POST(req: Request) {
       video: videoPath ?? null,
     },
   });
+
+  await notifyMentions({ text: parsed.data.contentText, actorId: session.user.id, postId: post.id });
 
   return NextResponse.json({ ok: true, id: post.id });
 }

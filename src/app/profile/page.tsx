@@ -86,7 +86,11 @@ export default async function ProfilePage() {
             <div className="flex flex-col gap-3">
               {competingIn.map((event) => (
                 <div key={event.id} className="rounded-lg border border-b2b-purple/10 bg-b2b-bg p-3">
-                  <p className="font-medium">{event.name}</p>
+                  <p className="font-medium">
+                    <Link href={`/events/${event.id}`} className="hover:underline">
+                      {event.name}
+                    </Link>
+                  </p>
                   <p className="text-sm text-b2b-ink/50">
                     {event.date.toLocaleDateString(undefined, {
                       weekday: "short",
