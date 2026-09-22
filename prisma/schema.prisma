@@ -120,16 +120,38 @@ model User {
   // attribute on <html> in the root layout (see src/app/globals.css).
   theme AppTheme @default(PINK)
 
-  // Key PBs (kg). Stored as individual nullable columns rather than a JSON
-  // blob since SQLite has no native JSON column type.
-  deadliftKg   Float?
-  cleanKg      Float?
-  frontSquatKg Float?
-  backSquatKg  Float?
-  ohsKg        Float?
-  snatchKg     Float?
-  benchPressKg Float?
-  splitJerkKg  Float?
+  // Benchmark movement PBs (kg). Stored as individual nullable columns rather
+  // than a JSON blob since SQLite has no native JSON column type. A user can
+  // record any of these, but only up to 8 are shown on their profile — see
+  // displayedPbs below.
+  deadliftKg        Float?
+  sumoDeadliftKg    Float?
+  deficitDeadliftKg Float?
+  cleanPullKg       Float?
+  snatchPullKg      Float?
+  cleanKg           Float?
+  powerCleanKg      Float?
+  hangCleanKg       Float?
+  hangPowerCleanKg  Float?
+  cleanAndJerkKg    Float?
+  snatchKg          Float?
+  powerSnatchKg     Float?
+  hangSnatchKg      Float?
+  hangPowerSnatchKg Float?
+  splitJerkKg       Float?
+  pushJerkKg        Float?
+  strictPressKg     Float?
+  shoulderPressKg   Float?
+  pushPressKg       Float?
+  benchPressKg      Float?
+  frontSquatKg      Float?
+  backSquatKg       Float?
+  ohsKg             Float?
+
+  // JSON-encoded array of up to 8 PbField keys (see src/lib/validation.ts)
+  // chosen to display on the profile. Null means "not yet customized" — the
+  // original fixed 8 are used as the default (see DEFAULT_DISPLAYED_PBS).
+  displayedPbs String?
 
   // Placeholders for future gym-platform integrations (Wodify/TeamUp/etc.);
   // not wired to anything yet.

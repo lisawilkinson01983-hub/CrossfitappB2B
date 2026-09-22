@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { parseLookingFor } from "@/lib/labels";
+import { parseDisplayedPbs, parseLookingFor } from "@/lib/labels";
 import { PB_FIELDS } from "@/lib/validation";
 import { AFFILIATE_GYM_VALUES, OTHER_GYM } from "@/lib/gyms";
 import { NavBar } from "@/components/NavBar";
@@ -56,6 +56,7 @@ export default async function EditProfilePage() {
                 (typeof PB_FIELDS)[number],
                 number | ""
               >,
+              displayedPbs: parseDisplayedPbs(user.displayedPbs),
             }}
           />
         </SectionCard>

@@ -39,6 +39,7 @@ export async function PATCH(req: Request) {
     showAge: formData.get("showAge"),
     isPrivate: formData.get("isPrivate"),
     ...Object.fromEntries(PB_FIELDS.map((field) => [field, formData.get(field)])),
+    displayedPbs: formData.getAll("displayedPbs"),
   });
 
   if (!parsed.success) {
@@ -96,6 +97,7 @@ export async function PATCH(req: Request) {
       showAge: data.showAge,
       isPrivate: data.isPrivate,
       ...pbData,
+      displayedPbs: JSON.stringify(data.displayedPbs ?? []),
       ...(photoPath ? { photo: photoPath } : {}),
     },
   });

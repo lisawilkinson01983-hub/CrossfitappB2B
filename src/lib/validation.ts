@@ -19,17 +19,59 @@ export type WorkoutIntensityOption = (typeof WORKOUT_INTENSITIES)[number];
 export const APP_THEMES = ["PINK", "BLUE"] as const;
 export type AppThemeOption = (typeof APP_THEMES)[number];
 
+// The full benchmark-movement catalog.
 export const PB_FIELDS = [
-  "deadliftKg",
-  "cleanKg",
-  "frontSquatKg",
   "backSquatKg",
+  "frontSquatKg",
   "ohsKg",
+  "deadliftKg",
+  "sumoDeadliftKg",
+  "deficitDeadliftKg",
+  "cleanPullKg",
+  "snatchPullKg",
+  "cleanKg",
+  "powerCleanKg",
+  "hangCleanKg",
+  "hangPowerCleanKg",
+  "cleanAndJerkKg",
   "snatchKg",
-  "benchPressKg",
+  "powerSnatchKg",
+  "hangSnatchKg",
+  "hangPowerSnatchKg",
   "splitJerkKg",
+  "pushJerkKg",
+  "strictPressKg",
+  "shoulderPressKg",
+  "pushPressKg",
+  "benchPressKg",
 ] as const;
 export type PbField = (typeof PB_FIELDS)[number];
+
+// Grouped the way they're presented in the "Add more" picker on the
+// edit-profile form.
+export const PB_CATEGORIES: { label: string; fields: PbField[] }[] = [
+  { label: "Squats", fields: ["backSquatKg", "frontSquatKg", "ohsKg"] },
+  {
+    label: "Deadlift family",
+    fields: ["deadliftKg", "sumoDeadliftKg", "deficitDeadliftKg", "cleanPullKg", "snatchPullKg"],
+  },
+  {
+    label: "Clean variations",
+    fields: ["cleanKg", "powerCleanKg", "hangCleanKg", "hangPowerCleanKg", "cleanAndJerkKg"],
+  },
+  {
+    label: "Snatch variations",
+    fields: ["snatchKg", "powerSnatchKg", "hangSnatchKg", "hangPowerSnatchKg"],
+  },
+  { label: "Jerk variations", fields: ["splitJerkKg", "pushJerkKg"] },
+  { label: "Presses", fields: ["strictPressKg", "shoulderPressKg", "pushPressKg", "benchPressKg"] },
+];
+
+// A user can record any number of PBs, but only this many show on their
+// profile at once. Before a user has customized their selection, these
+// original 8 fields are used as the default (see DEFAULT_DISPLAYED_PBS in
+// src/lib/labels.ts).
+export const MAX_DISPLAYED_PBS = 8;
 
 export const signupSchema = z.object({
   name: z.string().trim().min(1, "Name is required"),
@@ -77,14 +119,14 @@ export const profileSchema = z
     showSingleBadge: checkboxToBoolean,
     showAge: checkboxToBoolean,
     isPrivate: checkboxToBoolean,
-    deadliftKg: optionalPositiveKg,
-    cleanKg: optionalPositiveKg,
-    frontSquatKg: optionalPositiveKg,
-    backSquatKg: optionalPositiveKg,
-    ohsKg: optionalPositiveKg,
-    snatchKg: optionalPositiveKg,
-    benchPressKg: optionalPositiveKg,
-    splitJerkKg: optionalPositiveKg,
+    ...(Object.fromEntries(PB_FIELDS.map((field) => [field, optionalPositiveKg])) as Record<
+      PbField,
+      typeof optionalPositiveKg
+    >),
+    displayedPbs: z
+      .array(z.enum(PB_FIELDS))
+      .max(MAX_DISPLAYED_PBS, `You can display up to ${MAX_DISPLAYED_PBS} PBs`)
+      .default([]),
   })
   .refine((data) => data.affiliateGym !== OTHER_GYM || !!data.affiliateGymOther, {
     message: "Enter your gym name",

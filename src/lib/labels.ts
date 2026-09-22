@@ -1,3 +1,4 @@
+import { PB_FIELDS } from "./validation";
 import type {
   AppThemeOption,
   GenderOption,
@@ -35,15 +36,53 @@ export const LOOKING_FOR_LABELS: Record<LookingForOption, string> = {
 };
 
 export const PB_LABELS: Record<PbField, string> = {
+  backSquatKg: "Back Squat",
+  frontSquatKg: "Front Squat",
+  ohsKg: "Overhead Squat",
   deadliftKg: "Deadlift",
+  sumoDeadliftKg: "Sumo Deadlift",
+  deficitDeadliftKg: "Deficit Deadlift",
+  cleanPullKg: "Clean Pull",
+  snatchPullKg: "Snatch Pull",
   cleanKg: "Clean",
-  frontSquatKg: "Front squat",
-  backSquatKg: "Back squat",
-  ohsKg: "OHS",
+  powerCleanKg: "Power Clean",
+  hangCleanKg: "Hang Clean",
+  hangPowerCleanKg: "Hang Power Clean",
+  cleanAndJerkKg: "Clean and Jerk",
   snatchKg: "Snatch",
-  benchPressKg: "Bench press",
-  splitJerkKg: "Split jerk",
+  powerSnatchKg: "Power Snatch",
+  hangSnatchKg: "Hang Snatch",
+  hangPowerSnatchKg: "Hang Power Snatch",
+  splitJerkKg: "Split Jerk",
+  pushJerkKg: "Push Jerk",
+  strictPressKg: "Strict Press",
+  shoulderPressKg: "Shoulder Press",
+  pushPressKg: "Push Press",
+  benchPressKg: "Bench Press",
 };
+
+// Before a user customizes their selection (displayedPbs is null), these are
+// shown on their profile — the original fixed 8 PBs the app launched with.
+export const DEFAULT_DISPLAYED_PBS: PbField[] = [
+  "deadliftKg",
+  "cleanKg",
+  "frontSquatKg",
+  "backSquatKg",
+  "ohsKg",
+  "snatchKg",
+  "benchPressKg",
+  "splitJerkKg",
+];
+
+export function parseDisplayedPbs(value: string | null): PbField[] {
+  if (value == null) return DEFAULT_DISPLAYED_PBS;
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed.filter((v): v is PbField => PB_FIELDS.includes(v)) : [];
+  } catch {
+    return [];
+  }
+}
 
 export const WORKOUT_UNIT_LABELS: Record<WorkoutUnitOption, string> = {
   TIME: "Time",

@@ -7,6 +7,8 @@ import {
   GENDERS,
   LEVELS,
   LOOKING_FOR_OPTIONS,
+  MAX_DISPLAYED_PBS,
+  PB_CATEGORIES,
   PB_FIELDS,
   type GenderOption,
   type LevelOption,
@@ -36,6 +38,7 @@ type Initial = {
   showAge: boolean;
   isPrivate: boolean;
   pbs: Record<PbField, number | "">;
+  displayedPbs: PbField[];
 };
 
 /** Renders isSingle's three states as a select: unanswered / yes / no. */
@@ -71,6 +74,17 @@ export function EditProfileForm({ initial }: { initial: Initial }) {
       string
     >
   );
+  const [displayedPbs, setDisplayedPbs] = useState<PbField[]>(initial.displayedPbs);
+  const [showAddMorePbs, setShowAddMorePbs] = useState(false);
+  const atMaxDisplayedPbs = displayedPbs.length >= MAX_DISPLAYED_PBS;
+
+  function addDisplayedPb(field: PbField) {
+    setDisplayedPbs((prev) => (prev.includes(field) || prev.length >= MAX_DISPLAYED_PBS ? prev : [...prev, field]));
+  }
+
+  function removeDisplayedPb(field: PbField) {
+    setDisplayedPbs((prev) => prev.filter((f) => f !== field));
+  }
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(initial.photo);
   const photoInputRef = useRef<HTMLInputElement>(null);
@@ -114,6 +128,7 @@ export function EditProfileForm({ initial }: { initial: Initial }) {
     if (showAge) formData.set("showAge", "on");
     if (isPrivate) formData.set("isPrivate", "on");
     PB_FIELDS.forEach((field) => formData.set(field, pbs[field]));
+    displayedPbs.forEach((field) => formData.append("displayedPbs", field));
     if (photoFile) formData.set("photo", photoFile);
 
     const res = await fetch("/api/profile", { method: "PATCH", body: formData });
@@ -333,24 +348,79 @@ export function EditProfileForm({ initial }: { initial: Initial }) {
 
       <fieldset>
         <legend className="text-sm font-medium">Key PBs (kg)</legend>
-        <div className="mt-2 grid grid-cols-2 gap-4 sm:grid-cols-3">
-          {PB_FIELDS.map((field) => (
-            <div key={field}>
-              <label htmlFor={field} className="block text-xs text-gray-600">
-                {PB_LABELS[field]}
-              </label>
-              <input
-                id={field}
-                type="number"
-                step="0.5"
-                min={0}
-                value={pbs[field]}
-                onChange={(e) => setPbs((prev) => ({ ...prev, [field]: e.target.value }))}
-                className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-b2b-pink focus:outline-none"
-              />
-            </div>
-          ))}
-        </div>
+        <p className="mt-0.5 text-xs text-b2b-ink/50">
+          Choose up to {MAX_DISPLAYED_PBS} benchmark movements to show on your profile ({displayedPbs.length}/
+          {MAX_DISPLAYED_PBS} selected).
+        </p>
+
+        {displayedPbs.length > 0 && (
+          <div className="mt-2 grid grid-cols-2 gap-4 sm:grid-cols-3">
+            {displayedPbs.map((field) => (
+              <div key={field} className="relative">
+                <button
+                  type="button"
+                  onClick={() => removeDisplayedPb(field)}
+                  aria-label={`Remove ${PB_LABELS[field]}`}
+                  className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-gray-200 text-xs text-gray-600 hover:bg-gray-300"
+                >
+                  ×
+                </button>
+                <label htmlFor={field} className="block text-xs text-gray-600">
+                  {PB_LABELS[field]}
+                </label>
+                <input
+                  id={field}
+                  type="number"
+                  step="0.5"
+                  min={0}
+                  value={pbs[field]}
+                  onChange={(e) => setPbs((prev) => ({ ...prev, [field]: e.target.value }))}
+                  className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-b2b-pink focus:outline-none"
+                />
+              </div>
+            ))}
+          </div>
+        )}
+
+        <button
+          type="button"
+          onClick={() => setShowAddMorePbs((v) => !v)}
+          className="mt-3 text-sm font-medium text-b2b-pink hover:underline"
+        >
+          {showAddMorePbs ? "Hide movements" : "+ Add more"}
+        </button>
+
+        {showAddMorePbs && (
+          <div className="mt-3 flex flex-col gap-3 rounded border border-gray-200 p-3">
+            {atMaxDisplayedPbs && (
+              <p className="text-xs text-amber-600">
+                You've selected {MAX_DISPLAYED_PBS} — remove one above to add another.
+              </p>
+            )}
+            {PB_CATEGORIES.map((category) => {
+              const available = category.fields.filter((field) => !displayedPbs.includes(field));
+              if (available.length === 0) return null;
+              return (
+                <div key={category.label}>
+                  <p className="text-xs font-semibold text-gray-500">{category.label}</p>
+                  <div className="mt-1 flex flex-col gap-1">
+                    {available.map((field) => (
+                      <label key={field} className="flex items-center gap-2 text-sm">
+                        <input
+                          type="checkbox"
+                          disabled={atMaxDisplayedPbs}
+                          onChange={() => addDisplayedPb(field)}
+                          className="disabled:opacity-40"
+                        />
+                        {PB_LABELS[field]}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </fieldset>
 
       <fieldset>

@@ -8,10 +8,10 @@ import {
   LOOKING_FOR_LABELS,
   MONTH_NAMES,
   PB_LABELS,
+  parseDisplayedPbs,
   parseLookingFor,
   showsSingleBadge,
 } from "@/lib/labels";
-import { PB_FIELDS } from "@/lib/validation";
 import { AFFILIATE_GYMS, OTHER_GYM } from "@/lib/gyms";
 import { SectionCard } from "@/components/SectionCard";
 import { ExpandableAvatar } from "@/components/ExpandableAvatar";
@@ -42,9 +42,9 @@ export async function ProfileDetails({
       ? `${user.crossfitSinceMonth ? MONTH_NAMES[user.crossfitSinceMonth - 1] + " " : ""}${user.crossfitSinceYear}`
       : null;
 
-  const pbs = PB_FIELDS.map((field) => ({ label: PB_LABELS[field], value: user[field] })).filter(
-    (pb) => pb.value != null
-  );
+  const pbs = parseDisplayedPbs(user.displayedPbs)
+    .map((field) => ({ label: PB_LABELS[field], value: user[field] }))
+    .filter((pb) => pb.value != null);
 
   const showRelationshipStatus = user.isSingle != null && user.showRelationshipStatus;
   const showSingleBadge = showsSingleBadge(user);
