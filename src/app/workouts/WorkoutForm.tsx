@@ -12,7 +12,13 @@ import {
 import { WORKOUT_INTENSITY_LABELS, WORKOUT_UNIT_LABELS } from "@/lib/labels";
 import { MAX_VIDEO_SECONDS } from "@/lib/media";
 import { readVideoDuration } from "@/lib/readVideoDuration";
-import { WOD_CATEGORY_LABELS, WOD_DATABASE, WOD_DATABASE_BY_NAME, formatWodDetails } from "@/lib/wodDatabase";
+import {
+  WOD_CATEGORY_LABELS,
+  WOD_DATABASE,
+  WOD_DATABASE_BY_NAME,
+  formatWodDetails,
+  type NamedWorkout,
+} from "@/lib/wodDatabase";
 
 type Attachment = { kind: "photo" | "video"; file: File };
 
@@ -83,15 +89,25 @@ export function WorkoutForm({ workoutId, initial }: { workoutId?: string; initia
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
+  // Tracks the last text this form itself wrote into notes, so switching to a
+  // different matched WOD keeps updating notes — but the moment the athlete
+  // edits that text (or writes their own from scratch), it stops being
+  // touched automatically.
+  const [autoFilledNotes, setAutoFilledNotes] = useState<string | null>(null);
+
   const matchedWod = WOD_DATABASE_BY_NAME.get(wodName.trim().toLowerCase()) ?? null;
+
+  function fillNotesFromWod(match: NamedWorkout) {
+    const details = formatWodDetails(match);
+    setNotes(details);
+    setAutoFilledNotes(details);
+  }
 
   function handleWodNameChange(value: string) {
     setWodName(value);
-    // Only auto-fill when notes is still empty, so this never clobbers
-    // something the athlete already typed.
     const match = WOD_DATABASE_BY_NAME.get(value.trim().toLowerCase());
-    if (match && !notes.trim()) {
-      setNotes(formatWodDetails(match));
+    if (match && (!notes.trim() || notes === autoFilledNotes)) {
+      fillNotesFromWod(match);
     }
   }
 
@@ -312,7 +328,7 @@ export function WorkoutForm({ workoutId, initial }: { workoutId?: string; initia
           {matchedWod && (
             <button
               type="button"
-              onClick={() => setNotes(formatWodDetails(matchedWod))}
+              onClick={() => fillNotesFromWod(matchedWod)}
               className="text-xs text-b2b-pink hover:underline"
             >
               Fill from database
