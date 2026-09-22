@@ -142,7 +142,7 @@ async function renderInviteCard(name: string, photo: string | null): Promise<Blo
   ctx.font = "800 92px Arial, sans-serif";
   const headlineEnd = wrapCenteredText(
     ctx,
-    "CONNECT. TRAIN. BELONG.",
+    "CONNECT. TRAIN. THRIVE.",
     WIDTH / 2,
     avatarY + avatarSize + 210,
     WIDTH - 140,
