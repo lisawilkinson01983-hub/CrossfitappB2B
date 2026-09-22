@@ -1,7 +1,7 @@
 // Runs on every deploy (see package.json's start:railway) as a safety net:
-// creates a bare Gym row for any of the fixed listed gyms (src/lib/gyms.ts)
-// that at least one user has already selected but which has no page yet —
-// e.g. because they picked it before ensureGymPage() existed. Idempotent
+// ensures every one of the fixed listed gyms (src/lib/gyms.ts) has a page,
+// seeded with known public details where available. Never touches a row
+// that already has anything filled in, so admin edits always win. Idempotent
 // and cheap, so running it on every boot is fine.
 const { PrismaClient } = require("@prisma/client");
 
@@ -22,33 +22,43 @@ const KNOWN_GYM_INFO = {
     address: "Crockstead Farm, Eastbourne Road, Halland, East Sussex, BN8 6PT",
     website: "https://www.thepaleogym.co.uk/",
   },
+  "CrossFit Crowborough": {
+    description:
+      "CrossFit Crowborough runs group classes that combine gymnastics, weightlifting and conditioning, with coaches teaching the foundational movements and scaling each workout to the athlete's fitness level. The box also supports members competing in the CrossFit Open and in-house competitions, alongside a supportive, all-levels community.",
+    address: "Unit 5, Beacon Business Park, Crowborough, East Sussex, TN6 2GD",
+    website: "https://www.crossfitcrowborough.com",
+  },
+  "CrossFit Hailsham (FFH)": {
+    description:
+      "CrossFit FFH (Fortior Fit Hailsham) scales every workout to the athlete, whether they're lifting for the first time, managing an injury, or training at a high level. Alongside CrossFit classes, they offer sports massage, personal training and nutritional guidance, with a community that spans teachers, tradespeople, parents, students and retirees training side by side.",
+    address: "16 Diplocks Way, Hailsham, East Sussex, BN27 3JY",
+    website: "https://www.fortiorfithailsham.com/",
+  },
+  "CrossFit Burgess Hill (BYS)": {
+    description:
+      "BYS CrossFit combines mobility and high-intensity training across cardio, gymnastics, powerlifting and Olympic lifting, with dedicated barbell classes focused on the clean & jerk and snatch and gymnastics classes covering everything from pull-ups to handstand walking. It's run as a supportive, inclusive community for all fitness levels.",
+    address: "Unit 6 Sovereign Business Park, Albert Drive, Burgess Hill, RH15 9TY",
+    website: "https://www.bysfitness.co.uk/byscrossfit",
+  },
 };
 
 async function main() {
   const prisma = new PrismaClient();
   try {
-    const used = await prisma.user.findMany({
-      where: { affiliateGym: { in: AFFILIATE_GYMS } },
-      select: { affiliateGym: true },
-      distinct: ["affiliateGym"],
-    });
-
-    for (const { affiliateGym } of used) {
-      const known = KNOWN_GYM_INFO[affiliateGym];
+    for (const name of AFFILIATE_GYMS) {
+      const known = KNOWN_GYM_INFO[name];
       const gym = await prisma.gym.upsert({
-        where: { name: affiliateGym },
-        create: { name: affiliateGym, ...known },
+        where: { name },
+        create: { name, ...known },
         update: {},
       });
 
       if (known && !gym.description && !gym.address && !gym.website) {
-        await prisma.gym.update({ where: { name: affiliateGym }, data: known });
+        await prisma.gym.update({ where: { name }, data: known });
       }
     }
 
-    if (used.length > 0) {
-      console.log(`backfill-gym-pages: ensured pages for ${used.map((u) => u.affiliateGym).join(", ")}`);
-    }
+    console.log(`backfill-gym-pages: ensured pages for ${AFFILIATE_GYMS.join(", ")}`);
   } finally {
     await prisma.$disconnect();
   }

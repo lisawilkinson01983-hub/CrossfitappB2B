@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 import { redirect, notFound } from "next/navigation";
 import { getServerSession } from "next-auth";
@@ -6,6 +5,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NavBar } from "@/components/NavBar";
 import { SectionCard } from "@/components/SectionCard";
+import { Avatar } from "@/components/Avatar";
 
 export default async function GymPage({ params }: { params: Promise<{ name: string }> }) {
   const session = await getServerSession(authOptions);
@@ -22,18 +22,19 @@ export default async function GymPage({ params }: { params: Promise<{ name: stri
 
       <div className="mt-6 flex flex-col gap-6">
         <SectionCard>
-          {gym.photo && (
-            <Image
-              src={gym.photo}
-              alt={gym.name}
-              width={600}
-              height={280}
-              className="mb-4 max-h-56 w-full rounded-lg object-cover"
-            />
-          )}
-          <h1 className="text-2xl font-bold">{gym.name}</h1>
+          <div className="flex flex-col items-center gap-3 text-center">
+            <Avatar photo={gym.photo} name={gym.name} size={112} />
+            <h1 className="text-2xl font-bold">{gym.name}</h1>
 
-          {gym.description && <p className="mt-3 whitespace-pre-wrap text-b2b-ink/80">{gym.description}</p>}
+            <Link
+              href={`/discover?gym=${encodeURIComponent(gym.name)}`}
+              className="rounded bg-b2b-pink px-4 py-2 text-sm font-medium text-white hover:bg-b2b-pink-dark"
+            >
+              Browse athletes at {gym.name}
+            </Link>
+          </div>
+
+          {gym.description && <p className="mt-6 whitespace-pre-wrap text-b2b-ink/80">{gym.description}</p>}
 
           <dl className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
             {gym.address && (
@@ -58,13 +59,6 @@ export default async function GymPage({ params }: { params: Promise<{ name: stri
               </div>
             )}
           </dl>
-
-          <Link
-            href={`/discover?gym=${encodeURIComponent(gym.name)}`}
-            className="mt-6 inline-block text-sm text-b2b-pink underline"
-          >
-            Browse athletes at {gym.name}
-          </Link>
         </SectionCard>
       </div>
     </main>
