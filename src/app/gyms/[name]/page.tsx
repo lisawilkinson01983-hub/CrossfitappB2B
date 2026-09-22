@@ -20,7 +20,11 @@ export default async function GymPage({ params }: { params: Promise<{ name: stri
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
       <NavBar />
 
-      <div className="mt-6 flex flex-col gap-6">
+      <Link href="/discover?view=affiliates" className="mt-6 inline-block text-sm text-b2b-pink underline">
+        ← Back to affiliates
+      </Link>
+
+      <div className="mt-4 flex flex-col gap-6">
         <SectionCard>
           <div className="flex flex-col items-center gap-3 text-center">
             <Avatar photo={gym.photo} name={gym.name} size={112} />

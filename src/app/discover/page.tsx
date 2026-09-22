@@ -5,9 +5,9 @@ import { authOptions } from "@/lib/auth";
 import { NavBar } from "@/components/NavBar";
 import { AthletesSearch, type AthleteSearchParams } from "./AthletesSearch";
 import { EventsList, type EventSearchParams } from "./EventsList";
-import { AffiliatesList } from "./AffiliatesList";
+import { AffiliatesList, type AffiliateSearchParams } from "./AffiliatesList";
 
-type SearchParams = AthleteSearchParams & EventSearchParams & { view?: string };
+type SearchParams = AthleteSearchParams & EventSearchParams & AffiliateSearchParams & { view?: string };
 
 export default async function DiscoverPage({
   searchParams,
@@ -51,7 +51,7 @@ export default async function DiscoverPage({
       ) : view === "events" ? (
         <EventsList sp={sp} currentUserId={session.user.id} />
       ) : (
-        <AffiliatesList />
+        <AffiliatesList sp={sp} />
       )}
     </main>
   );
