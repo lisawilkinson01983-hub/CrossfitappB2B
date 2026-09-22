@@ -17,7 +17,10 @@ export async function geocode(query: string): Promise<Coords | null> {
         "User-Agent": "Box2Box CrossFit App (contact: vinyljunkie8@gmail.com)",
       },
     });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      console.error(`geocode: Nominatim returned ${res.status} for "${trimmed}"`);
+      return null;
+    }
 
     const results = (await res.json()) as Array<{ lat: string; lon: string }>;
     const first = results[0];
@@ -28,9 +31,10 @@ export async function geocode(query: string): Promise<Coords | null> {
     if (Number.isNaN(lat) || Number.isNaN(lng)) return null;
 
     return { lat, lng };
-  } catch {
+  } catch (err) {
     // Geocoding is best-effort — a network hiccup just means distance
     // filtering skips this record rather than breaking the page.
+    console.error(`geocode: failed for "${trimmed}"`, err);
     return null;
   }
 }

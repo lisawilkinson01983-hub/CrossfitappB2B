@@ -37,6 +37,28 @@ async function ensureEventCoords(event: { id: string; location: string; lat: num
   return coords;
 }
 
+// Same idea for the viewer's own area — anyone who set it before distance
+// filtering existed (or whose first geocode attempt failed) would otherwise
+// be stuck with no coords until they happened to re-enter their area.
+async function ensureUserAreaCoords(user: {
+  id: string;
+  area: string | null;
+  areaLat: number | null;
+  areaLng: number | null;
+}) {
+  if (user.areaLat !== null && user.areaLng !== null) return { lat: user.areaLat, lng: user.areaLng };
+  if (!user.area) return null;
+
+  const coords = await geocode(user.area);
+  if (!coords) return null;
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { areaLat: coords.lat, areaLng: coords.lng },
+  });
+  return coords;
+}
+
 export async function EventsList({
   sp,
   currentUserId,
@@ -61,14 +83,13 @@ export async function EventsList({
     }),
     prisma.user.findUnique({
       where: { id: currentUserId },
-      select: { areaLat: true, areaLng: true },
+      select: { area: true, areaLat: true, areaLng: true },
     }),
   ]);
 
-  const myCoords =
-    currentUser?.areaLat != null && currentUser?.areaLng != null
-      ? { lat: currentUser.areaLat, lng: currentUser.areaLng }
-      : null;
+  const myCoords = currentUser
+    ? await ensureUserAreaCoords({ id: currentUserId, ...currentUser })
+    : null;
 
   const eventsWithDistance = await Promise.all(
     events.map(async (event) => {

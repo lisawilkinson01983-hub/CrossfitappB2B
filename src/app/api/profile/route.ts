@@ -63,10 +63,12 @@ export async function PATCH(req: Request) {
 
   const current = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { area: true },
+    select: { area: true, areaLat: true, areaLng: true },
   });
+  const areaChanged = data.area !== current?.area;
+  const missingCoords = current?.areaLat == null || current?.areaLng == null;
   let areaCoords: { areaLat: number | null; areaLng: number | null } | undefined;
-  if (data.area !== current?.area) {
+  if (areaChanged || missingCoords) {
     const coords = data.area ? await geocode(data.area) : null;
     areaCoords = { areaLat: coords?.lat ?? null, areaLng: coords?.lng ?? null };
   }
