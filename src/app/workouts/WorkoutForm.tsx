@@ -12,6 +12,7 @@ import {
 import { WORKOUT_INTENSITY_LABELS, WORKOUT_UNIT_LABELS } from "@/lib/labels";
 import { MAX_VIDEO_SECONDS } from "@/lib/media";
 import { readVideoDuration } from "@/lib/readVideoDuration";
+import { WOD_CATEGORY_LABELS, WOD_DATABASE, WOD_DATABASE_BY_NAME, formatWodDetails } from "@/lib/wodDatabase";
 
 type Attachment = { kind: "photo" | "video"; file: File };
 
@@ -81,6 +82,18 @@ export function WorkoutForm({ workoutId, initial }: { workoutId?: string; initia
 
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  const matchedWod = WOD_DATABASE_BY_NAME.get(wodName.trim().toLowerCase()) ?? null;
+
+  function handleWodNameChange(value: string) {
+    setWodName(value);
+    // Only auto-fill when notes is still empty, so this never clobbers
+    // something the athlete already typed.
+    const match = WOD_DATABASE_BY_NAME.get(value.trim().toLowerCase());
+    if (match && !notes.trim()) {
+      setNotes(formatWodDetails(match));
+    }
+  }
 
   async function handleFileChange(kind: "photo" | "video", e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0] ?? null;
@@ -157,11 +170,22 @@ export function WorkoutForm({ workoutId, initial }: { workoutId?: string; initia
           id="wodName"
           type="text"
           required
+          list="wodNameSuggestions"
           placeholder="Fran, Grace, or a custom name"
           value={wodName}
-          onChange={(e) => setWodName(e.target.value)}
+          onChange={(e) => handleWodNameChange(e.target.value)}
           className="mt-1 w-full rounded border border-gray-300 px-3 py-2 focus:border-b2b-pink focus:outline-none"
         />
+        <datalist id="wodNameSuggestions">
+          {WOD_DATABASE.map((w) => (
+            <option key={w.name} value={w.name} />
+          ))}
+        </datalist>
+        {matchedWod && (
+          <p className="mt-1 text-xs text-b2b-ink/40">
+            Matched {WOD_CATEGORY_LABELS[matchedWod.category]} — details added to notes below.
+          </p>
+        )}
       </div>
 
       <div className="grid grid-cols-2 gap-4">
@@ -281,9 +305,20 @@ export function WorkoutForm({ workoutId, initial }: { workoutId?: string; initia
       </div>
 
       <div>
-        <label htmlFor="notes" className="block text-sm font-medium">
-          Notes
-        </label>
+        <div className="flex items-center justify-between">
+          <label htmlFor="notes" className="block text-sm font-medium">
+            Notes
+          </label>
+          {matchedWod && (
+            <button
+              type="button"
+              onClick={() => setNotes(formatWodDetails(matchedWod))}
+              className="text-xs text-b2b-pink hover:underline"
+            >
+              Fill from database
+            </button>
+          )}
+        </div>
         <textarea
           id="notes"
           rows={3}
