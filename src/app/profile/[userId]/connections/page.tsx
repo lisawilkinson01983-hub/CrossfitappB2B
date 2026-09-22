@@ -107,7 +107,7 @@ export default async function ConnectionsPage({
                 key={row.id}
                 className="flex items-center justify-between rounded border border-gray-200 bg-b2b-card p-3"
               >
-                <Link href={isMe ? "/profile" : `/profile/${row.id}`} className="flex items-center gap-3">
+                <Link href={isMe ? "/profile" : `/profile/${row.id}`} className="flex flex-1 items-center gap-3">
                   <Avatar photo={row.photo} name={row.name} size={40} showSingleBadge={showsSingleBadge(row)} />
                   <span className="font-medium">{row.name}</span>
                 </Link>

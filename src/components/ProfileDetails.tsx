@@ -14,7 +14,7 @@ import {
 import { PB_FIELDS } from "@/lib/validation";
 import { AFFILIATE_GYMS, OTHER_GYM } from "@/lib/gyms";
 import { SectionCard } from "@/components/SectionCard";
-import { Avatar } from "@/components/Avatar";
+import { ExpandableAvatar } from "@/components/ExpandableAvatar";
 import { prisma } from "@/lib/prisma";
 
 function Badge({ label, className }: { label: string; className: string }) {
@@ -112,7 +112,7 @@ export async function ProfileDetails({
     <div className="flex flex-col gap-6">
       <SectionCard>
         <div className="flex flex-col items-center gap-3 text-center">
-          <Avatar photo={user.photo} name={user.name} size={112} showSingleBadge={showSingleBadge} />
+          <ExpandableAvatar photo={user.photo} name={user.name} size={112} showSingleBadge={showSingleBadge} />
 
           <div>
             <p className="text-xl font-semibold">

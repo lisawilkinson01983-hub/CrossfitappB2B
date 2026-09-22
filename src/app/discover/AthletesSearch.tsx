@@ -221,7 +221,7 @@ export async function AthletesSearch({
                 key={user.id}
                 className="flex items-center justify-between rounded-xl border border-b2b-purple/10 bg-b2b-card p-3"
               >
-                <Link href={`/profile/${user.id}`} className="flex items-center gap-3">
+                <Link href={`/profile/${user.id}`} className="flex flex-1 items-center gap-3">
                   <Avatar photo={user.photo} name={user.name} size={48} showSingleBadge={showsSingleBadge(user)} />
                   <div>
                     <p className="font-medium">
