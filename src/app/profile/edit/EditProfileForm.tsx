@@ -75,7 +75,9 @@ export function EditProfileForm({ initial }: { initial: Initial }) {
     >
   );
   const [displayedPbs, setDisplayedPbs] = useState<PbField[]>(initial.displayedPbs);
-  const [showAddMorePbs, setShowAddMorePbs] = useState(false);
+  const [showAddMorePbs, setShowAddMorePbs] = useState(() =>
+    PB_FIELDS.some((field) => !initial.displayedPbs.includes(field) && initial.pbs[field] !== "")
+  );
   const atMaxDisplayedPbs = displayedPbs.length >= MAX_DISPLAYED_PBS;
 
   function addDisplayedPb(field: PbField) {
@@ -349,8 +351,8 @@ export function EditProfileForm({ initial }: { initial: Initial }) {
       <fieldset>
         <legend className="text-sm font-medium">Key PBs (kg)</legend>
         <p className="mt-0.5 text-xs text-b2b-ink/50">
-          Choose up to {MAX_DISPLAYED_PBS} benchmark movements to show on your profile ({displayedPbs.length}/
-          {MAX_DISPLAYED_PBS} selected).
+          Fill in as many benchmark movements as you like — choose up to {MAX_DISPLAYED_PBS} to feature on
+          your profile ({displayedPbs.length}/{MAX_DISPLAYED_PBS} featured).
         </p>
 
         {displayedPbs.length > 0 && (
@@ -387,14 +389,15 @@ export function EditProfileForm({ initial }: { initial: Initial }) {
           onClick={() => setShowAddMorePbs((v) => !v)}
           className="mt-3 text-sm font-medium text-b2b-pink hover:underline"
         >
-          {showAddMorePbs ? "Hide movements" : "+ Add more"}
+          {showAddMorePbs ? "Hide other movements" : "+ Add more movements"}
         </button>
 
         {showAddMorePbs && (
-          <div className="mt-3 flex flex-col gap-3 rounded border border-gray-200 p-3">
+          <div className="mt-3 flex flex-col gap-4 rounded border border-gray-200 p-3">
             {atMaxDisplayedPbs && (
               <p className="text-xs text-amber-600">
-                You've selected {MAX_DISPLAYED_PBS} — remove one above to add another.
+                You've featured {MAX_DISPLAYED_PBS} — remove one above to feature another. You can still fill
+                these in either way.
               </p>
             )}
             {PB_CATEGORIES.map((category) => {
@@ -403,17 +406,30 @@ export function EditProfileForm({ initial }: { initial: Initial }) {
               return (
                 <div key={category.label}>
                   <p className="text-xs font-semibold text-gray-500">{category.label}</p>
-                  <div className="mt-1 flex flex-col gap-1">
+                  <div className="mt-1 flex flex-col gap-2">
                     {available.map((field) => (
-                      <label key={field} className="flex items-center gap-2 text-sm">
+                      <div key={field} className="flex items-center gap-2">
+                        <label htmlFor={field} className="flex-1 text-sm">
+                          {PB_LABELS[field]}
+                        </label>
                         <input
-                          type="checkbox"
-                          disabled={atMaxDisplayedPbs}
-                          onChange={() => addDisplayedPb(field)}
-                          className="disabled:opacity-40"
+                          id={field}
+                          type="number"
+                          step="0.5"
+                          min={0}
+                          value={pbs[field]}
+                          onChange={(e) => setPbs((prev) => ({ ...prev, [field]: e.target.value }))}
+                          className="w-24 rounded border border-gray-300 px-2 py-1.5 text-sm focus:border-b2b-pink focus:outline-none"
                         />
-                        {PB_LABELS[field]}
-                      </label>
+                        <button
+                          type="button"
+                          onClick={() => addDisplayedPb(field)}
+                          disabled={atMaxDisplayedPbs}
+                          className="whitespace-nowrap rounded-full border border-b2b-pink/30 px-2.5 py-1 text-xs font-medium text-b2b-pink hover:bg-b2b-pink/10 disabled:opacity-40 disabled:hover:bg-transparent"
+                        >
+                          Feature
+                        </button>
+                      </div>
                     ))}
                   </div>
                 </div>

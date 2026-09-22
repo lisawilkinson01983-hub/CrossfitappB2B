@@ -12,6 +12,7 @@ import {
   parseLookingFor,
   showsSingleBadge,
 } from "@/lib/labels";
+import { PB_FIELDS } from "@/lib/validation";
 import { AFFILIATE_GYMS, OTHER_GYM } from "@/lib/gyms";
 import { SectionCard } from "@/components/SectionCard";
 import { ExpandableAvatar } from "@/components/ExpandableAvatar";
@@ -42,9 +43,12 @@ export async function ProfileDetails({
       ? `${user.crossfitSinceMonth ? MONTH_NAMES[user.crossfitSinceMonth - 1] + " " : ""}${user.crossfitSinceYear}`
       : null;
 
-  const pbs = parseDisplayedPbs(user.displayedPbs)
+  const displayedPbFields = parseDisplayedPbs(user.displayedPbs);
+  const displayedPbSet = new Set(displayedPbFields);
+  const pbs = displayedPbFields
     .map((field) => ({ label: PB_LABELS[field], value: user[field] }))
     .filter((pb) => pb.value != null);
+  const hasMorePbs = PB_FIELDS.some((field) => user[field] != null && !displayedPbSet.has(field));
 
   const showRelationshipStatus = user.isSingle != null && user.showRelationshipStatus;
   const showSingleBadge = showsSingleBadge(user);
@@ -154,7 +158,16 @@ export async function ProfileDetails({
         </div>
       </SectionCard>
 
-      <SectionCard title="Key PBs (kg)">
+      <SectionCard
+        title="Key PBs (kg)"
+        action={
+          hasMorePbs && (
+            <Link href={`/profile/${user.id}/pbs`} className="text-sm text-b2b-pink underline">
+              See all
+            </Link>
+          )
+        }
+      >
         {pbs.length ? (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             {pbs.map((pb) => (
