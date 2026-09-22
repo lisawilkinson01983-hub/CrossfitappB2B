@@ -22,6 +22,23 @@
   --font-sans: var(--font-inter);
 }
 
+/* Alternate color theme, chosen in Settings and applied via a data-theme
+   attribute on <html> (see src/app/layout.tsx). Every component just uses
+   the b2b-* tokens above, so overriding them here re-themes the whole app
+   with no component changes. */
+[data-theme="blue"] {
+  --color-b2b-card: #eaf2fd;
+  --color-b2b-ink: #0b1f3a;
+
+  --color-b2b-pink: #2f6fed;
+  --color-b2b-pink-dark: #2358c4;
+
+  --color-b2b-purple: #1e3a8a;
+  --color-b2b-purple-dark: #16295e;
+
+  --color-b2b-violet: #050b1f;
+}
+
 body {
   background-color: var(--color-b2b-bg);
   color: var(--color-b2b-ink);

@@ -16,6 +16,9 @@ export type WorkoutUnitOption = (typeof WORKOUT_UNITS)[number];
 export const WORKOUT_INTENSITIES = ["RX", "SCALED"] as const;
 export type WorkoutIntensityOption = (typeof WORKOUT_INTENSITIES)[number];
 
+export const APP_THEMES = ["PINK", "BLUE"] as const;
+export type AppThemeOption = (typeof APP_THEMES)[number];
+
 export const PB_FIELDS = [
   "deadliftKg",
   "cleanKg",
