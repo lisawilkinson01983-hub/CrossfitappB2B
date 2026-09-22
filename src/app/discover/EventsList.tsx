@@ -198,7 +198,9 @@ export async function EventsList({
                   </div>
                   <ParticipateButton eventId={event.id} initialParticipating={isParticipating} />
                 </div>
-                {event.description && <p className="mt-2 text-sm text-b2b-ink/70">{event.description}</p>}
+                {event.description && (
+                  <p className="mt-2 line-clamp-2 text-sm text-b2b-ink/70">{event.description}</p>
+                )}
                 <p className="mt-2 text-xs text-b2b-ink/40">
                   {event.participants.length}{" "}
                   {event.participants.length === 1 ? "athlete" : "athletes"} participating
