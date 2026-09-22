@@ -493,5 +493,11 @@ model Gym {
   website     String?
   photo       String? // served path, e.g. "/media/xyz.jpg" (see src/lib/uploads.ts)
 
+  // Geocoded from `address` (see src/lib/geocode.ts), lazily on first read,
+  // so Discover's Affiliates tab can filter by distance from the athlete's
+  // own area.
+  lat Float?
+  lng Float?
+
   createdAt DateTime @default(now())
 }

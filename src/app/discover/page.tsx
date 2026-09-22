@@ -51,7 +51,7 @@ export default async function DiscoverPage({
       ) : view === "events" ? (
         <EventsList sp={sp} currentUserId={session.user.id} />
       ) : (
-        <AffiliatesList sp={sp} />
+        <AffiliatesList sp={sp} currentUserId={session.user.id} />
       )}
     </main>
   );
