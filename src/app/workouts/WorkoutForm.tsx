@@ -15,6 +15,16 @@ import { readVideoDuration } from "@/lib/readVideoDuration";
 
 type Attachment = { kind: "photo" | "video"; file: File };
 
+const pad2 = (v: string) => (v || "0").padStart(2, "0");
+
+/** "12:34" or "1:02:34" -> [hh, mm, ss], defaulting missing parts to "". */
+function splitTime(raw: string): [string, string, string] {
+  const parts = raw.split(":");
+  if (parts.length >= 3) return [parts[0], parts[1], parts[2]];
+  if (parts.length === 2) return ["", parts[0], parts[1]];
+  return ["", "", ""];
+}
+
 type Initial = {
   wodName: string;
   score: string;
@@ -45,14 +55,19 @@ export function WorkoutForm({ workoutId, initial }: { workoutId?: string; initia
   const isEditing = Boolean(workoutId);
   const start = initial ?? BLANK_INITIAL;
 
+  const initialTime = start.unit === "TIME" ? splitTime(start.score) : ["", "", ""];
+
   const [wodName, setWodName] = useState(start.wodName);
-  const [score, setScore] = useState(start.unit === "ROUNDS_REPS" ? "" : start.score);
+  const [score, setScore] = useState(start.unit === "ROUNDS_REPS" || start.unit === "TIME" ? "" : start.score);
   const [rounds, setRounds] = useState(() =>
     start.unit === "ROUNDS_REPS" ? (start.score.split("+")[0]?.trim() ?? "") : ""
   );
   const [reps, setReps] = useState(() =>
     start.unit === "ROUNDS_REPS" ? (start.score.split("+")[1]?.trim() ?? "") : ""
   );
+  const [timeHours, setTimeHours] = useState(initialTime[0]);
+  const [timeMinutes, setTimeMinutes] = useState(initialTime[1]);
+  const [timeSeconds, setTimeSeconds] = useState(initialTime[2]);
   const [unit, setUnit] = useState<WorkoutUnitOption | "">(start.unit);
   const [intensity, setIntensity] = useState<WorkoutIntensityOption | "">(start.intensity);
   const [notes, setNotes] = useState(start.notes);
@@ -97,8 +112,15 @@ export function WorkoutForm({ workoutId, initial }: { workoutId?: string; initia
     setSubmitting(true);
 
     const formData = new FormData();
+    const finalScore =
+      unit === "ROUNDS_REPS"
+        ? `${rounds}+${reps}`
+        : unit === "TIME"
+          ? `${pad2(timeHours)}:${pad2(timeMinutes)}:${pad2(timeSeconds)}`
+          : score;
+
     formData.set("wodName", wodName);
-    formData.set("score", unit === "ROUNDS_REPS" ? `${rounds}+${reps}` : score);
+    formData.set("score", finalScore);
     formData.set("unit", unit);
     formData.set("intensity", intensity);
     formData.set("notes", notes);
@@ -170,12 +192,46 @@ export function WorkoutForm({ workoutId, initial }: { workoutId?: string; initia
                 className="w-full rounded border border-gray-300 px-3 py-2 focus:border-b2b-pink focus:outline-none"
               />
             </div>
+          ) : unit === "TIME" ? (
+            <div className="mt-1 flex items-center gap-1">
+              <input
+                id="score"
+                type="number"
+                min={0}
+                placeholder="HH"
+                value={timeHours}
+                onChange={(e) => setTimeHours(e.target.value)}
+                className="w-full min-w-0 rounded border border-gray-300 px-2 py-2 text-center focus:border-b2b-pink focus:outline-none"
+              />
+              <span className="text-b2b-ink/40">:</span>
+              <input
+                type="number"
+                min={0}
+                max={59}
+                required
+                placeholder="MM"
+                value={timeMinutes}
+                onChange={(e) => setTimeMinutes(e.target.value)}
+                className="w-full min-w-0 rounded border border-gray-300 px-2 py-2 text-center focus:border-b2b-pink focus:outline-none"
+              />
+              <span className="text-b2b-ink/40">:</span>
+              <input
+                type="number"
+                min={0}
+                max={59}
+                required
+                placeholder="SS"
+                value={timeSeconds}
+                onChange={(e) => setTimeSeconds(e.target.value)}
+                className="w-full min-w-0 rounded border border-gray-300 px-2 py-2 text-center focus:border-b2b-pink focus:outline-none"
+              />
+            </div>
           ) : (
             <input
               id="score"
               type="text"
               required
-              placeholder='e.g. "4:32" or "225 lb"'
+              placeholder='e.g. "150" or "225 lb"'
               value={score}
               onChange={(e) => setScore(e.target.value)}
               className="mt-1 w-full rounded border border-gray-300 px-3 py-2 focus:border-b2b-pink focus:outline-none"
