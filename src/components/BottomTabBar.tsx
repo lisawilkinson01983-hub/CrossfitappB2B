@@ -3,18 +3,10 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+// Feed sits center to signal that the social feed, not logging a workout,
+// is the heart of the app; Log is pushed to the far right as a utility
+// action rather than the default focal point.
 const TABS = [
-  {
-    href: "/feed",
-    label: "Feed",
-    match: (path: string) => path === "/feed",
-    icon: (
-      <>
-        <path d="m3 11 9-7 9 7" />
-        <path d="M5 10v10h14V10" />
-      </>
-    ),
-  },
   {
     href: "/discover",
     label: "Discover",
@@ -27,21 +19,21 @@ const TABS = [
     ),
   },
   {
-    href: "/workouts/new",
-    label: "Log",
-    match: (path: string) => path.startsWith("/workouts"),
-    icon: (
-      <>
-        <circle cx="12" cy="12" r="9" />
-        <path d="M12 8v8M8 12h8" />
-      </>
-    ),
-  },
-  {
     href: "/messages",
     label: "Messages",
     match: (path: string) => path.startsWith("/messages"),
     icon: <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />,
+  },
+  {
+    href: "/feed",
+    label: "Feed",
+    match: (path: string) => path === "/feed",
+    icon: (
+      <>
+        <path d="m3 11 9-7 9 7" />
+        <path d="M5 10v10h14V10" />
+      </>
+    ),
   },
   {
     href: "/profile",
@@ -51,6 +43,17 @@ const TABS = [
       <>
         <circle cx="12" cy="8" r="4" />
         <path d="M4 20c0-4 4-6 8-6s8 2 8 6" />
+      </>
+    ),
+  },
+  {
+    href: "/workouts/new",
+    label: "Log",
+    match: (path: string) => path.startsWith("/workouts"),
+    icon: (
+      <>
+        <circle cx="12" cy="12" r="9" />
+        <path d="M12 8v8M8 12h8" />
       </>
     ),
   },
