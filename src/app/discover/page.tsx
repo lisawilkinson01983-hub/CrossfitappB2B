@@ -5,6 +5,7 @@ import { authOptions } from "@/lib/auth";
 import { NavBar } from "@/components/NavBar";
 import { AthletesSearch, type AthleteSearchParams } from "./AthletesSearch";
 import { EventsList, type EventSearchParams } from "./EventsList";
+import { AffiliatesList } from "./AffiliatesList";
 
 type SearchParams = AthleteSearchParams & EventSearchParams & { view?: string };
 
@@ -17,7 +18,7 @@ export default async function DiscoverPage({
   if (!session?.user?.id) redirect("/login");
 
   const sp = await searchParams;
-  const view = sp.view === "events" ? "events" : "athletes";
+  const view = sp.view === "events" ? "events" : sp.view === "affiliates" ? "affiliates" : "athletes";
 
   return (
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
@@ -37,12 +38,20 @@ export default async function DiscoverPage({
         >
           Events
         </Link>
+        <Link
+          href="/discover?view=affiliates"
+          className={`pb-2 ${view === "affiliates" ? "border-b-2 border-b2b-purple text-b2b-purple" : "text-gray-500"}`}
+        >
+          Affiliates
+        </Link>
       </div>
 
       {view === "athletes" ? (
         <AthletesSearch sp={sp} currentUserId={session.user.id} />
-      ) : (
+      ) : view === "events" ? (
         <EventsList sp={sp} currentUserId={session.user.id} />
+      ) : (
+        <AffiliatesList />
       )}
     </main>
   );
