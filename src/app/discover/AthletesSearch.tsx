@@ -13,6 +13,7 @@ import {
   showsSingleBadge,
 } from "@/lib/labels";
 import { AFFILIATE_GYM_VALUES } from "@/lib/gyms";
+import { DISTANCE_RANGES, distanceMiles, ensureUserAreaCoords } from "@/lib/geocode";
 import { SectionCard } from "@/components/SectionCard";
 import { Avatar } from "@/components/Avatar";
 
@@ -20,8 +21,9 @@ import { Avatar } from "@/components/Avatar";
 const SEARCHABLE_GENDERS = GENDERS.filter((g) => g !== "PREFER_NOT_TO_DISCLOSE");
 
 export type AthleteSearchParams = {
+  q?: string;
   gym?: string;
-  area?: string;
+  distance?: string;
   gender?: string;
   level?: string;
   lookingFor?: string | string[];
@@ -34,8 +36,9 @@ export async function AthletesSearch({
   sp: AthleteSearchParams;
   currentUserId: string;
 }) {
+  const q = typeof sp.q === "string" ? sp.q.trim() : "";
   const gym = AFFILIATE_GYM_VALUES.find((g) => g === sp.gym);
-  const area = typeof sp.area === "string" ? sp.area.trim() : "";
+  const distance = DISTANCE_RANGES.find((d) => String(d) === sp.distance);
   const gender = SEARCHABLE_GENDERS.find((g) => g === sp.gender);
   const level = LEVELS.find((l) => l === sp.level);
   const lookingForRaw = Array.isArray(sp.lookingFor) ? sp.lookingFor : sp.lookingFor ? [sp.lookingFor] : [];
@@ -43,20 +46,27 @@ export async function AthletesSearch({
     LOOKING_FOR_OPTIONS.includes(v as LookingForOption)
   );
 
-  const blocked = await prisma.block.findMany({
-    where: { blockerId: currentUserId },
-    select: { blockedId: true },
-  });
+  const [blocked, currentUser] = await Promise.all([
+    prisma.block.findMany({ where: { blockerId: currentUserId }, select: { blockedId: true } }),
+    prisma.user.findUnique({
+      where: { id: currentUserId },
+      select: { area: true, areaLat: true, areaLng: true },
+    }),
+  ]);
+
+  const myCoords = currentUser
+    ? await ensureUserAreaCoords({ id: currentUserId, ...currentUser })
+    : null;
 
   const where: Prisma.UserWhereInput = {
     id: { not: currentUserId, notIn: blocked.map((b) => b.blockedId) },
+    ...(q ? { name: { contains: q } } : {}),
     ...(gym ? { affiliateGym: gym } : {}),
-    ...(area ? { area: { contains: area } } : {}),
     ...(gender ? { gender } : {}),
     ...(level ? { level } : {}),
   };
 
-  let results = await prisma.user.findMany({
+  let candidates = await prisma.user.findMany({
     where,
     select: {
       id: true,
@@ -64,6 +74,8 @@ export async function AthletesSearch({
       photo: true,
       level: true,
       area: true,
+      areaLat: true,
+      areaLng: true,
       affiliateGym: true,
       isPrivate: true,
       lookingFor: true,
@@ -76,12 +88,24 @@ export async function AthletesSearch({
   // The DB can't query the JSON-encoded lookingFor column, so this filter runs
   // in memory over the already-narrowed candidate set (fine at POC scale).
   if (lookingForFilter.length) {
-    results = results.filter((u) =>
+    candidates = candidates.filter((u) =>
       parseLookingFor(u.lookingFor).some((tag) => lookingForFilter.includes(tag))
     );
   }
 
-  const resultIds = results.map((r) => r.id);
+  const candidatesWithDistance = await Promise.all(
+    candidates.map(async (user) => {
+      const coords = myCoords ? await ensureUserAreaCoords(user) : null;
+      const miles = coords && myCoords ? distanceMiles(myCoords, coords) : null;
+      return { user, miles };
+    })
+  );
+
+  const results = distance
+    ? candidatesWithDistance.filter(({ miles }) => miles !== null && miles <= distance)
+    : candidatesWithDistance;
+
+  const resultIds = results.map(({ user }) => user.id);
   const [myFollows, myPendingRequests, myMutes] = await Promise.all([
     prisma.follow.findMany({
       where: { followerId: currentUserId, followingId: { in: resultIds } },
@@ -105,6 +129,19 @@ export async function AthletesSearch({
       <SectionCard>
       <form method="GET" className="flex flex-col gap-4">
         <input type="hidden" name="view" value="athletes" />
+        <div>
+          <label htmlFor="q" className="sr-only">
+            Search athletes by name
+          </label>
+          <input
+            id="q"
+            name="q"
+            type="text"
+            placeholder="Search athletes by name"
+            defaultValue={q}
+            className="w-full rounded border border-gray-300 px-3 py-2 focus:border-b2b-pink focus:outline-none"
+          />
+        </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
             <label htmlFor="gym" className="block text-sm font-medium">
@@ -125,16 +162,28 @@ export async function AthletesSearch({
             </select>
           </div>
           <div>
-            <label htmlFor="area" className="block text-sm font-medium">
-              Area
+            <label htmlFor="distance" className="block text-sm font-medium">
+              Distance
             </label>
-            <input
-              id="area"
-              name="area"
-              type="text"
-              defaultValue={area}
-              className="mt-1 w-full rounded border border-gray-300 px-3 py-2 focus:border-b2b-pink focus:outline-none"
-            />
+            <select
+              id="distance"
+              name="distance"
+              defaultValue={distance ? String(distance) : ""}
+              disabled={!myCoords}
+              className="mt-1 w-full rounded border border-gray-300 bg-b2b-card px-3 py-2 focus:border-b2b-pink focus:outline-none disabled:opacity-50"
+            >
+              <option value="">Any distance</option>
+              {DISTANCE_RANGES.map((d) => (
+                <option key={d} value={d}>
+                  Within {d} miles
+                </option>
+              ))}
+            </select>
+            {!myCoords && (
+              <p className="mt-1 text-xs text-b2b-ink/40">
+                Set your area on your profile to filter athletes by distance.
+              </p>
+            )}
           </div>
           <div>
             <label htmlFor="gender" className="block text-sm font-medium">
@@ -209,7 +258,7 @@ export async function AthletesSearch({
         <p className="text-b2b-ink/50">No athletes match those filters.</p>
       ) : (
         <div className="flex flex-col gap-3">
-          {results.map((user) => {
+          {results.map(({ user, miles }) => {
             const status: FollowStatus = myFollowingIds.has(user.id)
               ? "following"
               : myPendingIds.has(user.id)
@@ -237,6 +286,7 @@ export async function AthletesSearch({
                     </p>
                     <p className="text-sm text-b2b-ink/50">
                       {[user.area, user.affiliateGym].filter(Boolean).join(" · ")}
+                      {miles !== null && <> · {miles < 1 ? "<1" : Math.round(miles)} miles away</>}
                     </p>
                   </div>
                 </Link>

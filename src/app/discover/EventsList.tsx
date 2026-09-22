@@ -4,7 +4,7 @@ import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { ParticipateButton } from "@/components/ParticipateButton";
 import { SectionCard } from "@/components/SectionCard";
-import { geocode, distanceMiles } from "@/lib/geocode";
+import { geocode, distanceMiles, ensureUserAreaCoords, DISTANCE_RANGES } from "@/lib/geocode";
 
 const TIME_RANGES = {
   week: { label: "Next 7 days", days: 7 },
@@ -12,9 +12,6 @@ const TIME_RANGES = {
   year: { label: "This year", days: 365 },
 } as const;
 type TimeRange = keyof typeof TIME_RANGES;
-
-const DISTANCE_RANGES = [10, 25, 50, 100] as const;
-type DistanceRange = (typeof DISTANCE_RANGES)[number];
 
 export type EventSearchParams = {
   q?: string;
@@ -34,28 +31,6 @@ async function ensureEventCoords(event: { id: string; location: string; lat: num
   await prisma.event.update({
     where: { id: event.id },
     data: { lat: coords.lat, lng: coords.lng },
-  });
-  return coords;
-}
-
-// Same idea for the viewer's own area — anyone who set it before distance
-// filtering existed (or whose first geocode attempt failed) would otherwise
-// be stuck with no coords until they happened to re-enter their area.
-async function ensureUserAreaCoords(user: {
-  id: string;
-  area: string | null;
-  areaLat: number | null;
-  areaLng: number | null;
-}) {
-  if (user.areaLat !== null && user.areaLng !== null) return { lat: user.areaLat, lng: user.areaLng };
-  if (!user.area) return null;
-
-  const coords = await geocode(user.area);
-  if (!coords) return null;
-
-  await prisma.user.update({
-    where: { id: user.id },
-    data: { areaLat: coords.lat, areaLng: coords.lng },
   });
   return coords;
 }

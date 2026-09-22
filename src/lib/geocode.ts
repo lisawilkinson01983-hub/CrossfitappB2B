@@ -1,9 +1,16 @@
 // Free-text location -> lat/lng, via OpenStreetMap's Nominatim search API
 // (no API key required). Results are cached on the User/Event rows that own
 // them, so this only ever runs once per distinct area/location string.
+import { prisma } from "@/lib/prisma";
+
 const NOMINATIM_URL = "https://nominatim.openstreetmap.org/search";
 
 export type Coords = { lat: number; lng: number };
+
+// Shared distance-filter options for any "within N miles" search (Discover's
+// Athletes and Events tabs).
+export const DISTANCE_RANGES = [10, 25, 50, 100] as const;
+export type DistanceRange = (typeof DISTANCE_RANGES)[number];
 
 export async function geocode(query: string): Promise<Coords | null> {
   const trimmed = query.trim();
@@ -50,4 +57,27 @@ export function distanceMiles(a: Coords, b: Coords): number {
 
   const h = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
   return EARTH_RADIUS_MILES * 2 * Math.asin(Math.sqrt(Math.min(1, h)));
+}
+
+// Lazily geocodes and caches a user's area, for anyone (the viewer, or a
+// search result) who set their area before distance filtering existed, or
+// whose first geocode attempt failed. Used by both Discover's Athletes and
+// Events tabs.
+export async function ensureUserAreaCoords(user: {
+  id: string;
+  area: string | null;
+  areaLat: number | null;
+  areaLng: number | null;
+}): Promise<Coords | null> {
+  if (user.areaLat !== null && user.areaLng !== null) return { lat: user.areaLat, lng: user.areaLng };
+  if (!user.area) return null;
+
+  const coords = await geocode(user.area);
+  if (!coords) return null;
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { areaLat: coords.lat, areaLng: coords.lng },
+  });
+  return coords;
 }
