@@ -12,6 +12,18 @@ const AFFILIATE_GYMS = [
   "CrossFit Burgess Hill (BYS)",
 ];
 
+// Kept in sync with src/lib/gymPages.ts's KNOWN_GYM_INFO (duplicated here
+// since this script runs as plain JS at deploy time, before a TS build
+// exists to import from).
+const KNOWN_GYM_INFO = {
+  "CrossFit Uckfield": {
+    description:
+      "CrossFit Uckfield operates out of The Paleo Gym, running one classic CrossFit class a day with a constantly varied programme that mixes cardio, gymnastics and weightlifting, coached throughout the session. Alongside general CrossFit classes, they run a Junior Hero Academy for kids and CrossFit Teens, Third Age CrossFit for older athletes, and Quiet Classes for anyone who prefers a smaller, lower-sensory environment, plus modified sessions for anyone recovering from injury or illness and personalised nutrition support.",
+    address: "Crockstead Farm, Eastbourne Road, Halland, East Sussex, BN8 6PT",
+    website: "https://www.thepaleogym.co.uk/",
+  },
+};
+
 async function main() {
   const prisma = new PrismaClient();
   try {
@@ -22,11 +34,16 @@ async function main() {
     });
 
     for (const { affiliateGym } of used) {
-      await prisma.gym.upsert({
+      const known = KNOWN_GYM_INFO[affiliateGym];
+      const gym = await prisma.gym.upsert({
         where: { name: affiliateGym },
-        create: { name: affiliateGym },
+        create: { name: affiliateGym, ...known },
         update: {},
       });
+
+      if (known && !gym.description && !gym.address && !gym.website) {
+        await prisma.gym.update({ where: { name: affiliateGym }, data: known });
+      }
     }
 
     if (used.length > 0) {
