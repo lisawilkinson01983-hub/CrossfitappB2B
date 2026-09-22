@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { AFFILIATE_GYMS } from "@/lib/gyms";
+import { ensureGymPage } from "@/lib/gymPages";
 
 /** Switches an "Other" profile onto a now-listed gym, in one click. */
 export async function POST(req: Request) {
@@ -21,6 +22,8 @@ export async function POST(req: Request) {
     where: { id: session.user.id },
     data: { affiliateGym: gym, affiliateGymOther: null },
   });
+
+  await ensureGymPage(gym);
 
   return NextResponse.json({ ok: true });
 }

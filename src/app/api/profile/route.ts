@@ -7,6 +7,7 @@ import { OTHER_GYM } from "@/lib/gyms";
 import { PhotoUploadError, savePhotoUpload } from "@/lib/uploads";
 import { parseFormData } from "@/lib/http";
 import { geocode } from "@/lib/geocode";
+import { ensureGymPage } from "@/lib/gymPages";
 
 export async function PATCH(req: Request) {
   const session = await getServerSession(authOptions);
@@ -98,6 +99,8 @@ export async function PATCH(req: Request) {
       ...(photoPath ? { photo: photoPath } : {}),
     },
   });
+
+  await ensureGymPage(data.affiliateGym);
 
   return NextResponse.json({ ok: true });
 }
