@@ -1,9 +1,9 @@
-import Image from "next/image";
 import Link from "next/link";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { ParticipateButton } from "@/components/ParticipateButton";
 import { SectionCard } from "@/components/SectionCard";
+import { Avatar } from "@/components/Avatar";
 import { geocode, distanceMiles, ensureUserAreaCoords, DISTANCE_RANGES } from "@/lib/geocode";
 
 const TIME_RANGES = {
@@ -164,37 +164,31 @@ export async function EventsList({
             const isParticipating = event.participants.some((p) => p.userId === currentUserId);
             return (
               <div key={event.id} className="rounded-xl border border-b2b-purple/10 bg-b2b-card p-4">
-                {event.photo && (
-                  <Image
-                    src={event.photo}
-                    alt={event.name}
-                    width={500}
-                    height={260}
-                    className="mb-3 max-h-52 w-full rounded-lg object-cover"
-                  />
-                )}
                 <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <p className="font-semibold">
-                      <Link href={`/events/${event.id}`} className="hover:underline">
-                        {event.name}
-                      </Link>
-                      {event.tag && (
-                        <span className="ml-2 rounded-full bg-b2b-purple/10 px-2 py-0.5 text-xs text-b2b-purple">
-                          {event.tag}
-                        </span>
-                      )}
-                    </p>
-                    <p className="text-sm text-b2b-ink/50">
-                      {event.date.toLocaleDateString(undefined, {
-                        weekday: "short",
-                        year: "numeric",
-                        month: "short",
-                        day: "numeric",
-                      })}{" "}
-                      · {event.location}
-                      {miles !== null && <> · {miles < 1 ? "<1" : Math.round(miles)} miles away</>}
-                    </p>
+                  <div className="flex items-center gap-3">
+                    <Avatar photo={event.photo} name={event.name} size={48} />
+                    <div>
+                      <p className="font-semibold">
+                        <Link href={`/events/${event.id}`} className="hover:underline">
+                          {event.name}
+                        </Link>
+                        {event.tag && (
+                          <span className="ml-2 rounded-full bg-b2b-purple/10 px-2 py-0.5 text-xs text-b2b-purple">
+                            {event.tag}
+                          </span>
+                        )}
+                      </p>
+                      <p className="text-sm text-b2b-ink/50">
+                        {event.date.toLocaleDateString(undefined, {
+                          weekday: "short",
+                          year: "numeric",
+                          month: "short",
+                          day: "numeric",
+                        })}{" "}
+                        · {event.location}
+                        {miles !== null && <> · {miles < 1 ? "<1" : Math.round(miles)} miles away</>}
+                      </p>
+                    </div>
                   </div>
                   <ParticipateButton eventId={event.id} initialParticipating={isParticipating} />
                 </div>

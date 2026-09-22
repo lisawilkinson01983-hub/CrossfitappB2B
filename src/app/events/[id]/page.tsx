@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 import { redirect, notFound } from "next/navigation";
 import { getServerSession } from "next-auth";
@@ -41,17 +40,8 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
 
       <div className="mt-4">
         <SectionCard>
-          {event.photo && (
-            <Image
-              src={event.photo}
-              alt={event.name}
-              width={700}
-              height={360}
-              className="mb-4 max-h-64 w-full rounded-lg object-cover"
-            />
-          )}
-
-          <div className="flex items-start justify-between gap-4">
+          <div className="flex flex-col items-center gap-3 text-center">
+            <Avatar photo={event.photo} name={event.name} size={112} />
             <div>
               <p className="text-xl font-semibold">
                 {event.name}
@@ -74,7 +64,7 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
             <ParticipateButton eventId={event.id} initialParticipating={isParticipating} />
           </div>
 
-          {event.description && <p className="mt-3 text-sm text-b2b-ink/70">{event.description}</p>}
+          {event.description && <p className="mt-4 text-sm text-b2b-ink/70">{event.description}</p>}
         </SectionCard>
       </div>
 
