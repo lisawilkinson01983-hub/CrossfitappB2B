@@ -1,8 +1,7 @@
 import Link from "next/link";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { ParticipateButton } from "@/components/ParticipateButton";
-import { EventInterestButton } from "@/components/EventInterestButton";
+import { EventEngagementButtons } from "@/components/EventEngagementButtons";
 import { SectionCard } from "@/components/SectionCard";
 import { Avatar } from "@/components/Avatar";
 import { geocode, distanceMiles, ensureUserAreaCoords, DISTANCE_RANGES } from "@/lib/geocode";
@@ -201,9 +200,12 @@ export async function EventsList({
                   {event.participants.length}{" "}
                   {event.participants.length === 1 ? "athlete" : "athletes"} participating
                 </p>
-                <div className="mt-3 grid grid-cols-2 gap-3">
-                  <ParticipateButton eventId={event.id} initialParticipating={isParticipating} />
-                  <EventInterestButton eventId={event.id} initialInterested={isInterested} />
+                <div className="mt-3">
+                  <EventEngagementButtons
+                    eventId={event.id}
+                    initialParticipating={isParticipating}
+                    initialInterested={isInterested}
+                  />
                 </div>
               </div>
             );

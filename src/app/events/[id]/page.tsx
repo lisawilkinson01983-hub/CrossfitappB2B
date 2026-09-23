@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { NavBar } from "@/components/NavBar";
 import { SectionCard } from "@/components/SectionCard";
 import { Avatar } from "@/components/Avatar";
-import { ParticipateButton } from "@/components/ParticipateButton";
+import { EventEngagementButtons } from "@/components/EventEngagementButtons";
 
 export default async function EventPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
@@ -18,12 +18,14 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
     where: { id },
     include: {
       participants: { where: { userId: session.user.id }, select: { id: true } },
+      interests: { where: { userId: session.user.id }, select: { id: true } },
       _count: { select: { participants: true, notices: true } },
     },
   });
   if (!event) notFound();
 
   const isParticipating = event.participants.length > 0;
+  const isInterested = event.interests.length > 0;
 
   return (
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
@@ -56,7 +58,11 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
                 · {event.location}
               </p>
             </div>
-            <ParticipateButton eventId={event.id} initialParticipating={isParticipating} />
+            <EventEngagementButtons
+              eventId={event.id}
+              initialParticipating={isParticipating}
+              initialInterested={isInterested}
+            />
           </div>
 
           {event.description && <p className="mt-4 text-sm text-b2b-ink/70">{event.description}</p>}

@@ -10,6 +10,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
   }
 
   const { id: eventId } = await params;
+  const userId = session.user.id;
 
   const event = await prisma.event.findUnique({ where: { id: eventId } });
   if (!event) {
@@ -17,7 +18,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
   }
 
   const existing = await prisma.eventInterest.findUnique({
-    where: { userId_eventId: { userId: session.user.id, eventId } },
+    where: { userId_eventId: { userId, eventId } },
   });
 
   if (existing) {
@@ -25,15 +26,27 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
     if (existing.noticeId) {
       await prisma.eventNotice.delete({ where: { id: existing.noticeId } }).catch(() => {});
     }
-    return NextResponse.json({ interested: false });
+  } else {
+    // "I'm interested" and "I'm participating" are mutually exclusive —
+    // marking interest after already joining un-joins the event first.
+    const existingParticipant = await prisma.eventParticipant.findUnique({
+      where: { userId_eventId: { userId, eventId } },
+    });
+    if (existingParticipant) {
+      await prisma.eventParticipant.delete({ where: { id: existingParticipant.id } });
+      await prisma.post.deleteMany({ where: { userId, linkedEventId: eventId } });
+    }
+
+    const notice = await prisma.eventNotice.create({
+      data: { eventId, userId, text: `I'm looking for a team for ${event.name}!` },
+    });
+    await prisma.eventInterest.create({ data: { userId, eventId, noticeId: notice.id } });
   }
 
-  const notice = await prisma.eventNotice.create({
-    data: { eventId, userId: session.user.id, text: `I'm looking for a team for ${event.name}!` },
-  });
-  await prisma.eventInterest.create({
-    data: { userId: session.user.id, eventId, noticeId: notice.id },
-  });
+  const [participantRow, interestRow] = await Promise.all([
+    prisma.eventParticipant.findUnique({ where: { userId_eventId: { userId, eventId } } }),
+    prisma.eventInterest.findUnique({ where: { userId_eventId: { userId, eventId } } }),
+  ]);
 
-  return NextResponse.json({ interested: true });
+  return NextResponse.json({ participating: !!participantRow, interested: !!interestRow });
 }

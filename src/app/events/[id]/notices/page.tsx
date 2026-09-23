@@ -17,13 +17,23 @@ export default async function EventNoticesPage({ params }: { params: Promise<{ i
   const event = await prisma.event.findUnique({
     where: { id },
     include: {
+      participants: { select: { userId: true } },
       notices: {
         orderBy: { createdAt: "desc" },
-        include: { user: { select: { id: true, name: true, photo: true } } },
+        include: {
+          user: { select: { id: true, name: true, photo: true } },
+          likes: { select: { userId: true } },
+          comments: {
+            orderBy: { createdAt: "asc" },
+            include: { user: { select: { id: true, name: true } } },
+          },
+        },
       },
     },
   });
   if (!event) notFound();
+
+  const participantIds = new Set(event.participants.map((p) => p.userId));
 
   return (
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
@@ -54,8 +64,18 @@ export default async function EventNoticesPage({ params }: { params: Promise<{ i
                     text: notice.text,
                     createdAt: notice.createdAt,
                     author: notice.user,
+                    likeCount: notice.likes.length,
+                    likedByMe: notice.likes.some((l) => l.userId === session.user.id),
+                    comments: notice.comments.map((c) => ({
+                      id: c.id,
+                      text: c.text,
+                      createdAt: c.createdAt,
+                      author: c.user,
+                      parentId: c.parentId,
+                    })),
                   }}
                   isOwn={notice.userId === session.user.id}
+                  isAuthorParticipating={participantIds.has(notice.userId)}
                 />
               ))}
             </div>

@@ -183,6 +183,8 @@ model User {
   eventParticipations  EventParticipant[]
   eventInterests       EventInterest[]
   eventNotices         EventNotice[]
+  eventNoticeLikes     EventNoticeLike[]
+  eventNoticeComments  EventNoticeComment[]
 
   blocksMade     Block[] @relation("BlocksMade")
   blocksReceived Block[] @relation("BlocksReceived")
@@ -466,7 +468,44 @@ model EventNotice {
   // someone wrote by hand.
   interest EventInterest?
 
+  likes    EventNoticeLike[]
+  comments EventNoticeComment[]
+
   @@index([eventId])
+}
+
+model EventNoticeLike {
+  id       String      @id @default(cuid())
+  userId   String
+  user     User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  noticeId String
+  notice   EventNotice @relation(fields: [noticeId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, noticeId])
+  @@index([noticeId])
+}
+
+model EventNoticeComment {
+  id       String      @id @default(cuid())
+  userId   String
+  user     User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  noticeId String
+  notice   EventNotice @relation(fields: [noticeId], references: [id], onDelete: Cascade)
+
+  // One level of self-reference, same as Comment — a reply to a reply is
+  // flattened under its top-level ancestor in the UI.
+  parentId String?
+  parent   EventNoticeComment?  @relation("EventNoticeCommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies  EventNoticeComment[] @relation("EventNoticeCommentReplies")
+
+  text String
+
+  createdAt DateTime @default(now())
+
+  @@index([noticeId])
+  @@index([parentId])
 }
 
 model Block {
