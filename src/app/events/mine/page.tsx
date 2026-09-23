@@ -11,37 +11,40 @@ import { PinButton } from "@/components/PinButton";
 import { EventEngagementButtons } from "@/components/EventEngagementButtons";
 import { distanceMiles, ensureUserAreaCoords, ensureEventCoords, DISTANCE_RANGES } from "@/lib/geocode";
 
-const TIME_RANGES = {
-  week: { label: "Next 7 days", days: 7 },
-  month: { label: "Next 30 days", days: 30 },
-  year: { label: "This year", days: 365 },
-} as const;
+const TIME_RANGES = { week: { days: 7 }, month: { days: 30 }, year: { days: 365 } } as const;
 type TimeRange = keyof typeof TIME_RANGES;
 
 export default async function MyEventsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; time?: string; distance?: string }>;
+  searchParams: Promise<{ tab?: string; q?: string; time?: string; distance?: string }>;
 }) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) redirect("/login");
   const userId = session.user.id;
 
   const sp = await searchParams;
+  const tab = sp.tab === "past" ? "past" : "upcoming";
   const q = typeof sp.q === "string" ? sp.q.trim() : "";
   const time = (Object.keys(TIME_RANGES) as TimeRange[]).find((t) => t === sp.time);
   const distance = DISTANCE_RANGES.find((d) => String(d) === sp.distance);
 
+  const now = new Date();
+  const dateFilter: Prisma.EventWhereInput["date"] =
+    tab === "past"
+      ? { lt: now, ...(time ? { gte: new Date(now.getTime() - TIME_RANGES[time].days * 86400000) } : {}) }
+      : { gte: now, ...(time ? { lte: new Date(now.getTime() + TIME_RANGES[time].days * 86400000) } : {}) };
+
   const where: Prisma.EventWhereInput = {
     OR: [{ participants: { some: { userId } } }, { interests: { some: { userId } } }],
+    date: dateFilter,
     ...(q ? { AND: [{ OR: [{ name: { contains: q } }, { location: { contains: q } }] }] } : {}),
-    ...(time ? { date: { lte: new Date(Date.now() + TIME_RANGES[time].days * 86400000) } } : {}),
   };
 
   const [events, pins, currentUser] = await Promise.all([
     prisma.event.findMany({
       where,
-      orderBy: { date: "asc" },
+      orderBy: { date: tab === "past" ? "desc" : "asc" },
       include: {
         participants: { select: { userId: true } },
         interests: { select: { userId: true } },
@@ -74,9 +77,25 @@ export default async function MyEventsPage({
       <NavBar />
       <h1 className="mt-6 text-2xl font-bold">My Events</h1>
 
+      <div className="mt-4 flex gap-4 border-b border-gray-200 text-sm font-medium">
+        <Link
+          href="/events/mine?tab=upcoming"
+          className={`pb-2 ${tab === "upcoming" ? "border-b-2 border-b2b-purple text-b2b-purple" : "text-gray-500"}`}
+        >
+          Upcoming events
+        </Link>
+        <Link
+          href="/events/mine?tab=past"
+          className={`pb-2 ${tab === "past" ? "border-b-2 border-b2b-purple text-b2b-purple" : "text-gray-500"}`}
+        >
+          Past events
+        </Link>
+      </div>
+
       <div className="mt-4 flex flex-col gap-6">
         <SectionCard>
           <form method="GET" className="flex flex-col gap-4">
+            <input type="hidden" name="tab" value={tab} />
             <div>
               <label htmlFor="q" className="sr-only">
                 Search my events by name or area
@@ -127,7 +146,7 @@ export default async function MyEventsPage({
                 <option value="">Any time</option>
                 {(Object.keys(TIME_RANGES) as TimeRange[]).map((t) => (
                   <option key={t} value={t}>
-                    {TIME_RANGES[t].label}
+                    {tab === "past" ? `Last ${TIME_RANGES[t].days} days` : `Next ${TIME_RANGES[t].days} days`}
                   </option>
                 ))}
               </select>
@@ -139,7 +158,10 @@ export default async function MyEventsPage({
               >
                 Search
               </button>
-              <a href="/events/mine" className="self-center text-sm text-b2b-ink/50 hover:underline">
+              <a
+                href={`/events/mine?tab=${tab}`}
+                className="self-center text-sm text-b2b-ink/50 hover:underline"
+              >
                 Clear filters
               </a>
               <Link
@@ -156,7 +178,9 @@ export default async function MyEventsPage({
           <p className="text-b2b-ink/50">
             {q || time || distance
               ? "No events match those filters."
-              : "You're not participating in or interested in any events yet."}
+              : tab === "past"
+                ? "No past events yet."
+                : "You're not participating in or interested in any upcoming events yet."}
           </p>
         ) : (
           <div className="flex flex-col gap-3">
@@ -168,7 +192,7 @@ export default async function MyEventsPage({
                   key={event.id}
                   className={`rounded-xl border bg-b2b-card p-4 ${
                     pinned ? "border-b2b-pink/40" : "border-b2b-purple/10"
-                  }`}
+                  } ${tab === "past" ? "opacity-75" : ""}`}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-3">
@@ -201,13 +225,20 @@ export default async function MyEventsPage({
                   {event.description && (
                     <p className="mt-2 line-clamp-2 text-sm text-b2b-ink/70">{event.description}</p>
                   )}
-                  <div className="mt-3">
-                    <EventEngagementButtons
-                      eventId={event.id}
-                      initialParticipating={isParticipating}
-                      initialInterested={isInterested}
-                    />
-                  </div>
+                  {tab === "past" ? (
+                    <div className="mt-3 flex gap-4 text-xs font-medium text-b2b-ink/60">
+                      {isParticipating && <span>✓ You participated</span>}
+                      {isInterested && <span>☆ You were interested</span>}
+                    </div>
+                  ) : (
+                    <div className="mt-3">
+                      <EventEngagementButtons
+                        eventId={event.id}
+                        initialParticipating={isParticipating}
+                        initialInterested={isInterested}
+                      />
+                    </div>
+                  )}
                 </div>
               );
             })}
