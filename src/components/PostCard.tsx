@@ -91,6 +91,7 @@ export function PostCard({ post, currentUserId }: { post: PostCardData; currentU
   const [contentText, setContentText] = useState(post.contentText);
   const [postSaving, setPostSaving] = useState(false);
   const [postError, setPostError] = useState<string | null>(null);
+  const [showWorkoutDetails, setShowWorkoutDetails] = useState(false);
 
   async function toggleLike() {
     if (likeBusy) return;
@@ -367,11 +368,22 @@ export function PostCard({ post, currentUserId }: { post: PostCardData; currentU
       </div>
 
       {post.linkedWorkout && (
-        <p className="mt-3 text-sm text-gray-600">
-          {post.linkedWorkout.wodName} · {post.linkedWorkout.score} (
-          {WORKOUT_UNIT_LABELS[post.linkedWorkout.unit]}) ·{" "}
-          {WORKOUT_INTENSITY_LABELS[post.linkedWorkout.intensity]}
-        </p>
+        <div className="mt-3">
+          <button
+            type="button"
+            onClick={() => setShowWorkoutDetails((v) => !v)}
+            className="text-sm font-medium text-b2b-pink hover:underline"
+          >
+            {showWorkoutDetails ? "Hide workout details" : "Show workout details"}
+          </button>
+          {showWorkoutDetails && (
+            <p className="mt-1 text-sm text-gray-600">
+              {post.linkedWorkout.wodName} · {post.linkedWorkout.score} (
+              {WORKOUT_UNIT_LABELS[post.linkedWorkout.unit]}) ·{" "}
+              {WORKOUT_INTENSITY_LABELS[post.linkedWorkout.intensity]}
+            </p>
+          )}
+        </div>
       )}
 
       {post.linkedEvent && (

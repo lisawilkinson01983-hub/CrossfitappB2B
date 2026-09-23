@@ -54,7 +54,11 @@ const TABS = [
     match: (path: string) => path.startsWith("/workouts"),
     icon: (
       <>
-        <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" />
+        <path d="M6 12h12" />
+        <path d="M6 7v10" />
+        <path d="M18 7v10" />
+        <path d="M3 9v6" />
+        <path d="M21 9v6" />
       </>
     ),
   },
