@@ -7,7 +7,8 @@ import { NavBar } from "@/components/NavBar";
 import { SectionCard } from "@/components/SectionCard";
 import { Avatar } from "@/components/Avatar";
 import { EventEngagementButtons } from "@/components/EventEngagementButtons";
-import { parseJsonArray } from "@/lib/labels";
+import { EventNoticesPanel, type EventNoticeEntry } from "@/components/EventNoticesPanel";
+import { parseJsonArray, parseTeammateRequests } from "@/lib/labels";
 import {
   EVENT_DIVISION_LABELS,
   EVENT_TEAM_FORMAT_LABELS,
@@ -28,15 +29,53 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
   const event = await prisma.event.findUnique({
     where: { id },
     include: {
-      participants: { where: { userId: session.user.id }, select: { id: true } },
+      participants: { select: { userId: true } },
       interests: { where: { userId: session.user.id }, select: { id: true } },
-      _count: { select: { participants: true, notices: true } },
+      notices: {
+        orderBy: { createdAt: "desc" },
+        include: {
+          user: { select: { id: true, name: true, photo: true } },
+          likes: { select: { userId: true } },
+          comments: {
+            orderBy: { createdAt: "asc" },
+            include: { user: { select: { id: true, name: true } } },
+          },
+        },
+      },
     },
   });
   if (!event) notFound();
 
-  const isParticipating = event.participants.length > 0;
+  const participantIds = new Set(event.participants.map((p) => p.userId));
+  const isParticipating = participantIds.has(session.user.id);
   const isInterested = event.interests.length > 0;
+
+  const noticeEntries: EventNoticeEntry[] = event.notices
+    .map((notice) => ({
+      notice: {
+        id: notice.id,
+        text: notice.text,
+        teammateRequests: parseTeammateRequests(notice.teammateRequests),
+        createdAt: notice.createdAt,
+        author: notice.user,
+        likeCount: notice.likes.length,
+        likedByMe: notice.likes.some((l) => l.userId === session.user.id),
+        comments: notice.comments.map((c) => ({
+          id: c.id,
+          text: c.text,
+          createdAt: c.createdAt,
+          author: c.user,
+          parentId: c.parentId,
+        })),
+      },
+      isOwn: notice.userId === session.user.id,
+      isAuthorParticipating: participantIds.has(notice.userId),
+    }))
+    .filter((entry) => entry.notice.teammateRequests.length > 0);
+
+  const chatMessageCount = event.notices.filter(
+    (notice) => parseTeammateRequests(notice.teammateRequests).length === 0 && notice.text
+  ).length;
 
   const division = parseJsonArray<EventDivisionOption>(event.division);
   const teamFormat = parseJsonArray<EventTeamFormatOption>(event.teamFormat);
@@ -89,13 +128,13 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
                 href={`/events/${event.id}/participants`}
                 className="rounded-xl border border-gray-300 bg-b2b-card px-4 py-3 text-center text-sm font-medium text-b2b-ink hover:bg-b2b-bg"
               >
-                👥 {event._count.participants} {event._count.participants === 1 ? "athlete" : "athletes"}
+                👥 {event.participants.length} {event.participants.length === 1 ? "athlete" : "athletes"}
               </Link>
               <Link
                 href={`/events/${event.id}/notices`}
                 className="rounded-xl border border-b2b-purple/20 bg-b2b-purple/10 px-4 py-3 text-center text-sm font-medium text-b2b-purple hover:bg-b2b-purple/20"
               >
-                💬 Join Event Chat{event._count.notices > 0 ? ` (${event._count.notices})` : ""}
+                💬 Join Event Chat{chatMessageCount > 0 ? ` (${chatMessageCount})` : ""}
               </Link>
             </div>
           </div>
@@ -122,6 +161,13 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
               Event website
             </a>
           )}
+        </SectionCard>
+      </div>
+
+      <div className="mt-6">
+        <SectionCard title="Notices">
+          <p className="mb-3 text-sm text-b2b-ink/50">Looking for teammates for {event.name}? Post it here.</p>
+          <EventNoticesPanel eventId={event.id} notices={noticeEntries} />
         </SectionCard>
       </div>
     </main>
