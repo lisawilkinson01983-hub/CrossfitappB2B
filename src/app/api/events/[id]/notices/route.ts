@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { eventNoticeSchema } from "@/lib/validation";
+import { parseTeammateRequests } from "@/lib/labels";
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
@@ -28,9 +29,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       eventId,
       userId: session.user.id,
       text: parsed.data.text ?? null,
-      teammateQuantity: parsed.data.teammateQuantity ?? null,
-      teammateGender: parsed.data.teammateGender ?? null,
-      teammateDivision: parsed.data.teammateDivision ?? null,
+      teammateRequests:
+        parsed.data.teammateRequests && parsed.data.teammateRequests.length > 0
+          ? JSON.stringify(parsed.data.teammateRequests)
+          : null,
     },
     include: { user: { select: { id: true, name: true, photo: true } } },
   });
@@ -39,9 +41,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     notice: {
       id: notice.id,
       text: notice.text,
-      teammateQuantity: notice.teammateQuantity,
-      teammateGender: notice.teammateGender,
-      teammateDivision: notice.teammateDivision,
+      teammateRequests: parseTeammateRequests(notice.teammateRequests),
       createdAt: notice.createdAt,
       author: notice.user,
     },

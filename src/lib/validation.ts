@@ -172,23 +172,26 @@ export const commentSchema = z.object({
   text: z.string().trim().min(1, "Comment can't be empty").max(1000),
 });
 
-// Two modes, one endpoint: a plain free-text notice (text required), or a
-// structured "looking for teammates" request (quantity/gender/division all
-// required, text optional extra detail). Never both empty.
+export const teammateRequestSchema = z.object({
+  quantity: z.coerce.number().int().min(1).max(20),
+  gender: z.enum(TEAMMATE_GENDERS),
+  division: z.enum(TEAMMATE_DIVISIONS),
+});
+export type TeammateRequest = z.infer<typeof teammateRequestSchema>;
+
+// Two modes, one endpoint: a plain free-text notice (text required), or one
+// or more structured "looking for teammates" requests for the same event —
+// posted together as a single notice so they share one feed card. Never
+// both empty.
 export const eventNoticeSchema = z
   .object({
     text: z.preprocess(emptyToUndefined, z.string().trim().max(1000).optional()),
-    teammateQuantity: z.preprocess(emptyToUndefined, z.coerce.number().int().min(1).max(20).optional()),
-    teammateGender: z.preprocess(emptyToUndefined, z.enum(TEAMMATE_GENDERS).optional()),
-    teammateDivision: z.preprocess(emptyToUndefined, z.enum(TEAMMATE_DIVISIONS).optional()),
+    teammateRequests: z.array(teammateRequestSchema).max(20).optional(),
   })
-  .refine(
-    (data) =>
-      data.teammateQuantity !== undefined || data.teammateGender !== undefined || data.teammateDivision !== undefined
-        ? data.teammateQuantity !== undefined && data.teammateGender !== undefined && data.teammateDivision !== undefined
-        : !!data.text,
-    { message: "Fill in how many, gender, and division — or write a notice", path: ["text"] }
-  );
+  .refine((data) => (data.teammateRequests && data.teammateRequests.length > 0) || !!data.text, {
+    message: "Add at least one athlete request — or write a notice",
+    path: ["text"],
+  });
 
 // The image is a required upload, handled outside this schema (see
 // /api/events/submit) the same way post/workout photos are.

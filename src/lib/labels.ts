@@ -10,6 +10,7 @@ import type {
   PbField,
   TeammateDivisionOption,
   TeammateGenderOption,
+  TeammateRequest,
   WorkoutIntensityOption,
   WorkoutUnitOption,
 } from "./validation";
@@ -190,6 +191,17 @@ export function parseLookingFor(value: string | null): LookingForOption[] {
 
 /** Parses any JSON-encoded-array string column (Event.division/teamFormat/genderCategory, etc). */
 export function parseJsonArray<T extends string>(value: string | null): T[] {
+  if (!value) return [];
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+/** Parses EventNotice.teammateRequests — one or more athlete asks posted together for the same event. */
+export function parseTeammateRequests(value: string | null): TeammateRequest[] {
   if (!value) return [];
   try {
     const parsed = JSON.parse(value);

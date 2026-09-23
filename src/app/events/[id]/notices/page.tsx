@@ -5,8 +5,8 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NavBar } from "@/components/NavBar";
 import { SectionCard } from "@/components/SectionCard";
-import { EventNoticeComposer } from "@/components/EventNoticeComposer";
-import { EventNoticesList, type EventNoticeEntry } from "@/components/EventNoticesList";
+import { EventNoticesPanel, type EventNoticeEntry } from "@/components/EventNoticesPanel";
+import { parseTeammateRequests } from "@/lib/labels";
 
 export default async function EventNoticesPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
@@ -39,9 +39,7 @@ export default async function EventNoticesPage({ params }: { params: Promise<{ i
     notice: {
       id: notice.id,
       text: notice.text,
-      teammateQuantity: notice.teammateQuantity,
-      teammateGender: notice.teammateGender,
-      teammateDivision: notice.teammateDivision,
+      teammateRequests: parseTeammateRequests(notice.teammateRequests),
       createdAt: notice.createdAt,
       author: notice.user,
       likeCount: notice.likes.length,
@@ -67,15 +65,11 @@ export default async function EventNoticesPage({ params }: { params: Promise<{ i
       </Link>
 
       <div className="mt-4 flex flex-col gap-6">
-        <SectionCard title="Post a notice">
+        <SectionCard title="Notices">
           <p className="mb-3 text-sm text-b2b-ink/50">
             Looking for teammates, a lift, or a training partner for {event.name}? Post it here.
           </p>
-          <EventNoticeComposer eventId={event.id} />
-        </SectionCard>
-
-        <SectionCard title={`${event.notices.length} ${event.notices.length === 1 ? "notice" : "notices"}`}>
-          <EventNoticesList notices={noticeEntries} />
+          <EventNoticesPanel eventId={event.id} notices={noticeEntries} />
         </SectionCard>
       </div>
     </main>

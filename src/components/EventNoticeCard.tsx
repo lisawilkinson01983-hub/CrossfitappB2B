@@ -6,7 +6,7 @@ import Link from "next/link";
 import { Avatar } from "@/components/Avatar";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { formatTeammateRequest } from "@/lib/labels";
-import type { TeammateDivisionOption, TeammateGenderOption } from "@/lib/validation";
+import type { TeammateRequest } from "@/lib/validation";
 
 export type EventNoticeCommentData = {
   id: string;
@@ -19,9 +19,7 @@ export type EventNoticeCommentData = {
 export type EventNoticeData = {
   id: string;
   text: string | null;
-  teammateQuantity: number | null;
-  teammateGender: TeammateGenderOption | null;
-  teammateDivision: TeammateDivisionOption | null;
+  teammateRequests: TeammateRequest[];
   createdAt: string | Date;
   author: { id: string; name: string; photo: string | null };
   likeCount: number;
@@ -204,10 +202,17 @@ export function EventNoticeCard({
           )}
         </div>
       </div>
-      {notice.teammateQuantity !== null && notice.teammateGender !== null && notice.teammateDivision !== null && (
-        <p className="mt-2 inline-block rounded-lg bg-b2b-purple/10 px-3 py-1.5 text-sm font-semibold text-b2b-purple">
-          🔍 {formatTeammateRequest(notice.teammateQuantity, notice.teammateGender, notice.teammateDivision)}
-        </p>
+      {notice.teammateRequests.length > 0 && (
+        <div className="mt-2 flex flex-col items-start gap-1">
+          {notice.teammateRequests.map((req, i) => (
+            <p
+              key={i}
+              className="inline-block rounded-lg bg-b2b-purple/10 px-3 py-1.5 text-sm font-semibold text-b2b-purple"
+            >
+              🔍 {formatTeammateRequest(req.quantity, req.gender, req.division)}
+            </p>
+          ))}
+        </div>
       )}
       {notice.text && <p className="mt-2 whitespace-pre-wrap text-sm text-b2b-ink/80">{notice.text}</p>}
 

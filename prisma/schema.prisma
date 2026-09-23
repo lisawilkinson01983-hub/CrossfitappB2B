@@ -94,22 +94,6 @@ enum EventGenderCategory {
   MIXED
 }
 
-// For a single teammate being sought on the notices board — distinct from
-// EventGenderCategory/EventDivision (which describe the event's own
-// divisions) since a request about one person also needs "no preference".
-enum TeammateGender {
-  MALE
-  FEMALE
-  ANY
-}
-
-enum TeammateDivision {
-  SCALED
-  INTERMEDIATE
-  RX
-  ANY
-}
-
 model User {
   id           String   @id @default(cuid())
   name         String
@@ -549,16 +533,15 @@ model EventNotice {
   userId  String
   user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  // Required for a plain free-text notice; optional extra detail on a
-  // structured teammate request (the three fields below).
+  // Required for a plain free-text notice; optional extra detail alongside
+  // teammateRequests.
   text String?
 
-  // Set together for a "looking for teammates" request (e.g. "1 x female
-  // Scaled athlete"), rendered as a formatted callout instead of plain text.
-  // All three null for a plain free-text notice.
-  teammateQuantity Int?
-  teammateGender   TeammateGender?
-  teammateDivision TeammateDivision?
+  // JSON-encoded array of teammate requests posted together for this event,
+  // e.g. [{"quantity":1,"gender":"MALE","division":"RX"},{"quantity":1,"gender":"FEMALE","division":"RX"}]
+  // — multiple athletes needed for the same event stay one feed post rather
+  // than being split across several. Null for a plain free-text notice.
+  teammateRequests String?
 
   createdAt DateTime @default(now())
 

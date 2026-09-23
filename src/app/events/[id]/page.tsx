@@ -83,6 +83,21 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
               initialParticipating={isParticipating}
               initialInterested={isInterested}
             />
+
+            <div className="grid w-full grid-cols-2 gap-3">
+              <Link
+                href={`/events/${event.id}/participants`}
+                className="rounded-xl border border-gray-300 bg-b2b-card px-4 py-3 text-center text-sm font-medium text-b2b-ink hover:bg-b2b-bg"
+              >
+                👥 {event._count.participants} {event._count.participants === 1 ? "athlete" : "athletes"}
+              </Link>
+              <Link
+                href={`/events/${event.id}/notices`}
+                className="rounded-xl border border-b2b-purple/20 bg-b2b-purple/10 px-4 py-3 text-center text-sm font-medium text-b2b-purple hover:bg-b2b-purple/20"
+              >
+                💬 Join Event Chat{event._count.notices > 0 ? ` (${event._count.notices})` : ""}
+              </Link>
+            </div>
           </div>
 
           {event.description && <p className="mt-4 text-sm text-b2b-ink/70">{event.description}</p>}
@@ -108,21 +123,6 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
             </a>
           )}
         </SectionCard>
-      </div>
-
-      <div className="mt-6 grid grid-cols-2 gap-3">
-        <Link
-          href={`/events/${event.id}/participants`}
-          className="rounded-xl border border-gray-300 bg-b2b-card px-4 py-3 text-center text-sm font-medium text-b2b-ink hover:bg-b2b-bg"
-        >
-          👥 {event._count.participants} {event._count.participants === 1 ? "athlete" : "athletes"}
-        </Link>
-        <Link
-          href={`/events/${event.id}/notices`}
-          className="rounded-xl border border-b2b-purple/20 bg-b2b-purple/10 px-4 py-3 text-center text-sm font-medium text-b2b-purple hover:bg-b2b-purple/20"
-        >
-          📣 Notices{event._count.notices > 0 ? ` (${event._count.notices})` : ""}
-        </Link>
       </div>
     </main>
   );
