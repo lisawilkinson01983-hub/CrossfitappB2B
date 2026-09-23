@@ -27,6 +27,12 @@ export type EventNoticeData = {
   comments: EventNoticeCommentData[];
 };
 
+export type EventNoticeEntry = {
+  notice: EventNoticeData;
+  isOwn: boolean;
+  isAuthorParticipating: boolean;
+};
+
 const textareaClass =
   "flex-1 resize-none rounded border border-gray-300 px-2 py-1.5 text-sm focus:border-b2b-pink focus:outline-none";
 
@@ -175,35 +181,34 @@ export function EventNoticeCard({
   }
 
   return (
-    <div className="rounded-lg border border-b2b-purple/10 bg-b2b-bg p-3">
-      <div className="flex items-start justify-between gap-3">
-        <Link href={`/profile/${notice.author.id}`} className="flex items-center gap-2 hover:underline">
-          <Avatar photo={notice.author.photo} name={notice.author.name} size={32} />
-          <span className="text-sm font-medium">{notice.author.name}</span>
-          {isAuthorParticipating && (
-            <span className="rounded-full bg-b2b-purple/10 px-2 py-0.5 text-xs font-medium text-b2b-purple">
-              ✓ I'm in!
-            </span>
-          )}
+    <div className="rounded-xl border border-b2b-purple/10 bg-b2b-bg p-4">
+      <div className="flex items-start justify-between gap-4">
+        <Link href={`/profile/${notice.author.id}`} className="flex items-center gap-3">
+          <Avatar photo={notice.author.photo} name={notice.author.name} size={40} />
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="font-semibold hover:underline">{notice.author.name}</span>
+              {isAuthorParticipating && (
+                <span className="rounded-full bg-b2b-purple/10 px-2 py-0.5 text-xs font-medium text-b2b-purple">
+                  ✓ I'm in!
+                </span>
+              )}
+            </div>
+            <p className="text-xs text-b2b-ink/40">{new Date(notice.createdAt).toLocaleString()}</p>
+          </div>
         </Link>
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-b2b-ink/40">
-            {new Date(notice.createdAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
-          </span>
-          {isOwn && (
-            <button
-              type="button"
-              onClick={() => setConfirmOpen(true)}
-              aria-label="Delete notice"
-              className="text-b2b-ink/40 hover:text-red-600"
-            >
-              ×
-            </button>
-          )}
-        </div>
+        {isOwn && (
+          <button
+            type="button"
+            onClick={() => setConfirmOpen(true)}
+            className="text-xs text-red-600 hover:underline"
+          >
+            Delete
+          </button>
+        )}
       </div>
       {notice.teammateRequests.length > 0 && (
-        <div className="mt-2 flex flex-col items-start gap-1">
+        <div className="mt-3 flex flex-col items-start gap-1">
           {notice.teammateRequests.map((req, i) => (
             <p
               key={i}
@@ -214,7 +219,7 @@ export function EventNoticeCard({
           ))}
         </div>
       )}
-      {notice.text && <p className="mt-2 whitespace-pre-wrap text-sm text-b2b-ink/80">{notice.text}</p>}
+      {notice.text && <p className="mt-2 whitespace-pre-wrap text-b2b-ink">{notice.text}</p>}
 
       <div className="mt-2 flex items-center gap-4 border-t border-b2b-purple/10 pt-2 text-xs">
         <button

@@ -9,14 +9,10 @@ import {
   type TeammateGenderOption,
 } from "@/lib/validation";
 import { TEAMMATE_DIVISION_LABELS, TEAMMATE_GENDER_LABELS } from "@/lib/labels";
-import { EventNoticeCard, type EventNoticeData } from "./EventNoticeCard";
+import { EventNoticeCard, type EventNoticeEntry } from "./EventNoticeCard";
 import { InfoDialog } from "./InfoDialog";
 
-export type EventNoticeEntry = {
-  notice: EventNoticeData;
-  isOwn: boolean;
-  isAuthorParticipating: boolean;
-};
+export type { EventNoticeEntry };
 
 export type EventTeammateAlertEntry = {
   id: string;
