@@ -8,6 +8,7 @@ import { SectionCard } from "@/components/SectionCard";
 import { Avatar } from "@/components/Avatar";
 import { EventEngagementButtons } from "@/components/EventEngagementButtons";
 import { EventNoticesPanel, type EventNoticeEntry } from "@/components/EventNoticesPanel";
+import { CollapsibleText } from "@/components/CollapsibleText";
 import { parseJsonArray, parseTeammateRequests } from "@/lib/labels";
 import {
   EVENT_DIVISION_LABELS,
@@ -138,7 +139,9 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
             </div>
           </div>
 
-          {event.description && <p className="mt-4 text-sm text-b2b-ink/70">{event.description}</p>}
+          {event.description && (
+            <CollapsibleText text={event.description} className="mt-4 text-sm text-b2b-ink/70" />
+          )}
 
           {categoryTags.length > 0 && (
             <div className="mt-3 flex flex-wrap justify-center gap-1">
