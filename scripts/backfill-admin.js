@@ -4,7 +4,7 @@
 // granted — idempotent and cheap, so running it on every boot is fine.
 const { PrismaClient } = require("@prisma/client");
 
-const ADMIN_EMAILS = ["vinyljunkie8@gmail.com", "georgia.marsland000@gmail.com"];
+const ADMIN_EMAILS = ["vinyljunkie8@gmail.com", "georgia.marsland@outlook.com"];
 
 async function main() {
   const prisma = new PrismaClient();
