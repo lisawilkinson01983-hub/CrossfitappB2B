@@ -28,6 +28,15 @@ export type EventTeamFormatOption = (typeof EVENT_TEAM_FORMATS)[number];
 export const EVENT_GENDER_CATEGORIES = ["MALE", "FEMALE", "MIXED"] as const;
 export type EventGenderCategoryOption = (typeof EVENT_GENDER_CATEGORIES)[number];
 
+// For a "looking for teammates" notice request — distinct from the event's
+// own EventGenderCategory/EventDivision since a request about one person
+// also needs an "any" option.
+export const TEAMMATE_GENDERS = ["MALE", "FEMALE", "ANY"] as const;
+export type TeammateGenderOption = (typeof TEAMMATE_GENDERS)[number];
+
+export const TEAMMATE_DIVISIONS = ["SCALED", "INTERMEDIATE", "RX", "ANY"] as const;
+export type TeammateDivisionOption = (typeof TEAMMATE_DIVISIONS)[number];
+
 // The full benchmark-movement catalog.
 export const PB_FIELDS = [
   "backSquatKg",
@@ -163,9 +172,23 @@ export const commentSchema = z.object({
   text: z.string().trim().min(1, "Comment can't be empty").max(1000),
 });
 
-export const eventNoticeSchema = z.object({
-  text: z.string().trim().min(1, "Notice can't be empty").max(1000),
-});
+// Two modes, one endpoint: a plain free-text notice (text required), or a
+// structured "looking for teammates" request (quantity/gender/division all
+// required, text optional extra detail). Never both empty.
+export const eventNoticeSchema = z
+  .object({
+    text: z.preprocess(emptyToUndefined, z.string().trim().max(1000).optional()),
+    teammateQuantity: z.preprocess(emptyToUndefined, z.coerce.number().int().min(1).max(20).optional()),
+    teammateGender: z.preprocess(emptyToUndefined, z.enum(TEAMMATE_GENDERS).optional()),
+    teammateDivision: z.preprocess(emptyToUndefined, z.enum(TEAMMATE_DIVISIONS).optional()),
+  })
+  .refine(
+    (data) =>
+      data.teammateQuantity !== undefined || data.teammateGender !== undefined || data.teammateDivision !== undefined
+        ? data.teammateQuantity !== undefined && data.teammateGender !== undefined && data.teammateDivision !== undefined
+        : !!data.text,
+    { message: "Fill in how many, gender, and division — or write a notice", path: ["text"] }
+  );
 
 // The image is a required upload, handled outside this schema (see
 // /api/events/submit) the same way post/workout photos are.

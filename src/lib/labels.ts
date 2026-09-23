@@ -8,6 +8,8 @@ import type {
   LevelOption,
   LookingForOption,
   PbField,
+  TeammateDivisionOption,
+  TeammateGenderOption,
   WorkoutIntensityOption,
   WorkoutUnitOption,
 } from "./validation";
@@ -55,6 +57,32 @@ export const EVENT_GENDER_CATEGORY_LABELS: Record<EventGenderCategoryOption, str
   FEMALE: "Female",
   MIXED: "Mixed",
 };
+
+export const TEAMMATE_GENDER_LABELS: Record<TeammateGenderOption, string> = {
+  MALE: "Male",
+  FEMALE: "Female",
+  ANY: "Any gender",
+};
+
+export const TEAMMATE_DIVISION_LABELS: Record<TeammateDivisionOption, string> = {
+  SCALED: "Scaled",
+  INTERMEDIATE: "Intermediate",
+  RX: "Rx",
+  ANY: "Any division",
+};
+
+/** "Looking for 1 x Female Scaled athlete" — omits gender/division when "any". */
+export function formatTeammateRequest(
+  quantity: number,
+  gender: TeammateGenderOption,
+  division: TeammateDivisionOption
+): string {
+  const parts = [gender !== "ANY" && TEAMMATE_GENDER_LABELS[gender], division !== "ANY" && TEAMMATE_DIVISION_LABELS[division]]
+    .filter(Boolean)
+    .join(" ");
+  const athleteWord = quantity === 1 ? "athlete" : "athletes";
+  return `Looking for ${quantity} x ${parts ? `${parts} ` : ""}${athleteWord}`;
+}
 
 export const PB_LABELS: Record<PbField, string> = {
   backSquatKg: "Back Squat",

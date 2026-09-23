@@ -24,7 +24,14 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   }
 
   const notice = await prisma.eventNotice.create({
-    data: { eventId, userId: session.user.id, text: parsed.data.text },
+    data: {
+      eventId,
+      userId: session.user.id,
+      text: parsed.data.text ?? null,
+      teammateQuantity: parsed.data.teammateQuantity ?? null,
+      teammateGender: parsed.data.teammateGender ?? null,
+      teammateDivision: parsed.data.teammateDivision ?? null,
+    },
     include: { user: { select: { id: true, name: true, photo: true } } },
   });
 
@@ -32,6 +39,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     notice: {
       id: notice.id,
       text: notice.text,
+      teammateQuantity: notice.teammateQuantity,
+      teammateGender: notice.teammateGender,
+      teammateDivision: notice.teammateDivision,
       createdAt: notice.createdAt,
       author: notice.user,
     },

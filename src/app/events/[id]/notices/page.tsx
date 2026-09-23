@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { NavBar } from "@/components/NavBar";
 import { SectionCard } from "@/components/SectionCard";
 import { EventNoticeComposer } from "@/components/EventNoticeComposer";
-import { EventNoticeCard } from "@/components/EventNoticeCard";
+import { EventNoticesList, type EventNoticeEntry } from "@/components/EventNoticesList";
 
 export default async function EventNoticesPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
@@ -35,6 +35,29 @@ export default async function EventNoticesPage({ params }: { params: Promise<{ i
 
   const participantIds = new Set(event.participants.map((p) => p.userId));
 
+  const noticeEntries: EventNoticeEntry[] = event.notices.map((notice) => ({
+    notice: {
+      id: notice.id,
+      text: notice.text,
+      teammateQuantity: notice.teammateQuantity,
+      teammateGender: notice.teammateGender,
+      teammateDivision: notice.teammateDivision,
+      createdAt: notice.createdAt,
+      author: notice.user,
+      likeCount: notice.likes.length,
+      likedByMe: notice.likes.some((l) => l.userId === session.user.id),
+      comments: notice.comments.map((c) => ({
+        id: c.id,
+        text: c.text,
+        createdAt: c.createdAt,
+        author: c.user,
+        parentId: c.parentId,
+      })),
+    },
+    isOwn: notice.userId === session.user.id,
+    isAuthorParticipating: participantIds.has(notice.userId),
+  }));
+
   return (
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
       <NavBar />
@@ -52,34 +75,7 @@ export default async function EventNoticesPage({ params }: { params: Promise<{ i
         </SectionCard>
 
         <SectionCard title={`${event.notices.length} ${event.notices.length === 1 ? "notice" : "notices"}`}>
-          {event.notices.length === 0 ? (
-            <p className="text-b2b-ink/40">No notices yet — be the first to post one.</p>
-          ) : (
-            <div className="flex flex-col gap-3">
-              {event.notices.map((notice) => (
-                <EventNoticeCard
-                  key={notice.id}
-                  notice={{
-                    id: notice.id,
-                    text: notice.text,
-                    createdAt: notice.createdAt,
-                    author: notice.user,
-                    likeCount: notice.likes.length,
-                    likedByMe: notice.likes.some((l) => l.userId === session.user.id),
-                    comments: notice.comments.map((c) => ({
-                      id: c.id,
-                      text: c.text,
-                      createdAt: c.createdAt,
-                      author: c.user,
-                      parentId: c.parentId,
-                    })),
-                  }}
-                  isOwn={notice.userId === session.user.id}
-                  isAuthorParticipating={participantIds.has(notice.userId)}
-                />
-              ))}
-            </div>
-          )}
+          <EventNoticesList notices={noticeEntries} />
         </SectionCard>
       </div>
     </main>
