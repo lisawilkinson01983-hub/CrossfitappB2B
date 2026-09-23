@@ -195,6 +195,14 @@ export const eventNoticeSchema = z
     path: ["text"],
   });
 
+// Editing an existing notice only ever changes its text — a free-text
+// notice's message, or a teammate request's optional extra detail. The
+// teammateRequests themselves aren't editable, same as a Post's linked
+// workout/event isn't editable via postSchema.
+export const eventNoticeEditSchema = z.object({
+  text: z.preprocess(emptyToUndefined, z.string().trim().max(1000).optional()),
+});
+
 // A saved "find a team" search (see EventTeammateAlert) — same
 // gender/division shape as one line of a teammateRequestSchema, minus quantity.
 export const teammateAlertSchema = z.object({

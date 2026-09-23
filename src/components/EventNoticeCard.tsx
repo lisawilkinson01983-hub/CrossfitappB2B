@@ -49,6 +49,12 @@ export function EventNoticeCard({
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
+  const [editingNotice, setEditingNotice] = useState(false);
+  const [editNoticeText, setEditNoticeText] = useState(notice.text ?? "");
+  const [text, setText] = useState(notice.text);
+  const [noticeSaving, setNoticeSaving] = useState(false);
+  const [noticeError, setNoticeError] = useState<string | null>(null);
+
   const [liked, setLiked] = useState(notice.likedByMe);
   const [likeCount, setLikeCount] = useState(notice.likeCount);
   const [likeBusy, setLikeBusy] = useState(false);
@@ -67,6 +73,24 @@ export function EventNoticeCard({
     setDeleting(false);
     setConfirmOpen(false);
     if (res.ok) router.refresh();
+  }
+
+  async function submitEditNotice() {
+    setNoticeSaving(true);
+    setNoticeError(null);
+    const res = await fetch(`/api/event-notices/${notice.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text: editNoticeText }),
+    });
+    setNoticeSaving(false);
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      setNoticeError(body.error ?? "Something went wrong. Please try again.");
+      return;
+    }
+    setText(editNoticeText.trim() ? editNoticeText : null);
+    setEditingNotice(false);
   }
 
   async function toggleLike() {
@@ -198,13 +222,26 @@ export function EventNoticeCard({
           </div>
         </Link>
         {isOwn && (
-          <button
-            type="button"
-            onClick={() => setConfirmOpen(true)}
-            className="text-xs text-red-600 hover:underline"
-          >
-            Delete
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                setEditNoticeText(text ?? "");
+                setNoticeError(null);
+                setEditingNotice(true);
+              }}
+              className="text-xs text-b2b-pink hover:underline"
+            >
+              Edit
+            </button>
+            <button
+              type="button"
+              onClick={() => setConfirmOpen(true)}
+              className="text-xs text-red-600 hover:underline"
+            >
+              Delete
+            </button>
+          </div>
         )}
       </div>
       {notice.teammateRequests.length > 0 && (
@@ -219,7 +256,37 @@ export function EventNoticeCard({
           ))}
         </div>
       )}
-      {notice.text && <p className="mt-2 whitespace-pre-wrap text-b2b-ink">{notice.text}</p>}
+
+      {editingNotice ? (
+        <div className="mt-2 flex flex-col gap-2">
+          {noticeError && <p className="text-sm text-red-600">{noticeError}</p>}
+          <textarea
+            rows={3}
+            value={editNoticeText}
+            onChange={(e) => setEditNoticeText(e.target.value)}
+            className="w-full rounded border border-gray-300 px-2 py-1 text-sm focus:border-b2b-pink focus:outline-none"
+          />
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={submitEditNotice}
+              disabled={noticeSaving}
+              className="rounded bg-b2b-pink px-3 py-1 text-sm text-white hover:bg-b2b-pink-dark disabled:opacity-50"
+            >
+              {noticeSaving ? "Saving..." : "Save"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setEditingNotice(false)}
+              className="text-sm text-b2b-ink/50 hover:underline"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      ) : (
+        text && <p className="mt-2 whitespace-pre-wrap text-b2b-ink">{text}</p>
+      )}
 
       <div className="mt-2 flex items-center gap-4 border-t border-b2b-purple/10 pt-2 text-xs">
         <button
