@@ -80,7 +80,7 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
     }))
     .filter((entry) => entry.notice.teammateRequests.length > 0);
 
-  // Every notice — search or free text — shows up in the shared event chat.
+  // Every notice — search or free text — shows up on the shared notice board.
   const chatMessageCount = event.notices.length;
 
   const myAlerts = event.teammateAlerts.map((a) => ({
@@ -146,7 +146,7 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
                 href={`/events/${event.id}/notices`}
                 className="rounded-xl border border-b2b-purple/20 bg-b2b-purple/10 px-4 py-3 text-center text-sm font-medium text-b2b-purple hover:bg-b2b-purple/20"
               >
-                💬 Join Event Chat{chatMessageCount > 0 ? ` (${chatMessageCount})` : ""}
+                📋 Notice Board{chatMessageCount > 0 ? ` (${chatMessageCount})` : ""}
               </Link>
             </div>
           </div>

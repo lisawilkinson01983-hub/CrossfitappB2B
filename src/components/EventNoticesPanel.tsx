@@ -90,7 +90,7 @@ export function EventNoticesPanel({
     );
   }
 
-  // Posted searches always land in the event chat (and the main feed, if
+  // Posted searches always land on the notice board (and the main feed, if
   // opted in) — they only show up here when actively searching for a team,
   // so the event page itself doesn't accumulate every request ever posted.
   const filteredNotices = useMemo(() => {
@@ -358,7 +358,7 @@ export function EventNoticesPanel({
       <InfoDialog
         open={posted}
         title="Posted!"
-        message="Your search has been posted to the event chat."
+        message="Your search has been posted to the notice board."
         onClose={() => setPosted(false)}
       />
 

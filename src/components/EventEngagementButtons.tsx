@@ -3,8 +3,10 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
+// Same size/shape as the athletes/notice-board buttons below (rounded-xl,
+// px-4 py-3, text-sm font-medium) so all four buttons on the event page match.
 function pillClass(active: boolean) {
-  return `w-full rounded-full px-4 py-3 text-sm font-semibold disabled:opacity-50 ${
+  return `w-full rounded-xl px-4 py-3 text-center text-sm font-medium disabled:opacity-50 ${
     active
       ? "bg-b2b-ink text-white hover:opacity-90"
       : "border border-b2b-purple/15 bg-b2b-card text-b2b-ink hover:border-b2b-purple/30"

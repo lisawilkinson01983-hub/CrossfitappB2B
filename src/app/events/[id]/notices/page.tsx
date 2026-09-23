@@ -38,7 +38,7 @@ export default async function EventNoticesPage({ params }: { params: Promise<{ i
 
   // The composer/filter for "looking for teammates" searches lives on the
   // main event page, but every notice — search or free text — also shows up
-  // here as one shared event chat feed, with the same likes/comments/replies
+  // here on the shared notice board, with the same likes/comments/replies
   // as the main feed.
   const chatEntries: EventNoticeEntry[] = event.notices.map((notice) => ({
     notice: {
@@ -70,7 +70,7 @@ export default async function EventNoticesPage({ params }: { params: Promise<{ i
       </Link>
 
       <div className="mt-4">
-        <SectionCard title="Event Chat">
+        <SectionCard title="Notice Board">
           <p className="mb-3 text-sm text-b2b-ink/50">
             A lift, a training partner, or anything else about {event.name}.
           </p>
