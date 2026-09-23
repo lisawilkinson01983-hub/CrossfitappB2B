@@ -24,6 +24,9 @@ export function EventSubmitForm() {
   const [name, setName] = useState("");
   const [date, setDate] = useState("");
   const [location, setLocation] = useState("");
+  const [postcode, setPostcode] = useState("");
+  const [postcodeBusy, setPostcodeBusy] = useState(false);
+  const [postcodeError, setPostcodeError] = useState<string | null>(null);
   const [websiteUrl, setWebsiteUrl] = useState("");
   const [description, setDescription] = useState("");
   const [division, setDivision] = useState<EventDivisionOption[]>([]);
@@ -37,6 +40,21 @@ export function EventSubmitForm() {
     const file = e.target.files?.[0] ?? null;
     setImage(file);
     if (file) setImagePreview(URL.createObjectURL(file));
+  }
+
+  async function handlePostcodeLookup() {
+    if (!postcode.trim() || postcodeBusy) return;
+    setPostcodeBusy(true);
+    setPostcodeError(null);
+    const res = await fetch(`/api/postcode-lookup?postcode=${encodeURIComponent(postcode)}`);
+    setPostcodeBusy(false);
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      setPostcodeError(body.error ?? "Couldn't find that postcode");
+      return;
+    }
+    const body = await res.json();
+    setLocation(body.location);
   }
 
   const [duplicates, setDuplicates] = useState<DuplicateMatch[]>([]);
@@ -107,6 +125,8 @@ export function EventSubmitForm() {
     setName("");
     setDate("");
     setLocation("");
+    setPostcode("");
+    setPostcodeError(null);
     setWebsiteUrl("");
     setDescription("");
     setDivision([]);
@@ -142,33 +162,61 @@ export function EventSubmitForm() {
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label htmlFor="date" className="block text-sm font-medium">
-            Date
-          </label>
+      <div>
+        <label htmlFor="date" className="block text-sm font-medium">
+          Date
+        </label>
+        <input
+          id="date"
+          type="date"
+          required
+          value={date}
+          onChange={(e) => setDate(e.target.value)}
+          className="mt-1 w-full min-w-0 rounded border border-gray-300 px-3 py-2 focus:border-b2b-pink focus:outline-none"
+        />
+      </div>
+
+      <div>
+        <label htmlFor="postcode" className="block text-sm font-medium">
+          Postcode
+        </label>
+        <div className="mt-1 flex gap-2">
           <input
-            id="date"
-            type="date"
-            required
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            className="mt-1 w-full rounded border border-gray-300 px-3 py-2 focus:border-b2b-pink focus:outline-none"
-          />
-        </div>
-        <div>
-          <label htmlFor="location" className="block text-sm font-medium">
-            Location
-          </label>
-          <input
-            id="location"
+            id="postcode"
             type="text"
-            required
-            value={location}
-            onChange={(e) => setLocation(e.target.value)}
-            className="mt-1 w-full rounded border border-gray-300 px-3 py-2 focus:border-b2b-pink focus:outline-none"
+            placeholder="e.g. BN27 3JF"
+            value={postcode}
+            onChange={(e) => setPostcode(e.target.value)}
+            className="w-full min-w-0 rounded border border-gray-300 px-3 py-2 focus:border-b2b-pink focus:outline-none"
           />
+          <button
+            type="button"
+            onClick={handlePostcodeLookup}
+            disabled={postcodeBusy || !postcode.trim()}
+            className="whitespace-nowrap rounded border border-b2b-purple/20 px-3 py-2 text-sm font-medium text-b2b-ink/60 hover:border-b2b-pink hover:text-b2b-pink disabled:opacity-50"
+          >
+            {postcodeBusy ? "..." : "Find address"}
+          </button>
         </div>
+        {postcodeError && <p className="mt-1 text-xs text-red-600">{postcodeError}</p>}
+      </div>
+
+      <div>
+        <label htmlFor="location" className="block text-sm font-medium">
+          Location
+        </label>
+        <input
+          id="location"
+          type="text"
+          required
+          placeholder="Town, postcode, country"
+          value={location}
+          onChange={(e) => setLocation(e.target.value)}
+          className="mt-1 w-full min-w-0 rounded border border-gray-300 px-3 py-2 focus:border-b2b-pink focus:outline-none"
+        />
+        <p className="mt-1 text-xs text-b2b-ink/40">
+          Filled in from the postcode above — edit it if you'd like to add a venue name.
+        </p>
       </div>
 
       {showDuplicateWarning && (
