@@ -40,6 +40,16 @@ export async function NavBar() {
               </span>
             )}
           </Link>
+          <Link href="/messages" className="relative text-b2b-ink/70 hover:text-b2b-pink" aria-label="Messages">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="h-6 w-6">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+            </svg>
+            {unreadMessages > 0 && (
+              <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-b2b-pink text-[9px] font-semibold text-white">
+                {unreadMessages}
+              </span>
+            )}
+          </Link>
           <Link href="/settings" aria-label="Settings" className="text-b2b-ink/70 hover:text-b2b-pink">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="h-6 w-6">
               <circle cx="12" cy="12" r="3" />
@@ -49,7 +59,7 @@ export async function NavBar() {
           <SignOutButton />
         </div>
       </nav>
-      <BottomTabBar unreadMessages={unreadMessages} />
+      <BottomTabBar />
     </>
   );
 }

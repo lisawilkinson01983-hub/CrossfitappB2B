@@ -3,27 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-// Feed sits center to signal that the social feed, not logging a workout,
-// is the heart of the app; Log is pushed to the far right as a utility
-// action rather than the default focal point.
 const TABS = [
-  {
-    href: "/discover",
-    label: "Discover",
-    match: (path: string) => path.startsWith("/discover"),
-    icon: (
-      <>
-        <circle cx="11" cy="11" r="7" />
-        <path d="m21 21-4.3-4.3" />
-      </>
-    ),
-  },
-  {
-    href: "/messages",
-    label: "Messages",
-    match: (path: string) => path.startsWith("/messages"),
-    icon: <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />,
-  },
   {
     href: "/feed",
     label: "Feed",
@@ -36,13 +16,13 @@ const TABS = [
     ),
   },
   {
-    href: "/profile",
-    label: "Profile",
-    match: (path: string) => path.startsWith("/profile"),
+    href: "/discover",
+    label: "Discover",
+    match: (path: string) => path.startsWith("/discover"),
     icon: (
       <>
-        <circle cx="12" cy="8" r="4" />
-        <path d="M4 20c0-4 4-6 8-6s8 2 8 6" />
+        <circle cx="11" cy="11" r="7" />
+        <path d="m21 21-4.3-4.3" />
       </>
     ),
   },
@@ -57,9 +37,20 @@ const TABS = [
       </>
     ),
   },
+  {
+    href: "/profile",
+    label: "Profile",
+    match: (path: string) => path.startsWith("/profile"),
+    icon: (
+      <>
+        <circle cx="12" cy="8" r="4" />
+        <path d="M4 20c0-4 4-6 8-6s8 2 8 6" />
+      </>
+    ),
+  },
 ];
 
-export function BottomTabBar({ unreadMessages }: { unreadMessages: number }) {
+export function BottomTabBar() {
   const pathname = usePathname();
 
   return (
@@ -85,11 +76,6 @@ export function BottomTabBar({ unreadMessages }: { unreadMessages: number }) {
                 {tab.icon}
               </svg>
               {tab.label}
-              {tab.label === "Messages" && unreadMessages > 0 && (
-                <span className="absolute -top-0.5 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-b2b-pink text-[9px] font-semibold text-white">
-                  {unreadMessages}
-                </span>
-              )}
             </Link>
           );
         })}
