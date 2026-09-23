@@ -7,6 +7,17 @@ import { NavBar } from "@/components/NavBar";
 import { SectionCard } from "@/components/SectionCard";
 import { Avatar } from "@/components/Avatar";
 import { EventEngagementButtons } from "@/components/EventEngagementButtons";
+import { parseJsonArray } from "@/lib/labels";
+import {
+  EVENT_DIVISION_LABELS,
+  EVENT_TEAM_FORMAT_LABELS,
+  EVENT_GENDER_CATEGORY_LABELS,
+} from "@/lib/labels";
+import type {
+  EventDivisionOption,
+  EventTeamFormatOption,
+  EventGenderCategoryOption,
+} from "@/lib/validation";
 
 export default async function EventPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
@@ -26,6 +37,15 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
 
   const isParticipating = event.participants.length > 0;
   const isInterested = event.interests.length > 0;
+
+  const division = parseJsonArray<EventDivisionOption>(event.division);
+  const teamFormat = parseJsonArray<EventTeamFormatOption>(event.teamFormat);
+  const genderCategory = parseJsonArray<EventGenderCategoryOption>(event.genderCategory);
+  const categoryTags = [
+    ...division.map((v) => EVENT_DIVISION_LABELS[v]),
+    ...teamFormat.map((v) => EVENT_TEAM_FORMAT_LABELS[v]),
+    ...genderCategory.map((v) => EVENT_GENDER_CATEGORY_LABELS[v]),
+  ];
 
   return (
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
@@ -66,6 +86,27 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
           </div>
 
           {event.description && <p className="mt-4 text-sm text-b2b-ink/70">{event.description}</p>}
+
+          {categoryTags.length > 0 && (
+            <div className="mt-3 flex flex-wrap justify-center gap-1">
+              {categoryTags.map((tag) => (
+                <span key={tag} className="rounded-full bg-b2b-purple/10 px-2 py-0.5 text-xs text-b2b-purple">
+                  {tag}
+                </span>
+              ))}
+            </div>
+          )}
+
+          {event.websiteUrl && (
+            <a
+              href={event.websiteUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-3 block text-center text-sm text-b2b-pink underline"
+            >
+              Event website
+            </a>
+          )}
         </SectionCard>
       </div>
 

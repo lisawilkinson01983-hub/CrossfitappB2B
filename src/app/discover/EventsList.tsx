@@ -31,11 +31,12 @@ export async function EventsList({
   const distance = DISTANCE_RANGES.find((d) => String(d) === sp.distance);
 
   const where: Prisma.EventWhereInput = {
+    status: "APPROVED",
     ...(q ? { OR: [{ name: { contains: q } }, { location: { contains: q } }] } : {}),
     ...(time ? { date: { lte: new Date(Date.now() + TIME_RANGES[time].days * 86400000) } } : {}),
   };
 
-  const [events, currentUser] = await Promise.all([
+  const [events, currentUser, pendingCount] = await Promise.all([
     prisma.event.findMany({
       where,
       orderBy: { date: "asc" },
@@ -46,8 +47,9 @@ export async function EventsList({
     }),
     prisma.user.findUnique({
       where: { id: currentUserId },
-      select: { area: true, areaLat: true, areaLng: true },
+      select: { area: true, areaLat: true, areaLng: true, isAdmin: true },
     }),
+    prisma.event.count({ where: { status: "PENDING" } }),
   ]);
 
   const myCoords = currentUser
@@ -68,6 +70,20 @@ export async function EventsList({
 
   return (
     <div className="mt-4 flex flex-col gap-6">
+      <div className="flex items-center justify-between">
+        <Link
+          href="/events/submit"
+          className="rounded bg-b2b-pink px-4 py-2 text-sm font-medium text-white hover:bg-b2b-pink-dark"
+        >
+          Submit an event
+        </Link>
+        {currentUser?.isAdmin && (
+          <Link href="/events/review" className="text-sm text-b2b-purple underline">
+            Review submissions{pendingCount > 0 ? ` (${pendingCount})` : ""}
+          </Link>
+        )}
+      </div>
+
       <SectionCard>
         <form method="GET" className="flex flex-col gap-4">
           <input type="hidden" name="view" value="events" />

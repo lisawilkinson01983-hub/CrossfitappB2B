@@ -66,6 +66,33 @@ enum NotificationType {
   MENTION
 }
 
+enum EventStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+// SQLite has no native array type, so `division`, `teamFormat`, and
+// `genderCategory` on Event are each stored as a JSON-encoded array of
+// these values, same pattern as User.lookingFor.
+enum EventDivision {
+  SCALED
+  RX
+  INTERMEDIATE
+}
+
+enum EventTeamFormat {
+  SINGLES
+  PAIRS
+  TEAMS
+}
+
+enum EventGenderCategory {
+  MALE
+  FEMALE
+  MIXED
+}
+
 model User {
   id           String   @id @default(cuid())
   name         String
@@ -76,6 +103,10 @@ model User {
   bio    String?
   age    Int?
   gender Gender?
+
+  // Grants access to /events/review (approve/reject user-submitted events).
+  // No broader role system — this is the only admin-gated capability so far.
+  isAdmin Boolean @default(false)
 
   // Profile fields below are optional at signup time and filled in via the
   // profile edit form, so they're nullable even though every real profile
@@ -180,6 +211,7 @@ model User {
   sentMessages           Message[]
 
   createdEvents        Event[]
+  submittedEvents      Event[] @relation("EventSubmissions")
   eventParticipations  EventParticipant[]
   eventInterests       EventInterest[]
   eventPins            EventPin[]
@@ -394,24 +426,40 @@ model Event {
   name        String
   date        DateTime
   location    String
-  description String?
+  description String? // free text "event information" — required for a user submission, optional for a curated listing
   tag         String? // free text, e.g. "Team size: 3", "Charity", "RX division"
-  photo       String? // served path, e.g. "/media/xyz.jpg" (see src/lib/uploads.ts)
+  photo       String? // served path, e.g. "/media/xyz.jpg" (see src/lib/uploads.ts) — the event's image
+  websiteUrl  String? // link to the event's own site
+
+  // JSON-encoded arrays of EventDivision/EventTeamFormat/EventGenderCategory
+  // values (see the enum comment above) — each required (min 1) for a user
+  // submission, via the eventSubmissionSchema in src/lib/validation.ts.
+  division       String?
+  teamFormat     String?
+  genderCategory String?
 
   // Geocoded from `location` (see src/lib/geocode.ts), lazily on first read,
   // so Discover can filter by distance from the athlete's own area.
   lat Float?
   lng Float?
 
-  // No in-app creation UI — events are added directly (e.g. via Prisma
-  // Studio) or, eventually, ingested from a partnered aggregator, to keep
-  // the list free of user-submitted duplicates/errors. createdById is kept
-  // for whichever account performs that admin action, not a real author.
+  // Curated listings (added directly, e.g. via Prisma Studio or the
+  // backfill scripts) are created APPROVED and createdById is just
+  // bookkeeping for whichever account performed that action, not a real
+  // author. A user submission (source "user_submission") is created
+  // PENDING with createdById/submittedById both set to the real submitter,
+  // and only shows up in Discover once a moderator approves it.
+  status EventStatus @default(APPROVED)
+
   createdById String
   createdBy   User   @relation(fields: [createdById], references: [id], onDelete: Cascade)
 
-  // "manual" for now; an aggregator name (compete-zone/etc.) once Tier 2
-  // partnered event feeds exist.
+  submittedById String?
+  submittedBy   User?   @relation("EventSubmissions", fields: [submittedById], references: [id], onDelete: SetNull)
+
+  // "manual" for a curated listing, "user_submission" for one submitted
+  // in-app; an aggregator name (compete-zone/etc.) once Tier 2 partnered
+  // event feeds exist.
   source String @default("manual")
 
   createdAt DateTime @default(now())

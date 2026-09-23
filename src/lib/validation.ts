@@ -19,6 +19,15 @@ export type WorkoutIntensityOption = (typeof WORKOUT_INTENSITIES)[number];
 export const APP_THEMES = ["PINK", "BLUE"] as const;
 export type AppThemeOption = (typeof APP_THEMES)[number];
 
+export const EVENT_DIVISIONS = ["SCALED", "RX", "INTERMEDIATE"] as const;
+export type EventDivisionOption = (typeof EVENT_DIVISIONS)[number];
+
+export const EVENT_TEAM_FORMATS = ["SINGLES", "PAIRS", "TEAMS"] as const;
+export type EventTeamFormatOption = (typeof EVENT_TEAM_FORMATS)[number];
+
+export const EVENT_GENDER_CATEGORIES = ["MALE", "FEMALE", "MIXED"] as const;
+export type EventGenderCategoryOption = (typeof EVENT_GENDER_CATEGORIES)[number];
+
 // The full benchmark-movement catalog.
 export const PB_FIELDS = [
   "backSquatKg",
@@ -156,6 +165,19 @@ export const commentSchema = z.object({
 
 export const eventNoticeSchema = z.object({
   text: z.string().trim().min(1, "Notice can't be empty").max(1000),
+});
+
+// The image is a required upload, handled outside this schema (see
+// /api/events/submit) the same way post/workout photos are.
+export const eventSubmissionSchema = z.object({
+  name: z.string().trim().min(1, "Event name is required"),
+  date: z.coerce.date({ errorMap: () => ({ message: "Enter a valid date" }) }),
+  location: z.string().trim().min(1, "Location is required"),
+  websiteUrl: z.string().trim().url("Enter a valid website URL"),
+  description: z.string().trim().min(1, "Event information is required").max(2000),
+  division: z.array(z.enum(EVENT_DIVISIONS)).min(1, "Select at least one division"),
+  teamFormat: z.array(z.enum(EVENT_TEAM_FORMATS)).min(1, "Select at least one team format"),
+  genderCategory: z.array(z.enum(EVENT_GENDER_CATEGORIES)).min(1, "Select at least one gender category"),
 });
 
 export const messageSchema = z.object({

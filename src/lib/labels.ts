@@ -1,6 +1,9 @@
 import { PB_FIELDS } from "./validation";
 import type {
   AppThemeOption,
+  EventDivisionOption,
+  EventGenderCategoryOption,
+  EventTeamFormatOption,
   GenderOption,
   LevelOption,
   LookingForOption,
@@ -33,6 +36,24 @@ export const LOOKING_FOR_LABELS: Record<LookingForOption, string> = {
   TEAM_MATES: "Team mates",
   FRIENDS: "Friends",
   DEEPER_CONNECTION: "Deeper connection",
+};
+
+export const EVENT_DIVISION_LABELS: Record<EventDivisionOption, string> = {
+  SCALED: "Scaled",
+  RX: "Rx",
+  INTERMEDIATE: "Intermediate",
+};
+
+export const EVENT_TEAM_FORMAT_LABELS: Record<EventTeamFormatOption, string> = {
+  SINGLES: "Singles",
+  PAIRS: "Pairs",
+  TEAMS: "Teams",
+};
+
+export const EVENT_GENDER_CATEGORY_LABELS: Record<EventGenderCategoryOption, string> = {
+  MALE: "Male",
+  FEMALE: "Female",
+  MIXED: "Mixed",
 };
 
 export const PB_LABELS: Record<PbField, string> = {
@@ -130,6 +151,17 @@ export function showsSingleBadge(user: { isSingle: boolean | null; showSingleBad
 }
 
 export function parseLookingFor(value: string | null): LookingForOption[] {
+  if (!value) return [];
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+/** Parses any JSON-encoded-array string column (Event.division/teamFormat/genderCategory, etc). */
+export function parseJsonArray<T extends string>(value: string | null): T[] {
   if (!value) return [];
   try {
     const parsed = JSON.parse(value);
