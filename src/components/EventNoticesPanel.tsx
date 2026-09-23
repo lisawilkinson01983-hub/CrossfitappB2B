@@ -47,8 +47,11 @@ export function EventNoticesPanel({ eventId, notices }: { eventId: string; notic
   const [filterDivision, setFilterDivision] = useState<TeammateDivisionOption | "ALL">("ALL");
   const filtering = filterGender !== "ALL" || filterDivision !== "ALL";
 
+  // Posted searches always land in the event chat (and the main feed, if
+  // opted in) — they only show up here when actively searching for a team,
+  // so the event page itself doesn't accumulate every request ever posted.
   const filteredNotices = useMemo(() => {
-    if (!filtering) return notices;
+    if (!filtering) return [];
     return notices.filter(({ notice }) =>
       notice.teammateRequests.some((req) => {
         const genderMatches = filterGender === "ALL" || req.gender === "ANY" || req.gender === filterGender;
@@ -282,24 +285,22 @@ export function EventNoticesPanel({ eventId, notices }: { eventId: string; notic
         </form>
       )}
 
-      <div className="mt-4 border-t border-b2b-purple/10 pt-3">
-        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-b2b-ink/40">
-          {filtering
-            ? `${filteredNotices.length} matching ${filteredNotices.length === 1 ? "notice" : "notices"}`
-            : `${notices.length} ${notices.length === 1 ? "notice" : "notices"}`}
-        </p>
-        {filteredNotices.length === 0 ? (
-          <p className="text-b2b-ink/40">
-            {filtering ? "No teams looking for that right now." : "No searches yet — be the first to post one."}
+      {filtering && (
+        <div className="mt-4 border-t border-b2b-purple/10 pt-3">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-b2b-ink/40">
+            {filteredNotices.length} matching {filteredNotices.length === 1 ? "notice" : "notices"}
           </p>
-        ) : (
-          <div className="flex flex-col gap-3">
-            {filteredNotices.map(({ notice, isOwn, isAuthorParticipating }) => (
-              <EventNoticeCard key={notice.id} notice={notice} isOwn={isOwn} isAuthorParticipating={isAuthorParticipating} />
-            ))}
-          </div>
-        )}
-      </div>
+          {filteredNotices.length === 0 ? (
+            <p className="text-b2b-ink/40">No teams looking for that right now.</p>
+          ) : (
+            <div className="flex flex-col gap-3">
+              {filteredNotices.map(({ notice, isOwn, isAuthorParticipating }) => (
+                <EventNoticeCard key={notice.id} notice={notice} isOwn={isOwn} isAuthorParticipating={isAuthorParticipating} />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       <InfoDialog
         open={posted}
