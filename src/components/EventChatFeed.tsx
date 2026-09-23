@@ -23,8 +23,9 @@ export function EventChatFeed({ eventId, messages }: { eventId: string; messages
   const [error, setError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
+  // Most recent first, same as the main feed.
   const ordered = [...messages].sort(
-    (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   );
 
   async function handleSubmit(e: FormEvent) {
@@ -57,62 +58,7 @@ export function EventChatFeed({ eventId, messages }: { eventId: string; messages
 
   return (
     <div>
-      {ordered.length === 0 ? (
-        <p className="text-b2b-ink/40">No messages yet — say hi.</p>
-      ) : (
-        <div className="flex flex-col gap-3">
-          {ordered.map((msg) => (
-            <div key={msg.id} className="flex items-start gap-2">
-              <Link href={`/profile/${msg.author.id}`}>
-                <Avatar photo={msg.author.photo} name={msg.author.name} size={28} />
-              </Link>
-              <div className="flex-1 rounded-lg bg-b2b-bg px-3 py-2">
-                <div className="flex items-baseline justify-between gap-2">
-                  <Link href={`/profile/${msg.author.id}`} className="text-sm font-semibold hover:underline">
-                    {msg.author.name}
-                  </Link>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-b2b-ink/40">
-                      {new Date(msg.createdAt).toLocaleString(undefined, {
-                        month: "short",
-                        day: "numeric",
-                        hour: "numeric",
-                        minute: "2-digit",
-                      })}
-                    </span>
-                    {msg.isOwn && (
-                      <button
-                        type="button"
-                        onClick={() => handleDelete(msg.id)}
-                        disabled={deletingId === msg.id}
-                        aria-label="Delete message"
-                        className="text-b2b-ink/40 hover:text-red-600 disabled:opacity-50"
-                      >
-                        ×
-                      </button>
-                    )}
-                  </div>
-                </div>
-                {msg.teammateRequests.length > 0 && (
-                  <div className="mt-1 flex flex-col items-start gap-1">
-                    {msg.teammateRequests.map((req, i) => (
-                      <p
-                        key={i}
-                        className="inline-block rounded-lg bg-b2b-purple/10 px-2 py-1 text-xs font-semibold text-b2b-purple"
-                      >
-                        🔍 {formatTeammateRequest(req.quantity, req.gender, req.division)}
-                      </p>
-                    ))}
-                  </div>
-                )}
-                {msg.text && <p className="mt-1 whitespace-pre-wrap text-sm text-b2b-ink/80">{msg.text}</p>}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      <div className="mt-3 border-t border-b2b-purple/10 pt-3">
+      <div>
         {error && <p className="mb-2 text-sm text-red-600">{error}</p>}
         <form onSubmit={handleSubmit} className="flex gap-2">
           <input
@@ -131,6 +77,50 @@ export function EventChatFeed({ eventId, messages }: { eventId: string; messages
           </button>
         </form>
       </div>
+
+      {ordered.length === 0 ? (
+        <p className="mt-4 text-b2b-ink/40">No messages yet — say hi.</p>
+      ) : (
+        <div className="mt-4 flex flex-col gap-4">
+          {ordered.map((msg) => (
+            <div key={msg.id} className="rounded-xl border border-b2b-purple/10 bg-b2b-bg p-4">
+              <div className="flex items-start justify-between gap-4">
+                <Link href={`/profile/${msg.author.id}`} className="flex items-center gap-3">
+                  <Avatar photo={msg.author.photo} name={msg.author.name} size={40} />
+                  <div>
+                    <span className="font-semibold hover:underline">{msg.author.name}</span>
+                    <p className="text-xs text-b2b-ink/40">{new Date(msg.createdAt).toLocaleString()}</p>
+                  </div>
+                </Link>
+                {msg.isOwn && (
+                  <button
+                    type="button"
+                    onClick={() => handleDelete(msg.id)}
+                    disabled={deletingId === msg.id}
+                    className="text-xs text-red-600 hover:underline disabled:opacity-50"
+                  >
+                    Delete
+                  </button>
+                )}
+              </div>
+
+              {msg.teammateRequests.length > 0 && (
+                <div className="mt-3 flex flex-col items-start gap-1">
+                  {msg.teammateRequests.map((req, i) => (
+                    <p
+                      key={i}
+                      className="inline-block rounded-lg bg-b2b-purple/10 px-3 py-1.5 text-sm font-semibold text-b2b-purple"
+                    >
+                      🔍 {formatTeammateRequest(req.quantity, req.gender, req.division)}
+                    </p>
+                  ))}
+                </div>
+              )}
+              {msg.text && <p className="mt-2 whitespace-pre-wrap text-b2b-ink">{msg.text}</p>}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
