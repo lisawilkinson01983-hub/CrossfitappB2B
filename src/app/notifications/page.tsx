@@ -25,6 +25,7 @@ export default async function NotificationsPage() {
     include: {
       actor: { select: { id: true, name: true, photo: true, isSingle: true, showSingleBadge: true } },
       post: { select: { id: true } },
+      event: { select: { id: true, name: true } },
     },
   });
 
@@ -42,7 +43,13 @@ export default async function NotificationsPage() {
               {notifications.map((n) => (
                 <Link
                   key={n.id}
-                  href={n.post ? `/feed#post-${n.post.id}` : `/profile/${n.actor.id}`}
+                  href={
+                    n.type === "EVENT_SUBMITTED"
+                      ? "/events/review"
+                      : n.post
+                        ? `/feed#post-${n.post.id}`
+                        : `/profile/${n.actor.id}`
+                  }
                   className="flex items-center gap-3 py-3 hover:bg-b2b-purple/5"
                 >
                   <Avatar
@@ -61,7 +68,9 @@ export default async function NotificationsPage() {
                           ? "replied to your comment"
                           : n.type === "COMMENT_LIKE"
                             ? "liked your comment"
-                            : "mentioned you"}
+                            : n.type === "EVENT_SUBMITTED"
+                              ? `submitted "${n.event?.name ?? "an event"}" for review`
+                              : "mentioned you"}
                   </p>
                   <span className="whitespace-nowrap text-xs text-b2b-ink/40">
                     {n.createdAt.toLocaleDateString()}

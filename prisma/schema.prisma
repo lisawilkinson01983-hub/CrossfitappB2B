@@ -64,6 +64,7 @@ enum NotificationType {
   REPLY
   COMMENT_LIKE
   MENTION
+  EVENT_SUBMITTED
 }
 
 enum EventStatus {
@@ -464,11 +465,12 @@ model Event {
 
   createdAt DateTime @default(now())
 
-  participants EventParticipant[]
-  interests    EventInterest[]
-  pins         EventPin[]
-  notices      EventNotice[]
-  posts        Post[]
+  participants  EventParticipant[]
+  interests     EventInterest[]
+  pins          EventPin[]
+  notices       EventNotice[]
+  posts         Post[]
+  notifications Notification[]
 
   @@index([date])
 }
@@ -630,6 +632,10 @@ model Notification {
   // a comment rather than the post body itself.
   commentId String?
   comment   Comment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  // Set for EVENT_SUBMITTED — the event awaiting review.
+  eventId String?
+  event   Event?  @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
   readAt    DateTime?
   createdAt DateTime  @default(now())

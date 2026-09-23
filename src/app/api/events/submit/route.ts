@@ -67,5 +67,17 @@ export async function POST(req: Request) {
     },
   });
 
+  const admins = await prisma.user.findMany({ where: { isAdmin: true }, select: { id: true } });
+  if (admins.length > 0) {
+    await prisma.notification.createMany({
+      data: admins.map((admin) => ({
+        userId: admin.id,
+        actorId: session.user.id,
+        type: "EVENT_SUBMITTED" as const,
+        eventId: event.id,
+      })),
+    });
+  }
+
   return NextResponse.json({ ok: true, id: event.id });
 }
