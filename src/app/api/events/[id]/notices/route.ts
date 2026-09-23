@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { eventNoticeSchema } from "@/lib/validation";
 import { parseTeammateRequests } from "@/lib/labels";
+import { teammateCriteriaMatch } from "@/lib/teammateMatch";
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
@@ -48,6 +49,32 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         linkedEventId: eventId,
       },
     });
+  }
+
+  // Notify anyone with a saved "find a team" search that this request fits.
+  if (hasTeammateRequests) {
+    const alerts = await prisma.eventTeammateAlert.findMany({
+      where: { eventId, userId: { not: session.user.id } },
+      select: { userId: true, gender: true, division: true },
+    });
+
+    const matchedUserIds = new Set<string>();
+    for (const alert of alerts) {
+      if (parsed.data.teammateRequests!.some((req) => teammateCriteriaMatch(alert, req))) {
+        matchedUserIds.add(alert.userId);
+      }
+    }
+
+    if (matchedUserIds.size > 0) {
+      await prisma.notification.createMany({
+        data: [...matchedUserIds].map((userId) => ({
+          userId,
+          actorId: session.user.id,
+          type: "TEAMMATE_REQUEST_MATCH" as const,
+          eventId,
+        })),
+      });
+    }
   }
 
   return NextResponse.json({

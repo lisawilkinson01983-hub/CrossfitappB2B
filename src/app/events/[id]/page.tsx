@@ -19,6 +19,8 @@ import type {
   EventDivisionOption,
   EventTeamFormatOption,
   EventGenderCategoryOption,
+  TeammateDivisionOption,
+  TeammateGenderOption,
 } from "@/lib/validation";
 
 export default async function EventPage({ params }: { params: Promise<{ id: string }> }) {
@@ -42,6 +44,10 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
             include: { user: { select: { id: true, name: true } } },
           },
         },
+      },
+      teammateAlerts: {
+        where: { userId: session.user.id },
+        select: { id: true, gender: true, division: true },
       },
     },
   });
@@ -76,6 +82,12 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
 
   // Every notice — search or free text — shows up in the shared event chat.
   const chatMessageCount = event.notices.length;
+
+  const myAlerts = event.teammateAlerts.map((a) => ({
+    id: a.id,
+    gender: a.gender as TeammateGenderOption,
+    division: a.division as TeammateDivisionOption,
+  }));
 
   const division = parseJsonArray<EventDivisionOption>(event.division);
   const teamFormat = parseJsonArray<EventTeamFormatOption>(event.teamFormat);
@@ -169,7 +181,7 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
       <div className="mt-6">
         <SectionCard title="Notices">
           <p className="mb-3 text-sm text-b2b-ink/50">Looking for teammates for {event.name}? Post it here.</p>
-          <EventNoticesPanel eventId={event.id} notices={noticeEntries} />
+          <EventNoticesPanel eventId={event.id} notices={noticeEntries} myAlerts={myAlerts} />
         </SectionCard>
       </div>
     </main>

@@ -66,6 +66,12 @@ enum NotificationType {
   COMMENT_LIKE
   MENTION
   EVENT_SUBMITTED
+  // A team's newly-posted "looking for teammates" request matched someone's
+  // saved "find a team" search (EventTeammateAlert).
+  TEAMMATE_REQUEST_MATCH
+  // Someone's newly-saved "find a team" search matched an existing "looking
+  // for teammates" request — the reverse direction of the above.
+  TEAMMATE_SEARCH_MATCH
 }
 
 enum EventStatus {
@@ -220,6 +226,7 @@ model User {
   eventNotices         EventNotice[]
   eventNoticeLikes     EventNoticeLike[]
   eventNoticeComments  EventNoticeComment[]
+  eventTeammateAlerts  EventTeammateAlert[]
 
   blocksMade     Block[] @relation("BlocksMade")
   blocksReceived Block[] @relation("BlocksReceived")
@@ -475,9 +482,10 @@ model Event {
   participants  EventParticipant[]
   interests     EventInterest[]
   pins          EventPin[]
-  notices       EventNotice[]
-  posts         Post[]
-  notifications Notification[]
+  notices        EventNotice[]
+  posts          Post[]
+  notifications  Notification[]
+  teammateAlerts EventTeammateAlert[]
 
   @@index([date])
 }
@@ -560,6 +568,29 @@ model EventNotice {
   likes    EventNoticeLike[]
   comments EventNoticeComment[]
 
+  @@index([eventId])
+}
+
+// A saved "find a team" search — lets someone with no current matches get
+// notified the moment a team posts a request that fits (TEAMMATE_REQUEST_MATCH),
+// and immediately notifies the reverse direction too: any team whose existing
+// request already matches this alert (TEAMMATE_SEARCH_MATCH), so both sides
+// of a fit hear about each other without waiting for the other to search.
+model EventTeammateAlert {
+  id      String @id @default(cuid())
+  eventId String
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  userId  String
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // TeammateGenderOption/TeammateDivisionOption from src/lib/validation.ts,
+  // including "ANY" — same matching semantics as EventNotice.teammateRequests.
+  gender   String
+  division String
+
+  createdAt DateTime @default(now())
+
+  @@unique([eventId, userId, gender, division])
   @@index([eventId])
 }
 

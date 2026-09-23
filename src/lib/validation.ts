@@ -195,6 +195,13 @@ export const eventNoticeSchema = z
     path: ["text"],
   });
 
+// A saved "find a team" search (see EventTeammateAlert) — same
+// gender/division shape as one line of a teammateRequestSchema, minus quantity.
+export const teammateAlertSchema = z.object({
+  gender: z.enum(TEAMMATE_GENDERS),
+  division: z.enum(TEAMMATE_DIVISIONS),
+});
+
 // The image is a required upload, handled outside this schema (see
 // /api/events/submit) the same way post/workout photos are.
 export const eventSubmissionSchema = z.object({

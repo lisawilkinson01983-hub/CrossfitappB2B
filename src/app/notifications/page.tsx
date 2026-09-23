@@ -46,9 +46,11 @@ export default async function NotificationsPage() {
                   href={
                     n.type === "EVENT_SUBMITTED"
                       ? "/events/review"
-                      : n.post
-                        ? `/feed#post-${n.post.id}`
-                        : `/profile/${n.actor.id}`
+                      : n.type === "TEAMMATE_REQUEST_MATCH" || n.type === "TEAMMATE_SEARCH_MATCH"
+                        ? `/events/${n.event?.id ?? ""}`
+                        : n.post
+                          ? `/feed#post-${n.post.id}`
+                          : `/profile/${n.actor.id}`
                   }
                   className="flex items-center gap-3 py-3 hover:bg-b2b-purple/5"
                 >
@@ -70,7 +72,11 @@ export default async function NotificationsPage() {
                             ? "liked your comment"
                             : n.type === "EVENT_SUBMITTED"
                               ? `submitted "${n.event?.name ?? "an event"}" for review`
-                              : "mentioned you"}
+                              : n.type === "TEAMMATE_REQUEST_MATCH"
+                                ? `posted a teammate request matching your search for "${n.event?.name ?? "an event"}"`
+                                : n.type === "TEAMMATE_SEARCH_MATCH"
+                                  ? `is looking for a team matching your request for "${n.event?.name ?? "an event"}"`
+                                  : "mentioned you"}
                   </p>
                   <span className="whitespace-nowrap text-xs text-b2b-ink/40">
                     {n.createdAt.toLocaleDateString()}

@@ -18,6 +18,12 @@ export type EventNoticeEntry = {
   isAuthorParticipating: boolean;
 };
 
+export type EventTeammateAlertEntry = {
+  id: string;
+  gender: TeammateGenderOption;
+  division: TeammateDivisionOption;
+};
+
 type Mode = "teammate" | "findTeam";
 
 type TeammateRow = {
@@ -31,7 +37,15 @@ function tabClass(active: boolean) {
   return `pb-2 ${active ? "border-b-2 border-b2b-purple text-b2b-purple" : "text-b2b-ink/50"}`;
 }
 
-export function EventNoticesPanel({ eventId, notices }: { eventId: string; notices: EventNoticeEntry[] }) {
+export function EventNoticesPanel({
+  eventId,
+  notices,
+  myAlerts,
+}: {
+  eventId: string;
+  notices: EventNoticeEntry[];
+  myAlerts: EventTeammateAlertEntry[];
+}) {
   const [mode, setMode] = useState<Mode>("teammate");
   const nextRowId = useRef(1);
   const router = useRouter();
@@ -46,6 +60,39 @@ export function EventNoticesPanel({ eventId, notices }: { eventId: string; notic
   const [filterGender, setFilterGender] = useState<TeammateGenderOption | "ALL">("ALL");
   const [filterDivision, setFilterDivision] = useState<TeammateDivisionOption | "ALL">("ALL");
   const filtering = filterGender !== "ALL" || filterDivision !== "ALL";
+
+  const [alerts, setAlerts] = useState<EventTeammateAlertEntry[]>(myAlerts);
+  const [alertBusy, setAlertBusy] = useState(false);
+  const [alertInfo, setAlertInfo] = useState<string | null>(null);
+
+  const alertGender: TeammateGenderOption = filterGender === "ALL" ? "ANY" : filterGender;
+  const alertDivision: TeammateDivisionOption = filterDivision === "ALL" ? "ANY" : filterDivision;
+  const matchingAlert = alerts.find((a) => a.gender === alertGender && a.division === alertDivision);
+
+  async function handleToggleAlert() {
+    setAlertBusy(true);
+    if (matchingAlert) {
+      const res = await fetch(`/api/teammate-alerts/${matchingAlert.id}`, { method: "DELETE" });
+      setAlertBusy(false);
+      if (res.ok) setAlerts((prev) => prev.filter((a) => a.id !== matchingAlert.id));
+      return;
+    }
+
+    const res = await fetch(`/api/events/${eventId}/teammate-alerts`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ gender: alertGender, division: alertDivision }),
+    });
+    setAlertBusy(false);
+    if (!res.ok) return;
+    const body = await res.json();
+    setAlerts((prev) => [...prev, { id: body.alert.id, gender: alertGender, division: alertDivision }]);
+    setAlertInfo(
+      body.matchedCount > 0
+        ? `You'll be notified when a team posts a request matching your search. We've also let ${body.matchedCount} team${body.matchedCount === 1 ? "" : "s"} already looking for someone like you know you're interested!`
+        : "You'll be notified when a team posts a request matching your search."
+    );
+  }
 
   // Posted searches always land in the event chat (and the main feed, if
   // opted in) — they only show up here when actively searching for a team,
@@ -287,9 +334,19 @@ export function EventNoticesPanel({ eventId, notices }: { eventId: string; notic
 
       {filtering && (
         <div className="mt-4 border-t border-b2b-purple/10 pt-3">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-b2b-ink/40">
-            {filteredNotices.length} matching {filteredNotices.length === 1 ? "notice" : "notices"}
-          </p>
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <p className="text-xs font-semibold uppercase tracking-wide text-b2b-ink/40">
+              {filteredNotices.length} matching {filteredNotices.length === 1 ? "notice" : "notices"}
+            </p>
+            <button
+              type="button"
+              onClick={handleToggleAlert}
+              disabled={alertBusy}
+              className="shrink-0 rounded-full border border-b2b-purple/20 bg-b2b-purple/10 px-3 py-1.5 text-xs font-semibold text-b2b-purple hover:bg-b2b-purple/20 disabled:opacity-50"
+            >
+              {alertBusy ? "..." : matchingAlert ? "🔔 Notified — tap to cancel" : "🔔 Notify me"}
+            </button>
+          </div>
           {filteredNotices.length === 0 ? (
             <p className="text-b2b-ink/40">No teams looking for that right now.</p>
           ) : (
@@ -307,6 +364,13 @@ export function EventNoticesPanel({ eventId, notices }: { eventId: string; notic
         title="Posted!"
         message="Your search has been posted to the event chat."
         onClose={() => setPosted(false)}
+      />
+
+      <InfoDialog
+        open={alertInfo !== null}
+        title="Alert set!"
+        message={alertInfo ?? ""}
+        onClose={() => setAlertInfo(null)}
       />
     </div>
   );
