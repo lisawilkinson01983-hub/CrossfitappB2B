@@ -187,6 +187,8 @@ export const eventNoticeSchema = z
   .object({
     text: z.preprocess(emptyToUndefined, z.string().trim().max(1000).optional()),
     teammateRequests: z.array(teammateRequestSchema).max(20).optional(),
+    // Also cross-post this search to the main feed (see linkedEventId on Post).
+    postToFeed: z.boolean().optional(),
   })
   .refine((data) => (data.teammateRequests && data.teammateRequests.length > 0) || !!data.text, {
     message: "Add at least one athlete request — or write a notice",

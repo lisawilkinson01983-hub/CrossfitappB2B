@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { NavBar } from "@/components/NavBar";
 import { PostCard } from "@/components/PostCard";
 import { SectionCard } from "@/components/SectionCard";
+import { parseTeammateRequests } from "@/lib/labels";
 import { PostComposer } from "./PostComposer";
 
 export default async function FeedPage() {
@@ -80,6 +81,7 @@ export default async function FeedPage() {
                 id: post.id,
                 type: post.type,
                 contentText: post.contentText,
+                teammateRequests: parseTeammateRequests(post.teammateRequests),
                 photo: post.photo,
                 video: post.video,
                 createdAt: post.createdAt,

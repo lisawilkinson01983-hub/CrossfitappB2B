@@ -50,6 +50,7 @@ enum PostType {
   WORKOUT
   PR
   UPDATE
+  TEAMMATE_REQUEST
 }
 
 enum FollowRequestStatus {
@@ -276,6 +277,12 @@ model Post {
   contentText String?
   photo       String? // served path, e.g. "/media/xyz.jpg" (see src/lib/uploads.ts)
   video       String? // served path, e.g. "/media/xyz.mp4" — mutually exclusive with photo
+
+  // JSON-encoded array of teammate requests, set only when type is
+  // TEAMMATE_REQUEST — a "find a teammate" search cross-posted from an
+  // event's notices board (see EventNotice.teammateRequests). linkedEventId
+  // below records which event it came from.
+  teammateRequests String?
 
   // Set when auto-created from a workout logged with "share to feed" on.
   // Deleting that workout removes this post too, since it has nothing left to show.

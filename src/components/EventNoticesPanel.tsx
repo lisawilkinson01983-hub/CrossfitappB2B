@@ -17,7 +17,7 @@ export type EventNoticeEntry = {
   isAuthorParticipating: boolean;
 };
 
-type Mode = "teammate" | "findTeam" | "other";
+type Mode = "teammate" | "findTeam";
 
 type TeammateRow = {
   id: number;
@@ -37,7 +37,7 @@ export function EventNoticesPanel({ eventId, notices }: { eventId: string; notic
 
   const [rows, setRows] = useState<TeammateRow[]>([{ id: 0, quantity: 1, gender: "ANY", division: "ANY" }]);
   const [detail, setDetail] = useState("");
-  const [text, setText] = useState("");
+  const [postToFeed, setPostToFeed] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -71,39 +71,16 @@ export function EventNoticesPanel({ eventId, notices }: { eventId: string; notic
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
 
-    if (mode === "other" && !text.trim()) {
-      setError("Write something first");
-      return;
-    }
-
     setError(null);
     setSubmitting(true);
 
-    if (mode === "other") {
-      const res = await fetch(`/api/events/${eventId}/notices`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text }),
-      });
-      setSubmitting(false);
-      if (!res.ok) {
-        const resBody = await res.json().catch(() => ({}));
-        setError(resBody.error ?? "Something went wrong. Please try again.");
-        return;
-      }
-      setText("");
-      router.refresh();
-      return;
-    }
-
-    // mode === "teammate": post all rows together as one notice, since
-    // they're all athletes needed for the same event.
     const res = await fetch(`/api/events/${eventId}/notices`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         teammateRequests: rows.map((row) => ({ quantity: row.quantity, gender: row.gender, division: row.division })),
         text: detail,
+        postToFeed,
       }),
     });
     setSubmitting(false);
@@ -115,6 +92,7 @@ export function EventNoticesPanel({ eventId, notices }: { eventId: string; notic
 
     setRows([{ id: nextRowId.current++, quantity: 1, gender: "ANY", division: "ANY" }]);
     setDetail("");
+    setPostToFeed(false);
     router.refresh();
   }
 
@@ -126,9 +104,6 @@ export function EventNoticesPanel({ eventId, notices }: { eventId: string; notic
         </button>
         <button type="button" onClick={() => setMode("findTeam")} className={tabClass(mode === "findTeam")}>
           🔎 Find a team
-        </button>
-        <button type="button" onClick={() => setMode("other")} className={tabClass(mode === "other")}>
-          💬 Other notice
         </button>
       </div>
 
@@ -190,107 +165,107 @@ export function EventNoticesPanel({ eventId, notices }: { eventId: string; notic
         <form onSubmit={handleSubmit} className="mt-3">
           {error && <p className="mb-3 rounded bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
 
-          {mode === "teammate" ? (
-            <div className="flex flex-col gap-3">
-              {rows.map((row, index) => (
-                <div key={row.id} className="rounded border border-gray-200 p-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-medium text-b2b-ink/50">Athlete {index + 1}</span>
-                    {rows.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => removeRow(row.id)}
-                        aria-label="Remove this line"
-                        className="text-b2b-ink/40 hover:text-red-600"
-                      >
-                        ×
-                      </button>
-                    )}
+          <div className="flex flex-col gap-3">
+            {rows.map((row, index) => (
+              <div key={row.id} className="rounded border border-gray-200 p-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-medium text-b2b-ink/50">Athlete {index + 1}</span>
+                  {rows.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => removeRow(row.id)}
+                      aria-label="Remove this line"
+                      className="text-b2b-ink/40 hover:text-red-600"
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
+                <div className="mt-1 grid grid-cols-3 gap-3">
+                  <div>
+                    <label htmlFor={`quantity-${row.id}`} className="block text-xs font-medium text-b2b-ink/60">
+                      How many
+                    </label>
+                    <input
+                      id={`quantity-${row.id}`}
+                      type="number"
+                      min={1}
+                      max={20}
+                      value={row.quantity}
+                      onChange={(e) => updateRow(row.id, "quantity", Number(e.target.value) || 1)}
+                      className="mt-1 w-full rounded border border-gray-300 px-2 py-2 focus:border-b2b-pink focus:outline-none"
+                    />
                   </div>
-                  <div className="mt-1 grid grid-cols-3 gap-3">
-                    <div>
-                      <label htmlFor={`quantity-${row.id}`} className="block text-xs font-medium text-b2b-ink/60">
-                        How many
-                      </label>
-                      <input
-                        id={`quantity-${row.id}`}
-                        type="number"
-                        min={1}
-                        max={20}
-                        value={row.quantity}
-                        onChange={(e) => updateRow(row.id, "quantity", Number(e.target.value) || 1)}
-                        className="mt-1 w-full rounded border border-gray-300 px-2 py-2 focus:border-b2b-pink focus:outline-none"
-                      />
-                    </div>
-                    <div>
-                      <label htmlFor={`gender-${row.id}`} className="block text-xs font-medium text-b2b-ink/60">
-                        Gender
-                      </label>
-                      <select
-                        id={`gender-${row.id}`}
-                        value={row.gender}
-                        onChange={(e) => updateRow(row.id, "gender", e.target.value as TeammateGenderOption)}
-                        className="mt-1 w-full rounded border border-gray-300 bg-b2b-card px-2 py-2 focus:border-b2b-pink focus:outline-none"
-                      >
-                        {TEAMMATE_GENDERS.map((g) => (
-                          <option key={g} value={g}>
-                            {TEAMMATE_GENDER_LABELS[g]}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label htmlFor={`division-${row.id}`} className="block text-xs font-medium text-b2b-ink/60">
-                        Division
-                      </label>
-                      <select
-                        id={`division-${row.id}`}
-                        value={row.division}
-                        onChange={(e) => updateRow(row.id, "division", e.target.value as TeammateDivisionOption)}
-                        className="mt-1 w-full rounded border border-gray-300 bg-b2b-card px-2 py-2 focus:border-b2b-pink focus:outline-none"
-                      >
-                        {TEAMMATE_DIVISIONS.map((d) => (
-                          <option key={d} value={d}>
-                            {TEAMMATE_DIVISION_LABELS[d]}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
+                  <div>
+                    <label htmlFor={`gender-${row.id}`} className="block text-xs font-medium text-b2b-ink/60">
+                      Gender
+                    </label>
+                    <select
+                      id={`gender-${row.id}`}
+                      value={row.gender}
+                      onChange={(e) => updateRow(row.id, "gender", e.target.value as TeammateGenderOption)}
+                      className="mt-1 w-full rounded border border-gray-300 bg-b2b-card px-2 py-2 focus:border-b2b-pink focus:outline-none"
+                    >
+                      {TEAMMATE_GENDERS.map((g) => (
+                        <option key={g} value={g}>
+                          {TEAMMATE_GENDER_LABELS[g]}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label htmlFor={`division-${row.id}`} className="block text-xs font-medium text-b2b-ink/60">
+                      Division
+                    </label>
+                    <select
+                      id={`division-${row.id}`}
+                      value={row.division}
+                      onChange={(e) => updateRow(row.id, "division", e.target.value as TeammateDivisionOption)}
+                      className="mt-1 w-full rounded border border-gray-300 bg-b2b-card px-2 py-2 focus:border-b2b-pink focus:outline-none"
+                    >
+                      {TEAMMATE_DIVISIONS.map((d) => (
+                        <option key={d} value={d}>
+                          {TEAMMATE_DIVISION_LABELS[d]}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 </div>
-              ))}
-
-              <button
-                type="button"
-                onClick={addRow}
-                className="self-start text-sm font-medium text-b2b-pink hover:underline"
-              >
-                + Add another athlete
-              </button>
-
-              <div>
-                <label htmlFor="detail" className="block text-xs font-medium text-b2b-ink/60">
-                  Extra detail (optional)
-                </label>
-                <textarea
-                  id="detail"
-                  rows={2}
-                  placeholder="Anything else worth mentioning..."
-                  value={detail}
-                  onChange={(e) => setDetail(e.target.value)}
-                  className="mt-1 w-full rounded border border-gray-300 px-3 py-2 focus:border-b2b-pink focus:outline-none"
-                />
               </div>
+            ))}
+
+            <button
+              type="button"
+              onClick={addRow}
+              className="self-start text-sm font-medium text-b2b-pink hover:underline"
+            >
+              + Add another athlete
+            </button>
+
+            <div>
+              <label htmlFor="detail" className="block text-xs font-medium text-b2b-ink/60">
+                Extra detail (optional)
+              </label>
+              <textarea
+                id="detail"
+                rows={2}
+                placeholder="Anything else worth mentioning..."
+                value={detail}
+                onChange={(e) => setDetail(e.target.value)}
+                className="mt-1 w-full rounded border border-gray-300 px-3 py-2 focus:border-b2b-pink focus:outline-none"
+              />
             </div>
-          ) : (
-            <textarea
-              rows={3}
-              placeholder="Looking for a lift, a training partner, or something else? Post it here..."
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              className="w-full rounded border border-gray-300 px-3 py-2 focus:border-b2b-pink focus:outline-none"
-            />
-          )}
+
+            <label className="flex items-center gap-2 text-sm text-b2b-ink/70">
+              <input
+                type="checkbox"
+                checked={postToFeed}
+                onChange={(e) => setPostToFeed(e.target.checked)}
+                className="h-4 w-4 rounded border-gray-300 text-b2b-pink focus:ring-b2b-pink"
+              />
+              Also post to main feed
+            </label>
+          </div>
 
           <div className="mt-3 flex justify-end">
             <button
@@ -312,7 +287,7 @@ export function EventNoticesPanel({ eventId, notices }: { eventId: string; notic
         </p>
         {filteredNotices.length === 0 ? (
           <p className="text-b2b-ink/40">
-            {filtering ? "No teams looking for that right now." : "No notices yet — be the first to post one."}
+            {filtering ? "No teams looking for that right now." : "No searches yet — be the first to post one."}
           </p>
         ) : (
           <div className="flex flex-col gap-3">

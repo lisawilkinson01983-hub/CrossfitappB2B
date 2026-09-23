@@ -24,18 +24,31 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
   }
 
+  const hasTeammateRequests = !!parsed.data.teammateRequests && parsed.data.teammateRequests.length > 0;
+
   const notice = await prisma.eventNotice.create({
     data: {
       eventId,
       userId: session.user.id,
       text: parsed.data.text ?? null,
-      teammateRequests:
-        parsed.data.teammateRequests && parsed.data.teammateRequests.length > 0
-          ? JSON.stringify(parsed.data.teammateRequests)
-          : null,
+      teammateRequests: hasTeammateRequests ? JSON.stringify(parsed.data.teammateRequests) : null,
     },
     include: { user: { select: { id: true, name: true, photo: true } } },
   });
+
+  // Optionally cross-post the same search to the main feed, tagged with
+  // which event it came from.
+  if (parsed.data.postToFeed && hasTeammateRequests) {
+    await prisma.post.create({
+      data: {
+        userId: session.user.id,
+        type: "TEAMMATE_REQUEST",
+        contentText: parsed.data.text ?? null,
+        teammateRequests: JSON.stringify(parsed.data.teammateRequests),
+        linkedEventId: eventId,
+      },
+    });
+  }
 
   return NextResponse.json({
     notice: {

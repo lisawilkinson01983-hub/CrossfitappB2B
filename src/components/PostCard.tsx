@@ -8,9 +8,10 @@ import {
   LEVEL_LABELS,
   WORKOUT_INTENSITY_LABELS,
   WORKOUT_UNIT_LABELS,
+  formatTeammateRequest,
   showsSingleBadge,
 } from "@/lib/labels";
-import type { LevelOption, WorkoutIntensityOption, WorkoutUnitOption } from "@/lib/validation";
+import type { LevelOption, TeammateRequest, WorkoutIntensityOption, WorkoutUnitOption } from "@/lib/validation";
 import { Avatar } from "@/components/Avatar";
 import { ExpandableImage } from "@/components/ExpandableImage";
 import { MentionText } from "@/components/MentionText";
@@ -29,8 +30,9 @@ export type CommentData = {
 
 export type PostCardData = {
   id: string;
-  type: "WORKOUT" | "PR" | "UPDATE";
+  type: "WORKOUT" | "PR" | "UPDATE" | "TEAMMATE_REQUEST";
   contentText: string | null;
+  teammateRequests: TeammateRequest[];
   photo: string | null;
   video: string | null;
   createdAt: Date;
@@ -392,7 +394,7 @@ export function PostCard({ post, currentUserId }: { post: PostCardData; currentU
         </div>
       )}
 
-      {post.linkedEvent && (
+      {post.linkedEvent && post.type !== "TEAMMATE_REQUEST" && (
         <p className="mt-3 text-sm text-b2b-ink">
           🏆 Competing in{" "}
           <Link href={`/events/${post.linkedEvent.id}`} className="font-semibold hover:underline">
@@ -410,6 +412,27 @@ export function PostCard({ post, currentUserId }: { post: PostCardData; currentU
             · {post.linkedEvent.location}
           </span>
         </p>
+      )}
+
+      {post.type === "TEAMMATE_REQUEST" && post.teammateRequests.length > 0 && (
+        <div className="mt-3 flex flex-col items-start gap-1">
+          {post.teammateRequests.map((req, i) => (
+            <p
+              key={i}
+              className="inline-block rounded-lg bg-b2b-purple/10 px-3 py-1.5 text-sm font-semibold text-b2b-purple"
+            >
+              🔍 {formatTeammateRequest(req.quantity, req.gender, req.division)}
+            </p>
+          ))}
+          {post.linkedEvent && (
+            <p className="mt-1 text-xs text-b2b-ink/50">
+              Posted from{" "}
+              <Link href={`/events/${post.linkedEvent.id}/notices`} className="font-semibold text-b2b-pink hover:underline">
+                {post.linkedEvent.name}
+              </Link>
+            </p>
+          )}
+        </div>
       )}
 
       {editingPost ? (

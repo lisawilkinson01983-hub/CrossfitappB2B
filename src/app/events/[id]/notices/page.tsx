@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { NavBar } from "@/components/NavBar";
 import { SectionCard } from "@/components/SectionCard";
 import { EventNoticesPanel, type EventNoticeEntry } from "@/components/EventNoticesPanel";
+import { EventChatFeed, type EventChatMessage } from "@/components/EventChatFeed";
 import { parseTeammateRequests } from "@/lib/labels";
 
 export default async function EventNoticesPage({ params }: { params: Promise<{ id: string }> }) {
@@ -35,26 +36,44 @@ export default async function EventNoticesPage({ params }: { params: Promise<{ i
 
   const participantIds = new Set(event.participants.map((p) => p.userId));
 
-  const noticeEntries: EventNoticeEntry[] = event.notices.map((notice) => ({
-    notice: {
-      id: notice.id,
-      text: notice.text,
-      teammateRequests: parseTeammateRequests(notice.teammateRequests),
-      createdAt: notice.createdAt,
-      author: notice.user,
-      likeCount: notice.likes.length,
-      likedByMe: notice.likes.some((l) => l.userId === session.user.id),
-      comments: notice.comments.map((c) => ({
-        id: c.id,
-        text: c.text,
-        createdAt: c.createdAt,
-        author: c.user,
-        parentId: c.parentId,
-      })),
-    },
-    isOwn: notice.userId === session.user.id,
-    isAuthorParticipating: participantIds.has(notice.userId),
-  }));
+  // Structured "looking for teammates" searches stay in the notices panel;
+  // plain free-text posts move to the chat feed below it.
+  const noticeEntries: EventNoticeEntry[] = [];
+  const chatMessages: EventChatMessage[] = [];
+
+  for (const notice of event.notices) {
+    const teammateRequests = parseTeammateRequests(notice.teammateRequests);
+    if (teammateRequests.length > 0) {
+      noticeEntries.push({
+        notice: {
+          id: notice.id,
+          text: notice.text,
+          teammateRequests,
+          createdAt: notice.createdAt,
+          author: notice.user,
+          likeCount: notice.likes.length,
+          likedByMe: notice.likes.some((l) => l.userId === session.user.id),
+          comments: notice.comments.map((c) => ({
+            id: c.id,
+            text: c.text,
+            createdAt: c.createdAt,
+            author: c.user,
+            parentId: c.parentId,
+          })),
+        },
+        isOwn: notice.userId === session.user.id,
+        isAuthorParticipating: participantIds.has(notice.userId),
+      });
+    } else if (notice.text) {
+      chatMessages.push({
+        id: notice.id,
+        text: notice.text,
+        createdAt: notice.createdAt,
+        author: notice.user,
+        isOwn: notice.userId === session.user.id,
+      });
+    }
+  }
 
   return (
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
@@ -66,10 +85,15 @@ export default async function EventNoticesPage({ params }: { params: Promise<{ i
 
       <div className="mt-4 flex flex-col gap-6">
         <SectionCard title="Notices">
-          <p className="mb-3 text-sm text-b2b-ink/50">
-            Looking for teammates, a lift, or a training partner for {event.name}? Post it here.
-          </p>
+          <p className="mb-3 text-sm text-b2b-ink/50">Looking for teammates for {event.name}? Post it here.</p>
           <EventNoticesPanel eventId={event.id} notices={noticeEntries} />
+        </SectionCard>
+
+        <SectionCard title="Event Chat">
+          <p className="mb-3 text-sm text-b2b-ink/50">
+            A lift, a training partner, or anything else about {event.name}.
+          </p>
+          <EventChatFeed eventId={event.id} messages={chatMessages} />
         </SectionCard>
       </div>
     </main>
