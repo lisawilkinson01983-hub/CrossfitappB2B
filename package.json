@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "start:railway": "prisma db push --accept-data-loss && node scripts/backfill-gym-pages.js && node scripts/backfill-events.js && node scripts/backfill-admin.js && next start -p $PORT",
+    "start:railway": "prisma db push --accept-data-loss && node scripts/backfill-gym-pages.js && node scripts/backfill-events.js && node scripts/backfill-admin.js && node scripts/backfill-event-notifications.js && next start -p $PORT",
     "lint": "next lint",
     "postinstall": "prisma generate",
     "db:push": "prisma db push",
