@@ -27,17 +27,17 @@ export default async function EventNoticesPage({ params }: { params: Promise<{ i
   });
   if (!event) notFound();
 
-  // Structured "looking for teammates" searches live on the main event page;
-  // this page is just the plain free-text chat.
-  const chatMessages: EventChatMessage[] = event.notices
-    .filter((notice) => parseTeammateRequests(notice.teammateRequests).length === 0 && notice.text)
-    .map((notice) => ({
-      id: notice.id,
-      text: notice.text!,
-      createdAt: notice.createdAt,
-      author: notice.user,
-      isOwn: notice.userId === session.user.id,
-    }));
+  // The composer/filter for "looking for teammates" searches lives on the
+  // main event page, but every notice — search or free text — also shows up
+  // here as one shared event chat feed.
+  const chatMessages: EventChatMessage[] = event.notices.map((notice) => ({
+    id: notice.id,
+    text: notice.text,
+    teammateRequests: parseTeammateRequests(notice.teammateRequests),
+    createdAt: notice.createdAt,
+    author: notice.user,
+    isOwn: notice.userId === session.user.id,
+  }));
 
   return (
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">

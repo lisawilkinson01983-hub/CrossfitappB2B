@@ -4,10 +4,13 @@ import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Avatar } from "@/components/Avatar";
+import { formatTeammateRequest } from "@/lib/labels";
+import type { TeammateRequest } from "@/lib/validation";
 
 export type EventChatMessage = {
   id: string;
-  text: string;
+  text: string | null;
+  teammateRequests: TeammateRequest[];
   createdAt: string | Date;
   author: { id: string; name: string; photo: string | null };
   isOwn: boolean;
@@ -90,7 +93,19 @@ export function EventChatFeed({ eventId, messages }: { eventId: string; messages
                     )}
                   </div>
                 </div>
-                <p className="mt-0.5 whitespace-pre-wrap text-sm text-b2b-ink/80">{msg.text}</p>
+                {msg.teammateRequests.length > 0 && (
+                  <div className="mt-1 flex flex-col items-start gap-1">
+                    {msg.teammateRequests.map((req, i) => (
+                      <p
+                        key={i}
+                        className="inline-block rounded-lg bg-b2b-purple/10 px-2 py-1 text-xs font-semibold text-b2b-purple"
+                      >
+                        🔍 {formatTeammateRequest(req.quantity, req.gender, req.division)}
+                      </p>
+                    ))}
+                  </div>
+                )}
+                {msg.text && <p className="mt-1 whitespace-pre-wrap text-sm text-b2b-ink/80">{msg.text}</p>}
               </div>
             </div>
           ))}

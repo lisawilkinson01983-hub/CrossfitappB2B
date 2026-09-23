@@ -73,9 +73,8 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
     }))
     .filter((entry) => entry.notice.teammateRequests.length > 0);
 
-  const chatMessageCount = event.notices.filter(
-    (notice) => parseTeammateRequests(notice.teammateRequests).length === 0 && notice.text
-  ).length;
+  // Every notice — search or free text — shows up in the shared event chat.
+  const chatMessageCount = event.notices.length;
 
   const division = parseJsonArray<EventDivisionOption>(event.division);
   const teamFormat = parseJsonArray<EventTeamFormatOption>(event.teamFormat);

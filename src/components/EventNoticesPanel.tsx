@@ -10,6 +10,7 @@ import {
 } from "@/lib/validation";
 import { TEAMMATE_DIVISION_LABELS, TEAMMATE_GENDER_LABELS } from "@/lib/labels";
 import { EventNoticeCard, type EventNoticeData } from "./EventNoticeCard";
+import { InfoDialog } from "./InfoDialog";
 
 export type EventNoticeEntry = {
   notice: EventNoticeData;
@@ -40,6 +41,7 @@ export function EventNoticesPanel({ eventId, notices }: { eventId: string; notic
   const [postToFeed, setPostToFeed] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [posted, setPosted] = useState(false);
 
   const [filterGender, setFilterGender] = useState<TeammateGenderOption | "ALL">("ALL");
   const [filterDivision, setFilterDivision] = useState<TeammateDivisionOption | "ALL">("ALL");
@@ -93,6 +95,7 @@ export function EventNoticesPanel({ eventId, notices }: { eventId: string; notic
     setRows([{ id: nextRowId.current++, quantity: 1, gender: "ANY", division: "ANY" }]);
     setDetail("");
     setPostToFeed(false);
+    setPosted(true);
     router.refresh();
   }
 
@@ -297,6 +300,13 @@ export function EventNoticesPanel({ eventId, notices }: { eventId: string; notic
           </div>
         )}
       </div>
+
+      <InfoDialog
+        open={posted}
+        title="Posted!"
+        message="Your search has been posted to the event chat."
+        onClose={() => setPosted(false)}
+      />
     </div>
   );
 }
