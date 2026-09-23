@@ -7,6 +7,7 @@ import { NavBar } from "@/components/NavBar";
 import { ProfileDetails } from "@/components/ProfileDetails";
 import { Gallery } from "@/components/Gallery";
 import { SectionCard } from "@/components/SectionCard";
+import { Avatar } from "@/components/Avatar";
 import { WorkoutCard } from "@/components/WorkoutCard";
 import { IncomingFollowRequests } from "@/components/IncomingFollowRequests";
 import { GymUpdateNudge } from "@/components/GymUpdateNudge";
@@ -89,21 +90,27 @@ export default async function ProfilePage() {
           >
             <div className="flex flex-col gap-3">
               {competingIn.map((event) => (
-                <div key={event.id} className="rounded-lg border border-b2b-purple/10 bg-b2b-bg p-3">
-                  <p className="font-medium">
-                    <Link href={`/events/${event.id}`} className="hover:underline">
-                      {event.name}
-                    </Link>
-                  </p>
-                  <p className="text-sm text-b2b-ink/50">
-                    {event.date.toLocaleDateString(undefined, {
-                      weekday: "short",
-                      year: "numeric",
-                      month: "short",
-                      day: "numeric",
-                    })}{" "}
-                    · {event.location}
-                  </p>
+                <div
+                  key={event.id}
+                  className="flex items-center gap-3 rounded-lg border border-b2b-purple/10 bg-b2b-bg p-3"
+                >
+                  <Avatar photo={event.photo} name={event.name} size={40} />
+                  <div>
+                    <p className="font-medium">
+                      <Link href={`/events/${event.id}`} className="hover:underline">
+                        {event.name}
+                      </Link>
+                    </p>
+                    <p className="text-sm text-b2b-ink/50">
+                      {event.date.toLocaleDateString(undefined, {
+                        weekday: "short",
+                        year: "numeric",
+                        month: "short",
+                        day: "numeric",
+                      })}{" "}
+                      · {event.location}
+                    </p>
+                  </div>
                 </div>
               ))}
             </div>
