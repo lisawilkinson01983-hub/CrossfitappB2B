@@ -181,6 +181,7 @@ model User {
 
   createdEvents        Event[]
   eventParticipations  EventParticipant[]
+  eventNotices         EventNotice[]
 
   blocksMade     Block[] @relation("BlocksMade")
   blocksReceived Block[] @relation("BlocksReceived")
@@ -405,6 +406,7 @@ model Event {
   createdAt DateTime @default(now())
 
   participants EventParticipant[]
+  notices      EventNotice[]
   posts        Post[]
 
   @@index([date])
@@ -420,6 +422,23 @@ model EventParticipant {
   createdAt DateTime @default(now())
 
   @@unique([userId, eventId])
+  @@index([eventId])
+}
+
+// A lightweight classified-ads board scoped to one event — separate from the
+// main feed so "looking for teammates for FORTIOR 4" posts don't clutter
+// everyone's feed and stay easy to find by anyone eyeing that event.
+model EventNotice {
+  id      String @id @default(cuid())
+  eventId String
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  userId  String
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  text String
+
+  createdAt DateTime @default(now())
+
   @@index([eventId])
 }
 

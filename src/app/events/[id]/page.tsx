@@ -7,7 +7,6 @@ import { NavBar } from "@/components/NavBar";
 import { SectionCard } from "@/components/SectionCard";
 import { Avatar } from "@/components/Avatar";
 import { ParticipateButton } from "@/components/ParticipateButton";
-import { showsSingleBadge } from "@/lib/labels";
 
 export default async function EventPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
@@ -18,17 +17,13 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
   const event = await prisma.event.findUnique({
     where: { id },
     include: {
-      participants: {
-        orderBy: { createdAt: "asc" },
-        include: {
-          user: { select: { id: true, name: true, photo: true, isSingle: true, showSingleBadge: true } },
-        },
-      },
+      participants: { where: { userId: session.user.id }, select: { id: true } },
+      _count: { select: { participants: true, notices: true } },
     },
   });
   if (!event) notFound();
 
-  const isParticipating = event.participants.some((p) => p.userId === session.user.id);
+  const isParticipating = event.participants.length > 0;
 
   return (
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
@@ -68,32 +63,19 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
         </SectionCard>
       </div>
 
-      <div className="mt-6">
-        <SectionCard
-          title={`${event.participants.length} ${event.participants.length === 1 ? "athlete" : "athletes"} participating`}
+      <div className="mt-6 grid grid-cols-2 gap-3">
+        <Link
+          href={`/events/${event.id}/participants`}
+          className="rounded-xl border border-gray-300 bg-b2b-card px-4 py-3 text-center text-sm font-medium text-b2b-ink hover:bg-b2b-bg"
         >
-          {event.participants.length === 0 ? (
-            <p className="text-b2b-ink/40">No one's joined yet — be the first!</p>
-          ) : (
-            <div className="flex flex-col gap-3">
-              {event.participants.map((p) => (
-                <Link
-                  key={p.id}
-                  href={`/profile/${p.user.id}`}
-                  className="flex items-center gap-3 hover:underline"
-                >
-                  <Avatar
-                    photo={p.user.photo}
-                    name={p.user.name}
-                    size={36}
-                    showSingleBadge={showsSingleBadge(p.user)}
-                  />
-                  <span className="text-sm font-medium">{p.user.name}</span>
-                </Link>
-              ))}
-            </div>
-          )}
-        </SectionCard>
+          👥 {event._count.participants} {event._count.participants === 1 ? "athlete" : "athletes"}
+        </Link>
+        <Link
+          href={`/events/${event.id}/notices`}
+          className="rounded-xl border border-b2b-purple/20 bg-b2b-purple/10 px-4 py-3 text-center text-sm font-medium text-b2b-purple hover:bg-b2b-purple/20"
+        >
+          📣 Notices{event._count.notices > 0 ? ` (${event._count.notices})` : ""}
+        </Link>
       </div>
     </main>
   );

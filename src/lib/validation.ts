@@ -153,6 +153,10 @@ export const commentSchema = z.object({
   text: z.string().trim().min(1, "Comment can't be empty").max(1000),
 });
 
+export const eventNoticeSchema = z.object({
+  text: z.string().trim().min(1, "Notice can't be empty").max(1000),
+});
+
 export const messageSchema = z.object({
   text: z.string().trim().min(1, "Message can't be empty").max(2000),
 });
