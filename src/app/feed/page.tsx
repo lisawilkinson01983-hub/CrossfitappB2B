@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -51,7 +52,16 @@ export default async function FeedPage() {
       <h1 className="mt-6 text-2xl font-bold">Feed</h1>
 
       <div className="mt-4">
-        <SectionCard>
+        <SectionCard
+          action={
+            <Link
+              href="/workouts/new"
+              className="rounded bg-b2b-pink px-3 py-1.5 text-sm font-medium text-white hover:bg-b2b-pink-dark"
+            >
+              Post workout
+            </Link>
+          }
+        >
           <PostComposer />
         </SectionCard>
       </div>

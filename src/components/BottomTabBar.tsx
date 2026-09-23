@@ -5,6 +5,17 @@ import { usePathname } from "next/navigation";
 
 const TABS = [
   {
+    href: "/profile",
+    label: "Profile",
+    match: (path: string) => path.startsWith("/profile"),
+    icon: (
+      <>
+        <circle cx="12" cy="8" r="4" />
+        <path d="M4 20c0-4 4-6 8-6s8 2 8 6" />
+      </>
+    ),
+  },
+  {
     href: "/feed",
     label: "Feed",
     match: (path: string) => path === "/feed",
@@ -27,24 +38,23 @@ const TABS = [
     ),
   },
   {
-    href: "/workouts/new",
-    label: "Log",
-    match: (path: string) => path.startsWith("/workouts"),
+    href: "/events/mine",
+    label: "My Events",
+    match: (path: string) => path.startsWith("/events"),
     icon: (
       <>
-        <circle cx="12" cy="12" r="9" />
-        <path d="M12 8v8M8 12h8" />
+        <rect x="3" y="5" width="18" height="16" rx="2" />
+        <path d="M3 10h18M8 3v4M16 3v4" />
       </>
     ),
   },
   {
-    href: "/profile",
-    label: "Profile",
-    match: (path: string) => path.startsWith("/profile"),
+    href: "/workouts",
+    label: "My Workouts",
+    match: (path: string) => path.startsWith("/workouts"),
     icon: (
       <>
-        <circle cx="12" cy="8" r="4" />
-        <path d="M4 20c0-4 4-6 8-6s8 2 8 6" />
+        <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" />
       </>
     ),
   },
@@ -55,14 +65,14 @@ export function BottomTabBar() {
 
   return (
     <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-b2b-purple/10 bg-b2b-bg/95 backdrop-blur">
-      <div className="mx-auto flex max-w-2xl items-center justify-around px-2 py-2">
+      <div className="mx-auto flex max-w-2xl items-start justify-around px-1 py-2">
         {TABS.map((tab) => {
           const active = tab.match(pathname);
           return (
             <Link
               key={tab.href}
               href={tab.href}
-              className={`relative flex flex-col items-center gap-0.5 px-3 py-1 text-[11px] font-medium ${
+              className={`relative flex flex-1 flex-col items-center gap-0.5 px-0.5 py-1 text-center text-[10px] font-medium leading-tight ${
                 active ? "text-b2b-pink" : "text-b2b-ink/50 hover:text-b2b-ink"
               }`}
             >

@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { EventEngagementButtons } from "@/components/EventEngagementButtons";
 import { SectionCard } from "@/components/SectionCard";
 import { Avatar } from "@/components/Avatar";
-import { geocode, distanceMiles, ensureUserAreaCoords, DISTANCE_RANGES } from "@/lib/geocode";
+import { distanceMiles, ensureUserAreaCoords, ensureEventCoords, DISTANCE_RANGES } from "@/lib/geocode";
 
 const TIME_RANGES = {
   week: { label: "Next 7 days", days: 7 },
@@ -18,22 +18,6 @@ export type EventSearchParams = {
   time?: string;
   distance?: string;
 };
-
-// Events are added directly to the database (no in-app creation form), so
-// they may not have been geocoded yet — do it lazily on first read and cache
-// the result on the row.
-async function ensureEventCoords(event: { id: string; location: string; lat: number | null; lng: number | null }) {
-  if (event.lat !== null && event.lng !== null) return { lat: event.lat, lng: event.lng };
-
-  const coords = await geocode(event.location);
-  if (!coords) return null;
-
-  await prisma.event.update({
-    where: { id: event.id },
-    data: { lat: coords.lat, lng: coords.lng },
-  });
-  return coords;
-}
 
 export async function EventsList({
   sp,

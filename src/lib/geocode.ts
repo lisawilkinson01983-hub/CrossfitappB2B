@@ -81,3 +81,24 @@ export async function ensureUserAreaCoords(user: {
   });
   return coords;
 }
+
+// Events are added directly to the database (no in-app creation form), so
+// they may not have been geocoded yet — do it lazily on first read and cache
+// the result on the row. Used by Discover's Events tab and "My Events".
+export async function ensureEventCoords(event: {
+  id: string;
+  location: string;
+  lat: number | null;
+  lng: number | null;
+}): Promise<Coords | null> {
+  if (event.lat !== null && event.lng !== null) return { lat: event.lat, lng: event.lng };
+
+  const coords = await geocode(event.location);
+  if (!coords) return null;
+
+  await prisma.event.update({
+    where: { id: event.id },
+    data: { lat: coords.lat, lng: coords.lng },
+  });
+  return coords;
+}

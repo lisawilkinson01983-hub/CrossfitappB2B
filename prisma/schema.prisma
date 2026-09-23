@@ -182,6 +182,7 @@ model User {
   createdEvents        Event[]
   eventParticipations  EventParticipant[]
   eventInterests       EventInterest[]
+  eventPins            EventPin[]
   eventNotices         EventNotice[]
   eventNoticeLikes     EventNoticeLike[]
   eventNoticeComments  EventNoticeComment[]
@@ -210,6 +211,9 @@ model Workout {
   video     String? // served path, e.g. "/media/xyz.mp4" — mutually exclusive with photo
 
   isPb Boolean @default(false)
+
+  // Pinned to the top of "My Workouts", above the normal date ordering.
+  pinned Boolean @default(false)
 
   // Intent to share to the feed; the feed itself doesn't exist yet, so this
   // is stored for when it does rather than acted on now.
@@ -410,6 +414,7 @@ model Event {
 
   participants EventParticipant[]
   interests    EventInterest[]
+  pins         EventPin[]
   notices      EventNotice[]
   posts        Post[]
 
@@ -442,6 +447,21 @@ model EventInterest {
 
   noticeId String?      @unique
   notice   EventNotice? @relation(fields: [noticeId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, eventId])
+  @@index([eventId])
+}
+
+// Pins an event to the top of "My Events" — independent of participating or
+// interested status, so pinning survives switching between the two.
+model EventPin {
+  id      String @id @default(cuid())
+  userId  String
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  eventId String
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
 

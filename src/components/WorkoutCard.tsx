@@ -3,6 +3,7 @@ import Link from "next/link";
 import { WORKOUT_INTENSITY_LABELS, WORKOUT_UNIT_LABELS } from "@/lib/labels";
 import type { WorkoutIntensityOption, WorkoutUnitOption } from "@/lib/validation";
 import { DeleteWorkoutButton } from "./DeleteWorkoutButton";
+import { PinButton } from "./PinButton";
 
 type WorkoutCardData = {
   id: string;
@@ -15,22 +16,27 @@ type WorkoutCardData = {
   video: string | null;
   isPb: boolean;
   sharedToFeed: boolean;
+  pinned?: boolean;
   createdAt: Date;
 };
 
 export function WorkoutCard({
   workout,
   showDelete = false,
+  showPin = false,
 }: {
   workout: WorkoutCardData;
   showDelete?: boolean;
+  showPin?: boolean;
 }) {
   return (
     <div
       className={`rounded-xl border bg-b2b-card p-4 ${
         workout.isPb
           ? "border-yellow-400 shadow-[0_0_0_1px_rgba(240,192,32,0.35),0_8px_20px_-12px_rgba(240,192,32,0.6)]"
-          : "border-b2b-purple/10"
+          : workout.pinned
+            ? "border-b2b-pink/40"
+            : "border-b2b-purple/10"
       }`}
     >
       <div className="flex items-start justify-between gap-4">
@@ -73,14 +79,19 @@ export function WorkoutCard({
         ) : (
           <span className="text-xs text-gray-400">Private</span>
         )}
-        {showDelete && (
-          <div className="flex items-center gap-3">
-            <Link href={`/workouts/${workout.id}/edit`} className="text-xs text-b2b-pink hover:underline">
-              Edit
-            </Link>
-            <DeleteWorkoutButton id={workout.id} />
-          </div>
-        )}
+        <div className="flex items-center gap-3">
+          {showPin && (
+            <PinButton endpoint={`/api/workouts/${workout.id}/pin`} initialPinned={workout.pinned ?? false} />
+          )}
+          {showDelete && (
+            <>
+              <Link href={`/workouts/${workout.id}/edit`} className="text-xs text-b2b-pink hover:underline">
+                Edit
+              </Link>
+              <DeleteWorkoutButton id={workout.id} />
+            </>
+          )}
+        </div>
       </div>
     </div>
   );
