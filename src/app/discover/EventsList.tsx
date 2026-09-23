@@ -75,7 +75,7 @@ export async function EventsList({
           href="/events/submit"
           className="rounded bg-b2b-pink px-4 py-2 text-sm font-medium text-white hover:bg-b2b-pink-dark"
         >
-          Submit an event
+          Create Event Page
         </Link>
         {currentUser?.isAdmin && (
           <Link href="/events/review" className="text-sm text-b2b-purple underline">
@@ -158,6 +158,10 @@ export async function EventsList({
           </div>
         </form>
       </SectionCard>
+
+      <p className="-mt-4 text-sm text-b2b-ink/50">
+        Can't find an event? Click "Create Event Page" to add it to the listings (subject to review).
+      </p>
 
       {visibleEvents.length === 0 ? (
         <p className="text-b2b-ink/50">No events match those filters.</p>
