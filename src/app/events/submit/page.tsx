@@ -37,10 +37,6 @@ export default async function SubmitEventPage() {
       </Link>
 
       <div className="mt-4 flex flex-col gap-6">
-        <SectionCard title="Submit an event">
-          <EventSubmitForm />
-        </SectionCard>
-
         {mySubmissions.length > 0 && (
           <SectionCard title="Your submissions">
             <div className="flex flex-col gap-3">
@@ -78,6 +74,10 @@ export default async function SubmitEventPage() {
             </div>
           </SectionCard>
         )}
+
+        <SectionCard title="Submit an event">
+          <EventSubmitForm />
+        </SectionCard>
       </div>
     </main>
   );
