@@ -157,11 +157,12 @@ export async function EventsList({
             </a>
           </div>
         </form>
-      </SectionCard>
 
-      <p className="-mt-4 text-sm text-b2b-ink/50">
-        Can't find an event? Click "Create Event" to add it to the listings (subject to review).
-      </p>
+        <p className="mt-4 text-sm text-b2b-ink/50">
+          Can't find an event? Click "Create Event" to add it to the listings (subject to review). Please
+          check the event hasn't already been created to avoid duplication.
+        </p>
+      </SectionCard>
 
       {visibleEvents.length === 0 ? (
         <p className="text-b2b-ink/50">No events match those filters.</p>
