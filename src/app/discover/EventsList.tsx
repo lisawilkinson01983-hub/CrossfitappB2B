@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { ParticipateButton } from "@/components/ParticipateButton";
+import { EventInterestButton } from "@/components/EventInterestButton";
 import { SectionCard } from "@/components/SectionCard";
 import { Avatar } from "@/components/Avatar";
 import { geocode, distanceMiles, ensureUserAreaCoords, DISTANCE_RANGES } from "@/lib/geocode";
@@ -55,7 +56,10 @@ export async function EventsList({
     prisma.event.findMany({
       where,
       orderBy: { date: "asc" },
-      include: { participants: { select: { userId: true } } },
+      include: {
+        participants: { select: { userId: true } },
+        interests: { select: { userId: true } },
+      },
     }),
     prisma.user.findUnique({
       where: { id: currentUserId },
@@ -162,35 +166,33 @@ export async function EventsList({
         <div className="flex flex-col gap-3">
           {visibleEvents.map(({ event, miles }) => {
             const isParticipating = event.participants.some((p) => p.userId === currentUserId);
+            const isInterested = event.interests.some((i) => i.userId === currentUserId);
             return (
               <div key={event.id} className="rounded-xl border border-b2b-purple/10 bg-b2b-card p-4">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex items-center gap-3">
-                    <Avatar photo={event.photo} name={event.name} size={48} />
-                    <div>
-                      <p className="font-semibold">
-                        <Link href={`/events/${event.id}`} className="hover:underline">
-                          {event.name}
-                        </Link>
-                        {event.tag && (
-                          <span className="ml-2 rounded-full bg-b2b-purple/10 px-2 py-0.5 text-xs text-b2b-purple">
-                            {event.tag}
-                          </span>
-                        )}
-                      </p>
-                      <p className="text-sm text-b2b-ink/50">
-                        {event.date.toLocaleDateString(undefined, {
-                          weekday: "short",
-                          year: "numeric",
-                          month: "short",
-                          day: "numeric",
-                        })}{" "}
-                        · {event.location}
-                        {miles !== null && <> · {miles < 1 ? "<1" : Math.round(miles)} miles away</>}
-                      </p>
-                    </div>
+                <div className="flex items-center gap-3">
+                  <Avatar photo={event.photo} name={event.name} size={48} />
+                  <div>
+                    <p className="font-semibold">
+                      <Link href={`/events/${event.id}`} className="hover:underline">
+                        {event.name}
+                      </Link>
+                      {event.tag && (
+                        <span className="ml-2 rounded-full bg-b2b-purple/10 px-2 py-0.5 text-xs text-b2b-purple">
+                          {event.tag}
+                        </span>
+                      )}
+                    </p>
+                    <p className="text-sm text-b2b-ink/50">
+                      {event.date.toLocaleDateString(undefined, {
+                        weekday: "short",
+                        year: "numeric",
+                        month: "short",
+                        day: "numeric",
+                      })}{" "}
+                      · {event.location}
+                      {miles !== null && <> · {miles < 1 ? "<1" : Math.round(miles)} miles away</>}
+                    </p>
                   </div>
-                  <ParticipateButton eventId={event.id} initialParticipating={isParticipating} />
                 </div>
                 {event.description && (
                   <p className="mt-2 line-clamp-2 text-sm text-b2b-ink/70">{event.description}</p>
@@ -199,6 +201,10 @@ export async function EventsList({
                   {event.participants.length}{" "}
                   {event.participants.length === 1 ? "athlete" : "athletes"} participating
                 </p>
+                <div className="mt-3 grid grid-cols-2 gap-3">
+                  <ParticipateButton eventId={event.id} initialParticipating={isParticipating} />
+                  <EventInterestButton eventId={event.id} initialInterested={isInterested} />
+                </div>
               </div>
             );
           })}

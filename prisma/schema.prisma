@@ -181,6 +181,7 @@ model User {
 
   createdEvents        Event[]
   eventParticipations  EventParticipant[]
+  eventInterests       EventInterest[]
   eventNotices         EventNotice[]
 
   blocksMade     Block[] @relation("BlocksMade")
@@ -406,6 +407,7 @@ model Event {
   createdAt DateTime @default(now())
 
   participants EventParticipant[]
+  interests    EventInterest[]
   notices      EventNotice[]
   posts        Post[]
 
@@ -418,6 +420,26 @@ model EventParticipant {
   user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   eventId String
   event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, eventId])
+  @@index([eventId])
+}
+
+// "I'm interested" (looking for a team) is tracked separately from actually
+// participating — marking interest auto-posts a notice on the event's board
+// (see EventNotice) and un-marking it removes that same notice, without
+// touching any notices the athlete wrote by hand.
+model EventInterest {
+  id      String @id @default(cuid())
+  userId  String
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  eventId String
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  noticeId String?      @unique
+  notice   EventNotice? @relation(fields: [noticeId], references: [id], onDelete: SetNull)
 
   createdAt DateTime @default(now())
 
@@ -438,6 +460,11 @@ model EventNotice {
   text String
 
   createdAt DateTime @default(now())
+
+  // Set when this notice is the auto-generated one behind an "I'm
+  // interested" mark (see EventInterest.noticeId) — null for a notice
+  // someone wrote by hand.
+  interest EventInterest?
 
   @@index([eventId])
 }
