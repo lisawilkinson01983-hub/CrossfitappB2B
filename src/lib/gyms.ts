@@ -5,6 +5,7 @@ export const AFFILIATE_GYMS = [
   "CrossFit Crowborough",
   "CrossFit Hailsham (FFH)",
   "CrossFit Burgess Hill (BYS)",
+  "CrossFit Haywards Heath",
 ] as const;
 
 // For people who haven't joined a gym yet (e.g. still finding out more).

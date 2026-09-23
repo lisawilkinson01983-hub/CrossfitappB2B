@@ -10,6 +10,7 @@ const AFFILIATE_GYMS = [
   "CrossFit Crowborough",
   "CrossFit Hailsham (FFH)",
   "CrossFit Burgess Hill (BYS)",
+  "CrossFit Haywards Heath",
 ];
 
 // Kept in sync with src/lib/gymPages.ts's KNOWN_GYM_INFO (duplicated here
@@ -43,6 +44,13 @@ const KNOWN_GYM_INFO = {
     address: "Unit 6 Sovereign Business Park, Albert Drive, Burgess Hill, RH15 9TY",
     website: "https://www.bysfitness.co.uk/byscrossfit",
     photo: "/gym-logos/crossfit-burgess-hill-bys.png",
+  },
+  "CrossFit Haywards Heath": {
+    description:
+      "CrossFit Haywards Heath runs functional fitness classes with a different constantly-varied workout each day, suitable for all ages and abilities. Alongside general CrossFit classes, they offer dedicated Olympic Weightlifting and Powerlifting sessions focused on building confidence and refining technique, plus a supportive class for mums getting back into fitness that welcomes children along too.",
+    address: "Holmsted Farm Business Units, Staplefield Road, Haywards Heath, RH17 5JF",
+    website: "https://www.crossfithaywardsheath.co.uk/",
+    photo: "/gym-logos/crossfit-haywards-heath.jpg",
   },
 };
 
