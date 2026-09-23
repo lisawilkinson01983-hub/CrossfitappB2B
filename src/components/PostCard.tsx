@@ -49,6 +49,7 @@ export type PostCardData = {
     score: string;
     unit: WorkoutUnitOption;
     intensity: WorkoutIntensityOption;
+    description: string | null;
   } | null;
   linkedEvent: {
     id: string;
@@ -369,19 +370,24 @@ export function PostCard({ post, currentUserId }: { post: PostCardData; currentU
 
       {post.linkedWorkout && (
         <div className="mt-3">
-          <button
-            type="button"
-            onClick={() => setShowWorkoutDetails((v) => !v)}
-            className="text-sm font-medium text-b2b-pink hover:underline"
-          >
-            {showWorkoutDetails ? "Hide workout details" : "Show workout details"}
-          </button>
-          {showWorkoutDetails && (
-            <p className="mt-1 text-sm text-gray-600">
-              {post.linkedWorkout.wodName} · {post.linkedWorkout.score} (
-              {WORKOUT_UNIT_LABELS[post.linkedWorkout.unit]}) ·{" "}
-              {WORKOUT_INTENSITY_LABELS[post.linkedWorkout.intensity]}
-            </p>
+          <p className="text-sm text-gray-600">
+            {post.linkedWorkout.wodName} · {post.linkedWorkout.score} (
+            {WORKOUT_UNIT_LABELS[post.linkedWorkout.unit]}) ·{" "}
+            {WORKOUT_INTENSITY_LABELS[post.linkedWorkout.intensity]}
+          </p>
+          {post.linkedWorkout.description && (
+            <>
+              <button
+                type="button"
+                onClick={() => setShowWorkoutDetails((v) => !v)}
+                className="mt-1 text-sm font-medium text-b2b-pink hover:underline"
+              >
+                {showWorkoutDetails ? "Hide workout description" : "Show workout description"}
+              </button>
+              {showWorkoutDetails && (
+                <p className="mt-1 text-sm italic text-gray-600">{post.linkedWorkout.description}</p>
+              )}
+            </>
           )}
         </div>
       )}

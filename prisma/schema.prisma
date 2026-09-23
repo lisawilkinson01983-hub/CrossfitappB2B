@@ -206,7 +206,11 @@ model Workout {
   score     String // free text, e.g. "12:34", "150 reps", "225 lb"; "5+10" (rounds+reps) when unit is ROUNDS_REPS
   unit      WorkoutUnit
   intensity WorkoutIntensity
-  notes     String?
+  // The WOD's standard description (e.g. "21-15-9 reps of thrusters and
+  // pull-ups"), auto-filled from the benchmark database when the name
+  // matches — separate from notes, which is always manual free text.
+  description String?
+  notes       String?
   photo     String? // served path, e.g. "/media/xyz.jpg" (see src/lib/uploads.ts)
   video     String? // served path, e.g. "/media/xyz.mp4" — mutually exclusive with photo
 

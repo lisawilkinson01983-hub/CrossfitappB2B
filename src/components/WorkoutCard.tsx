@@ -11,6 +11,7 @@ type WorkoutCardData = {
   score: string;
   unit: WorkoutUnitOption;
   intensity: WorkoutIntensityOption;
+  description: string | null;
   notes: string | null;
   photo: string | null;
   video: string | null;
@@ -55,6 +56,7 @@ export function WorkoutCard({
         </p>
       </div>
 
+      {workout.description && <p className="mt-2 text-sm text-gray-600 italic">{workout.description}</p>}
       {workout.notes && <p className="mt-2 text-sm text-gray-700">{workout.notes}</p>}
 
       {workout.photo && (

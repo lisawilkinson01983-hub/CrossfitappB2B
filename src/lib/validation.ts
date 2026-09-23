@@ -138,6 +138,7 @@ export const workoutSchema = z.object({
   score: z.string().trim().min(1, "Score is required"),
   unit: z.enum(WORKOUT_UNITS, { errorMap: () => ({ message: "Select a unit" }) }),
   intensity: z.enum(WORKOUT_INTENSITIES, { errorMap: () => ({ message: "Select Rx or Scaled" }) }),
+  description: z.preprocess(emptyToUndefined, z.string().trim().max(2000).optional()),
   notes: z.preprocess(emptyToUndefined, z.string().trim().max(2000).optional()),
   isPb: checkboxToBoolean,
   sharedToFeed: checkboxToBoolean,

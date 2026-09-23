@@ -37,6 +37,7 @@ type Initial = {
   score: string;
   unit: WorkoutUnitOption | "";
   intensity: WorkoutIntensityOption | "";
+  description: string;
   notes: string;
   isPb: boolean;
   sharedToFeed: boolean;
@@ -49,6 +50,7 @@ const BLANK_INITIAL: Initial = {
   score: "",
   unit: "",
   intensity: "",
+  description: "",
   notes: "",
   isPb: false,
   sharedToFeed: true,
@@ -77,6 +79,7 @@ export function WorkoutForm({ workoutId, initial }: { workoutId?: string; initia
   const [timeSeconds, setTimeSeconds] = useState(initialTime[2]);
   const [unit, setUnit] = useState<WorkoutUnitOption | "">(start.unit);
   const [intensity, setIntensity] = useState<WorkoutIntensityOption | "">(start.intensity);
+  const [description, setDescription] = useState(start.description);
   const [notes, setNotes] = useState(start.notes);
   const [isPb, setIsPb] = useState(start.isPb);
   const [sharedToFeed, setSharedToFeed] = useState(start.sharedToFeed);
@@ -89,25 +92,25 @@ export function WorkoutForm({ workoutId, initial }: { workoutId?: string; initia
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  // Tracks the last text this form itself wrote into notes, so switching to a
-  // different matched WOD keeps updating notes — but the moment the athlete
-  // edits that text (or writes their own from scratch), it stops being
-  // touched automatically.
-  const [autoFilledNotes, setAutoFilledNotes] = useState<string | null>(null);
+  // Tracks the last text this form itself wrote into the workout
+  // description, so switching to a different matched WOD keeps updating it —
+  // but the moment the athlete edits that text (or writes their own from
+  // scratch), it stops being touched automatically.
+  const [autoFilledDescription, setAutoFilledDescription] = useState<string | null>(null);
 
   const matchedWod = WOD_DATABASE_BY_NAME.get(wodName.trim().toLowerCase()) ?? null;
 
-  function fillNotesFromWod(match: NamedWorkout) {
+  function fillDescriptionFromWod(match: NamedWorkout) {
     const details = formatWodDetails(match);
-    setNotes(details);
-    setAutoFilledNotes(details);
+    setDescription(details);
+    setAutoFilledDescription(details);
   }
 
   function handleWodNameChange(value: string) {
     setWodName(value);
     const match = WOD_DATABASE_BY_NAME.get(value.trim().toLowerCase());
-    if (match && (!notes.trim() || notes === autoFilledNotes)) {
-      fillNotesFromWod(match);
+    if (match && (!description.trim() || description === autoFilledDescription)) {
+      fillDescriptionFromWod(match);
     }
   }
 
@@ -152,6 +155,7 @@ export function WorkoutForm({ workoutId, initial }: { workoutId?: string; initia
     formData.set("score", finalScore);
     formData.set("unit", unit);
     formData.set("intensity", intensity);
+    formData.set("description", description);
     formData.set("notes", notes);
     if (isPb) formData.set("isPb", "on");
     if (sharedToFeed) formData.set("sharedToFeed", "on");
@@ -199,7 +203,7 @@ export function WorkoutForm({ workoutId, initial }: { workoutId?: string; initia
         </datalist>
         {matchedWod && (
           <p className="mt-1 text-xs text-b2b-ink/40">
-            Matched {WOD_CATEGORY_LABELS[matchedWod.category]} — details added to notes below.
+            Matched {WOD_CATEGORY_LABELS[matchedWod.category]} — details added to the workout description below.
           </p>
         )}
       </div>
@@ -322,19 +326,36 @@ export function WorkoutForm({ workoutId, initial }: { workoutId?: string; initia
 
       <div>
         <div className="flex items-center justify-between">
-          <label htmlFor="notes" className="block text-sm font-medium">
-            Notes
+          <label htmlFor="description" className="block text-sm font-medium">
+            Workout description
           </label>
           {matchedWod && (
             <button
               type="button"
-              onClick={() => fillNotesFromWod(matchedWod)}
+              onClick={() => fillDescriptionFromWod(matchedWod)}
               className="text-xs text-b2b-pink hover:underline"
             >
               Fill from database
             </button>
           )}
         </div>
+        <p className="mt-1 text-xs text-b2b-ink/40">
+          The WOD's standard details (movements, reps, load) — filled in automatically for a matched benchmark, or write your own.
+        </p>
+        <textarea
+          id="description"
+          rows={3}
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          className="mt-1 w-full rounded border border-gray-300 px-3 py-2 focus:border-b2b-pink focus:outline-none"
+        />
+      </div>
+
+      <div>
+        <label htmlFor="notes" className="block text-sm font-medium">
+          Notes
+        </label>
+        <p className="mt-1 text-xs text-b2b-ink/40">How it felt, scaling choices, anything else worth remembering.</p>
         <textarea
           id="notes"
           rows={3}

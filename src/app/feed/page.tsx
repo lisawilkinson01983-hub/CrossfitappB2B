@@ -33,7 +33,7 @@ export default async function FeedPage() {
           showSingleBadge: true,
         },
       },
-      linkedWorkout: { select: { wodName: true, score: true, unit: true, intensity: true } },
+      linkedWorkout: { select: { wodName: true, score: true, unit: true, intensity: true, description: true } },
       linkedEvent: { select: { id: true, name: true, date: true, location: true } },
       likes: { select: { userId: true } },
       comments: {
