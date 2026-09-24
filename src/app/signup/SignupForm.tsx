@@ -5,7 +5,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 
-export function SignupForm() {
+export function SignupForm({ inviteOnly }: { inviteOnly: boolean }) {
   const router = useRouter();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -129,11 +129,13 @@ export function SignupForm() {
 
       <div>
         <label htmlFor="inviteCode" className="block text-sm font-medium">
-          Invite code <span className="font-normal text-gray-500">(optional)</span>
+          Invite code{" "}
+          {!inviteOnly && <span className="font-normal text-gray-500">(optional)</span>}
         </label>
         <input
           id="inviteCode"
           type="text"
+          required={inviteOnly}
           autoCapitalize="characters"
           value={inviteCode}
           onChange={(e) => setInviteCode(e.target.value)}

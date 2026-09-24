@@ -24,3 +24,13 @@ export async function generateUniqueInviteCode(): Promise<string> {
   }
   throw new Error("Could not generate a unique invite code");
 }
+
+/**
+ * When INVITE_ONLY is "true", signing up needs an existing member's invite
+ * code — how a closed test group stays closed without a site-wide password
+ * (which home-screen apps on iPhone handle badly). Unset, a code is optional
+ * and only credits a referral.
+ */
+export function isInviteOnly(): boolean {
+  return process.env.INVITE_ONLY === "true";
+}
