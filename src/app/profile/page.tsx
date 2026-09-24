@@ -11,7 +11,6 @@ import { Avatar } from "@/components/Avatar";
 import { WorkoutCard } from "@/components/WorkoutCard";
 import { IncomingFollowRequests } from "@/components/IncomingFollowRequests";
 import { GymUpdateNudge } from "@/components/GymUpdateNudge";
-import { ShareInviteCard } from "@/components/ShareInviteCard";
 import { AFFILIATE_GYMS, OTHER_GYM } from "@/lib/gyms";
 import { formatEventDate } from "@/lib/eventDate";
 
@@ -68,7 +67,6 @@ export default async function ProfilePage() {
               >
                 Edit profile
               </Link>
-              <ShareInviteCard name={user.name} photo={user.photo} />
             </>
           }
           belowActions={suggestedGym && <GymUpdateNudge suggestedGym={suggestedGym} />}
