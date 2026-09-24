@@ -11,7 +11,7 @@ import { Avatar } from "@/components/Avatar";
 import { WorkoutCard } from "@/components/WorkoutCard";
 import { IncomingFollowRequests } from "@/components/IncomingFollowRequests";
 import { GymUpdateNudge } from "@/components/GymUpdateNudge";
-import { AFFILIATE_GYMS, OTHER_GYM } from "@/lib/gyms";
+import { OTHER_GYM } from "@/lib/gyms";
 import { formatEventDate } from "@/lib/eventDate";
 
 export default async function ProfilePage() {
@@ -44,10 +44,14 @@ export default async function ProfilePage() {
       }),
     ]);
 
-  const suggestedGym =
-    user.affiliateGym === OTHER_GYM && user.affiliateGymOther
-      ? AFFILIATE_GYMS.find((g) => g.toLowerCase() === user.affiliateGymOther!.trim().toLowerCase())
-      : undefined;
+  let suggestedGym: string | undefined;
+  if (user.affiliateGym === OTHER_GYM && user.affiliateGymOther) {
+    // SQLite string equality is case-sensitive, so compare in JS to catch a
+    // gym someone typed with different casing than how it's actually listed.
+    const approvedGyms = await prisma.gym.findMany({ where: { status: "APPROVED" }, select: { name: true } });
+    const typed = user.affiliateGymOther.trim().toLowerCase();
+    suggestedGym = approvedGyms.find((g) => g.name.toLowerCase() === typed)?.name;
+  }
 
   return (
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
@@ -57,6 +61,7 @@ export default async function ProfilePage() {
         <ProfileDetails
           user={user}
           showEmail
+          isOwner
           followerCount={followerCount}
           followingCount={followingCount}
           actions={
@@ -72,13 +77,26 @@ export default async function ProfilePage() {
           belowActions={suggestedGym && <GymUpdateNudge suggestedGym={suggestedGym} />}
         />
 
-        <Gallery userId={user.id} />
+        <Gallery userId={user.id} canAdd />
 
         {incomingRequests.length > 0 && (
           <SectionCard title="Follow requests">
             <IncomingFollowRequests
               requests={incomingRequests.map((r) => ({ id: r.id, requester: r.requester }))}
             />
+          </SectionCard>
+        )}
+
+        {competingIn.length === 0 && interestedIn.length === 0 && (
+          <SectionCard
+            title="Events"
+            action={
+              <Link href="/discover?view=events" className="text-sm text-b2b-pink underline">
+                Browse events
+              </Link>
+            }
+          >
+            <p className="text-b2b-ink/40">No events added yet.</p>
           </SectionCard>
         )}
 
@@ -146,31 +164,33 @@ export default async function ProfilePage() {
           </SectionCard>
         )}
 
-        <SectionCard
-          title="Workout history"
-          action={
-            <div className="flex gap-3 text-sm">
-              <Link href="/workouts/new" className="text-b2b-pink underline">
-                Log a workout
-              </Link>
-              {recentWorkouts.length > 0 && (
-                <Link href="/workouts" className="text-b2b-pink underline">
-                  View all
+        {user.accountType === "ATHLETE" && (
+          <SectionCard
+            title="Workout history"
+            action={
+              <div className="flex gap-3 text-sm">
+                <Link href="/workouts/new" className="text-b2b-pink underline">
+                  Log a workout
                 </Link>
-              )}
-            </div>
-          }
-        >
-          {recentWorkouts.length ? (
-            <div className="flex flex-col gap-3">
-              {recentWorkouts.map((workout) => (
-                <WorkoutCard key={workout.id} workout={workout} />
-              ))}
-            </div>
-          ) : (
-            <p className="text-b2b-ink/40">No workouts logged yet.</p>
-          )}
-        </SectionCard>
+                {recentWorkouts.length > 0 && (
+                  <Link href="/workouts" className="text-b2b-pink underline">
+                    View all
+                  </Link>
+                )}
+              </div>
+            }
+          >
+            {recentWorkouts.length ? (
+              <div className="flex flex-col gap-3">
+                {recentWorkouts.map((workout) => (
+                  <WorkoutCard key={workout.id} workout={workout} />
+                ))}
+              </div>
+            ) : (
+              <p className="text-b2b-ink/40">No workouts logged yet.</p>
+            )}
+          </SectionCard>
+        )}
       </div>
     </main>
   );

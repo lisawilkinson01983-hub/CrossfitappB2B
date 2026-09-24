@@ -5,6 +5,7 @@ import { ensureGymPage } from "@/lib/gymPages";
 import { Avatar } from "@/components/Avatar";
 import { SectionCard } from "@/components/SectionCard";
 import { DISTANCE_RANGES, distanceMiles, ensureUserAreaCoords, geocode } from "@/lib/geocode";
+import { SearchSuggestInput } from "@/components/SearchSuggestInput";
 
 export type AffiliateSearchParams = {
   q?: string;
@@ -102,10 +103,10 @@ export async function AffiliatesList({
             <label htmlFor="q" className="block text-sm font-medium">
               Search affiliates
             </label>
-            <input
+            <SearchSuggestInput
+              kind="gym"
               id="q"
               name="q"
-              type="text"
               placeholder="Search by gym name or area"
               defaultValue={q}
               className="mt-1 w-full rounded border border-gray-300 px-3 py-2 focus:border-b2b-pink focus:outline-none"

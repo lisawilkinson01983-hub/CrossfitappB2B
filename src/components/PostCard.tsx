@@ -326,34 +326,34 @@ export function PostCard({ post, currentUserId }: { post: PostCardData; currentU
           : "border-b2b-purple/10"
       }`}
     >
-      <div className="flex items-start justify-between gap-4">
-        <Link href={`/profile/${post.author.id}`} className="flex items-center gap-3">
+      <div className="flex items-start justify-between gap-3">
+        <Link href={`/profile/${post.author.id}`} className="flex min-w-0 flex-1 items-center gap-3">
           <Avatar
             photo={post.author.photo}
             name={post.author.name}
             size={40}
             showSingleBadge={showsSingleBadge(post.author)}
           />
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="font-semibold hover:underline">{post.author.name}</span>
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+              <span className="break-words font-semibold hover:underline">{post.author.name}</span>
               {post.author.level && (
                 <span
-                  className={`rounded-full px-2 py-0.5 text-xs ${LEVEL_BADGE_CLASSES[post.author.level]}`}
+                  className={`shrink-0 rounded-full px-2 py-0.5 text-xs ${LEVEL_BADGE_CLASSES[post.author.level]}`}
                 >
                   {LEVEL_LABELS[post.author.level]}
                 </span>
               )}
-              {isPb && <span className="text-sm font-semibold text-yellow-600">★ PB</span>}
+              {isPb && <span className="shrink-0 text-sm font-semibold text-yellow-600">★ PB</span>}
             </div>
-            <p className="text-xs text-b2b-ink/40">
+            <p className="truncate text-xs text-b2b-ink/40">
               {post.author.affiliateGym && `${post.author.affiliateGym} · `}
               {post.createdAt.toLocaleString()}
             </p>
           </div>
         </Link>
         {post.isOwner && (
-          <div className="flex items-center gap-3">
+          <div className="flex shrink-0 items-center gap-3">
             <button
               type="button"
               onClick={() => {
@@ -374,7 +374,13 @@ export function PostCard({ post, currentUserId }: { post: PostCardData; currentU
             </button>
           </div>
         )}
-        {!post.isOwner && <ReportButton targetType="POST" targetId={post.id} />}
+        {!post.isOwner && (
+          <ReportButton
+            targetType="POST"
+            targetId={post.id}
+            className="shrink-0 text-xs text-b2b-ink/50 hover:underline"
+          />
+        )}
       </div>
 
       {post.linkedWorkout && (

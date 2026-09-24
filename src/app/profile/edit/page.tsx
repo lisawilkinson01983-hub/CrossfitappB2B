@@ -4,7 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { parseDisplayedPbs, parseLookingFor } from "@/lib/labels";
 import { PB_FIELDS } from "@/lib/validation";
-import { AFFILIATE_GYM_VALUES, OTHER_GYM } from "@/lib/gyms";
+import { OTHER_GYM, UNAFFILIATED } from "@/lib/gyms";
 import { NavBar } from "@/components/NavBar";
 import { SectionCard } from "@/components/SectionCard";
 import { SectionOnboarding } from "@/components/SectionOnboarding";
@@ -15,15 +15,21 @@ export default async function EditProfilePage() {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) redirect("/login");
 
-  const user = await prisma.user.findUnique({ where: { id: session.user.id } });
+  const [user, approvedGyms] = await Promise.all([
+    prisma.user.findUnique({ where: { id: session.user.id } }),
+    prisma.gym.findMany({ where: { status: "APPROVED" }, select: { name: true }, orderBy: { name: "asc" } }),
+  ]);
   if (!user) redirect("/login");
 
-  // Older data (from before the gym field was locked to a fixed list) may
-  // hold free text that isn't one of the current values — treat it as
-  // "Other" with that old text preserved as the suggestion, rather than
-  // breaking the form.
+  const gymOptions = [...approvedGyms.map((g) => g.name), UNAFFILIATED];
+
+  // Older data (from before the gym field was locked to a fixed list, or a
+  // gym that's since been renamed/removed) may hold text that isn't one of
+  // the current selectable values — treat it as "Other" with that old text
+  // preserved as the suggestion, rather than breaking the form.
   const isKnownGymValue =
-    user.affiliateGym != null && (AFFILIATE_GYM_VALUES as readonly string[]).includes(user.affiliateGym);
+    user.affiliateGym != null &&
+    (gymOptions.includes(user.affiliateGym) || user.affiliateGym === OTHER_GYM);
   const initialAffiliateGym = user.affiliateGym == null ? "" : isKnownGymValue ? user.affiliateGym : OTHER_GYM;
   const initialAffiliateGymOther = isKnownGymValue
     ? (user.affiliateGymOther ?? "")
@@ -53,9 +59,13 @@ export default async function EditProfilePage() {
       <div className="mt-6">
         <SectionCard title="Edit profile">
           <EditProfileForm
+            gymOptions={gymOptions}
             initial={{
               name: user.name,
               photo: user.photo,
+              accountType: user.accountType,
+              verificationRequested: user.verificationRequestedAt != null && user.verifiedAt == null,
+              isVerified: user.verifiedAt != null,
               bio: user.bio ?? "",
               age: user.age ?? "",
               gender: user.gender ?? "",

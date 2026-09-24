@@ -13,6 +13,11 @@ enum Level {
   RX
 }
 
+enum AccountType {
+  ATHLETE
+  AFFILIATE
+}
+
 enum Gender {
   MALE
   FEMALE
@@ -119,6 +124,13 @@ model User {
   // No broader role system — this is the only admin-gated capability so far.
   isAdmin Boolean @default(false)
 
+  // AFFILIATE accounts represent a gym rather than an athlete — set once,
+  // during profile setup (see EditProfileForm), and used throughout the app
+  // to skip athlete-only fields/features (PBs, workout log, ability level,
+  // relationship status, "looking for"). affiliateGym below doubles as
+  // "which gym this account runs" for an AFFILIATE account.
+  accountType AccountType @default(ATHLETE)
+
   // Set by an admin acting on a report (see /reports/review). A suspended
   // account can't sign in, and any existing session stops working on its
   // next request (see the session callback in src/lib/auth.ts). Null means
@@ -187,14 +199,23 @@ model User {
   // by distance. Null until `area` is set/changed and geocoding succeeds.
   areaLat Float?
   areaLng Float?
-  // One of the fixed values in src/lib/gyms.ts (a listed gym, "Unaffiliated",
-  // or "Other") — never free text, so search stays exact and reliable.
+  // Either an approved Gym's name, "Unaffiliated", or "Other" — never other
+  // free text, so search stays exact and reliable. For an AFFILIATE account
+  // this is the gym they run rather than the gym they train at.
   affiliateGym String?
   // Only set when affiliateGym is "Other": what they actually typed, kept
   // for reference so it can be added to the official list later. Never
   // searched/filtered on.
   affiliateGymOther String?
   level             Level?
+
+  // An AFFILIATE account can ask, from the bottom of the profile-setup form,
+  // to be confirmed as the legitimate owner/manager of the gym named in
+  // affiliateGym — reviewed manually by an admin (see /admin/verification).
+  // Both null means never requested; verifiedAt null with a requested date
+  // means pending review.
+  verificationRequestedAt DateTime?
+  verifiedAt              DateTime?
 
   crossfitSinceYear  Int?
   crossfitSinceMonth Int?
@@ -366,6 +387,11 @@ model Post {
   contentText String?
   photo       String? // served path, e.g. "/media/xyz.jpg" (see src/lib/uploads.ts)
   video       String? // served path, e.g. "/media/xyz.mp4" — mutually exclusive with photo
+
+  // False for media added straight to the profile Gallery rather than posted
+  // to the main feed. Every other kind of post (feed composer, workout
+  // share, event join) sets this true, hence the default.
+  sharedToFeed Boolean @default(true)
 
   // JSON-encoded array of teammate requests, set only when type is
   // TEAMMATE_REQUEST — a "find a teammate" search cross-posted from an

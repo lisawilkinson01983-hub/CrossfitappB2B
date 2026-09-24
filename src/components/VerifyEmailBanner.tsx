@@ -20,7 +20,7 @@ export function VerifyEmailBanner() {
   }
 
   return (
-    <div className="flex items-center justify-between gap-3 bg-b2b-purple/10 px-4 py-2 text-xs text-b2b-ink/70">
+    <div className="mb-3 flex items-center justify-between gap-3 rounded bg-b2b-purple/10 px-4 py-2 text-xs text-b2b-ink/70">
       <span>
         {status === "sent" ? "Verification email sent — check your inbox." : "Please verify your email address."}
       </span>

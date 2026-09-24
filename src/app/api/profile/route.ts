@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PB_FIELDS, profileSchema } from "@/lib/validation";
-import { OTHER_GYM } from "@/lib/gyms";
+import { OTHER_GYM, UNAFFILIATED } from "@/lib/gyms";
 import { PhotoUploadError, savePhotoUpload } from "@/lib/uploads";
 import { parseFormData } from "@/lib/http";
 import { geocode } from "@/lib/geocode";
@@ -22,6 +22,7 @@ export async function PATCH(req: Request) {
 
   const parsed = profileSchema.safeParse({
     name: formData.get("name"),
+    accountType: formData.get("accountType"),
     bio: formData.get("bio"),
     age: formData.get("age"),
     gender: formData.get("gender"),
@@ -38,12 +39,23 @@ export async function PATCH(req: Request) {
     showSingleBadge: formData.get("showSingleBadge"),
     showAge: formData.get("showAge"),
     isPrivate: formData.get("isPrivate"),
+    verificationRequested: formData.get("verificationRequested"),
     ...Object.fromEntries(PB_FIELDS.map((field) => [field, formData.get(field)])),
     displayedPbs: formData.getAll("displayedPbs"),
   });
 
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
+  }
+
+  if (parsed.data.affiliateGym !== UNAFFILIATED && parsed.data.affiliateGym !== OTHER_GYM) {
+    const gymExists = await prisma.gym.findFirst({
+      where: { name: parsed.data.affiliateGym, status: "APPROVED" },
+      select: { id: true },
+    });
+    if (!gymExists) {
+      return NextResponse.json({ error: "Select a valid gym" }, { status: 400 });
+    }
   }
 
   let photoPath: string | undefined;
@@ -65,8 +77,22 @@ export async function PATCH(req: Request) {
 
   const current = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { area: true, areaLat: true, areaLng: true },
+    select: { area: true, areaLat: true, areaLng: true, verificationRequestedAt: true, verifiedAt: true },
   });
+
+  // A verification request only makes sense for an AFFILIATE account, is a
+  // one-way flag toward "pending" until an admin acts on it, and is cleared
+  // outright if the account switches back to ATHLETE.
+  let verificationFields: { verificationRequestedAt: Date | null; verifiedAt: Date | null } | undefined;
+  if (data.accountType !== "AFFILIATE") {
+    if (current?.verificationRequestedAt || current?.verifiedAt) {
+      verificationFields = { verificationRequestedAt: null, verifiedAt: null };
+    }
+  } else if (data.verificationRequested && !current?.verifiedAt && !current?.verificationRequestedAt) {
+    verificationFields = { verificationRequestedAt: new Date(), verifiedAt: current?.verifiedAt ?? null };
+  } else if (!data.verificationRequested && current?.verificationRequestedAt && !current?.verifiedAt) {
+    verificationFields = { verificationRequestedAt: null, verifiedAt: null };
+  }
   const areaChanged = data.area !== current?.area;
   const missingCoords = current?.areaLat == null || current?.areaLng == null;
   let areaCoords: { areaLat: number | null; areaLng: number | null } | undefined;
@@ -79,6 +105,7 @@ export async function PATCH(req: Request) {
     where: { id: session.user.id },
     data: {
       name: data.name,
+      accountType: data.accountType,
       bio: data.bio ?? null,
       age: data.age ?? null,
       gender: data.gender ?? null,
@@ -86,7 +113,8 @@ export async function PATCH(req: Request) {
       ...areaCoords,
       affiliateGym: data.affiliateGym,
       affiliateGymOther: data.affiliateGym === OTHER_GYM ? data.affiliateGymOther : null,
-      level: data.level,
+      level: data.level ?? null,
+      ...verificationFields,
       crossfitSinceYear: data.crossfitSinceYear ?? null,
       crossfitSinceMonth: data.crossfitSinceMonth ?? null,
       lookingFor: JSON.stringify(data.lookingFor ?? []),

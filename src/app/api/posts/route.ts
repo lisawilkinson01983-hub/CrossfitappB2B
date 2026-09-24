@@ -18,7 +18,10 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
   }
 
-  const parsed = postSchema.safeParse({ contentText: formData.get("contentText") });
+  const parsed = postSchema.safeParse({
+    contentText: formData.get("contentText"),
+    sharedToFeed: formData.get("sharedToFeed"),
+  });
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
   }
@@ -30,6 +33,12 @@ export async function POST(req: Request) {
 
   if (!parsed.data.contentText && !hasPhoto && !hasVideo) {
     return NextResponse.json({ error: "Write something, or add a photo or video" }, { status: 400 });
+  }
+
+  // A post kept out of the feed only ever shows up via its photo/video in the
+  // gallery — text alone would be saved somewhere nobody can ever see it.
+  if (!parsed.data.sharedToFeed && !hasPhoto && !hasVideo) {
+    return NextResponse.json({ error: "Add a photo or video" }, { status: 400 });
   }
 
   let photoPath: string | undefined;
@@ -61,6 +70,7 @@ export async function POST(req: Request) {
       contentText: parsed.data.contentText ?? null,
       photo: photoPath ?? null,
       video: videoPath ?? null,
+      sharedToFeed: parsed.data.sharedToFeed,
     },
   });
 

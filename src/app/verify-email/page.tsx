@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { Logo } from "@/components/Logo";
+import { OpenInstalledApp } from "@/app/install/OpenInstalledApp";
 
 export default async function VerifyEmailPage({
   searchParams,
@@ -13,6 +14,9 @@ export default async function VerifyEmailPage({
 
   return (
     <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center px-4 text-center">
+      {/* If this link was opened from inside the installed app (rather than a
+          plain browser tab), skip the manual "Continue" tap and go straight in. */}
+      <OpenInstalledApp target="/feed" />
       <div className="mx-auto">
         <Logo size="sm" />
       </div>

@@ -12,7 +12,7 @@ import {
   parseLookingFor,
   showsSingleBadge,
 } from "@/lib/labels";
-import { AFFILIATE_GYM_VALUES } from "@/lib/gyms";
+import { UNAFFILIATED } from "@/lib/gyms";
 import { DISTANCE_RANGES, distanceMiles, ensureUserAreaCoords } from "@/lib/geocode";
 import { SectionCard } from "@/components/SectionCard";
 import { Avatar } from "@/components/Avatar";
@@ -37,7 +37,6 @@ export async function AthletesSearch({
   currentUserId: string;
 }) {
   const q = typeof sp.q === "string" ? sp.q.trim() : "";
-  const gym = AFFILIATE_GYM_VALUES.find((g) => g === sp.gym);
   const distance = DISTANCE_RANGES.find((d) => String(d) === sp.distance);
   const gender = SEARCHABLE_GENDERS.find((g) => g === sp.gender);
   const level = LEVELS.find((l) => l === sp.level);
@@ -46,13 +45,19 @@ export async function AthletesSearch({
     LOOKING_FOR_OPTIONS.includes(v as LookingForOption)
   );
 
-  const [blocked, currentUser] = await Promise.all([
+  const [blocked, currentUser, approvedGyms] = await Promise.all([
     prisma.block.findMany({ where: { blockerId: currentUserId }, select: { blockedId: true } }),
     prisma.user.findUnique({
       where: { id: currentUserId },
       select: { area: true, areaLat: true, areaLng: true },
     }),
+    prisma.gym.findMany({ where: { status: "APPROVED" }, select: { name: true }, orderBy: { name: "asc" } }),
   ]);
+
+  // Any approved gym is filterable, not just the fixed curated list — so a
+  // manually-added or user-submitted affiliate shows up here too.
+  const gymFilterOptions = [...approvedGyms.map((g) => g.name), UNAFFILIATED];
+  const gym = gymFilterOptions.find((g) => g === sp.gym);
 
   const myCoords = currentUser
     ? await ensureUserAreaCoords({ id: currentUserId, ...currentUser })
@@ -60,6 +65,8 @@ export async function AthletesSearch({
 
   const where: Prisma.UserWhereInput = {
     id: { not: currentUserId, notIn: blocked.map((b) => b.blockedId) },
+    deletedAt: null,
+    accountType: "ATHLETE",
     ...(q ? { name: { contains: q } } : {}),
     ...(gym ? { affiliateGym: gym } : {}),
     ...(gender ? { gender } : {}),
@@ -154,7 +161,7 @@ export async function AthletesSearch({
               className="mt-1 w-full rounded border border-gray-300 bg-b2b-card px-3 py-2 focus:border-b2b-pink focus:outline-none"
             >
               <option value="">Any</option>
-              {AFFILIATE_GYM_VALUES.map((g) => (
+              {gymFilterOptions.map((g) => (
                 <option key={g} value={g}>
                   {g}
                 </option>

@@ -25,6 +25,7 @@ export async function GET(req: Request) {
   const users = await prisma.user.findMany({
     where: {
       id: { not: session.user.id, notIn: hiddenUserIds },
+      deletedAt: null,
       name: { contains: q },
     },
     select: { id: true, name: true, photo: true },

@@ -15,14 +15,14 @@ export default async function FeedPage() {
   if (!session?.user?.id) redirect("/login");
 
   const [currentUser, blocked, muted] = await Promise.all([
-    prisma.user.findUnique({ where: { id: session.user.id }, select: { hasSeenFeedTour: true } }),
+    prisma.user.findUnique({ where: { id: session.user.id }, select: { hasSeenFeedTour: true, accountType: true } }),
     prisma.block.findMany({ where: { blockerId: session.user.id }, select: { blockedId: true } }),
     prisma.mute.findMany({ where: { userId: session.user.id }, select: { mutedUserId: true } }),
   ]);
   const hiddenUserIds = [...blocked.map((b) => b.blockedId), ...muted.map((m) => m.mutedUserId)];
 
   const posts = await prisma.post.findMany({
-    where: { userId: { notIn: hiddenUserIds } },
+    where: { userId: { notIn: hiddenUserIds }, sharedToFeed: true },
     orderBy: { createdAt: "desc" },
     include: {
       user: {
@@ -69,12 +69,14 @@ export default async function FeedPage() {
       <div className="mt-4">
         <SectionCard
           action={
-            <Link
-              href="/workouts/new"
-              className="rounded bg-b2b-pink px-3 py-1.5 text-sm font-medium text-white hover:bg-b2b-pink-dark"
-            >
-              Post workout
-            </Link>
+            currentUser?.accountType === "ATHLETE" && (
+              <Link
+                href="/workouts/new"
+                className="rounded bg-b2b-pink px-3 py-1.5 text-sm font-medium text-white hover:bg-b2b-pink-dark"
+              >
+                Post workout
+              </Link>
+            )
           }
         >
           <PostComposer />

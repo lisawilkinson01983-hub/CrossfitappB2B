@@ -12,10 +12,11 @@ import {
   parseLookingFor,
   showsSingleBadge,
 } from "@/lib/labels";
-import { PB_FIELDS } from "@/lib/validation";
-import { AFFILIATE_GYMS, OTHER_GYM } from "@/lib/gyms";
+import { PB_FIELDS, type PbField } from "@/lib/validation";
+import { OTHER_GYM, UNAFFILIATED } from "@/lib/gyms";
 import { SectionCard } from "@/components/SectionCard";
 import { ExpandableAvatar } from "@/components/ExpandableAvatar";
+import { PbCardBody } from "@/components/PbCardBody";
 import { prisma } from "@/lib/prisma";
 
 function Badge({ label, className }: { label: string; className: string }) {
@@ -29,6 +30,7 @@ export async function ProfileDetails({
   followingCount,
   actions,
   belowActions,
+  isOwner = false,
 }: {
   user: User;
   showEmail: boolean;
@@ -36,6 +38,7 @@ export async function ProfileDetails({
   followingCount: number;
   actions?: ReactNode;
   belowActions?: ReactNode;
+  isOwner?: boolean;
 }) {
   const lookingFor = parseLookingFor(user.lookingFor);
   const crossfitSince =
@@ -47,9 +50,14 @@ export async function ProfileDetails({
   const displayedPbSet = new Set(displayedPbFields);
   const pbs = displayedPbFields
     .map((field) => ({ label: PB_LABELS[field], value: user[field] }))
-    .filter((pb) => pb.value != null);
+    .filter((pb): pb is { label: string; value: number } => pb.value != null);
   const hasMorePbs = PB_FIELDS.some((field) => user[field] != null && !displayedPbSet.has(field));
+  const pbEditorInitial = {
+    pbs: Object.fromEntries(PB_FIELDS.map((field) => [field, user[field] ?? ""])) as Record<PbField, number | "">,
+    displayedPbs: displayedPbFields,
+  };
 
+  const isAffiliate = user.accountType === "AFFILIATE";
   const showRelationshipStatus = user.isSingle != null && user.showRelationshipStatus;
   const showSingleBadge = showsSingleBadge(user);
 
@@ -58,10 +66,9 @@ export async function ProfileDetails({
       ? `Other${user.affiliateGymOther ? ` — ${user.affiliateGymOther}` : ""}`
       : user.affiliateGym;
 
-  const isKnownGym =
-    user.affiliateGym != null &&
-    (AFFILIATE_GYMS as readonly string[]).includes(user.affiliateGym);
-  const gymPage = isKnownGym
+  const isLinkableGym =
+    user.affiliateGym != null && user.affiliateGym !== UNAFFILIATED && user.affiliateGym !== OTHER_GYM;
+  const gymPage = isLinkableGym
     ? await prisma.gym.findUnique({ where: { name: user.affiliateGym! } })
     : null;
   const gymHref = gymPage ? `/gyms/${encodeURIComponent(gymPage.name)}` : undefined;
@@ -121,6 +128,11 @@ export async function ProfileDetails({
           <div>
             <p className="text-xl font-semibold">
               {user.name}
+              {isAffiliate && user.verifiedAt && (
+                <span className="ml-2 align-middle text-sm font-normal text-b2b-pink" title="Verified affiliate">
+                  ✓ Verified
+                </span>
+              )}
               {user.isPrivate && (
                 <span className="ml-2 align-middle text-sm font-normal text-b2b-ink/50">🔒 Private</span>
               )}
@@ -158,32 +170,20 @@ export async function ProfileDetails({
         </div>
       </SectionCard>
 
-      <SectionCard
-        title="Key PBs (kg)"
-        action={
-          hasMorePbs && (
-            <Link href={`/profile/${user.id}/pbs`} className="text-sm text-b2b-pink underline">
-              See all
-            </Link>
-          )
-        }
-      >
-        {pbs.length ? (
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-            {pbs.map((pb) => (
-              <div
-                key={pb.label}
-                className="rounded-lg border border-b2b-purple/10 bg-b2b-bg px-3 py-2"
-              >
-                <p className="text-xs text-b2b-ink/50">{pb.label}</p>
-                <p className="mt-0.5 text-lg font-semibold text-b2b-ink">{pb.value}</p>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="text-b2b-ink/40">Not set</p>
-        )}
-      </SectionCard>
+      {!isAffiliate && (
+        <SectionCard
+          title="Key PBs (kg)"
+          action={
+            hasMorePbs && (
+              <Link href={`/profile/${user.id}/pbs`} className="text-sm text-b2b-pink underline">
+                See all
+              </Link>
+            )
+          }
+        >
+          <PbCardBody pbs={pbs} isOwner={isOwner} editorInitial={pbEditorInitial} />
+        </SectionCard>
+      )}
     </div>
   );
 }

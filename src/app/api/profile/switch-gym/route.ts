@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { AFFILIATE_GYMS } from "@/lib/gyms";
 import { ensureGymPage } from "@/lib/gymPages";
 
 /** Switches an "Other" profile onto a now-listed gym, in one click. */
@@ -14,7 +13,11 @@ export async function POST(req: Request) {
 
   const body = await req.json().catch(() => null);
   const gym = body?.gym;
-  if (typeof gym !== "string" || !(AFFILIATE_GYMS as readonly string[]).includes(gym)) {
+  if (typeof gym !== "string") {
+    return NextResponse.json({ error: "Not a listed gym" }, { status: 400 });
+  }
+  const gymExists = await prisma.gym.findFirst({ where: { name: gym, status: "APPROVED" }, select: { id: true } });
+  if (!gymExists) {
     return NextResponse.json({ error: "Not a listed gym" }, { status: 400 });
   }
 

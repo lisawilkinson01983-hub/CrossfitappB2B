@@ -31,7 +31,7 @@ export default async function SettingsPage() {
     await prisma.user.update({ where: { id: session.user.id }, data: { inviteCode } });
   }
 
-  const [blocks, mutes, openReportCount] = await Promise.all([
+  const [blocks, mutes, openReportCount, pendingVerificationCount] = await Promise.all([
     prisma.block.findMany({
       where: { blockerId: session.user.id },
       include: { blocked: { select: { id: true, name: true } } },
@@ -43,6 +43,9 @@ export default async function SettingsPage() {
       orderBy: { createdAt: "desc" },
     }),
     user.isAdmin ? prisma.report.count({ where: { status: "OPEN" } }) : 0,
+    user.isAdmin
+      ? prisma.user.count({ where: { accountType: "AFFILIATE", verificationRequestedAt: { not: null }, verifiedAt: null } })
+      : 0,
   ]);
 
   return (
@@ -92,6 +95,9 @@ export default async function SettingsPage() {
               </Link>
               <Link href="/leaderboard" className="text-b2b-purple underline">
                 Activity leaderboard
+              </Link>
+              <Link href="/admin/verification-requests" className="text-b2b-purple underline">
+                Verification requests{pendingVerificationCount > 0 ? ` (${pendingVerificationCount})` : ""}
               </Link>
               {/* A plain link rather than next/link — it's a file download, not a page. */}
               <a href="/api/admin/backup" className="text-b2b-purple underline">

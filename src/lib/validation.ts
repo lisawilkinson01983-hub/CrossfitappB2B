@@ -1,8 +1,11 @@
 import { z } from "zod";
-import { AFFILIATE_GYM_VALUES, OTHER_GYM } from "./gyms";
+import { OTHER_GYM } from "./gyms";
 
 export const LEVELS = ["SCALED", "INTERMEDIATE", "RX"] as const;
 export type LevelOption = (typeof LEVELS)[number];
+
+export const ACCOUNT_TYPES = ["ATHLETE", "AFFILIATE"] as const;
+export type AccountTypeOption = (typeof ACCOUNT_TYPES)[number];
 
 export const GENDERS = ["MALE", "FEMALE", "PREFER_NOT_TO_DISCLOSE"] as const;
 export type GenderOption = (typeof GENDERS)[number];
@@ -156,13 +159,19 @@ const optionalPositiveKg = z.preprocess(emptyToUndefined, z.coerce.number().posi
 export const profileSchema = z
   .object({
     name: z.string().trim().min(1, "Name is required"),
+    // AFFILIATE accounts (a gym, not an athlete) skip level/PBs/relationship/
+    // looking-for entirely — see the superRefine below and EditProfileForm.
+    accountType: z.enum(ACCOUNT_TYPES).default("ATHLETE"),
     bio: z.preprocess(emptyToUndefined, z.string().trim().max(2000).optional()),
     age: z.preprocess(emptyToUndefined, z.coerce.number().int().min(13).max(120).optional()),
     gender: z.preprocess(emptyToUndefined, z.enum(GENDERS).optional()),
     area: z.string().trim().min(1, "Area is required"),
-    affiliateGym: z.enum(AFFILIATE_GYM_VALUES, { errorMap: () => ({ message: "Select a gym" }) }),
+    // Not a fixed enum: any approved Gym name is selectable (see the dropdown
+    // in EditProfileForm), not just the curated few in AFFILIATE_GYMS — the
+    // route validates the submitted value against the actual Gym table.
+    affiliateGym: z.string().trim().min(1, "Select a gym"),
     affiliateGymOther: z.preprocess(emptyToUndefined, z.string().trim().max(200).optional()),
-    level: z.enum(LEVELS, { errorMap: () => ({ message: "Select a level" }) }),
+    level: z.preprocess(emptyToUndefined, z.enum(LEVELS).optional()),
     crossfitSinceYear: z.preprocess(
       emptyToUndefined,
       z.coerce.number().int().min(1970).max(new Date().getFullYear()).optional()
@@ -175,6 +184,9 @@ export const profileSchema = z
     showSingleBadge: checkboxToBoolean,
     showAge: checkboxToBoolean,
     isPrivate: checkboxToBoolean,
+    // Only meaningful for an AFFILIATE account — asks to be confirmed as the
+    // legitimate owner/manager of the gym named in affiliateGym.
+    verificationRequested: checkboxToBoolean,
     ...(Object.fromEntries(PB_FIELDS.map((field) => [field, optionalPositiveKg])) as Record<
       PbField,
       typeof optionalPositiveKg
@@ -184,10 +196,27 @@ export const profileSchema = z
       .max(MAX_DISPLAYED_PBS, `You can display up to ${MAX_DISPLAYED_PBS} PBs`)
       .default([]),
   })
-  .refine((data) => data.affiliateGym !== OTHER_GYM || !!data.affiliateGymOther, {
-    message: "Enter your gym name",
-    path: ["affiliateGymOther"],
+  .superRefine((data, ctx) => {
+    if (data.affiliateGym === OTHER_GYM && !data.affiliateGymOther) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Enter your gym name", path: ["affiliateGymOther"] });
+    }
+    if (data.accountType === "ATHLETE" && !data.level) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Select a level", path: ["level"] });
+    }
   });
+
+// Used by the quick PB editor on the profile page's "Key PBs" card — only
+// the PB fields themselves, not the rest of profileSchema's required fields.
+export const pbEditSchema = z.object({
+  ...(Object.fromEntries(PB_FIELDS.map((field) => [field, optionalPositiveKg])) as Record<
+    PbField,
+    typeof optionalPositiveKg
+  >),
+  displayedPbs: z
+    .array(z.enum(PB_FIELDS))
+    .max(MAX_DISPLAYED_PBS, `You can display up to ${MAX_DISPLAYED_PBS} PBs`)
+    .default([]),
+});
 
 export const workoutSchema = z.object({
   wodName: z.string().trim().min(1, "WOD name is required"),
@@ -204,6 +233,13 @@ export const workoutSchema = z.object({
 // text or a photo" is checked in the route handler, not here.
 export const postSchema = z.object({
   contentText: z.preprocess(emptyToUndefined, z.string().trim().max(2000).optional()),
+  // Sent as an explicit "true"/"false" string (not a bare checkbox) so
+  // "not sent at all" — the ordinary feed composer, which always shares to
+  // the feed — can default to true, distinct from "sent as false" — media
+  // added straight to the gallery with the "post to feed" option off.
+  sharedToFeed: z
+    .preprocess(emptyToUndefined, z.enum(["true", "false"]).optional())
+    .transform((v) => v === undefined || v === "true"),
 });
 
 export const commentSchema = z.object({

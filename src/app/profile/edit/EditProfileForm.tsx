@@ -4,23 +4,26 @@ import { useRef, useState, type FormEvent } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
+  ACCOUNT_TYPES,
   GENDERS,
   LEVELS,
   LOOKING_FOR_OPTIONS,
   MAX_DISPLAYED_PBS,
   PB_CATEGORIES,
   PB_FIELDS,
+  type AccountTypeOption,
   type GenderOption,
   type LevelOption,
   type LookingForOption,
   type PbField,
 } from "@/lib/validation";
 import { GENDER_LABELS, LEVEL_LABELS, LOOKING_FOR_LABELS, PB_LABELS } from "@/lib/labels";
-import { GYM_OPTIONS, OTHER_GYM } from "@/lib/gyms";
+import { OTHER_GYM } from "@/lib/gyms";
 
 type Initial = {
   name: string;
   photo: string | null;
+  accountType: AccountTypeOption;
   bio: string;
   age: number | "";
   gender: GenderOption | "";
@@ -39,6 +42,8 @@ type Initial = {
   isPrivate: boolean;
   pbs: Record<PbField, number | "">;
   displayedPbs: PbField[];
+  verificationRequested: boolean;
+  isVerified: boolean;
 };
 
 /** Renders isSingle's three states as a select: unanswered / yes / no. */
@@ -47,10 +52,13 @@ function isSingleToSelectValue(value: boolean | null): string {
   return value ? "true" : "false";
 }
 
-export function EditProfileForm({ initial }: { initial: Initial }) {
+export function EditProfileForm({ initial, gymOptions }: { initial: Initial; gymOptions: string[] }) {
   const router = useRouter();
 
   const [name, setName] = useState(initial.name);
+  const [accountType, setAccountType] = useState<AccountTypeOption>(initial.accountType);
+  const isAthlete = accountType === "ATHLETE";
+  const [verificationRequested, setVerificationRequested] = useState(initial.verificationRequested);
   const [bio, setBio] = useState(initial.bio);
   const [age, setAge] = useState(String(initial.age));
   const [gender, setGender] = useState(initial.gender);
@@ -113,24 +121,29 @@ export function EditProfileForm({ initial }: { initial: Initial }) {
 
     const formData = new FormData();
     formData.set("name", name);
+    formData.set("accountType", accountType);
     formData.set("bio", bio);
-    formData.set("age", age);
-    formData.set("gender", gender);
     formData.set("area", area);
     formData.set("affiliateGym", affiliateGym);
     formData.set("affiliateGymOther", affiliateGymOther);
-    formData.set("level", level);
-    formData.set("crossfitSinceYear", crossfitSinceYear);
-    formData.set("crossfitSinceMonth", crossfitSinceMonth);
-    lookingFor.forEach((v) => formData.append("lookingFor", v));
-    if (showLookingFor) formData.set("showLookingFor", "on");
-    formData.set("isSingle", isSingle);
-    if (showRelationshipStatus) formData.set("showRelationshipStatus", "on");
-    if (showSingleBadge) formData.set("showSingleBadge", "on");
-    if (showAge) formData.set("showAge", "on");
+    if (isAthlete) {
+      formData.set("age", age);
+      formData.set("gender", gender);
+      formData.set("level", level);
+      formData.set("crossfitSinceYear", crossfitSinceYear);
+      formData.set("crossfitSinceMonth", crossfitSinceMonth);
+      lookingFor.forEach((v) => formData.append("lookingFor", v));
+      if (showLookingFor) formData.set("showLookingFor", "on");
+      formData.set("isSingle", isSingle);
+      if (showRelationshipStatus) formData.set("showRelationshipStatus", "on");
+      if (showSingleBadge) formData.set("showSingleBadge", "on");
+      if (showAge) formData.set("showAge", "on");
+      PB_FIELDS.forEach((field) => formData.set(field, pbs[field]));
+      displayedPbs.forEach((field) => formData.append("displayedPbs", field));
+    } else if (verificationRequested) {
+      formData.set("verificationRequested", "on");
+    }
     if (isPrivate) formData.set("isPrivate", "on");
-    PB_FIELDS.forEach((field) => formData.set(field, pbs[field]));
-    displayedPbs.forEach((field) => formData.append("displayedPbs", field));
     if (photoFile) formData.set("photo", photoFile);
 
     const res = await fetch("/api/profile", { method: "PATCH", body: formData });
@@ -150,6 +163,29 @@ export function EditProfileForm({ initial }: { initial: Initial }) {
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-5">
       {error && <p className="rounded bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
+
+      <fieldset>
+        <legend className="text-sm font-medium">I'm signing up as...</legend>
+        <div className="mt-2 flex gap-4">
+          {ACCOUNT_TYPES.map((type) => (
+            <label key={type} className="flex items-center gap-2 text-sm">
+              <input
+                type="radio"
+                name="accountType"
+                checked={accountType === type}
+                onChange={() => setAccountType(type)}
+              />
+              {type === "ATHLETE" ? "An athlete" : "An affiliate / gym"}
+            </label>
+          ))}
+        </div>
+        {!isAthlete && (
+          <p className="mt-1 text-xs text-b2b-ink/50">
+            Affiliate accounts skip the athlete-only fields below (ability level, PBs, workout log,
+            relationship status) — just the basics, plus which gym you run.
+          </p>
+        )}
+      </fieldset>
 
       <div>
         <label className="block text-sm font-medium">Photo</label>
@@ -266,7 +302,7 @@ export function EditProfileForm({ initial }: { initial: Initial }) {
 
       <div>
         <label htmlFor="affiliateGym" className="block text-sm font-medium">
-          Affiliate gym
+          {isAthlete ? "Affiliate gym" : "Which gym do you run?"}
         </label>
         <select
           id="affiliateGym"
@@ -278,7 +314,7 @@ export function EditProfileForm({ initial }: { initial: Initial }) {
           <option value="" disabled>
             Select a gym
           </option>
-          {GYM_OPTIONS.map((gym) => (
+          {gymOptions.map((gym) => (
             <option key={gym} value={gym}>
               {gym}
             </option>
@@ -297,213 +333,217 @@ export function EditProfileForm({ initial }: { initial: Initial }) {
         )}
       </div>
 
-      <div>
-        <label htmlFor="level" className="block text-sm font-medium">
-          Level
-        </label>
-        <select
-          id="level"
-          required
-          value={level}
-          onChange={(e) => setLevel(e.target.value as LevelOption)}
-          className="mt-1 w-full rounded border border-gray-300 bg-b2b-card px-3 py-2 focus:border-b2b-pink focus:outline-none"
-        >
-          <option value="" disabled>
-            Select a level
-          </option>
-          {LEVELS.map((l) => (
-            <option key={l} value={l}>
-              {LEVEL_LABELS[l]}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <div>
-        <span className="block text-sm font-medium">CrossFitting since</span>
-        <div className="mt-1 grid grid-cols-2 gap-4">
-          <select
-            aria-label="Month started CrossFit"
-            value={crossfitSinceMonth}
-            onChange={(e) => setCrossfitSinceMonth(e.target.value)}
-            className="rounded border border-gray-300 bg-b2b-card px-3 py-2 focus:border-b2b-pink focus:outline-none"
-          >
-            <option value="">Month</option>
-            {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
-              <option key={m} value={m}>
-                {m}
+      {isAthlete && (
+        <>
+          <div>
+            <label htmlFor="level" className="block text-sm font-medium">
+              Level
+            </label>
+            <select
+              id="level"
+              required
+              value={level}
+              onChange={(e) => setLevel(e.target.value as LevelOption)}
+              className="mt-1 w-full rounded border border-gray-300 bg-b2b-card px-3 py-2 focus:border-b2b-pink focus:outline-none"
+            >
+              <option value="" disabled>
+                Select a level
               </option>
-            ))}
-          </select>
-          <input
-            aria-label="Year started CrossFit"
-            type="number"
-            placeholder="Year"
-            min={1970}
-            max={new Date().getFullYear()}
-            value={crossfitSinceYear}
-            onChange={(e) => setCrossfitSinceYear(e.target.value)}
-            className="rounded border border-gray-300 px-3 py-2 focus:border-b2b-pink focus:outline-none"
-          />
-        </div>
-      </div>
-
-      <fieldset>
-        <legend className="text-sm font-medium">Key PBs (kg)</legend>
-        <p className="mt-0.5 text-xs text-b2b-ink/50">
-          Fill in as many benchmark movements as you like — choose up to {MAX_DISPLAYED_PBS} to feature on
-          your profile ({displayedPbs.length}/{MAX_DISPLAYED_PBS} featured).
-        </p>
-
-        {displayedPbs.length > 0 && (
-          <div className="mt-2 grid grid-cols-2 gap-4 sm:grid-cols-3">
-            {displayedPbs.map((field) => (
-              <div key={field} className="relative">
-                <button
-                  type="button"
-                  onClick={() => removeDisplayedPb(field)}
-                  aria-label={`Remove ${PB_LABELS[field]}`}
-                  className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-gray-200 text-xs text-gray-600 hover:bg-gray-300"
-                >
-                  ×
-                </button>
-                <label htmlFor={field} className="block text-xs text-gray-600">
-                  {PB_LABELS[field]}
-                </label>
-                <input
-                  id={field}
-                  type="number"
-                  step="0.5"
-                  min={0}
-                  value={pbs[field]}
-                  onChange={(e) => setPbs((prev) => ({ ...prev, [field]: e.target.value }))}
-                  className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-b2b-pink focus:outline-none"
-                />
-              </div>
-            ))}
+              {LEVELS.map((l) => (
+                <option key={l} value={l}>
+                  {LEVEL_LABELS[l]}
+                </option>
+              ))}
+            </select>
           </div>
-        )}
 
-        <button
-          type="button"
-          onClick={() => setShowAddMorePbs((v) => !v)}
-          className="mt-3 text-sm font-medium text-b2b-pink hover:underline"
-        >
-          {showAddMorePbs ? "Hide other movements" : "+ Add more movements"}
-        </button>
+          <div>
+            <span className="block text-sm font-medium">CrossFitting since</span>
+            <div className="mt-1 grid grid-cols-2 gap-4">
+              <select
+                aria-label="Month started CrossFit"
+                value={crossfitSinceMonth}
+                onChange={(e) => setCrossfitSinceMonth(e.target.value)}
+                className="rounded border border-gray-300 bg-b2b-card px-3 py-2 focus:border-b2b-pink focus:outline-none"
+              >
+                <option value="">Month</option>
+                {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
+                  <option key={m} value={m}>
+                    {m}
+                  </option>
+                ))}
+              </select>
+              <input
+                aria-label="Year started CrossFit"
+                type="number"
+                placeholder="Year"
+                min={1970}
+                max={new Date().getFullYear()}
+                value={crossfitSinceYear}
+                onChange={(e) => setCrossfitSinceYear(e.target.value)}
+                className="rounded border border-gray-300 px-3 py-2 focus:border-b2b-pink focus:outline-none"
+              />
+            </div>
+          </div>
 
-        {showAddMorePbs && (
-          <div className="mt-3 flex flex-col gap-4 rounded border border-gray-200 p-3">
-            {atMaxDisplayedPbs && (
-              <p className="text-xs text-amber-600">
-                You've featured {MAX_DISPLAYED_PBS} — remove one above to feature another. You can still fill
-                these in either way.
-              </p>
-            )}
-            {PB_CATEGORIES.map((category) => {
-              const available = category.fields.filter((field) => !displayedPbs.includes(field));
-              if (available.length === 0) return null;
-              return (
-                <div key={category.label}>
-                  <p className="text-xs font-semibold text-gray-500">{category.label}</p>
-                  <div className="mt-1 flex flex-col gap-2">
-                    {available.map((field) => (
-                      <div key={field} className="flex items-center gap-2">
-                        <label htmlFor={field} className="flex-1 text-sm">
-                          {PB_LABELS[field]}
-                        </label>
-                        <input
-                          id={field}
-                          type="number"
-                          step="0.5"
-                          min={0}
-                          value={pbs[field]}
-                          onChange={(e) => setPbs((prev) => ({ ...prev, [field]: e.target.value }))}
-                          className="w-24 rounded border border-gray-300 px-2 py-1.5 text-sm focus:border-b2b-pink focus:outline-none"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => addDisplayedPb(field)}
-                          disabled={atMaxDisplayedPbs}
-                          className="whitespace-nowrap rounded-full border border-b2b-pink/30 px-2.5 py-1 text-xs font-medium text-b2b-pink hover:bg-b2b-pink/10 disabled:opacity-40 disabled:hover:bg-transparent"
-                        >
-                          Feature
-                        </button>
-                      </div>
-                    ))}
+          <fieldset>
+            <legend className="text-sm font-medium">Key PBs (kg)</legend>
+            <p className="mt-0.5 text-xs text-b2b-ink/50">
+              Fill in as many benchmark movements as you like — choose up to {MAX_DISPLAYED_PBS} to feature on
+              your profile ({displayedPbs.length}/{MAX_DISPLAYED_PBS} featured).
+            </p>
+
+            {displayedPbs.length > 0 && (
+              <div className="mt-2 grid grid-cols-2 gap-4 sm:grid-cols-3">
+                {displayedPbs.map((field) => (
+                  <div key={field} className="relative">
+                    <button
+                      type="button"
+                      onClick={() => removeDisplayedPb(field)}
+                      aria-label={`Remove ${PB_LABELS[field]}`}
+                      className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-gray-200 text-xs text-gray-600 hover:bg-gray-300"
+                    >
+                      ×
+                    </button>
+                    <label htmlFor={field} className="block text-xs text-gray-600">
+                      {PB_LABELS[field]}
+                    </label>
+                    <input
+                      id={field}
+                      type="number"
+                      step="0.5"
+                      min={0}
+                      value={pbs[field]}
+                      onChange={(e) => setPbs((prev) => ({ ...prev, [field]: e.target.value }))}
+                      className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-b2b-pink focus:outline-none"
+                    />
                   </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </fieldset>
+                ))}
+              </div>
+            )}
 
-      <fieldset>
-        <legend className="text-sm font-medium">Looking for</legend>
-        <div className="mt-2 flex flex-col gap-2">
-          {LOOKING_FOR_OPTIONS.map((option) => (
-            <label key={option} className="flex items-center gap-2 text-sm">
+            <button
+              type="button"
+              onClick={() => setShowAddMorePbs((v) => !v)}
+              className="mt-3 text-sm font-medium text-b2b-pink hover:underline"
+            >
+              {showAddMorePbs ? "Hide other movements" : "+ Add more movements"}
+            </button>
+
+            {showAddMorePbs && (
+              <div className="mt-3 flex flex-col gap-4 rounded border border-gray-200 p-3">
+                {atMaxDisplayedPbs && (
+                  <p className="text-xs text-amber-600">
+                    You've featured {MAX_DISPLAYED_PBS} — remove one above to feature another. You can still fill
+                    these in either way.
+                  </p>
+                )}
+                {PB_CATEGORIES.map((category) => {
+                  const available = category.fields.filter((field) => !displayedPbs.includes(field));
+                  if (available.length === 0) return null;
+                  return (
+                    <div key={category.label}>
+                      <p className="text-xs font-semibold text-gray-500">{category.label}</p>
+                      <div className="mt-1 flex flex-col gap-2">
+                        {available.map((field) => (
+                          <div key={field} className="flex items-center gap-2">
+                            <label htmlFor={field} className="flex-1 text-sm">
+                              {PB_LABELS[field]}
+                            </label>
+                            <input
+                              id={field}
+                              type="number"
+                              step="0.5"
+                              min={0}
+                              value={pbs[field]}
+                              onChange={(e) => setPbs((prev) => ({ ...prev, [field]: e.target.value }))}
+                              className="w-24 rounded border border-gray-300 px-2 py-1.5 text-sm focus:border-b2b-pink focus:outline-none"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => addDisplayedPb(field)}
+                              disabled={atMaxDisplayedPbs}
+                              className="whitespace-nowrap rounded-full border border-b2b-pink/30 px-2.5 py-1 text-xs font-medium text-b2b-pink hover:bg-b2b-pink/10 disabled:opacity-40 disabled:hover:bg-transparent"
+                            >
+                              Feature
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </fieldset>
+
+          <fieldset>
+            <legend className="text-sm font-medium">Looking for</legend>
+            <div className="mt-2 flex flex-col gap-2">
+              {LOOKING_FOR_OPTIONS.map((option) => (
+                <label key={option} className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={lookingFor.includes(option)}
+                    onChange={() => toggleLookingFor(option)}
+                  />
+                  {LOOKING_FOR_LABELS[option]}
+                </label>
+              ))}
+            </div>
+            <label className="mt-2 flex items-center gap-2 text-sm">
               <input
                 type="checkbox"
-                checked={lookingFor.includes(option)}
-                onChange={() => toggleLookingFor(option)}
+                checked={showLookingFor}
+                onChange={(e) => setShowLookingFor(e.target.checked)}
               />
-              {LOOKING_FOR_LABELS[option]}
+              Display my looking-for tags on my profile
             </label>
-          ))}
-        </div>
-        <label className="mt-2 flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
-            checked={showLookingFor}
-            onChange={(e) => setShowLookingFor(e.target.checked)}
-          />
-          Display my looking-for tags on my profile
-        </label>
-      </fieldset>
+          </fieldset>
 
-      <div>
-        <label htmlFor="isSingle" className="block text-sm font-medium">
-          Relationship status
-        </label>
-        <select
-          id="isSingle"
-          value={isSingle}
-          onChange={(e) => {
-            setIsSingle(e.target.value);
-            if (e.target.value === "") setShowRelationshipStatus(false);
-            if (e.target.value !== "true") setShowSingleBadge(false);
-          }}
-          className="mt-1 w-full max-w-xs rounded border border-gray-300 bg-b2b-card px-3 py-2 focus:border-b2b-pink focus:outline-none"
-        >
-          <option value="">Prefer not to say</option>
-          <option value="true">Single</option>
-          <option value="false">Not single</option>
-        </select>
+          <div>
+            <label htmlFor="isSingle" className="block text-sm font-medium">
+              Relationship status
+            </label>
+            <select
+              id="isSingle"
+              value={isSingle}
+              onChange={(e) => {
+                setIsSingle(e.target.value);
+                if (e.target.value === "") setShowRelationshipStatus(false);
+                if (e.target.value !== "true") setShowSingleBadge(false);
+              }}
+              className="mt-1 w-full max-w-xs rounded border border-gray-300 bg-b2b-card px-3 py-2 focus:border-b2b-pink focus:outline-none"
+            >
+              <option value="">Prefer not to say</option>
+              <option value="true">Single</option>
+              <option value="false">Not single</option>
+            </select>
 
-        {isSingle !== "" && (
-          <label className="mt-2 flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={showRelationshipStatus}
-              onChange={(e) => setShowRelationshipStatus(e.target.checked)}
-            />
-            Display my relationship status on my profile
-          </label>
-        )}
+            {isSingle !== "" && (
+              <label className="mt-2 flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={showRelationshipStatus}
+                  onChange={(e) => setShowRelationshipStatus(e.target.checked)}
+                />
+                Display my relationship status on my profile
+              </label>
+            )}
 
-        {isSingle === "true" && (
-          <label className="mt-2 flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={showSingleBadge}
-              onChange={(e) => setShowSingleBadge(e.target.checked)}
-            />
-            Show a single badge (💚) on my profile photo
-          </label>
-        )}
-      </div>
+            {isSingle === "true" && (
+              <label className="mt-2 flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={showSingleBadge}
+                  onChange={(e) => setShowSingleBadge(e.target.checked)}
+                />
+                Show a single badge (💚) on my profile photo
+              </label>
+            )}
+          </div>
+        </>
+      )}
 
       <label className="flex items-center gap-2 text-sm">
         <input
@@ -513,6 +553,29 @@ export function EditProfileForm({ initial }: { initial: Initial }) {
         />
         Private profile (new followers will need to be approved)
       </label>
+
+      {!isAthlete && (
+        <div className="rounded-lg border border-b2b-purple/10 bg-b2b-bg p-3">
+          {initial.isVerified ? (
+            <p className="text-sm text-b2b-ink/70">
+              ✓ <span className="font-medium">Verified</span> as the owner/manager of this affiliate.
+            </p>
+          ) : (
+            <label className="flex items-start gap-2 text-sm text-gray-700">
+              <input
+                type="checkbox"
+                checked={verificationRequested}
+                onChange={(e) => setVerificationRequested(e.target.checked)}
+                className="mt-0.5"
+              />
+              <span>
+                Request verification as the legitimate owner/manager of this affiliate
+                {verificationRequested && " — pending admin review"}.
+              </span>
+            </label>
+          )}
+        </div>
+      )}
 
       <button
         type="submit"

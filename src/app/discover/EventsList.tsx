@@ -6,6 +6,7 @@ import { SectionCard } from "@/components/SectionCard";
 import { Avatar } from "@/components/Avatar";
 import { distanceMiles, ensureUserAreaCoords, ensureEventCoords, DISTANCE_RANGES } from "@/lib/geocode";
 import { formatEventDate } from "@/lib/eventDate";
+import { SearchSuggestInput } from "@/components/SearchSuggestInput";
 
 const TIME_RANGES = {
   week: { label: "Next 7 days", days: 7 },
@@ -92,10 +93,10 @@ export async function EventsList({
             <label htmlFor="q" className="sr-only">
               Search events by name or area
             </label>
-            <input
+            <SearchSuggestInput
+              kind="event"
               id="q"
               name="q"
-              type="text"
               placeholder="Search events by name or area"
               defaultValue={q}
               className="w-full rounded border border-gray-300 px-3 py-2 focus:border-b2b-pink focus:outline-none"
