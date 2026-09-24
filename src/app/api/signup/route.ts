@@ -5,7 +5,7 @@ import { signupSchema } from "@/lib/validation";
 import { generateToken } from "@/lib/tokens";
 import { sendEmail } from "@/lib/email";
 import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
-import { generateUniqueInviteCode } from "@/lib/inviteCode";
+import { generateUniqueInviteCode, isInviteOnly } from "@/lib/inviteCode";
 
 export async function POST(req: Request) {
   const rateLimit = checkRateLimit(getClientIp(req.headers), "signup", { limit: 5, windowMs: 15 * 60 * 1000 });
@@ -38,14 +38,26 @@ export async function POST(req: Request) {
   const emailVerificationToken = generateToken();
   const inviteCode = await generateUniqueInviteCode();
 
-  // An invalid/unrecognized code just means an organic signup — it's not
-  // worth failing signup over a typo'd or stale referral link.
+  // Outside invite-only mode, an invalid/unrecognized code just means an
+  // organic signup — it's not worth failing signup over a typo'd or stale
+  // referral link.
   const referrer = parsed.data.inviteCode
     ? await prisma.user.findUnique({
         where: { inviteCode: parsed.data.inviteCode.toUpperCase() },
         select: { id: true },
       })
     : null;
+
+  if (isInviteOnly() && !referrer) {
+    return NextResponse.json(
+      {
+        error: parsed.data.inviteCode
+          ? "That invite code isn't valid. Check it with the person who invited you."
+          : "Box 2 Box is invite-only right now. Enter the invite code you were sent.",
+      },
+      { status: 403 }
+    );
+  }
 
   const user = await prisma.user.create({
     data: {

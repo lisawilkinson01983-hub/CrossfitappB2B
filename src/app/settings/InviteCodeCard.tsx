@@ -6,8 +6,10 @@ export function InviteCodeCard({ code, referralCount }: { code: string; referral
   const [copied, setCopied] = useState<"code" | "link" | null>(null);
   // Starts as a relative path (matches server-rendered HTML) and fills in the
   // real origin after mount, avoiding a hydration mismatch.
-  const [link, setLink] = useState(`/signup?ref=${code}`);
-  useEffect(() => setLink(`${window.location.origin}/signup?ref=${code}`), [code]);
+  // Points at the install instructions (which show the code), since new
+  // testers should add the app to their home screen before signing up.
+  const [link, setLink] = useState(`/install?ref=${code}`);
+  useEffect(() => setLink(`${window.location.origin}/install?ref=${code}`), [code]);
 
   async function copy(value: string, which: "code" | "link") {
     await navigator.clipboard.writeText(value);

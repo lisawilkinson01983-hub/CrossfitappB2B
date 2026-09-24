@@ -93,6 +93,14 @@ export default async function SettingsPage() {
               <Link href="/leaderboard" className="text-b2b-purple underline">
                 Activity leaderboard
               </Link>
+              {/* A plain link rather than next/link — it's a file download, not a page. */}
+              <a href="/api/admin/backup" className="text-b2b-purple underline">
+                Download database backup
+              </a>
+              <p className="text-xs text-b2b-ink/50">
+                Save one weekly (and before big changes) somewhere safe like Google Drive. Photos aren't
+                included.
+              </p>
             </div>
           </SectionCard>
         )}
