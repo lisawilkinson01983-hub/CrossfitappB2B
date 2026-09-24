@@ -49,6 +49,8 @@ export default async function NotificationsPage() {
                       ? "/events/review"
                       : n.type === "GYM_SUBMITTED"
                         ? "/gyms/review"
+                        : n.type === "REPORT_SUBMITTED"
+                          ? "/reports/review"
                         : n.type === "TEAMMATE_REQUEST_MATCH" || n.type === "TEAMMATE_SEARCH_MATCH"
                           ? `/events/${n.event?.id ?? ""}`
                           : n.post
@@ -77,6 +79,8 @@ export default async function NotificationsPage() {
                               ? `submitted "${n.event?.name ?? "an event"}" for review`
                               : n.type === "GYM_SUBMITTED"
                                 ? `submitted "${n.gym?.name ?? "an affiliate"}" for review`
+                                : n.type === "REPORT_SUBMITTED"
+                                ? "reported something for review"
                                 : n.type === "TEAMMATE_REQUEST_MATCH"
                                 ? `posted a teammate request matching your search for "${n.event?.name ?? "an event"}"`
                                 : n.type === "TEAMMATE_SEARCH_MATCH"
