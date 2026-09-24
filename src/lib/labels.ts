@@ -8,12 +8,34 @@ import type {
   LevelOption,
   LookingForOption,
   PbField,
+  ReportReasonOption,
+  ReportTargetTypeOption,
   TeammateDivisionOption,
   TeammateGenderOption,
   TeammateRequest,
   WorkoutIntensityOption,
   WorkoutUnitOption,
 } from "./validation";
+
+export const REPORT_REASON_LABELS: Record<ReportReasonOption, string> = {
+  SPAM: "Spam or scam",
+  HARASSMENT: "Harassment or bullying",
+  HATE: "Hate speech or symbols",
+  NUDITY: "Nudity or sexual content",
+  VIOLENCE: "Violence or threats",
+  SELF_HARM: "Self-harm or suicide",
+  IMPERSONATION: "Pretending to be someone else",
+  OTHER: "Something else",
+};
+
+export const REPORT_TARGET_LABELS: Record<ReportTargetTypeOption, string> = {
+  USER: "profile",
+  POST: "post",
+  COMMENT: "comment",
+  MESSAGE: "message",
+  EVENT_NOTICE: "notice",
+  EVENT_NOTICE_COMMENT: "comment",
+};
 
 export const LEVEL_LABELS: Record<LevelOption, string> = {
   SCALED: "Scaled",

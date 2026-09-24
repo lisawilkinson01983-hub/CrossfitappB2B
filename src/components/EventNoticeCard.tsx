@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Avatar } from "@/components/Avatar";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { ReportButton } from "@/components/ReportButton";
 import { formatTeammateRequest } from "@/lib/labels";
 import type { TeammateRequest } from "@/lib/validation";
 
@@ -14,6 +15,8 @@ export type EventNoticeCommentData = {
   createdAt: string | Date;
   author: { id: string; name: string };
   parentId: string | null;
+  // Whether the viewer wrote it — hides Report on their own comments.
+  isMine: boolean;
 };
 
 export type EventNoticeData = {
@@ -117,7 +120,7 @@ export function EventNoticeCard({
     setCommentBusy(false);
     if (res.ok) {
       const body = await res.json();
-      setComments((prev) => [...prev, body.comment]);
+      setComments((prev) => [...prev, { ...body.comment, isMine: true }]);
       setCommentText("");
     }
   }
@@ -138,7 +141,7 @@ export function EventNoticeCard({
     setReplyBusy(false);
     if (res.ok) {
       const body = await res.json();
-      setComments((prev) => [...prev, body.comment]);
+      setComments((prev) => [...prev, { ...body.comment, isMine: true }]);
       setReplyText("");
       setReplyingToId(null);
     }
@@ -164,13 +167,14 @@ export function EventNoticeCard({
             <span className="font-semibold">{comment.author.name}</span>{" "}
             <span className="text-gray-800">{comment.text}</span>
           </p>
-          <button
-            type="button"
-            onClick={() => startReply(comment.id)}
-            className="mt-0.5 text-xs text-b2b-ink/50 hover:underline"
-          >
-            Reply
-          </button>
+          <div className="mt-0.5 flex items-center gap-3 text-xs text-b2b-ink/50">
+            <button type="button" onClick={() => startReply(comment.id)} className="hover:underline">
+              Reply
+            </button>
+            {!comment.isMine && (
+              <ReportButton targetType="EVENT_NOTICE_COMMENT" targetId={comment.id} className="hover:underline" />
+            )}
+          </div>
         </div>
 
         {isReplying && (
@@ -243,6 +247,7 @@ export function EventNoticeCard({
             </button>
           </div>
         )}
+        {!isOwn && <ReportButton targetType="EVENT_NOTICE" targetId={notice.id} />}
       </div>
       {notice.teammateRequests.length > 0 && (
         <div className="mt-3 flex flex-col items-start gap-1">

@@ -73,6 +73,7 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
           createdAt: c.createdAt,
           author: c.user,
           parentId: c.parentId,
+          isMine: c.userId === session.user.id,
         })),
       },
       isOwn: notice.userId === session.user.id,

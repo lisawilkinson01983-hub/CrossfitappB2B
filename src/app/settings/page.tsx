@@ -15,11 +15,11 @@ export default async function SettingsPage() {
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { isPrivate: true },
+    select: { isPrivate: true, isAdmin: true },
   });
   if (!user) redirect("/login");
 
-  const [blocks, mutes] = await Promise.all([
+  const [blocks, mutes, openReportCount] = await Promise.all([
     prisma.block.findMany({
       where: { blockerId: session.user.id },
       include: { blocked: { select: { id: true, name: true } } },
@@ -30,6 +30,7 @@ export default async function SettingsPage() {
       include: { mutedUser: { select: { id: true, name: true } } },
       orderBy: { createdAt: "desc" },
     }),
+    user.isAdmin ? prisma.report.count({ where: { status: "OPEN" } }) : 0,
   ]);
 
   return (
@@ -66,6 +67,14 @@ export default async function SettingsPage() {
             </div>
           </div>
         </SectionCard>
+
+        {user.isAdmin && (
+          <SectionCard title="Admin">
+            <Link href="/reports/review" className="text-sm text-b2b-purple underline">
+              Review reports{openReportCount > 0 ? ` (${openReportCount})` : ""}
+            </Link>
+          </SectionCard>
+        )}
 
         <SectionCard title="Privacy &amp; Safety">
           <p className="text-sm text-b2b-ink/60">

@@ -21,7 +21,11 @@ export function LoginForm() {
     setSubmitting(false);
 
     if (!result || result.error) {
-      setError("Invalid email or password");
+      setError(
+        result?.error === "ACCOUNT_SUSPENDED"
+          ? "This account has been suspended for breaking the community guidelines."
+          : "Invalid email or password"
+      );
       return;
     }
 
