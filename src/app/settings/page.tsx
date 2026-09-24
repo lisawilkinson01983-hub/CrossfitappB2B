@@ -6,7 +6,6 @@ import { prisma } from "@/lib/prisma";
 import { NavBar } from "@/components/NavBar";
 import { SectionCard } from "@/components/SectionCard";
 import { BlockMuteControls } from "@/components/BlockMuteControls";
-import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 import { ChangeEmailForm } from "./ChangeEmailForm";
 import { ChangePasswordForm } from "./ChangePasswordForm";
 
@@ -16,7 +15,7 @@ export default async function SettingsPage() {
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { isPrivate: true, theme: true },
+    select: { isPrivate: true },
   });
   if (!user) redirect("/login");
 
@@ -39,11 +38,6 @@ export default async function SettingsPage() {
       <h1 className="mt-6 text-2xl font-bold">Settings</h1>
 
       <div className="mt-6 flex flex-col gap-6">
-        <SectionCard title="Appearance">
-          <p className="mb-3 text-sm text-b2b-ink/60">Choose the app&apos;s color theme.</p>
-          <ThemeSwitcher initialTheme={user.theme} />
-        </SectionCard>
-
         <SectionCard
           title="Account"
           action={
