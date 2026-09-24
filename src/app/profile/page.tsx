@@ -21,7 +21,7 @@ export default async function ProfilePage() {
   const user = await prisma.user.findUnique({ where: { id: session.user.id } });
   if (!user) redirect("/login");
 
-  const [recentWorkouts, followerCount, followingCount, incomingRequests, competingIn] =
+  const [recentWorkouts, followerCount, followingCount, incomingRequests, competingIn, interestedIn] =
     await Promise.all([
       prisma.workout.findMany({
         where: { userId: user.id },
@@ -36,6 +36,10 @@ export default async function ProfilePage() {
       }),
       prisma.event.findMany({
         where: { participants: { some: { userId: user.id } } },
+        orderBy: { date: "asc" },
+      }),
+      prisma.event.findMany({
+        where: { interests: { some: { userId: user.id } } },
         orderBy: { date: "asc" },
       }),
     ]);
@@ -90,6 +94,44 @@ export default async function ProfilePage() {
           >
             <div className="flex flex-col gap-3">
               {competingIn.map((event) => (
+                <div
+                  key={event.id}
+                  className="flex items-center gap-3 rounded-lg border border-b2b-purple/10 bg-b2b-bg p-3"
+                >
+                  <Avatar photo={event.photo} name={event.name} size={40} />
+                  <div>
+                    <p className="font-medium">
+                      <Link href={`/events/${event.id}`} className="hover:underline">
+                        {event.name}
+                      </Link>
+                    </p>
+                    <p className="text-sm text-b2b-ink/50">
+                      {event.date.toLocaleDateString(undefined, {
+                        weekday: "short",
+                        year: "numeric",
+                        month: "short",
+                        day: "numeric",
+                      })}{" "}
+                      · {event.location}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </SectionCard>
+        )}
+
+        {interestedIn.length > 0 && (
+          <SectionCard
+            title="Interested in"
+            action={
+              <Link href="/discover?view=events" className="text-sm text-b2b-pink underline">
+                Browse events
+              </Link>
+            }
+          >
+            <div className="flex flex-col gap-3">
+              {interestedIn.map((event) => (
                 <div
                   key={event.id}
                   className="flex items-center gap-3 rounded-lg border border-b2b-purple/10 bg-b2b-bg p-3"

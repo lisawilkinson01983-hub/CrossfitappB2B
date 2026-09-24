@@ -7,6 +7,7 @@ import { PB_FIELDS } from "@/lib/validation";
 import { AFFILIATE_GYM_VALUES, OTHER_GYM } from "@/lib/gyms";
 import { NavBar } from "@/components/NavBar";
 import { SectionCard } from "@/components/SectionCard";
+import { SectionOnboarding } from "@/components/SectionOnboarding";
 import { EditProfileForm } from "./EditProfileForm";
 
 export default async function EditProfilePage() {
@@ -29,6 +30,24 @@ export default async function EditProfilePage() {
 
   return (
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
+      {!user.hasSeenOnboarding && (
+        <SectionOnboarding
+          section="welcome"
+          finishLabel="Let's go!"
+          cards={[
+            {
+              emoji: "🎉",
+              title: "Welcome to Box 2 Box!",
+              body: "Here's a quick tour to help you find your way around. First, let's complete your profile before continuing.",
+            },
+            {
+              emoji: "👤",
+              title: "Profile",
+              body: "Manage your profile and settings, and track your personal bests. Fill in your details below to get started.",
+            },
+          ]}
+        />
+      )}
       <NavBar />
       <div className="mt-6">
         <SectionCard title="Edit profile">

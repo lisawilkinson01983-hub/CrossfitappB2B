@@ -116,9 +116,15 @@ model User {
   // No broader role system — this is the only admin-gated capability so far.
   isAdmin Boolean @default(false)
 
-  // Set once the "how to use this app" onboarding tour has been shown (see
-  // OnboardingTour) — shown once on the feed page and never again after.
-  hasSeenOnboarding Boolean @default(false)
+  // Each set once its onboarding popup has been shown (see
+  // SectionOnboarding) — hasSeenOnboarding covers the welcome+profile-setup
+  // popup shown right after signup; the rest are shown the first time the
+  // user opens that section, never again after.
+  hasSeenOnboarding    Boolean @default(false)
+  hasSeenFeedTour      Boolean @default(false)
+  hasSeenDiscoverTour  Boolean @default(false)
+  hasSeenEventsTour    Boolean @default(false)
+  hasSeenWorkoutsTour  Boolean @default(false)
 
   // Profile fields below are optional at signup time and filled in via the
   // profile edit form, so they're nullable even though every real profile

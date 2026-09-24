@@ -6,6 +6,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NavBar } from "@/components/NavBar";
 import { SectionCard } from "@/components/SectionCard";
+import { SectionOnboarding } from "@/components/SectionOnboarding";
 import { Avatar } from "@/components/Avatar";
 import { PinButton } from "@/components/PinButton";
 import { EventEngagementButtons } from "@/components/EventEngagementButtons";
@@ -51,7 +52,10 @@ export default async function MyEventsPage({
       },
     }),
     prisma.eventPin.findMany({ where: { userId }, select: { eventId: true } }),
-    prisma.user.findUnique({ where: { id: userId }, select: { area: true, areaLat: true, areaLng: true } }),
+    prisma.user.findUnique({
+      where: { id: userId },
+      select: { area: true, areaLat: true, areaLng: true, hasSeenEventsTour: true },
+    }),
   ]);
 
   const pinnedIds = new Set(pins.map((p) => p.eventId));
@@ -74,6 +78,24 @@ export default async function MyEventsPage({
 
   return (
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
+      {!currentUser?.hasSeenEventsTour && (
+        <SectionOnboarding
+          section="events"
+          finishLabel="Close"
+          cards={[
+            {
+              emoji: "📅",
+              title: "My Events",
+              body: "Found an event? Tap Participate or Interested and it'll show up on your profile, so others can see what you've got coming up.",
+            },
+            {
+              emoji: "🤝",
+              title: "Find a Team",
+              body: "Short a teammate, or a whole team? Post a notice on the event page to find one — or set an alert to get notified the moment someone matching your criteria posts. You can also chat with fellow competitors in that event's Notice Board.",
+            },
+          ]}
+        />
+      )}
       <NavBar />
       <h1 className="mt-6 text-2xl font-bold">My Events</h1>
 

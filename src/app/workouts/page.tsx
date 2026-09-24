@@ -7,6 +7,7 @@ import type { Prisma } from "@prisma/client";
 import { WorkoutCard } from "@/components/WorkoutCard";
 import { NavBar } from "@/components/NavBar";
 import { SectionCard } from "@/components/SectionCard";
+import { SectionOnboarding } from "@/components/SectionOnboarding";
 import { WORKOUT_INTENSITY_LABELS } from "@/lib/labels";
 import { WORKOUT_INTENSITIES, type WorkoutIntensityOption } from "@/lib/validation";
 
@@ -28,13 +29,28 @@ export default async function WorkoutsPage({
     ...(intensity ? { intensity } : {}),
   };
 
-  const workouts = await prisma.workout.findMany({
-    where,
-    orderBy: [{ pinned: "desc" }, { createdAt: "desc" }],
-  });
+  const [workouts, currentUser] = await Promise.all([
+    prisma.workout.findMany({
+      where,
+      orderBy: [{ pinned: "desc" }, { createdAt: "desc" }],
+    }),
+    prisma.user.findUnique({ where: { id: session.user.id }, select: { hasSeenWorkoutsTour: true } }),
+  ]);
 
   return (
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
+      {!currentUser?.hasSeenWorkoutsTour && (
+        <SectionOnboarding
+          section="workouts"
+          cards={[
+            {
+              emoji: "🏋️",
+              title: "My Workouts",
+              body: "Log your workouts and PBs, and share your best efforts to the feed.",
+            },
+          ]}
+        />
+      )}
       <NavBar />
 
       <div className="mt-6 flex flex-col gap-6">

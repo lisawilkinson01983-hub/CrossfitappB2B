@@ -2,7 +2,9 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 import { NavBar } from "@/components/NavBar";
+import { SectionOnboarding } from "@/components/SectionOnboarding";
 import { AthletesSearch, type AthleteSearchParams } from "./AthletesSearch";
 import { EventsList, type EventSearchParams } from "./EventsList";
 import { AffiliatesList, type AffiliateSearchParams } from "./AffiliatesList";
@@ -20,8 +22,25 @@ export default async function DiscoverPage({
   const sp = await searchParams;
   const view = sp.view === "events" ? "events" : sp.view === "affiliates" ? "affiliates" : "athletes";
 
+  const currentUser = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { hasSeenDiscoverTour: true },
+  });
+
   return (
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
+      {!currentUser?.hasSeenDiscoverTour && (
+        <SectionOnboarding
+          section="discover"
+          cards={[
+            {
+              emoji: "🔍",
+              title: "Discover",
+              body: "Search for fellow athletes, upcoming events, and affiliate gyms — follow people you train with, and find your next competition.",
+            },
+          ]}
+        />
+      )}
       <NavBar />
       <h1 className="mt-6 text-2xl font-bold">Discover</h1>
 
