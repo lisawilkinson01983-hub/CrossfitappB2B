@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { Avatar } from "@/components/Avatar";
+import { MENTION_PATTERN } from "@/lib/mentions";
 
 type UserSuggestion = { id: string; name: string; photo: string | null };
 
@@ -9,7 +10,33 @@ type UserSuggestion = { id: string; name: string; photo: string | null };
 // cursor — used to know what to search for and what to replace on pick.
 const TYPING_MENTION = /(?:^|\s)@([a-zA-Z0-9' -]{1,30})$/;
 
-/** A textarea that offers an @mention picker; selecting a user inserts an "@[Name](userId)" token (see src/lib/mentions.ts). */
+// Renders the same text as the real textarea, but with mention tokens shown
+// as "@Name" instead of the raw "@[Name](id)" — sits behind the (invisible)
+// textarea so what the user sees while typing looks like plain text.
+function MentionBackdrop({ text }: { text: string }) {
+  const parts: React.ReactNode[] = [];
+  let lastIndex = 0;
+  let key = 0;
+
+  for (const match of text.matchAll(MENTION_PATTERN)) {
+    const [full, name] = match;
+    const index = match.index ?? 0;
+    if (index > lastIndex) parts.push(<span key={key++}>{text.slice(lastIndex, index)}</span>);
+    parts.push(
+      <span key={key++} className="font-medium text-b2b-pink">
+        @{name}
+      </span>
+    );
+    lastIndex = index + full.length;
+  }
+  if (lastIndex < text.length) parts.push(<span key={key++}>{text.slice(lastIndex)}</span>);
+  // A trailing newline needs an extra space to force the wrapped div to reserve its line, matching the textarea.
+  if (text.endsWith("\n")) parts.push(<span key={key++}> </span>);
+
+  return <>{parts}</>;
+}
+
+/** A textarea that offers an @mention picker; selecting a user inserts an "@[Name](userId)" token (see src/lib/mentions.ts), while displaying it to the user as plain "@Name". */
 export function MentionTextarea({
   value,
   onChange,
@@ -28,6 +55,7 @@ export function MentionTextarea({
   const [suggestions, setSuggestions] = useState<UserSuggestion[]>([]);
   const [mentionStart, setMentionStart] = useState<number | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const backdropRef = useRef<HTMLDivElement>(null);
   const requestId = useRef(0);
 
   async function handleChange(e: React.ChangeEvent<HTMLTextAreaElement>) {
@@ -73,17 +101,34 @@ export function MentionTextarea({
     });
   }
 
+  function syncScroll() {
+    if (textareaRef.current && backdropRef.current) {
+      backdropRef.current.scrollTop = textareaRef.current.scrollTop;
+      backdropRef.current.scrollLeft = textareaRef.current.scrollLeft;
+    }
+  }
+
   return (
     <div className="relative">
-      <textarea
-        ref={textareaRef}
-        rows={rows}
-        placeholder={placeholder}
-        value={value}
-        onChange={handleChange}
-        autoFocus={autoFocus}
-        className={className}
-      />
+      <div className="relative">
+        <div
+          ref={backdropRef}
+          aria-hidden
+          className={`${className ?? ""} pointer-events-none absolute inset-0 z-0 overflow-hidden whitespace-pre-wrap break-words border-transparent`}
+        >
+          <MentionBackdrop text={value} />
+        </div>
+        <textarea
+          ref={textareaRef}
+          rows={rows}
+          placeholder={placeholder}
+          value={value}
+          onChange={handleChange}
+          onScroll={syncScroll}
+          autoFocus={autoFocus}
+          className={`${className ?? ""} relative z-10 bg-transparent text-transparent caret-b2b-ink`}
+        />
+      </div>
       {suggestions.length > 0 && (
         <div className="absolute z-10 mt-1 w-full overflow-hidden rounded border border-gray-200 bg-b2b-card shadow-lg">
           {suggestions.map((user) => (
