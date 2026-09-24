@@ -1,5 +1,8 @@
 import Link from "next/link";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import { Logo } from "@/components/Logo";
+import { OpenInstalledApp } from "./OpenInstalledApp";
 
 // The page testers are sent to (Settings → Invite Friends links here). The
 // app is installed first and signed up for inside it, not in the browser:
@@ -8,9 +11,12 @@ import { Logo } from "@/components/Logo";
 export default async function InstallPage({ searchParams }: { searchParams: Promise<{ ref?: string }> }) {
   const { ref } = await searchParams;
   const code = ref && /^[A-Za-z0-9]{4,12}$/.test(ref) ? ref.toUpperCase() : null;
+  const session = await getServerSession(authOptions);
+  const appTarget = session?.user?.id ? "/feed" : code ? `/signup?ref=${code}` : "/start";
 
   return (
     <main className="mx-auto max-w-md px-4 pb-16 pt-8">
+      <OpenInstalledApp target={appTarget} />
       <Logo size="md" href="/" />
 
       <h1 className="mt-6 text-2xl font-bold">Get the Box 2 Box app</h1>
