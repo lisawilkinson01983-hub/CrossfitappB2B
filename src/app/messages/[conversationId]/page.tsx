@@ -4,7 +4,9 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NavBar } from "@/components/NavBar";
+import { Avatar } from "@/components/Avatar";
 import { ChatThread } from "@/components/ChatThread";
+import { showsSingleBadge } from "@/lib/labels";
 
 export default async function ConversationPage({
   params,
@@ -19,8 +21,8 @@ export default async function ConversationPage({
   const conversation = await prisma.conversation.findUnique({
     where: { id: conversationId },
     include: {
-      userOne: { select: { id: true, name: true } },
-      userTwo: { select: { id: true, name: true } },
+      userOne: { select: { id: true, name: true, photo: true, isSingle: true, showSingleBadge: true } },
+      userTwo: { select: { id: true, name: true, photo: true, isSingle: true, showSingleBadge: true } },
     },
   });
 
@@ -48,11 +50,17 @@ export default async function ConversationPage({
   return (
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
       <NavBar />
-      <div className="mt-6 flex items-center gap-3">
-        <Link href="/messages" className="text-sm text-b2b-pink underline">
-          ← All messages
-        </Link>
-        <h1 className="text-2xl font-bold">{otherUser.name}</h1>
+      <Link href="/messages" className="mt-6 inline-block text-sm text-b2b-pink underline">
+        ← All messages
+      </Link>
+      <div className="mt-3 flex items-center gap-3">
+        <Avatar
+          photo={otherUser.photo}
+          name={otherUser.name}
+          size={40}
+          showSingleBadge={showsSingleBadge(otherUser)}
+        />
+        <h1 className="text-xl font-bold">{otherUser.name}</h1>
       </div>
 
       <div className="mt-4">

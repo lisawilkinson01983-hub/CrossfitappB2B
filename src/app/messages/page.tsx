@@ -52,7 +52,7 @@ export default async function MessagesPage() {
       <h1 className="mt-6 text-2xl font-bold">Messages</h1>
 
       {rows.length === 0 ? (
-        <p className="mt-6 text-gray-500">
+        <p className="mt-6 text-b2b-ink/50">
           No conversations yet — message someone from their profile to start one.
         </p>
       ) : (
@@ -61,25 +61,30 @@ export default async function MessagesPage() {
             <Link
               key={row.id}
               href={`/messages/${row.id}`}
-              className="flex items-center gap-3 rounded border border-gray-200 bg-b2b-card p-3 hover:bg-gray-50"
+              className="flex items-center gap-3 rounded-xl border border-b2b-purple/10 bg-b2b-card p-3 transition hover:border-b2b-pink/30"
             >
               <Avatar
                 photo={row.otherUser.photo}
                 name={row.otherUser.name}
-                size={44}
+                size={48}
                 showSingleBadge={showsSingleBadge(row.otherUser)}
               />
               <div className="min-w-0 flex-1">
-                <p className="font-medium">{row.otherUser.name}</p>
-                <p className="truncate text-sm text-gray-500">
+                <p className="font-semibold">{row.otherUser.name}</p>
+                <p className="truncate text-sm text-b2b-ink/50">
                   {row.lastMessage ? row.lastMessage.text : "No messages yet"}
                 </p>
               </div>
-              {row.unreadCount > 0 && (
-                <span className="rounded-full bg-b2b-pink px-2 py-0.5 text-xs font-medium text-white">
-                  {row.unreadCount}
+              <div className="flex shrink-0 flex-col items-end gap-1.5">
+                <span className="text-xs text-b2b-ink/40">
+                  {row.sortAt.toLocaleDateString(undefined, { month: "short", day: "numeric" })}
                 </span>
-              )}
+                {row.unreadCount > 0 && (
+                  <span className="flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-b2b-pink px-1.5 text-xs font-medium text-white">
+                    {row.unreadCount}
+                  </span>
+                )}
+              </div>
             </Link>
           ))}
         </div>

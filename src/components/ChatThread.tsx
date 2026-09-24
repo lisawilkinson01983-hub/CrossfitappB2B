@@ -60,21 +60,25 @@ export function ChatThread({
 
   return (
     <div className="flex flex-col">
-      <div className="flex max-h-[60vh] min-h-[300px] flex-col gap-2 overflow-y-auto rounded border border-gray-200 bg-b2b-card p-4">
+      <div className="flex max-h-[60vh] min-h-[300px] flex-col gap-3 overflow-y-auto py-2">
         {messages.length === 0 && (
-          <p className="text-sm text-gray-400">No messages yet — say hello.</p>
+          <p className="text-sm text-b2b-ink/40">No messages yet — say hello.</p>
         )}
         {messages.map((message) => {
           const isMine = message.sender.id === currentUserId;
           return (
             <div key={message.id} className={`flex ${isMine ? "justify-end" : "justify-start"}`}>
               <div
-                className={`max-w-[75%] rounded px-3 py-2 text-sm ${
-                  isMine ? "bg-b2b-pink text-white" : "bg-gray-100 text-b2b-ink"
+                className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-sm shadow-sm ${
+                  isMine
+                    ? "rounded-br-md bg-b2b-pink text-white"
+                    : "rounded-bl-md bg-b2b-card text-b2b-ink"
                 }`}
               >
-                <p>{message.text}</p>
-                <div className={`mt-1 flex items-center gap-2 text-xs ${isMine ? "text-white/70" : "text-gray-500"}`}>
+                <p className="whitespace-pre-wrap">{message.text}</p>
+                <div
+                  className={`mt-1 flex items-center gap-2 text-xs ${isMine ? "text-white/70" : "text-b2b-ink/40"}`}
+                >
                   <span>
                     {new Date(message.createdAt).toLocaleTimeString([], {
                       hour: "2-digit",
@@ -92,20 +96,21 @@ export function ChatThread({
         <div ref={bottomRef} />
       </div>
 
-      <form onSubmit={handleSubmit} className="mt-3 flex gap-2">
+      <form onSubmit={handleSubmit} className="mt-2 flex items-center gap-2">
         <input
           type="text"
           placeholder="Type a message..."
           value={text}
           onChange={(e) => setText(e.target.value)}
-          className="flex-1 rounded border border-gray-300 px-3 py-2 focus:border-b2b-pink focus:outline-none"
+          className="flex-1 rounded-full border border-b2b-purple/15 bg-b2b-card px-4 py-2.5 focus:border-b2b-pink focus:outline-none"
         />
         <button
           type="submit"
           disabled={sending || !text.trim()}
-          className="rounded bg-b2b-pink px-4 py-2 text-sm font-medium text-white hover:bg-b2b-pink-dark disabled:opacity-50"
+          aria-label="Send"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-b2b-pink text-white hover:bg-b2b-pink-dark disabled:opacity-40"
         >
-          Send
+          ➤
         </button>
       </form>
     </div>
