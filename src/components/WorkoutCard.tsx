@@ -4,6 +4,7 @@ import { WORKOUT_INTENSITY_LABELS, WORKOUT_UNIT_LABELS } from "@/lib/labels";
 import type { WorkoutIntensityOption, WorkoutUnitOption } from "@/lib/validation";
 import { DeleteWorkoutButton } from "./DeleteWorkoutButton";
 import { PinButton } from "./PinButton";
+import { WorkoutDescriptionToggle } from "./WorkoutDescriptionToggle";
 
 type WorkoutCardData = {
   id: string;
@@ -56,7 +57,7 @@ export function WorkoutCard({
         </p>
       </div>
 
-      {workout.description && <p className="mt-2 text-sm text-gray-600 italic">{workout.description}</p>}
+      {workout.description && <WorkoutDescriptionToggle description={workout.description} />}
       {workout.notes && <p className="mt-2 text-sm text-gray-700">{workout.notes}</p>}
 
       {workout.photo && (

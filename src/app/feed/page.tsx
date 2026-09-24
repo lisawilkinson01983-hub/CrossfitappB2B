@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { NavBar } from "@/components/NavBar";
 import { PostCard } from "@/components/PostCard";
 import { SectionCard } from "@/components/SectionCard";
+import { OnboardingTour } from "@/components/OnboardingTour";
 import { parseTeammateRequests } from "@/lib/labels";
 import { PostComposer } from "./PostComposer";
 
@@ -13,7 +14,8 @@ export default async function FeedPage() {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) redirect("/login");
 
-  const [blocked, muted] = await Promise.all([
+  const [currentUser, blocked, muted] = await Promise.all([
+    prisma.user.findUnique({ where: { id: session.user.id }, select: { hasSeenOnboarding: true } }),
     prisma.block.findMany({ where: { blockerId: session.user.id }, select: { blockedId: true } }),
     prisma.mute.findMany({ where: { userId: session.user.id }, select: { mutedUserId: true } }),
   ]);
@@ -49,6 +51,7 @@ export default async function FeedPage() {
 
   return (
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
+      {!currentUser?.hasSeenOnboarding && <OnboardingTour />}
       <NavBar />
       <h1 className="mt-6 text-2xl font-bold">Feed</h1>
 

@@ -140,13 +140,13 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
                 href={`/events/${event.id}/participants`}
                 className="rounded-xl border border-gray-300 bg-b2b-card px-4 py-3 text-center text-sm font-medium text-b2b-ink hover:bg-b2b-bg"
               >
-                👥 {event.participants.length} {event.participants.length === 1 ? "athlete" : "athletes"}
+                Athletes ({event.participants.length})
               </Link>
               <Link
                 href={`/events/${event.id}/notices`}
                 className="rounded-xl border border-b2b-purple/20 bg-b2b-purple/10 px-4 py-3 text-center text-sm font-medium text-b2b-purple hover:bg-b2b-purple/20"
               >
-                📋 Notice Board{chatMessageCount > 0 ? ` (${chatMessageCount})` : ""}
+                Notice Board{chatMessageCount > 0 ? ` (${chatMessageCount})` : ""}
               </Link>
             </div>
           </div>

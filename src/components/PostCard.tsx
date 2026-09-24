@@ -17,6 +17,7 @@ import { ExpandableImage } from "@/components/ExpandableImage";
 import { MentionText } from "@/components/MentionText";
 import { MentionTextarea } from "@/components/MentionTextarea";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { WorkoutDescriptionToggle } from "@/components/WorkoutDescriptionToggle";
 
 export type CommentData = {
   id: string;
@@ -94,7 +95,6 @@ export function PostCard({ post, currentUserId }: { post: PostCardData; currentU
   const [contentText, setContentText] = useState(post.contentText);
   const [postSaving, setPostSaving] = useState(false);
   const [postError, setPostError] = useState<string | null>(null);
-  const [showWorkoutDetails, setShowWorkoutDetails] = useState(false);
 
   async function toggleLike() {
     if (likeBusy) return;
@@ -378,18 +378,7 @@ export function PostCard({ post, currentUserId }: { post: PostCardData; currentU
             {WORKOUT_INTENSITY_LABELS[post.linkedWorkout.intensity]}
           </p>
           {post.linkedWorkout.description && (
-            <>
-              <button
-                type="button"
-                onClick={() => setShowWorkoutDetails((v) => !v)}
-                className="mt-1 text-sm font-medium text-b2b-pink hover:underline"
-              >
-                {showWorkoutDetails ? "Hide workout description" : "Show workout description"}
-              </button>
-              {showWorkoutDetails && (
-                <p className="mt-1 text-sm italic text-gray-600">{post.linkedWorkout.description}</p>
-              )}
-            </>
+            <WorkoutDescriptionToggle description={post.linkedWorkout.description} />
           )}
         </div>
       )}
