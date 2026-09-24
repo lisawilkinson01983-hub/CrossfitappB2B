@@ -123,6 +123,7 @@ export const signupSchema = z.object({
   confirmedAge: z.literal(true, {
     errorMap: () => ({ message: "You must confirm you're at least 18 years old" }),
   }),
+  inviteCode: z.string().trim().optional(),
 });
 
 export const forgotPasswordSchema = z.object({

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 
@@ -10,10 +10,18 @@ export function SignupForm() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [inviteCode, setInviteCode] = useState("");
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [confirmedAge, setConfirmedAge] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  // Prefills from a shared invite link (e.g. /signup?ref=ABCD1234) — plain
+  // client-side read so this component doesn't need a Suspense boundary.
+  useEffect(() => {
+    const ref = new URLSearchParams(window.location.search).get("ref");
+    if (ref) setInviteCode(ref);
+  }, []);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -37,7 +45,14 @@ export function SignupForm() {
     const res = await fetch("/api/signup", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, email, password, agreedToTerms, confirmedAge }),
+      body: JSON.stringify({
+        name,
+        email,
+        password,
+        agreedToTerms,
+        confirmedAge,
+        inviteCode: inviteCode.trim() || undefined,
+      }),
     });
 
     if (!res.ok) {
@@ -110,6 +125,20 @@ export function SignupForm() {
           className="mt-1 w-full rounded border border-gray-300 px-3 py-2 focus:border-b2b-pink focus:outline-none"
         />
         <p className="mt-1 text-xs text-gray-500">At least 8 characters.</p>
+      </div>
+
+      <div>
+        <label htmlFor="inviteCode" className="block text-sm font-medium">
+          Invite code <span className="font-normal text-gray-500">(optional)</span>
+        </label>
+        <input
+          id="inviteCode"
+          type="text"
+          autoCapitalize="characters"
+          value={inviteCode}
+          onChange={(e) => setInviteCode(e.target.value)}
+          className="mt-1 w-full rounded border border-gray-300 px-3 py-2 uppercase focus:border-b2b-pink focus:outline-none"
+        />
       </div>
 
       <div className="flex flex-col gap-2">

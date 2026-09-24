@@ -151,6 +151,24 @@ model User {
   passwordResetToken          String?   @unique
   passwordResetTokenExpiresAt DateTime?
 
+  // A short shareable code every account gets at signup (see
+  // src/lib/inviteCode.ts) — shown in Settings so someone can invite others
+  // and get credit for it. Existing accounts are backfilled by
+  // scripts/backfill-invite-codes.js.
+  inviteCode String? @unique
+
+  // Set if this account signed up via someone else's invite code/link.
+  // Null for organic signups. onDelete: SetNull so the referrer being
+  // deleted doesn't take this signup's own account down with it.
+  invitedById String?
+  invitedBy   User?   @relation("Referrals", fields: [invitedById], references: [id], onDelete: SetNull)
+  referrals   User[]  @relation("Referrals")
+
+  // Free-text cohort label for pilot testing (e.g. "small" / "large") —
+  // set by an admin (see /leaderboard), not chosen by the user. Null means
+  // not assigned to either pilot group yet.
+  testGroup String?
+
   // Each set once its onboarding popup has been shown (see
   // SectionOnboarding) — hasSeenOnboarding covers the welcome+profile-setup
   // popup shown right after signup; the rest are shown the first time the
@@ -285,6 +303,21 @@ model User {
 
   reportsMade     Report[] @relation("ReportsMade")
   reportsReceived Report[] @relation("ReportsReceived")
+
+  loginEvents LoginEvent[]
+}
+
+// One row per successful login — used only to measure "days active" on the
+// pilot-testing leaderboard (see /leaderboard). Not used for anything
+// security-related (see rateLimit.ts for that).
+model LoginEvent {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
 }
 
 model Workout {

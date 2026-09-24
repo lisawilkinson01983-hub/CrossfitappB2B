@@ -9,6 +9,8 @@ import { BlockMuteControls } from "@/components/BlockMuteControls";
 import { ChangeEmailForm } from "./ChangeEmailForm";
 import { ChangePasswordForm } from "./ChangePasswordForm";
 import { DeleteAccountForm } from "./DeleteAccountForm";
+import { InviteCodeCard } from "./InviteCodeCard";
+import { generateUniqueInviteCode } from "@/lib/inviteCode";
 
 export default async function SettingsPage() {
   const session = await getServerSession(authOptions);
@@ -16,9 +18,18 @@ export default async function SettingsPage() {
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { isPrivate: true, isAdmin: true },
+    select: { isPrivate: true, isAdmin: true, inviteCode: true, _count: { select: { referrals: true } } },
   });
   if (!user) redirect("/login");
+
+  // Self-healing fallback — every new signup gets a code already, and
+  // scripts/backfill-invite-codes.js covers accounts from before that
+  // shipped, but this keeps the page correct even if neither has run yet.
+  let inviteCode = user.inviteCode;
+  if (!inviteCode) {
+    inviteCode = await generateUniqueInviteCode();
+    await prisma.user.update({ where: { id: session.user.id }, data: { inviteCode } });
+  }
 
   const [blocks, mutes, openReportCount] = await Promise.all([
     prisma.block.findMany({
@@ -69,11 +80,20 @@ export default async function SettingsPage() {
           </div>
         </SectionCard>
 
+        <SectionCard title="Invite Friends">
+          <InviteCodeCard code={inviteCode} referralCount={user._count.referrals} />
+        </SectionCard>
+
         {user.isAdmin && (
           <SectionCard title="Admin">
-            <Link href="/reports/review" className="text-sm text-b2b-purple underline">
-              Review reports{openReportCount > 0 ? ` (${openReportCount})` : ""}
-            </Link>
+            <div className="flex flex-col gap-2 text-sm">
+              <Link href="/reports/review" className="text-b2b-purple underline">
+                Review reports{openReportCount > 0 ? ` (${openReportCount})` : ""}
+              </Link>
+              <Link href="/leaderboard" className="text-b2b-purple underline">
+                Activity leaderboard
+              </Link>
+            </div>
           </SectionCard>
         )}
 

@@ -5,6 +5,7 @@ import { signupSchema } from "@/lib/validation";
 import { generateToken } from "@/lib/tokens";
 import { sendEmail } from "@/lib/email";
 import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
+import { generateUniqueInviteCode } from "@/lib/inviteCode";
 
 export async function POST(req: Request) {
   const rateLimit = checkRateLimit(getClientIp(req.headers), "signup", { limit: 5, windowMs: 15 * 60 * 1000 });
@@ -35,6 +36,16 @@ export async function POST(req: Request) {
   const passwordHash = await bcrypt.hash(parsed.data.password, 10);
   const now = new Date();
   const emailVerificationToken = generateToken();
+  const inviteCode = await generateUniqueInviteCode();
+
+  // An invalid/unrecognized code just means an organic signup — it's not
+  // worth failing signup over a typo'd or stale referral link.
+  const referrer = parsed.data.inviteCode
+    ? await prisma.user.findUnique({
+        where: { inviteCode: parsed.data.inviteCode.toUpperCase() },
+        select: { id: true },
+      })
+    : null;
 
   const user = await prisma.user.create({
     data: {
@@ -45,6 +56,8 @@ export async function POST(req: Request) {
       ageConfirmedAt: now,
       emailVerificationToken,
       emailVerificationTokenExpiresAt: new Date(now.getTime() + 24 * 60 * 60 * 1000),
+      inviteCode,
+      invitedById: referrer?.id,
     },
   });
 

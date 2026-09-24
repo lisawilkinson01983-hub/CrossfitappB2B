@@ -36,6 +36,10 @@ export const authOptions: NextAuthOptions = {
         // emails have accounts. Shown on the login form (see LoginForm).
         if (user.suspendedAt) throw new Error("ACCOUNT_SUSPENDED");
 
+        // Feeds the "days active" signal on the pilot-testing leaderboard
+        // (see /leaderboard) — best-effort, never blocks login.
+        await prisma.loginEvent.create({ data: { userId: user.id } }).catch(() => {});
+
         return { id: user.id, name: user.name, email: user.email };
       },
     }),
