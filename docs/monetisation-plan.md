@@ -61,6 +61,8 @@ After optimisation, an active user costs **well under 1p a month** in storage. T
 
 ### Storage roadmap (do this first: Q4 2026)
 
+> **Status (Sept 2026):** items 1 and 2 are built, plus the orphan cleanup from item 4. See `docs/media-storage.md` for the Railway bucket setup. Items 3 (per-user byte tracking) and 5 (cost alert) are still to do.
+
 1. **Move media to object storage with free egress.** Use Cloudflare R2 ($0.015/GB-month) or Railway Storage Buckets (also $0.015/GB-month). Both have free egress. Serve media from a CDN URL, not through the app server.
 2. **Compress on upload.** Resize photos and convert to WebP. Transcode videos to 720p with a background `ffmpeg` worker. Delete the original, or move it to cheaper infrequent-access storage ($0.01/GB-month) if Pro needs it.
 3. **Record file sizes.** Add `bytes` and `storageKey` to each media record so we can measure per-user storage and set quotas later.

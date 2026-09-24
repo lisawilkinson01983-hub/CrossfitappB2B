@@ -1,7 +1,7 @@
-import { mkdir, writeFile } from "fs/promises";
-import path from "path";
 import crypto from "crypto";
 import { MAX_VIDEO_SECONDS } from "./media";
+import { MediaProcessingError, compressPhoto, transcodeVideo } from "./mediaProcessing";
+import { putMedia } from "./mediaStorage";
 
 const ALLOWED_PHOTO_TYPES: Record<string, string> = {
   "image/jpeg": "jpg",
@@ -24,21 +24,13 @@ export class PhotoUploadError extends Error {}
 export class VideoUploadError extends Error {}
 
 /**
- * Directory uploaded media is written to. Deliberately outside /public:
- * on a host with a persistent disk (e.g. a Railway volume), this env var
- * points at that disk; locally it defaults to a plain top-level folder.
- * Files are served back out via the /media/[filename] route, not Next's
- * static /public handling.
+ * Stores media under a fresh random key and returns its served path. Files
+ * are served back out via the /media/[filename] route (see
+ * src/lib/mediaStorage.ts for where they actually live).
  */
-export function uploadsDir(): string {
-  return process.env.UPLOADS_DIR || path.join(process.cwd(), "uploads");
-}
-
-async function saveUpload(ownerId: string, ext: string, bytes: Buffer): Promise<string> {
+async function saveUpload(ownerId: string, ext: string, bytes: Buffer, contentType: string): Promise<string> {
   const filename = `${ownerId}-${crypto.randomUUID()}.${ext}`;
-  const dir = uploadsDir();
-  await mkdir(dir, { recursive: true });
-  await writeFile(path.join(dir, filename), bytes);
+  await putMedia(filename, bytes, contentType);
   return `/media/${filename}`;
 }
 
@@ -48,7 +40,19 @@ export async function savePhotoUpload(file: File, ownerId: string): Promise<stri
   if (!ext) throw new PhotoUploadError("Photo must be a JPEG, PNG, or WebP image");
   if (file.size > MAX_PHOTO_BYTES) throw new PhotoUploadError("Photo must be smaller than 5MB");
   const bytes = Buffer.from(await file.arrayBuffer());
-  return saveUpload(ownerId, ext, bytes);
+
+  try {
+    const compressed = await compressPhoto(bytes);
+    return saveUpload(ownerId, compressed.ext, compressed.bytes, compressed.contentType);
+  } catch (err) {
+    if (err instanceof MediaProcessingError) {
+      throw new PhotoUploadError("Couldn't read that photo — please try a different file");
+    }
+    // Compression itself is unavailable (e.g. sharp failed to install on
+    // this machine) — keep uploads working by storing the original.
+    console.error("Photo compression unavailable, storing original:", err);
+    return saveUpload(ownerId, ext, bytes, file.type);
+  }
 }
 
 /** Validates and writes an uploaded video, returning its public /media/... path. */
@@ -66,7 +70,16 @@ export async function saveVideoUpload(file: File, ownerId: string): Promise<stri
     throw new VideoUploadError(`Videos must be ${MAX_VIDEO_SECONDS} seconds or under`);
   }
 
-  return saveUpload(ownerId, ext, bytes);
+  try {
+    const transcoded = await transcodeVideo(bytes, ext);
+    return saveUpload(ownerId, transcoded.ext, transcoded.bytes, transcoded.contentType);
+  } catch (err) {
+    // The duration check above already proved it's a real video, so a
+    // transcode failure (or ffmpeg missing) shouldn't lose the upload —
+    // store the original instead.
+    console.error("Video transcode failed, storing original:", err);
+    return saveUpload(ownerId, ext, bytes, file.type);
+  }
 }
 
 /**
