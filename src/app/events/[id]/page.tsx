@@ -180,7 +180,7 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
       </div>
 
       <div className="mt-6">
-        <SectionCard title="Notices">
+        <SectionCard title="Search">
           <p className="mb-3 text-sm text-b2b-ink/50">Looking for teammates for {event.name}? Post it here.</p>
           <EventNoticesPanel eventId={event.id} notices={noticeEntries} myAlerts={myAlerts} />
         </SectionCard>
