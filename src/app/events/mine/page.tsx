@@ -10,15 +10,12 @@ import { SectionOnboarding } from "@/components/SectionOnboarding";
 import { Avatar } from "@/components/Avatar";
 import { PinButton } from "@/components/PinButton";
 import { EventEngagementButtons } from "@/components/EventEngagementButtons";
-import { distanceMiles, ensureUserAreaCoords, ensureEventCoords, DISTANCE_RANGES } from "@/lib/geocode";
-
-const TIME_RANGES = { week: { days: 7 }, month: { days: 30 }, year: { days: 365 } } as const;
-type TimeRange = keyof typeof TIME_RANGES;
+import { distanceMiles, ensureUserAreaCoords, ensureEventCoords } from "@/lib/geocode";
 
 export default async function MyEventsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string; q?: string; time?: string; distance?: string }>;
+  searchParams: Promise<{ tab?: string; q?: string }>;
 }) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) redirect("/login");
@@ -27,14 +24,9 @@ export default async function MyEventsPage({
   const sp = await searchParams;
   const tab = sp.tab === "past" ? "past" : "upcoming";
   const q = typeof sp.q === "string" ? sp.q.trim() : "";
-  const time = (Object.keys(TIME_RANGES) as TimeRange[]).find((t) => t === sp.time);
-  const distance = DISTANCE_RANGES.find((d) => String(d) === sp.distance);
 
   const now = new Date();
-  const dateFilter: Prisma.EventWhereInput["date"] =
-    tab === "past"
-      ? { lt: now, ...(time ? { gte: new Date(now.getTime() - TIME_RANGES[time].days * 86400000) } : {}) }
-      : { gte: now, ...(time ? { lte: new Date(now.getTime() + TIME_RANGES[time].days * 86400000) } : {}) };
+  const dateFilter: Prisma.EventWhereInput["date"] = tab === "past" ? { lt: now } : { gte: now };
 
   const where: Prisma.EventWhereInput = {
     OR: [{ participants: { some: { userId } } }, { interests: { some: { userId } } }],
@@ -70,11 +62,7 @@ export default async function MyEventsPage({
     }),
   );
 
-  const filtered = distance
-    ? eventsWithDistance.filter(({ miles }) => miles !== null && miles <= distance)
-    : eventsWithDistance;
-
-  const visibleEvents = [...filtered].sort((a, b) => Number(b.pinned) - Number(a.pinned));
+  const visibleEvents = [...eventsWithDistance].sort((a, b) => Number(b.pinned) - Number(a.pinned));
 
   return (
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
@@ -116,90 +104,42 @@ export default async function MyEventsPage({
 
       <div className="mt-4 flex flex-col gap-6">
         <SectionCard>
-          <form method="GET" className="flex flex-col gap-4">
+          <form method="GET" className="flex gap-2">
             <input type="hidden" name="tab" value={tab} />
-            <div>
-              <label htmlFor="q" className="sr-only">
-                Search my events by name or area
-              </label>
-              <input
-                id="q"
-                name="q"
-                type="text"
-                placeholder="Search my events by name or area"
-                defaultValue={q}
-                className="w-full rounded border border-gray-300 px-3 py-2 focus:border-b2b-pink focus:outline-none"
-              />
-            </div>
-            <div>
-              <label htmlFor="distance" className="block text-sm font-medium">
-                Distance
-              </label>
-              <select
-                id="distance"
-                name="distance"
-                defaultValue={distance ? String(distance) : ""}
-                disabled={!myCoords}
-                className="mt-1 w-full max-w-xs rounded border border-gray-300 bg-b2b-card px-3 py-2 focus:border-b2b-pink focus:outline-none disabled:opacity-50"
-              >
-                <option value="">Any distance</option>
-                {DISTANCE_RANGES.map((d) => (
-                  <option key={d} value={d}>
-                    Within {d} miles
-                  </option>
-                ))}
-              </select>
-              {!myCoords && (
-                <p className="mt-1 text-xs text-b2b-ink/40">
-                  Set your area on your profile to filter events by distance.
-                </p>
-              )}
-            </div>
-            <div>
-              <label htmlFor="time" className="block text-sm font-medium">
-                When
-              </label>
-              <select
-                id="time"
-                name="time"
-                defaultValue={time ?? ""}
-                className="mt-1 w-full max-w-xs rounded border border-gray-300 bg-b2b-card px-3 py-2 focus:border-b2b-pink focus:outline-none"
-              >
-                <option value="">Any time</option>
-                {(Object.keys(TIME_RANGES) as TimeRange[]).map((t) => (
-                  <option key={t} value={t}>
-                    {tab === "past" ? `Last ${TIME_RANGES[t].days} days` : `Next ${TIME_RANGES[t].days} days`}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="flex gap-3">
-              <button
-                type="submit"
-                className="rounded bg-b2b-pink px-4 py-2 text-sm font-medium text-white hover:bg-b2b-pink-dark"
-              >
-                Search
-              </button>
-              <a
-                href={`/events/mine?tab=${tab}`}
-                className="self-center text-sm text-b2b-ink/50 hover:underline"
-              >
-                Clear filters
-              </a>
-              <Link
-                href="/discover?view=events"
-                className="self-center text-sm text-b2b-ink/50 hover:underline"
-              >
-                Browse all events
-              </Link>
-            </div>
+            <label htmlFor="q" className="sr-only">
+              Search my events by name or area
+            </label>
+            <input
+              id="q"
+              name="q"
+              type="text"
+              placeholder="Search my events by name or area"
+              defaultValue={q}
+              className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-b2b-pink focus:outline-none"
+            />
+            <button
+              type="submit"
+              className="shrink-0 rounded bg-b2b-pink px-4 py-2 text-sm font-medium text-white hover:bg-b2b-pink-dark"
+            >
+              Search
+            </button>
           </form>
+          <div className="mt-2 flex gap-3">
+            {q && (
+              <a href={`/events/mine?tab=${tab}`} className="text-xs text-b2b-ink/50 hover:underline">
+                Clear search
+              </a>
+            )}
+            <Link href="/discover?view=events" className="text-xs text-b2b-ink/50 hover:underline">
+              Browse all events
+            </Link>
+          </div>
         </SectionCard>
 
         {visibleEvents.length === 0 ? (
           <p className="text-b2b-ink/50">
-            {q || time || distance
-              ? "No events match those filters."
+            {q
+              ? "No events match that search."
               : tab === "past"
                 ? "No past events yet."
                 : "You're not participating in or interested in any upcoming events yet."}
