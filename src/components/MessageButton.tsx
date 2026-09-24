@@ -3,9 +3,17 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-export function MessageButton({ targetUserId }: { targetUserId: string }) {
+export function MessageButton({
+  targetUserId,
+  compact,
+}: {
+  targetUserId: string;
+  /** Smaller padding/text for tight list rows (e.g. the followers/following list). */
+  compact?: boolean;
+}) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
+  const sizeClass = compact ? "px-2.5 py-1 text-xs" : "px-3 py-1.5 text-sm";
 
   async function handleClick() {
     setBusy(true);
@@ -26,7 +34,7 @@ export function MessageButton({ targetUserId }: { targetUserId: string }) {
       type="button"
       onClick={handleClick}
       disabled={busy}
-      className="rounded border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-100 disabled:opacity-50"
+      className={`whitespace-nowrap rounded bg-b2b-purple font-medium text-white hover:bg-b2b-purple-dark disabled:opacity-50 ${sizeClass}`}
     >
       {busy ? "..." : "Message"}
     </button>

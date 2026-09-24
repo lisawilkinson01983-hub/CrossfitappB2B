@@ -107,7 +107,7 @@ export function EventModerationCard({ event }: { event: EventModerationData }) {
           type="button"
           onClick={() => moderate("reject")}
           disabled={busy !== null}
-          className="rounded border border-red-300 px-4 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
+          className="rounded bg-red-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
         >
           {busy === "reject" ? "Rejecting..." : "Reject"}
         </button>

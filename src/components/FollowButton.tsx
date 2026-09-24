@@ -8,13 +8,17 @@ export type FollowStatus = "none" | "following" | "pending";
 export function FollowButton({
   targetUserId,
   initialStatus,
+  compact,
 }: {
   targetUserId: string;
   initialStatus: FollowStatus;
+  /** Smaller padding/text for tight list rows (e.g. the followers/following list). */
+  compact?: boolean;
 }) {
   const router = useRouter();
   const [status, setStatus] = useState<FollowStatus>(initialStatus);
   const [busy, setBusy] = useState(false);
+  const sizeClass = compact ? "px-2.5 py-1 text-xs" : "px-3 py-1.5 text-sm";
 
   async function follow() {
     setBusy(true);
@@ -43,7 +47,7 @@ export function FollowButton({
         type="button"
         onClick={unfollowOrCancel}
         disabled={busy}
-        className="rounded border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-100 disabled:opacity-50"
+        className={`whitespace-nowrap rounded bg-b2b-ink font-medium text-white hover:opacity-90 disabled:opacity-50 ${sizeClass}`}
       >
         {busy ? "..." : "Unfollow"}
       </button>
@@ -56,9 +60,9 @@ export function FollowButton({
         type="button"
         onClick={unfollowOrCancel}
         disabled={busy}
-        className="rounded border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-500 hover:bg-gray-100 disabled:opacity-50"
+        className={`whitespace-nowrap rounded bg-gray-400 font-medium text-white hover:bg-gray-500 disabled:opacity-50 ${sizeClass}`}
       >
-        {busy ? "..." : "Requested (cancel)"}
+        {busy ? "..." : compact ? "Cancel" : "Requested (cancel)"}
       </button>
     );
   }
@@ -68,7 +72,7 @@ export function FollowButton({
       type="button"
       onClick={follow}
       disabled={busy}
-      className="rounded bg-b2b-pink px-3 py-1.5 text-sm font-medium text-white hover:bg-b2b-pink-dark disabled:opacity-50"
+      className={`whitespace-nowrap rounded bg-b2b-pink font-medium text-white hover:bg-b2b-pink-dark disabled:opacity-50 ${sizeClass}`}
     >
       {busy ? "..." : "Follow"}
     </button>
