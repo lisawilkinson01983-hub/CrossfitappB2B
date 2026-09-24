@@ -24,10 +24,23 @@ type Mode = "teammate" | "findTeam";
 
 type TeammateRow = {
   id: number;
-  quantity: number;
+  // Kept as the raw string the user typed (not a number) so the field can be
+  // emptied out and retyped — coercing it to a number on every keystroke
+  // made it impossible to backspace the digit on mobile, since the value
+  // would immediately snap back to "1" before the next keystroke landed.
+  quantity: string;
   gender: TeammateGenderOption;
   division: TeammateDivisionOption;
 };
+
+function clampQuantityNumber(n: number): number {
+  if (!Number.isFinite(n) || n < 1) return 1;
+  return Math.min(20, Math.round(n));
+}
+
+function clampQuantity(value: string): number {
+  return clampQuantityNumber(Number(value));
+}
 
 function tabClass(active: boolean) {
   return `pb-2 ${active ? "border-b-2 border-b2b-purple text-b2b-purple" : "text-b2b-ink/50"}`;
@@ -46,7 +59,7 @@ export function EventNoticesPanel({
   const nextRowId = useRef(1);
   const router = useRouter();
 
-  const [rows, setRows] = useState<TeammateRow[]>([{ id: 0, quantity: 1, gender: "ANY", division: "ANY" }]);
+  const [rows, setRows] = useState<TeammateRow[]>([{ id: 0, quantity: "1", gender: "ANY", division: "ANY" }]);
   const [detail, setDetail] = useState("");
   const [postToFeed, setPostToFeed] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -105,7 +118,7 @@ export function EventNoticesPanel({
   }, [notices, filterGender, filterDivision, filtering]);
 
   function addRow() {
-    setRows((prev) => [...prev, { id: nextRowId.current++, quantity: 1, gender: "ANY", division: "ANY" }]);
+    setRows((prev) => [...prev, { id: nextRowId.current++, quantity: "1", gender: "ANY", division: "ANY" }]);
   }
 
   function removeRow(id: number) {
@@ -114,6 +127,14 @@ export function EventNoticesPanel({
 
   function updateRow<K extends keyof TeammateRow>(id: number, field: K, value: TeammateRow[K]) {
     setRows((prev) => prev.map((r) => (r.id === id ? { ...r, [field]: value } : r)));
+  }
+
+  function stepQuantity(id: number, delta: number) {
+    setRows((prev) =>
+      prev.map((r) =>
+        r.id === id ? { ...r, quantity: String(clampQuantityNumber(clampQuantity(r.quantity) + delta)) } : r
+      )
+    );
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -126,7 +147,11 @@ export function EventNoticesPanel({
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        teammateRequests: rows.map((row) => ({ quantity: row.quantity, gender: row.gender, division: row.division })),
+        teammateRequests: rows.map((row) => ({
+          quantity: clampQuantity(row.quantity),
+          gender: row.gender,
+          division: row.division,
+        })),
         text: detail,
         postToFeed,
       }),
@@ -138,7 +163,7 @@ export function EventNoticesPanel({
       return;
     }
 
-    setRows([{ id: nextRowId.current++, quantity: 1, gender: "ANY", division: "ANY" }]);
+    setRows([{ id: nextRowId.current++, quantity: "1", gender: "ANY", division: "ANY" }]);
     setDetail("");
     setPostToFeed(false);
     setPosted(true);
@@ -235,15 +260,35 @@ export function EventNoticesPanel({
                     <label htmlFor={`quantity-${row.id}`} className="block text-xs font-medium text-b2b-ink/60">
                       How many
                     </label>
-                    <input
-                      id={`quantity-${row.id}`}
-                      type="number"
-                      min={1}
-                      max={20}
-                      value={row.quantity}
-                      onChange={(e) => updateRow(row.id, "quantity", Number(e.target.value) || 1)}
-                      className="mt-1 w-full rounded border border-gray-300 px-2 py-2 focus:border-b2b-pink focus:outline-none"
-                    />
+                    <div className="mt-1 flex items-stretch rounded border border-gray-300 focus-within:border-b2b-pink">
+                      <button
+                        type="button"
+                        onClick={() => stepQuantity(row.id, -1)}
+                        aria-label="Decrease"
+                        className="w-8 shrink-0 text-lg leading-none text-b2b-ink/50 hover:bg-gray-100"
+                      >
+                        −
+                      </button>
+                      <input
+                        id={`quantity-${row.id}`}
+                        type="number"
+                        inputMode="numeric"
+                        min={1}
+                        max={20}
+                        value={row.quantity}
+                        onChange={(e) => updateRow(row.id, "quantity", e.target.value)}
+                        onBlur={() => updateRow(row.id, "quantity", String(clampQuantity(row.quantity)))}
+                        className="w-full min-w-0 border-0 px-1 py-2 text-center focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => stepQuantity(row.id, 1)}
+                        aria-label="Increase"
+                        className="w-8 shrink-0 text-lg leading-none text-b2b-ink/50 hover:bg-gray-100"
+                      >
+                        +
+                      </button>
+                    </div>
                   </div>
                   <div>
                     <label htmlFor={`gender-${row.id}`} className="block text-xs font-medium text-b2b-ink/60">
