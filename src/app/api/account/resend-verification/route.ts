@@ -38,11 +38,14 @@ export async function POST() {
   });
 
   const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
-  await sendEmail({
+  const sent = await sendEmail({
     to: user.email,
     subject: "Verify your Box 2 Box email",
     text: `Confirm your email address by visiting this link:\n\n${baseUrl}/verify-email?token=${token}\n\nThis link expires in 24 hours.`,
   });
+  if (!sent) {
+    return NextResponse.json({ error: "Couldn't send the email right now. Please try again later." }, { status: 502 });
+  }
 
   return NextResponse.json({ ok: true });
 }
