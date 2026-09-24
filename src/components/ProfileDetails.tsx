@@ -117,7 +117,11 @@ export async function ProfileDetails({
       )
     );
   }
-  if (crossfitSince) metaParts.push(<span key="since">CrossFitting since {crossfitSince}</span>);
+  if (crossfitSince) {
+    metaParts.push(
+      <span key="since">{isAffiliate ? `Established ${crossfitSince}` : `CrossFitting since ${crossfitSince}`}</span>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-6">

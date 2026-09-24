@@ -126,12 +126,12 @@ export function EditProfileForm({ initial, gymOptions }: { initial: Initial; gym
     formData.set("area", area);
     formData.set("affiliateGym", affiliateGym);
     formData.set("affiliateGymOther", affiliateGymOther);
+    formData.set("crossfitSinceYear", crossfitSinceYear);
+    formData.set("crossfitSinceMonth", crossfitSinceMonth);
     if (isAthlete) {
       formData.set("age", age);
       formData.set("gender", gender);
       formData.set("level", level);
-      formData.set("crossfitSinceYear", crossfitSinceYear);
-      formData.set("crossfitSinceMonth", crossfitSinceMonth);
       lookingFor.forEach((v) => formData.append("lookingFor", v));
       if (showLookingFor) formData.set("showLookingFor", "on");
       formData.set("isSingle", isSingle);
@@ -246,45 +246,47 @@ export function EditProfileForm({ initial, gymOptions }: { initial: Initial; gym
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label htmlFor="age" className="block text-sm font-medium">
-            Age
-          </label>
-          <input
-            id="age"
-            type="number"
-            min={13}
-            max={120}
-            value={age}
-            onChange={(e) => setAge(e.target.value)}
-            className="mt-1 w-full rounded border border-gray-300 px-3 py-2 focus:border-b2b-pink focus:outline-none"
-          />
-          <label className="mt-2 flex items-center gap-2 text-sm">
-            <input type="checkbox" checked={showAge} onChange={(e) => setShowAge(e.target.checked)} />
-            Display my age on my profile
-          </label>
-        </div>
+      {isAthlete && (
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label htmlFor="age" className="block text-sm font-medium">
+              Age
+            </label>
+            <input
+              id="age"
+              type="number"
+              min={13}
+              max={120}
+              value={age}
+              onChange={(e) => setAge(e.target.value)}
+              className="mt-1 w-full rounded border border-gray-300 px-3 py-2 focus:border-b2b-pink focus:outline-none"
+            />
+            <label className="mt-2 flex items-center gap-2 text-sm">
+              <input type="checkbox" checked={showAge} onChange={(e) => setShowAge(e.target.checked)} />
+              Display my age on my profile
+            </label>
+          </div>
 
-        <div>
-          <label htmlFor="gender" className="block text-sm font-medium">
-            Gender
-          </label>
-          <select
-            id="gender"
-            value={gender}
-            onChange={(e) => setGender(e.target.value as GenderOption)}
-            className="mt-1 w-full rounded border border-gray-300 bg-b2b-card px-3 py-2 focus:border-b2b-pink focus:outline-none"
-          >
-            <option value="">Prefer not to say / unset</option>
-            {GENDERS.map((g) => (
-              <option key={g} value={g}>
-                {GENDER_LABELS[g]}
-              </option>
-            ))}
-          </select>
+          <div>
+            <label htmlFor="gender" className="block text-sm font-medium">
+              Gender
+            </label>
+            <select
+              id="gender"
+              value={gender}
+              onChange={(e) => setGender(e.target.value as GenderOption)}
+              className="mt-1 w-full rounded border border-gray-300 bg-b2b-card px-3 py-2 focus:border-b2b-pink focus:outline-none"
+            >
+              <option value="">Prefer not to say / unset</option>
+              {GENDERS.map((g) => (
+                <option key={g} value={g}>
+                  {GENDER_LABELS[g]}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
-      </div>
+      )}
 
       <div>
         <label htmlFor="area" className="block text-sm font-medium">
@@ -334,58 +336,60 @@ export function EditProfileForm({ initial, gymOptions }: { initial: Initial; gym
       </div>
 
       {isAthlete && (
-        <>
-          <div>
-            <label htmlFor="level" className="block text-sm font-medium">
-              Level
-            </label>
-            <select
-              id="level"
-              required
-              value={level}
-              onChange={(e) => setLevel(e.target.value as LevelOption)}
-              className="mt-1 w-full rounded border border-gray-300 bg-b2b-card px-3 py-2 focus:border-b2b-pink focus:outline-none"
-            >
-              <option value="" disabled>
-                Select a level
+        <div>
+          <label htmlFor="level" className="block text-sm font-medium">
+            Level
+          </label>
+          <select
+            id="level"
+            required
+            value={level}
+            onChange={(e) => setLevel(e.target.value as LevelOption)}
+            className="mt-1 w-full rounded border border-gray-300 bg-b2b-card px-3 py-2 focus:border-b2b-pink focus:outline-none"
+          >
+            <option value="" disabled>
+              Select a level
+            </option>
+            {LEVELS.map((l) => (
+              <option key={l} value={l}>
+                {LEVEL_LABELS[l]}
               </option>
-              {LEVELS.map((l) => (
-                <option key={l} value={l}>
-                  {LEVEL_LABELS[l]}
-                </option>
-              ))}
-            </select>
-          </div>
+            ))}
+          </select>
+        </div>
+      )}
 
-          <div>
-            <span className="block text-sm font-medium">CrossFitting since</span>
-            <div className="mt-1 grid grid-cols-2 gap-4">
-              <select
-                aria-label="Month started CrossFit"
-                value={crossfitSinceMonth}
-                onChange={(e) => setCrossfitSinceMonth(e.target.value)}
-                className="rounded border border-gray-300 bg-b2b-card px-3 py-2 focus:border-b2b-pink focus:outline-none"
-              >
-                <option value="">Month</option>
-                {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
-                  <option key={m} value={m}>
-                    {m}
-                  </option>
-                ))}
-              </select>
-              <input
-                aria-label="Year started CrossFit"
-                type="number"
-                placeholder="Year"
-                min={1970}
-                max={new Date().getFullYear()}
-                value={crossfitSinceYear}
-                onChange={(e) => setCrossfitSinceYear(e.target.value)}
-                className="rounded border border-gray-300 px-3 py-2 focus:border-b2b-pink focus:outline-none"
-              />
-            </div>
-          </div>
+      <div>
+        <span className="block text-sm font-medium">{isAthlete ? "CrossFitting since" : "Established"}</span>
+        <div className="mt-1 grid grid-cols-2 gap-4">
+          <select
+            aria-label={isAthlete ? "Month started CrossFit" : "Month established"}
+            value={crossfitSinceMonth}
+            onChange={(e) => setCrossfitSinceMonth(e.target.value)}
+            className="rounded border border-gray-300 bg-b2b-card px-3 py-2 focus:border-b2b-pink focus:outline-none"
+          >
+            <option value="">Month</option>
+            {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
+              <option key={m} value={m}>
+                {m}
+              </option>
+            ))}
+          </select>
+          <input
+            aria-label={isAthlete ? "Year started CrossFit" : "Year established"}
+            type="number"
+            placeholder="Year"
+            min={1970}
+            max={new Date().getFullYear()}
+            value={crossfitSinceYear}
+            onChange={(e) => setCrossfitSinceYear(e.target.value)}
+            className="rounded border border-gray-300 px-3 py-2 focus:border-b2b-pink focus:outline-none"
+          />
+        </div>
+      </div>
 
+      {isAthlete && (
+        <>
           <fieldset>
             <legend className="text-sm font-medium">Key PBs (kg)</legend>
             <p className="mt-0.5 text-xs text-b2b-ink/50">
