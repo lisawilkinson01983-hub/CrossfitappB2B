@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { parseDisplayedPbs, parseLookingFor } from "@/lib/labels";
 import { PB_FIELDS } from "@/lib/validation";
 import { OTHER_GYM, UNAFFILIATED } from "@/lib/gyms";
+import { isProfileSetupComplete } from "@/lib/profileSetup";
 import { NavBar } from "@/components/NavBar";
 import { SectionCard } from "@/components/SectionCard";
 import { SectionOnboarding } from "@/components/SectionOnboarding";
@@ -35,6 +36,8 @@ export default async function EditProfilePage() {
     ? (user.affiliateGymOther ?? "")
     : (user.affiliateGym ?? "");
 
+  const setupComplete = isProfileSetupComplete(user);
+
   return (
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
       {!user.hasSeenOnboarding && (
@@ -55,11 +58,18 @@ export default async function EditProfilePage() {
           ]}
         />
       )}
-      <NavBar />
+      <NavBar isProfileEditPage />
+      {!setupComplete && (
+        <p className="mt-6 rounded bg-b2b-purple/10 px-4 py-3 text-sm text-b2b-ink/70">
+          Finish setting up your profile below to start using Box 2 Box — the rest of the app unlocks once
+          it's complete.
+        </p>
+      )}
       <div className="mt-6">
         <SectionCard title="Edit profile">
           <EditProfileForm
             gymOptions={gymOptions}
+            accountTypeLocked={setupComplete}
             initial={{
               name: user.name,
               photo: user.photo,

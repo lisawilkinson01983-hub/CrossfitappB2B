@@ -8,6 +8,7 @@ import { PhotoUploadError, savePhotoUpload } from "@/lib/uploads";
 import { parseFormData } from "@/lib/http";
 import { geocode } from "@/lib/geocode";
 import { ensureGymPage } from "@/lib/gymPages";
+import { isProfileSetupComplete } from "@/lib/profileSetup";
 
 export async function PATCH(req: Request) {
   const session = await getServerSession(authOptions);
@@ -77,8 +78,25 @@ export async function PATCH(req: Request) {
 
   const current = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { area: true, areaLat: true, areaLng: true, verificationRequestedAt: true, verifiedAt: true },
+    select: {
+      accountType: true,
+      area: true,
+      areaLat: true,
+      areaLng: true,
+      affiliateGym: true,
+      level: true,
+      lookingFor: true,
+      verificationRequestedAt: true,
+      verifiedAt: true,
+    },
   });
+
+  // Once setup was already complete, accountType is locked in — an athlete
+  // profile or an affiliate profile can't turn into the other kind, however
+  // the request tries to relabel it, so this ignores whatever was submitted.
+  if (current && isProfileSetupComplete(current)) {
+    data.accountType = current.accountType;
+  }
 
   // A verification request only makes sense for an AFFILIATE account, is a
   // one-way flag toward "pending" until an admin acts on it, and is cleared

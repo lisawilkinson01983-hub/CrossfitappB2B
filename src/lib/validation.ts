@@ -203,6 +203,13 @@ export const profileSchema = z
     if (data.accountType === "ATHLETE" && !data.level) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Select a level", path: ["level"] });
     }
+    if (data.accountType === "ATHLETE" && data.lookingFor.length === 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Choose at least one",
+        path: ["lookingFor"],
+      });
+    }
   });
 
 // Used by the quick PB editor on the profile page's "Key PBs" card — only

@@ -52,7 +52,15 @@ function isSingleToSelectValue(value: boolean | null): string {
   return value ? "true" : "false";
 }
 
-export function EditProfileForm({ initial, gymOptions }: { initial: Initial; gymOptions: string[] }) {
+export function EditProfileForm({
+  initial,
+  gymOptions,
+  accountTypeLocked,
+}: {
+  initial: Initial;
+  gymOptions: string[];
+  accountTypeLocked: boolean;
+}) {
   const router = useRouter();
 
   const [name, setName] = useState(initial.name);
@@ -117,6 +125,12 @@ export function EditProfileForm({ initial, gymOptions }: { initial: Initial; gym
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
+
+    if (isAthlete && lookingFor.length === 0) {
+      setError("Choose at least one thing you're looking for");
+      return;
+    }
+
     setSubmitting(true);
 
     const formData = new FormData();
@@ -165,25 +179,37 @@ export function EditProfileForm({ initial, gymOptions }: { initial: Initial; gym
       {error && <p className="rounded bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
 
       <fieldset>
-        <legend className="text-sm font-medium">I'm signing up as...</legend>
-        <div className="mt-2 flex gap-4">
-          {ACCOUNT_TYPES.map((type) => (
-            <label key={type} className="flex items-center gap-2 text-sm">
-              <input
-                type="radio"
-                name="accountType"
-                checked={accountType === type}
-                onChange={() => setAccountType(type)}
-              />
-              {type === "ATHLETE" ? "An athlete" : "An affiliate / gym"}
-            </label>
-          ))}
-        </div>
-        {!isAthlete && (
-          <p className="mt-1 text-xs text-b2b-ink/50">
-            Affiliate accounts skip the athlete-only fields below (ability level, PBs, workout log,
-            relationship status) — just the basics, plus which gym you run.
+        <legend className="text-sm font-medium">
+          {accountTypeLocked ? "Account type" : "I'm signing up as..."}
+        </legend>
+        {accountTypeLocked ? (
+          <p className="mt-2 text-sm text-b2b-ink">
+            {isAthlete ? "Athlete" : "Affiliate / gym"}
+            <span className="ml-2 text-xs text-b2b-ink/40">(set at signup — can't be changed)</span>
           </p>
+        ) : (
+          <>
+            <div className="mt-2 flex gap-4">
+              {ACCOUNT_TYPES.map((type) => (
+                <label key={type} className="flex items-center gap-2 text-sm">
+                  <input
+                    type="radio"
+                    name="accountType"
+                    checked={accountType === type}
+                    onChange={() => setAccountType(type)}
+                  />
+                  {type === "ATHLETE" ? "An athlete" : "An affiliate / gym"}
+                </label>
+              ))}
+            </div>
+            {!isAthlete && (
+              <p className="mt-1 text-xs text-b2b-ink/50">
+                Affiliate accounts skip the athlete-only fields below (ability level, PBs, workout log,
+                relationship status) — just the basics, plus which gym you run.
+              </p>
+            )}
+            <p className="mt-1 text-xs text-b2b-ink/50">This can&apos;t be changed once your profile is set up.</p>
+          </>
         )}
       </fieldset>
 
@@ -483,6 +509,7 @@ export function EditProfileForm({ initial, gymOptions }: { initial: Initial; gym
 
           <fieldset>
             <legend className="text-sm font-medium">Looking for</legend>
+            <p className="mt-0.5 text-xs text-b2b-ink/50">Choose at least one.</p>
             <div className="mt-2 flex flex-col gap-2">
               {LOOKING_FOR_OPTIONS.map((option) => (
                 <label key={option} className="flex items-center gap-2 text-sm">
