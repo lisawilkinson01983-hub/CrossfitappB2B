@@ -66,6 +66,7 @@ enum NotificationType {
   COMMENT_LIKE
   MENTION
   EVENT_SUBMITTED
+  GYM_SUBMITTED
   // A team's newly-posted "looking for teammates" request matched someone's
   // saved "find a team" search (EventTeammateAlert).
   TEAMMATE_REQUEST_MATCH
@@ -230,6 +231,7 @@ model User {
 
   createdEvents        Event[]
   submittedEvents      Event[] @relation("EventSubmissions")
+  submittedGyms        Gym[]   @relation("GymSubmissions")
   eventParticipations  EventParticipant[]
   eventInterests       EventInterest[]
   eventPins            EventPin[]
@@ -693,16 +695,30 @@ model Notification {
   eventId String?
   event   Event?  @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
+  // Set for GYM_SUBMITTED — the gym awaiting review.
+  gymId String?
+  gym   Gym?    @relation(fields: [gymId], references: [id], onDelete: Cascade)
+
   readAt    DateTime?
   createdAt DateTime  @default(now())
 
   @@index([userId])
 }
 
-// A details page for one of the fixed gyms in src/lib/gyms.ts (AFFILIATE_GYMS).
-// No in-app creation UI — added directly (e.g. via Prisma Studio), same as
-// Event, so the page only exists once someone's actually written it up.
-// "name" matches User.affiliateGym's string exactly.
+enum GymStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+// A details page for an affiliate gym shown in Discover's Affiliates tab.
+// The fixed gyms in src/lib/gyms.ts (AFFILIATE_GYMS) are curated — added
+// directly (e.g. via Prisma Studio), created APPROVED, "name" matching
+// User.affiliateGym's string exactly. Anyone can also submit a gym that
+// isn't in that fixed list via /gyms/submit, same review flow as Event: PENDING
+// until a moderator approves it, and never selectable as a profile's
+// affiliateGym (that dropdown stays the fixed list) — this is purely a
+// browsable directory entry.
 model Gym {
   id String @id @default(cuid())
 
@@ -718,5 +734,15 @@ model Gym {
   lat Float?
   lng Float?
 
+  status GymStatus @default(APPROVED)
+
+  submittedById String?
+  submittedBy   User?   @relation("GymSubmissions", fields: [submittedById], references: [id], onDelete: SetNull)
+
+  // "manual" for a curated listing, "user_submission" for one submitted in-app.
+  source String @default("manual")
+
   createdAt DateTime @default(now())
+
+  notifications Notification[]
 }

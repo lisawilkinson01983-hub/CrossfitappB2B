@@ -223,6 +223,15 @@ export const eventSubmissionSchema = z.object({
   genderCategory: z.array(z.enum(EVENT_GENDER_CATEGORIES)).min(1, "Select at least one gender category"),
 });
 
+// The logo is a required upload, handled outside this schema (see
+// /api/gyms/submit) the same way event/post/workout photos are.
+export const gymSubmissionSchema = z.object({
+  name: z.string().trim().min(1, "Affiliate name is required"),
+  address: z.string().trim().min(1, "Address is required"),
+  websiteUrl: z.string().trim().url("Enter a valid website URL"),
+  description: z.string().trim().min(1, "Some information about the affiliate is required").max(2000),
+});
+
 export const messageSchema = z.object({
   text: z.string().trim().min(1, "Message can't be empty").max(2000),
 });

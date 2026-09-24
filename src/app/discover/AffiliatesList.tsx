@@ -11,8 +11,9 @@ export type AffiliateSearchParams = {
   distance?: string;
 };
 
-// Gyms are a fixed list (no in-app creation form), so they may not have been
-// geocoded yet — do it lazily on first read and cache the result on the row.
+// Gyms in the fixed list may not have been geocoded yet — do it lazily on
+// first read and cache the result on the row. User-submitted gyms are
+// geocoded from their submitted address the same way.
 async function ensureGymCoords(gym: { name: string; address: string | null; lat: number | null; lng: number | null }) {
   if (gym.lat !== null && gym.lng !== null) return { lat: gym.lat, lng: gym.lng };
   if (!gym.address) return null;
@@ -25,10 +26,12 @@ async function ensureGymCoords(gym: { name: string; address: string | null; lat:
 }
 
 /**
- * The fixed list of local affiliate gyms, browsable even before any athlete
- * has joined one — useful for someone deciding whether to switch boxes.
- * ensureGymPage guarantees a row (with known public details, where we have
- * them) exists for each, independent of anyone picking it as their gym.
+ * The fixed list of local affiliate gyms is browsable even before any
+ * athlete has joined one, alongside any gym someone's submitted via
+ * /gyms/submit and had approved — a mixed directory of curated and
+ * user-submitted affiliates. ensureGymPage guarantees a row (with known
+ * public details, where we have them) exists for each fixed gym,
+ * independent of anyone picking it as their own affiliate.
  */
 export async function AffiliatesList({
   sp,
@@ -42,43 +45,56 @@ export async function AffiliatesList({
 
   await Promise.all(AFFILIATE_GYMS.map((name) => ensureGymPage(name)));
 
-  const [gyms, athleteCounts, currentUser] = await Promise.all([
-    prisma.gym.findMany({ where: { name: { in: AFFILIATE_GYMS as unknown as string[] } } }),
-    prisma.user.groupBy({
-      by: ["affiliateGym"],
-      where: { affiliateGym: { in: AFFILIATE_GYMS as unknown as string[] } },
-      _count: true,
-    }),
+  const [gyms, currentUser, pendingCount] = await Promise.all([
+    prisma.gym.findMany({ where: { status: "APPROVED" }, orderBy: { name: "asc" } }),
     prisma.user.findUnique({
       where: { id: currentUserId },
-      select: { area: true, areaLat: true, areaLng: true },
+      select: { area: true, areaLat: true, areaLng: true, isAdmin: true },
     }),
+    prisma.gym.count({ where: { status: "PENDING" } }),
   ]);
+
+  const athleteCounts = await prisma.user.groupBy({
+    by: ["affiliateGym"],
+    where: { affiliateGym: { in: gyms.map((g) => g.name) } },
+    _count: true,
+  });
+  const countByName = new Map(athleteCounts.map((c) => [c.affiliateGym as string, c._count]));
 
   const myCoords = currentUser
     ? await ensureUserAreaCoords({ id: currentUserId, ...currentUser })
     : null;
 
-  const gymByName = new Map(gyms.map((g) => [g.name, g]));
-  const countByName = new Map(athleteCounts.map((c) => [c.affiliateGym as string, c._count]));
-
   const gymsWithDistance = await Promise.all(
-    AFFILIATE_GYMS.map(async (name) => {
-      const gym = gymByName.get(name);
-      const coords = myCoords && gym ? await ensureGymCoords(gym) : null;
+    gyms.map(async (gym) => {
+      const coords = myCoords ? await ensureGymCoords(gym) : null;
       const miles = coords && myCoords ? distanceMiles(myCoords, coords) : null;
-      return { name, gym, miles };
+      return { gym, miles };
     })
   );
 
-  const visibleGyms = gymsWithDistance.filter(({ name, gym, miles }) => {
+  const visibleGyms = gymsWithDistance.filter(({ gym, miles }) => {
     if (distance && (miles === null || miles > distance)) return false;
     if (!q) return true;
-    return name.toLowerCase().includes(q) || gym?.address?.toLowerCase().includes(q);
+    return gym.name.toLowerCase().includes(q) || gym.address?.toLowerCase().includes(q);
   });
 
   return (
     <div className="mt-4 flex flex-col gap-6">
+      <div className="flex items-center justify-between">
+        <Link
+          href="/gyms/submit"
+          className="rounded bg-b2b-pink px-4 py-2 text-sm font-medium text-white hover:bg-b2b-pink-dark"
+        >
+          Add Affiliate
+        </Link>
+        {currentUser?.isAdmin && (
+          <Link href="/gyms/review" className="text-sm text-b2b-purple underline">
+            Review submissions{pendingCount > 0 ? ` (${pendingCount})` : ""}
+          </Link>
+        )}
+      </div>
+
       <SectionCard>
         <form method="GET" className="flex flex-col gap-4">
           <input type="hidden" name="view" value="affiliates" />
@@ -131,25 +147,30 @@ export async function AffiliatesList({
             </Link>
           </div>
         </form>
+
+        <p className="mt-4 text-sm text-b2b-ink/50">
+          Can't find your affiliate? Click "Add Affiliate" to add it to the listings (subject to review). Please
+          check the affiliate hasn't already been added to avoid duplication.
+        </p>
       </SectionCard>
 
       {visibleGyms.length === 0 ? (
         <p className="text-b2b-ink/50">No affiliates match those filters.</p>
       ) : (
         <div className="flex flex-col gap-3">
-          {visibleGyms.map(({ name, gym, miles }) => {
-            const athleteCount = countByName.get(name) ?? 0;
+          {visibleGyms.map(({ gym, miles }) => {
+            const athleteCount = countByName.get(gym.name) ?? 0;
 
             return (
               <Link
-                key={name}
-                href={`/gyms/${encodeURIComponent(name)}`}
+                key={gym.id}
+                href={`/gyms/${encodeURIComponent(gym.name)}`}
                 className="flex items-center gap-3 rounded-xl border border-b2b-purple/10 bg-b2b-card p-4 hover:border-b2b-pink"
               >
-                <Avatar photo={gym?.photo ?? null} name={name} size={48} />
+                <Avatar photo={gym.photo} name={gym.name} size={48} />
                 <div className="flex-1">
-                  <p className="font-medium">{name}</p>
-                  {gym?.address && (
+                  <p className="font-medium">{gym.name}</p>
+                  {gym.address && (
                     <p className="text-sm text-b2b-ink/50">
                       {gym.address}
                       {miles !== null && <> · {miles < 1 ? "<1" : Math.round(miles)} miles away</>}
