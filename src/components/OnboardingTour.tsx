@@ -17,12 +17,17 @@ const STEPS = [
   {
     emoji: "🔍",
     title: "Discover",
-    body: "Find athletes, gyms, and events near you, and follow people you train with.",
+    body: "Search for fellow athletes, upcoming events, and affiliate gyms — follow people you train with, and find your next competition.",
   },
   {
     emoji: "📅",
     title: "My Events",
-    body: "Join competitions, see who's competing, and use the Notice Board to find a team or teammates.",
+    body: "Found an event? Tap Participate or Interested and it'll show up on your profile, so others can see what you've got coming up.",
+  },
+  {
+    emoji: "🤝",
+    title: "Find a Team",
+    body: "Short a teammate, or a whole team? Post a notice on the event page to find one — or set an alert to get notified the moment someone matching your criteria posts. You can also chat with fellow competitors in that event's Notice Board.",
   },
   {
     emoji: "🏋️",
