@@ -13,6 +13,7 @@ import { IncomingFollowRequests } from "@/components/IncomingFollowRequests";
 import { GymUpdateNudge } from "@/components/GymUpdateNudge";
 import { ShareInviteCard } from "@/components/ShareInviteCard";
 import { AFFILIATE_GYMS, OTHER_GYM } from "@/lib/gyms";
+import { formatEventDate } from "@/lib/eventDate";
 
 export default async function ProfilePage() {
   const session = await getServerSession(authOptions);
@@ -106,13 +107,7 @@ export default async function ProfilePage() {
                       </Link>
                     </p>
                     <p className="text-sm text-b2b-ink/50">
-                      {event.date.toLocaleDateString(undefined, {
-                        weekday: "short",
-                        year: "numeric",
-                        month: "short",
-                        day: "numeric",
-                      })}{" "}
-                      · {event.location}
+                      {formatEventDate(event)} · {event.isOnline ? "Online" : event.location}
                     </p>
                   </div>
                 </div>
@@ -144,13 +139,7 @@ export default async function ProfilePage() {
                       </Link>
                     </p>
                     <p className="text-sm text-b2b-ink/50">
-                      {event.date.toLocaleDateString(undefined, {
-                        weekday: "short",
-                        year: "numeric",
-                        month: "short",
-                        day: "numeric",
-                      })}{" "}
-                      · {event.location}
+                      {formatEventDate(event)} · {event.isOnline ? "Online" : event.location}
                     </p>
                   </div>
                 </div>

@@ -17,23 +17,48 @@ import {
   EVENT_TEAM_FORMAT_LABELS,
 } from "@/lib/labels";
 
-type DuplicateMatch = { id: string; name: string; date: string; location: string };
+type DuplicateMatch = { id: string; name: string; date: string; location: string | null };
 
-export function EventSubmitForm() {
+export type EventFormInitial = {
+  name: string;
+  date: string; // yyyy-mm-dd
+  endDate: string; // yyyy-mm-dd, or "" for a single-day event
+  isOnline: boolean;
+  location: string;
+  websiteUrl: string;
+  description: string;
+  division: EventDivisionOption[];
+  teamFormat: EventTeamFormatOption[];
+  genderCategory: EventGenderCategoryOption[];
+  photo: string | null;
+};
+
+/** Used both to submit a new event for review, and (mode="edit") for an admin editing an existing one directly. */
+export function EventSubmitForm({
+  mode = "create",
+  eventId,
+  initial,
+}: {
+  mode?: "create" | "edit";
+  eventId?: string;
+  initial?: EventFormInitial;
+}) {
   const router = useRouter();
-  const [name, setName] = useState("");
-  const [date, setDate] = useState("");
-  const [location, setLocation] = useState("");
+  const [name, setName] = useState(initial?.name ?? "");
+  const [date, setDate] = useState(initial?.date ?? "");
+  const [endDate, setEndDate] = useState(initial?.endDate ?? "");
+  const [isOnline, setIsOnline] = useState(initial?.isOnline ?? false);
+  const [location, setLocation] = useState(initial?.location ?? "");
   const [postcode, setPostcode] = useState("");
   const [postcodeBusy, setPostcodeBusy] = useState(false);
   const [postcodeError, setPostcodeError] = useState<string | null>(null);
-  const [websiteUrl, setWebsiteUrl] = useState("");
-  const [description, setDescription] = useState("");
-  const [division, setDivision] = useState<EventDivisionOption[]>([]);
-  const [teamFormat, setTeamFormat] = useState<EventTeamFormatOption[]>([]);
-  const [genderCategory, setGenderCategory] = useState<EventGenderCategoryOption[]>([]);
+  const [websiteUrl, setWebsiteUrl] = useState(initial?.websiteUrl ?? "");
+  const [description, setDescription] = useState(initial?.description ?? "");
+  const [division, setDivision] = useState<EventDivisionOption[]>(initial?.division ?? []);
+  const [teamFormat, setTeamFormat] = useState<EventTeamFormatOption[]>(initial?.teamFormat ?? []);
+  const [genderCategory, setGenderCategory] = useState<EventGenderCategoryOption[]>(initial?.genderCategory ?? []);
   const [image, setImage] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(initial?.photo ?? null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   function handleImageChange(e: ChangeEvent<HTMLInputElement>) {
@@ -64,8 +89,9 @@ export function EventSubmitForm() {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
+  // Not useful in edit mode — the event being edited would just flag itself.
   useEffect(() => {
-    if (!name.trim() || !date) {
+    if (mode === "edit" || !name.trim() || !date) {
       setDuplicates([]);
       return;
     }
@@ -78,7 +104,7 @@ export function EventSubmitForm() {
       }
     }, 500);
     return () => clearTimeout(timeout);
-  }, [name, date]);
+  }, [mode, name, date]);
 
   const duplicateKey = duplicates.map((m) => m.id).join(",");
   const showDuplicateWarning = duplicates.length > 0 && dismissedKey !== duplicateKey;
@@ -91,11 +117,15 @@ export function EventSubmitForm() {
     e.preventDefault();
     setError(null);
 
-    if (!image) {
+    if (mode === "create" && !image) {
       setError("An event image is required");
       return;
     }
-    if (division.length === 0 || teamFormat.length === 0 || genderCategory.length === 0) {
+    if (!isOnline && !location.trim()) {
+      setError("Location is required for an in-person event");
+      return;
+    }
+    if (mode === "create" && (division.length === 0 || teamFormat.length === 0 || genderCategory.length === 0)) {
       setError("Select at least one option for division, team format, and gender category");
       return;
     }
@@ -105,15 +135,20 @@ export function EventSubmitForm() {
     const formData = new FormData();
     formData.set("name", name);
     formData.set("date", date);
-    formData.set("location", location);
+    formData.set("endDate", endDate);
+    formData.set("isOnline", isOnline ? "on" : "");
+    formData.set("location", isOnline ? "" : location);
     formData.set("websiteUrl", websiteUrl);
     formData.set("description", description);
     division.forEach((v) => formData.append("division", v));
     teamFormat.forEach((v) => formData.append("teamFormat", v));
     genderCategory.forEach((v) => formData.append("genderCategory", v));
-    formData.set("image", image);
+    if (image) formData.set("image", image);
 
-    const res = await fetch("/api/events/submit", { method: "POST", body: formData });
+    const res = await fetch(mode === "edit" ? `/api/events/${eventId}` : "/api/events/submit", {
+      method: mode === "edit" ? "PATCH" : "POST",
+      body: formData,
+    });
     setSubmitting(false);
 
     if (!res.ok) {
@@ -122,8 +157,16 @@ export function EventSubmitForm() {
       return;
     }
 
+    if (mode === "edit") {
+      setSubmitted(true);
+      router.refresh();
+      return;
+    }
+
     setName("");
     setDate("");
+    setEndDate("");
+    setIsOnline(false);
     setLocation("");
     setPostcode("");
     setPostcodeError(null);
@@ -143,7 +186,9 @@ export function EventSubmitForm() {
     <form onSubmit={handleSubmit} className="flex flex-col gap-5">
       {submitted && (
         <p className="rounded bg-green-50 px-3 py-2 text-sm text-green-700">
-          Submitted — it'll appear once a moderator reviews it. Check "Your submissions" below for its status.
+          {mode === "edit"
+            ? "Event updated."
+            : 'Submitted — it\'ll appear once a moderator reviews it. Check "Your submissions" below for its status.'}
         </p>
       )}
       {error && <p className="rounded bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
@@ -162,62 +207,87 @@ export function EventSubmitForm() {
         />
       </div>
 
-      <div>
-        <label htmlFor="date" className="block text-sm font-medium">
-          Date
-        </label>
-        <input
-          id="date"
-          type="date"
-          required
-          value={date}
-          onChange={(e) => setDate(e.target.value)}
-          className="mt-1 w-full min-w-0 rounded border border-gray-300 px-3 py-2 focus:border-b2b-pink focus:outline-none"
-        />
-      </div>
-
-      <div>
-        <label htmlFor="postcode" className="block text-sm font-medium">
-          Postcode
-        </label>
-        <div className="mt-1 flex gap-2">
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label htmlFor="date" className="block text-sm font-medium">
+            Start date
+          </label>
           <input
-            id="postcode"
-            type="text"
-            placeholder="e.g. BN27 3JF"
-            value={postcode}
-            onChange={(e) => setPostcode(e.target.value)}
-            className="w-full min-w-0 rounded border border-gray-300 px-3 py-2 focus:border-b2b-pink focus:outline-none"
+            id="date"
+            type="date"
+            required
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+            className="mt-1 w-full min-w-0 rounded border border-gray-300 px-3 py-2 focus:border-b2b-pink focus:outline-none"
           />
-          <button
-            type="button"
-            onClick={handlePostcodeLookup}
-            disabled={postcodeBusy || !postcode.trim()}
-            className="whitespace-nowrap rounded border border-b2b-purple/20 px-3 py-2 text-sm font-medium text-b2b-ink/60 hover:border-b2b-pink hover:text-b2b-pink disabled:opacity-50"
-          >
-            {postcodeBusy ? "..." : "Find address"}
-          </button>
         </div>
-        {postcodeError && <p className="mt-1 text-xs text-red-600">{postcodeError}</p>}
+        <div>
+          <label htmlFor="endDate" className="block text-sm font-medium">
+            End date <span className="font-normal text-b2b-ink/40">(optional)</span>
+          </label>
+          <input
+            id="endDate"
+            type="date"
+            value={endDate}
+            min={date || undefined}
+            onChange={(e) => setEndDate(e.target.value)}
+            className="mt-1 w-full min-w-0 rounded border border-gray-300 px-3 py-2 focus:border-b2b-pink focus:outline-none"
+          />
+        </div>
       </div>
+      <p className="-mt-3 text-xs text-b2b-ink/40">Only fill in an end date if the event runs across more than one day.</p>
 
-      <div>
-        <label htmlFor="location" className="block text-sm font-medium">
-          Location
-        </label>
-        <input
-          id="location"
-          type="text"
-          required
-          placeholder="Town, postcode, country"
-          value={location}
-          onChange={(e) => setLocation(e.target.value)}
-          className="mt-1 w-full min-w-0 rounded border border-gray-300 px-3 py-2 focus:border-b2b-pink focus:outline-none"
-        />
-        <p className="mt-1 text-xs text-b2b-ink/40">
-          Filled in from the postcode above — edit it if you'd like to add a venue name.
-        </p>
-      </div>
+      <label className="flex items-center gap-2 text-sm font-medium">
+        <input type="checkbox" checked={isOnline} onChange={(e) => setIsOnline(e.target.checked)} />
+        This is an online event (no physical location)
+      </label>
+
+      {!isOnline && (
+        <>
+          <div>
+            <label htmlFor="postcode" className="block text-sm font-medium">
+              Postcode
+            </label>
+            <div className="mt-1 flex gap-2">
+              <input
+                id="postcode"
+                type="text"
+                placeholder="e.g. BN27 3JF"
+                value={postcode}
+                onChange={(e) => setPostcode(e.target.value)}
+                className="w-full min-w-0 rounded border border-gray-300 px-3 py-2 focus:border-b2b-pink focus:outline-none"
+              />
+              <button
+                type="button"
+                onClick={handlePostcodeLookup}
+                disabled={postcodeBusy || !postcode.trim()}
+                className="whitespace-nowrap rounded border border-b2b-purple/20 px-3 py-2 text-sm font-medium text-b2b-ink/60 hover:border-b2b-pink hover:text-b2b-pink disabled:opacity-50"
+              >
+                {postcodeBusy ? "..." : "Find address"}
+              </button>
+            </div>
+            {postcodeError && <p className="mt-1 text-xs text-red-600">{postcodeError}</p>}
+          </div>
+
+          <div>
+            <label htmlFor="location" className="block text-sm font-medium">
+              Location
+            </label>
+            <input
+              id="location"
+              type="text"
+              required
+              placeholder="Town, postcode, country"
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+              className="mt-1 w-full min-w-0 rounded border border-gray-300 px-3 py-2 focus:border-b2b-pink focus:outline-none"
+            />
+            <p className="mt-1 text-xs text-b2b-ink/40">
+              Filled in from the postcode above — edit it if you'd like to add a venue name.
+            </p>
+          </div>
+        </>
+      )}
 
       {showDuplicateWarning && (
         <div className="rounded border border-yellow-300 bg-yellow-50 px-3 py-2 text-sm text-yellow-800">
@@ -225,7 +295,7 @@ export function EventSubmitForm() {
           <ul className="mt-1 list-disc pl-5">
             {duplicates.map((m) => (
               <li key={m.id}>
-                {m.name} — {new Date(m.date).toLocaleDateString()} · {m.location}
+                {m.name} — {new Date(m.date).toLocaleDateString()} · {m.location ?? "Online"}
               </li>
             ))}
           </ul>
@@ -246,7 +316,7 @@ export function EventSubmitForm() {
         <input
           id="websiteUrl"
           type="url"
-          required
+          required={mode === "create"}
           placeholder="https://..."
           value={websiteUrl}
           onChange={(e) => setWebsiteUrl(e.target.value)}
@@ -260,7 +330,7 @@ export function EventSubmitForm() {
         </label>
         <textarea
           id="description"
-          required
+          required={mode === "create"}
           rows={4}
           value={description}
           onChange={(e) => setDescription(e.target.value)}
@@ -343,7 +413,7 @@ export function EventSubmitForm() {
             onClick={() => fileInputRef.current?.click()}
             className="rounded-full border border-b2b-purple/20 px-3 py-1.5 text-sm font-medium text-b2b-ink/60 hover:border-b2b-pink hover:text-b2b-pink"
           >
-            📷 {image ? "Change photo" : "Add photo"}
+            📷 {image ? "Change photo" : mode === "edit" ? "Change photo" : "Add photo"}
           </button>
         </div>
       </div>
@@ -353,7 +423,7 @@ export function EventSubmitForm() {
         disabled={submitting}
         className="rounded bg-b2b-pink px-4 py-2 font-medium text-white hover:bg-b2b-pink-dark disabled:opacity-50"
       >
-        {submitting ? "Submitting..." : "Submit event"}
+        {submitting ? "Saving..." : mode === "edit" ? "Save changes" : "Submit event"}
       </button>
     </form>
   );

@@ -37,7 +37,7 @@ export default async function FeedPage() {
         },
       },
       linkedWorkout: { select: { wodName: true, score: true, unit: true, intensity: true, description: true } },
-      linkedEvent: { select: { id: true, name: true, date: true, location: true } },
+      linkedEvent: { select: { id: true, name: true, date: true, endDate: true, isOnline: true, location: true } },
       likes: { select: { userId: true } },
       comments: {
         orderBy: { createdAt: "asc" },

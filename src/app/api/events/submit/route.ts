@@ -20,6 +20,8 @@ export async function POST(req: Request) {
   const parsed = eventSubmissionSchema.safeParse({
     name: formData.get("name"),
     date: formData.get("date"),
+    endDate: formData.get("endDate"),
+    isOnline: formData.get("isOnline"),
     location: formData.get("location"),
     websiteUrl: formData.get("websiteUrl"),
     description: formData.get("description"),
@@ -53,7 +55,9 @@ export async function POST(req: Request) {
     data: {
       name: data.name,
       date: data.date,
-      location: data.location,
+      endDate: data.endDate ?? null,
+      isOnline: data.isOnline,
+      location: data.isOnline ? null : (data.location ?? null),
       description: data.description,
       websiteUrl: data.websiteUrl,
       division: JSON.stringify(data.division),

@@ -19,6 +19,7 @@ import { MentionTextarea } from "@/components/MentionTextarea";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { ReportButton } from "@/components/ReportButton";
 import { WorkoutDescriptionToggle } from "@/components/WorkoutDescriptionToggle";
+import { formatEventDate } from "@/lib/eventDate";
 
 export type CommentData = {
   id: string;
@@ -59,7 +60,9 @@ export type PostCardData = {
     id: string;
     name: string;
     date: Date;
-    location: string;
+    endDate: Date | null;
+    isOnline: boolean;
+    location: string | null;
   } | null;
   likeCount: number;
   likedByMe: boolean;
@@ -395,14 +398,8 @@ export function PostCard({ post, currentUserId }: { post: PostCardData; currentU
           </Link>
           <span className="text-b2b-ink/50">
             {" "}
-            ·{" "}
-            {post.linkedEvent.date.toLocaleDateString(undefined, {
-              weekday: "short",
-              year: "numeric",
-              month: "short",
-              day: "numeric",
-            })}{" "}
-            · {post.linkedEvent.location}
+            · {formatEventDate(post.linkedEvent)} ·{" "}
+            {post.linkedEvent.isOnline ? "Online" : post.linkedEvent.location}
           </span>
         </p>
       )}

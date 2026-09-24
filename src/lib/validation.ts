@@ -250,16 +250,63 @@ export const teammateAlertSchema = z.object({
 
 // The image is a required upload, handled outside this schema (see
 // /api/events/submit) the same way post/workout photos are.
-export const eventSubmissionSchema = z.object({
-  name: z.string().trim().min(1, "Event name is required"),
-  date: z.coerce.date({ errorMap: () => ({ message: "Enter a valid date" }) }),
-  location: z.string().trim().min(1, "Location is required"),
-  websiteUrl: z.string().trim().url("Enter a valid website URL"),
-  description: z.string().trim().min(1, "Event information is required").max(2000),
-  division: z.array(z.enum(EVENT_DIVISIONS)).min(1, "Select at least one division"),
-  teamFormat: z.array(z.enum(EVENT_TEAM_FORMATS)).min(1, "Select at least one team format"),
-  genderCategory: z.array(z.enum(EVENT_GENDER_CATEGORIES)).min(1, "Select at least one gender category"),
-});
+export const eventSubmissionSchema = z
+  .object({
+    name: z.string().trim().min(1, "Event name is required"),
+    date: z.coerce.date({ errorMap: () => ({ message: "Enter a valid start date" }) }),
+    endDate: z.preprocess(emptyToUndefined, z.coerce.date({ errorMap: () => ({ message: "Enter a valid end date" }) }).optional()),
+    isOnline: checkboxToBoolean,
+    location: z.preprocess(emptyToUndefined, z.string().trim().optional()),
+    websiteUrl: z.string().trim().url("Enter a valid website URL"),
+    description: z.string().trim().min(1, "Event information is required").max(2000),
+    division: z.array(z.enum(EVENT_DIVISIONS)).min(1, "Select at least one division"),
+    teamFormat: z.array(z.enum(EVENT_TEAM_FORMATS)).min(1, "Select at least one team format"),
+    genderCategory: z.array(z.enum(EVENT_GENDER_CATEGORIES)).min(1, "Select at least one gender category"),
+  })
+  .superRefine((data, ctx) => {
+    if (!data.isOnline && !data.location) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Location is required", path: ["location"] });
+    }
+    if (data.endDate && data.endDate < data.date) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "End date can't be before the start date",
+        path: ["endDate"],
+      });
+    }
+  });
+
+// Used only by an admin directly editing an existing event (see
+// /api/events/[id]). Deliberately more lenient than eventSubmissionSchema:
+// a curated listing (added via Prisma Studio or a backfill script, not
+// through the public submission form) may never have had a website,
+// division, team format, or gender category set, and an admin editing one
+// other field shouldn't be forced to invent values for those just to save.
+export const eventEditSchema = z
+  .object({
+    name: z.string().trim().min(1, "Event name is required"),
+    date: z.coerce.date({ errorMap: () => ({ message: "Enter a valid start date" }) }),
+    endDate: z.preprocess(emptyToUndefined, z.coerce.date({ errorMap: () => ({ message: "Enter a valid end date" }) }).optional()),
+    isOnline: checkboxToBoolean,
+    location: z.preprocess(emptyToUndefined, z.string().trim().optional()),
+    websiteUrl: z.preprocess(emptyToUndefined, z.string().trim().url("Enter a valid website URL").optional()),
+    description: z.preprocess(emptyToUndefined, z.string().trim().max(2000).optional()),
+    division: z.array(z.enum(EVENT_DIVISIONS)).optional().default([]),
+    teamFormat: z.array(z.enum(EVENT_TEAM_FORMATS)).optional().default([]),
+    genderCategory: z.array(z.enum(EVENT_GENDER_CATEGORIES)).optional().default([]),
+  })
+  .superRefine((data, ctx) => {
+    if (!data.isOnline && !data.location) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Location is required", path: ["location"] });
+    }
+    if (data.endDate && data.endDate < data.date) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "End date can't be before the start date",
+        path: ["endDate"],
+      });
+    }
+  });
 
 // The logo is a required upload, handled outside this schema (see
 // /api/gyms/submit) the same way event/post/workout photos are.
@@ -268,6 +315,16 @@ export const gymSubmissionSchema = z.object({
   address: z.string().trim().min(1, "Address is required"),
   websiteUrl: z.string().trim().url("Enter a valid website URL"),
   description: z.string().trim().min(1, "Some information about the affiliate is required").max(2000),
+});
+
+// Used only by an admin directly editing an existing affiliate (see
+// /api/gyms/[id]) — more lenient than gymSubmissionSchema, since a curated
+// or manually-added row may never have had a website or description set.
+export const gymEditSchema = z.object({
+  name: z.string().trim().min(1, "Affiliate name is required"),
+  address: z.preprocess(emptyToUndefined, z.string().trim().optional()),
+  websiteUrl: z.preprocess(emptyToUndefined, z.string().trim().url("Enter a valid website URL").optional()),
+  description: z.preprocess(emptyToUndefined, z.string().trim().max(2000).optional()),
 });
 
 export const messageSchema = z.object({

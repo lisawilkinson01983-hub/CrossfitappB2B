@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { NavBar } from "@/components/NavBar";
 import { SectionCard } from "@/components/SectionCard";
 import { EventSubmitForm } from "@/components/EventSubmitForm";
+import { formatEventDate } from "@/lib/eventDate";
 
 const STATUS_BADGE: Record<string, string> = {
   PENDING: "bg-yellow-100 text-yellow-800",
@@ -56,12 +57,7 @@ export default async function SubmitEventPage() {
                       )}
                     </p>
                     <p className="text-sm text-b2b-ink/50">
-                      {event.date.toLocaleDateString(undefined, {
-                        year: "numeric",
-                        month: "short",
-                        day: "numeric",
-                      })}{" "}
-                      · {event.location}
+                      {formatEventDate(event)} · {event.isOnline ? "Online" : event.location}
                     </p>
                   </div>
                   <span

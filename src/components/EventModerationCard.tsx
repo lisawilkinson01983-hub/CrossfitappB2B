@@ -3,12 +3,15 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import { formatEventDate } from "@/lib/eventDate";
 
 export type EventModerationData = {
   id: string;
   name: string;
   date: string | Date;
-  location: string;
+  endDate: string | Date | null;
+  isOnline: boolean;
+  location: string | null;
   description: string | null;
   websiteUrl: string | null;
   photo: string | null;
@@ -55,13 +58,11 @@ export function EventModerationCard({ event }: { event: EventModerationData }) {
         <div>
           <p className="font-semibold">{event.name}</p>
           <p className="text-sm text-b2b-ink/50">
-            {new Date(event.date).toLocaleDateString(undefined, {
-              weekday: "short",
-              year: "numeric",
-              month: "short",
-              day: "numeric",
+            {formatEventDate({
+              date: new Date(event.date),
+              endDate: event.endDate ? new Date(event.endDate) : null,
             })}{" "}
-            · {event.location}
+            · {event.isOnline ? "Online" : event.location}
           </p>
           {event.submittedBy && (
             <p className="text-xs text-b2b-ink/40">

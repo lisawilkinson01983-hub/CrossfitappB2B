@@ -11,6 +11,7 @@ import { Avatar } from "@/components/Avatar";
 import { PinButton } from "@/components/PinButton";
 import { EventEngagementButtons } from "@/components/EventEngagementButtons";
 import { distanceMiles, ensureUserAreaCoords, ensureEventCoords } from "@/lib/geocode";
+import { formatEventDate } from "@/lib/eventDate";
 
 export default async function MyEventsPage({
   searchParams,
@@ -26,12 +27,20 @@ export default async function MyEventsPage({
   const q = typeof sp.q === "string" ? sp.q.trim() : "";
 
   const now = new Date();
-  const dateFilter: Prisma.EventWhereInput["date"] = tab === "past" ? { lt: now } : { gte: now };
+  // An event's "effective end" is endDate if it has one, otherwise date —
+  // so a multi-day event still counts as upcoming until its last day, not
+  // just its start day.
+  const effectiveEndFilter: Prisma.EventWhereInput["OR"] =
+    tab === "past"
+      ? [{ endDate: null, date: { lt: now } }, { endDate: { lt: now } }]
+      : [{ endDate: null, date: { gte: now } }, { endDate: { gte: now } }];
 
   const where: Prisma.EventWhereInput = {
-    OR: [{ participants: { some: { userId } } }, { interests: { some: { userId } } }],
-    date: dateFilter,
-    ...(q ? { AND: [{ OR: [{ name: { contains: q } }, { location: { contains: q } }] }] } : {}),
+    AND: [
+      { OR: [{ participants: { some: { userId } } }, { interests: { some: { userId } } }] },
+      { OR: effectiveEndFilter },
+      ...(q ? [{ OR: [{ name: { contains: q } }, { location: { contains: q } }] }] : []),
+    ],
   };
 
   const [events, pins, currentUser] = await Promise.all([
@@ -46,7 +55,7 @@ export default async function MyEventsPage({
     prisma.eventPin.findMany({ where: { userId }, select: { eventId: true } }),
     prisma.user.findUnique({
       where: { id: userId },
-      select: { area: true, areaLat: true, areaLng: true, hasSeenEventsTour: true },
+      select: { area: true, areaLat: true, areaLng: true, hasSeenEventsTour: true, isAdmin: true },
     }),
   ]);
 
@@ -171,18 +180,19 @@ export default async function MyEventsPage({
                           )}
                         </p>
                         <p className="text-sm text-b2b-ink/50">
-                          {event.date.toLocaleDateString(undefined, {
-                            weekday: "short",
-                            year: "numeric",
-                            month: "short",
-                            day: "numeric",
-                          })}{" "}
-                          · {event.location}
+                          {formatEventDate(event)} · {event.isOnline ? "Online" : event.location}
                           {miles !== null && <> · {miles < 1 ? "<1" : Math.round(miles)} miles away</>}
                         </p>
                       </div>
                     </div>
-                    <PinButton endpoint={`/api/events/${event.id}/pin`} initialPinned={pinned} />
+                    <div className="flex shrink-0 items-center gap-2">
+                      {currentUser?.isAdmin && (
+                        <Link href={`/events/${event.id}/edit`} className="text-xs text-b2b-purple underline">
+                          Edit
+                        </Link>
+                      )}
+                      <PinButton endpoint={`/api/events/${event.id}/pin`} initialPinned={pinned} />
+                    </div>
                   </div>
                   {event.description && (
                     <p className="mt-2 line-clamp-2 text-sm text-b2b-ink/70">{event.description}</p>

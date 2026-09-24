@@ -162,25 +162,34 @@ export async function AffiliatesList({
             const athleteCount = countByName.get(gym.name) ?? 0;
 
             return (
-              <Link
+              <div
                 key={gym.id}
-                href={`/gyms/${encodeURIComponent(gym.name)}`}
                 className="flex items-center gap-3 rounded-xl border border-b2b-purple/10 bg-b2b-card p-4 hover:border-b2b-pink"
               >
-                <Avatar photo={gym.photo} name={gym.name} size={48} />
-                <div className="flex-1">
-                  <p className="font-medium">{gym.name}</p>
-                  {gym.address && (
-                    <p className="text-sm text-b2b-ink/50">
-                      {gym.address}
-                      {miles !== null && <> · {miles < 1 ? "<1" : Math.round(miles)} miles away</>}
+                <Link href={`/gyms/${encodeURIComponent(gym.name)}`} className="flex flex-1 items-center gap-3">
+                  <Avatar photo={gym.photo} name={gym.name} size={48} />
+                  <div className="flex-1">
+                    <p className="font-medium">{gym.name}</p>
+                    {gym.address && (
+                      <p className="text-sm text-b2b-ink/50">
+                        {gym.address}
+                        {miles !== null && <> · {miles < 1 ? "<1" : Math.round(miles)} miles away</>}
+                      </p>
+                    )}
+                    <p className="text-xs text-b2b-ink/40">
+                      {athleteCount} {athleteCount === 1 ? "athlete" : "athletes"} on Box 2 Box
                     </p>
-                  )}
-                  <p className="text-xs text-b2b-ink/40">
-                    {athleteCount} {athleteCount === 1 ? "athlete" : "athletes"} on Box 2 Box
-                  </p>
-                </div>
-              </Link>
+                  </div>
+                </Link>
+                {currentUser?.isAdmin && (
+                  <Link
+                    href={`/gyms/${encodeURIComponent(gym.name)}/edit`}
+                    className="shrink-0 text-xs text-b2b-purple underline"
+                  >
+                    Edit
+                  </Link>
+                )}
+              </div>
             );
           })}
         </div>

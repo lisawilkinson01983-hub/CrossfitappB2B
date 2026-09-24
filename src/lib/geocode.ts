@@ -87,11 +87,12 @@ export async function ensureUserAreaCoords(user: {
 // the result on the row. Used by Discover's Events tab and "My Events".
 export async function ensureEventCoords(event: {
   id: string;
-  location: string;
+  location: string | null;
   lat: number | null;
   lng: number | null;
 }): Promise<Coords | null> {
   if (event.lat !== null && event.lng !== null) return { lat: event.lat, lng: event.lng };
+  if (!event.location) return null; // online event — nothing to geocode
 
   const coords = await geocode(event.location);
   if (!coords) return null;

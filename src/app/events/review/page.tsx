@@ -42,6 +42,8 @@ export default async function EventReviewPage() {
                     id: event.id,
                     name: event.name,
                     date: event.date,
+                    endDate: event.endDate,
+                    isOnline: event.isOnline,
                     location: event.location,
                     description: event.description,
                     websiteUrl: event.websiteUrl,

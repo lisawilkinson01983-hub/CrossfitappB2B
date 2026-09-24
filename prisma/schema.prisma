@@ -520,9 +520,18 @@ model Message {
 model Event {
   id String @id @default(cuid())
 
-  name        String
-  date        DateTime
-  location    String
+  name String
+  date DateTime // the event's start date/time
+
+  // Set only for an event that runs across more than one day — null means
+  // a single-day event (display code should treat null as "same as date").
+  endDate DateTime?
+
+  // True for an event with no physical venue — location is null in that
+  // case, and never geocoded/distance-filtered.
+  isOnline Boolean @default(false)
+  location String? // required unless isOnline (see eventSubmissionSchema)
+
   description String? // free text "event information" — required for a user submission, optional for a curated listing
   tag         String? // free text, e.g. "Team size: 3", "Charity", "RX division"
   photo       String? // served path, e.g. "/media/xyz.jpg" (see src/lib/uploads.ts) — the event's image

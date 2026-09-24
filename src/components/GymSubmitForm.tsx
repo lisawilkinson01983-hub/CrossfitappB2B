@@ -6,17 +6,37 @@ import Image from "next/image";
 
 type DuplicateMatch = { id: string; name: string; address: string | null };
 
-export function GymSubmitForm() {
+export type GymFormInitial = {
+  name: string;
+  address: string;
+  websiteUrl: string;
+  description: string;
+  photo: string | null;
+};
+
+/** Used both to submit a new affiliate for review, and (mode="edit") for an admin editing an existing one directly. */
+export function GymSubmitForm({
+  mode = "create",
+  gymId,
+  initial,
+  nameLocked = false,
+}: {
+  mode?: "create" | "edit";
+  gymId?: string;
+  initial?: GymFormInitial;
+  /** True when this is one of the app's fixed affiliate gyms — renaming it here would orphan it, since other parts of the app match on this exact name. */
+  nameLocked?: boolean;
+}) {
   const router = useRouter();
-  const [name, setName] = useState("");
-  const [address, setAddress] = useState("");
+  const [name, setName] = useState(initial?.name ?? "");
+  const [address, setAddress] = useState(initial?.address ?? "");
   const [postcode, setPostcode] = useState("");
   const [postcodeBusy, setPostcodeBusy] = useState(false);
   const [postcodeError, setPostcodeError] = useState<string | null>(null);
-  const [websiteUrl, setWebsiteUrl] = useState("");
-  const [description, setDescription] = useState("");
+  const [websiteUrl, setWebsiteUrl] = useState(initial?.websiteUrl ?? "");
+  const [description, setDescription] = useState(initial?.description ?? "");
   const [image, setImage] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(initial?.photo ?? null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   function handleImageChange(e: ChangeEvent<HTMLInputElement>) {
@@ -47,8 +67,9 @@ export function GymSubmitForm() {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
+  // Not useful in edit mode — the affiliate being edited would just flag itself.
   useEffect(() => {
-    if (!name.trim()) {
+    if (mode === "edit" || !name.trim()) {
       setDuplicates([]);
       return;
     }
@@ -61,7 +82,7 @@ export function GymSubmitForm() {
       }
     }, 500);
     return () => clearTimeout(timeout);
-  }, [name]);
+  }, [mode, name]);
 
   const duplicateKey = duplicates.map((m) => m.id).join(",");
   const showDuplicateWarning = duplicates.length > 0 && dismissedKey !== duplicateKey;
@@ -70,7 +91,7 @@ export function GymSubmitForm() {
     e.preventDefault();
     setError(null);
 
-    if (!image) {
+    if (mode === "create" && !image) {
       setError("An affiliate image is required");
       return;
     }
@@ -82,14 +103,25 @@ export function GymSubmitForm() {
     formData.set("address", address);
     formData.set("websiteUrl", websiteUrl);
     formData.set("description", description);
-    formData.set("image", image);
+    if (image) formData.set("image", image);
 
-    const res = await fetch("/api/gyms/submit", { method: "POST", body: formData });
+    const res = await fetch(mode === "edit" ? `/api/gyms/${gymId}` : "/api/gyms/submit", {
+      method: mode === "edit" ? "PATCH" : "POST",
+      body: formData,
+    });
     setSubmitting(false);
 
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
       setError(body.error ?? "Something went wrong. Please try again.");
+      return;
+    }
+
+    if (mode === "edit") {
+      // The name (which the detail/edit URLs are keyed on) may have just
+      // changed — go to the affiliate's current URL rather than refreshing
+      // this one, which would 404 once the old name no longer matches.
+      router.push(`/gyms/${encodeURIComponent(name)}`);
       return;
     }
 
@@ -110,7 +142,9 @@ export function GymSubmitForm() {
     <form onSubmit={handleSubmit} className="flex flex-col gap-5">
       {submitted && (
         <p className="rounded bg-green-50 px-3 py-2 text-sm text-green-700">
-          Submitted — it'll appear once a moderator reviews it. Check "Your submissions" below for its status.
+          {mode === "edit"
+            ? "Affiliate updated."
+            : 'Submitted — it\'ll appear once a moderator reviews it. Check "Your submissions" below for its status.'}
         </p>
       )}
       {error && <p className="rounded bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
@@ -123,10 +157,16 @@ export function GymSubmitForm() {
           id="name"
           type="text"
           required
+          disabled={nameLocked}
           value={name}
           onChange={(e) => setName(e.target.value)}
-          className="mt-1 w-full rounded border border-gray-300 px-3 py-2 focus:border-b2b-pink focus:outline-none"
+          className="mt-1 w-full rounded border border-gray-300 px-3 py-2 focus:border-b2b-pink focus:outline-none disabled:bg-gray-100 disabled:text-b2b-ink/50"
         />
+        {nameLocked && (
+          <p className="mt-1 text-xs text-b2b-ink/40">
+            This is one of the app's fixed affiliate gyms and can't be renamed here.
+          </p>
+        )}
       </div>
 
       {showDuplicateWarning && (
@@ -182,7 +222,7 @@ export function GymSubmitForm() {
         <input
           id="address"
           type="text"
-          required
+          required={mode === "create"}
           placeholder="Unit, street, town, postcode"
           value={address}
           onChange={(e) => setAddress(e.target.value)}
@@ -200,7 +240,7 @@ export function GymSubmitForm() {
         <input
           id="websiteUrl"
           type="url"
-          required
+          required={mode === "create"}
           placeholder="https://..."
           value={websiteUrl}
           onChange={(e) => setWebsiteUrl(e.target.value)}
@@ -214,7 +254,7 @@ export function GymSubmitForm() {
         </label>
         <textarea
           id="description"
-          required
+          required={mode === "create"}
           rows={4}
           value={description}
           onChange={(e) => setDescription(e.target.value)}
@@ -259,7 +299,7 @@ export function GymSubmitForm() {
         disabled={submitting}
         className="rounded bg-b2b-pink px-4 py-2 font-medium text-white hover:bg-b2b-pink-dark disabled:opacity-50"
       >
-        {submitting ? "Submitting..." : "Submit affiliate"}
+        {submitting ? "Saving..." : mode === "edit" ? "Save changes" : "Submit affiliate"}
       </button>
     </form>
   );

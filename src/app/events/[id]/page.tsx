@@ -10,6 +10,7 @@ import { EventEngagementButtons } from "@/components/EventEngagementButtons";
 import { EventNoticesPanel, type EventNoticeEntry } from "@/components/EventNoticesPanel";
 import { CollapsibleText } from "@/components/CollapsibleText";
 import { parseJsonArray, parseTeammateRequests } from "@/lib/labels";
+import { formatEventDate } from "@/lib/eventDate";
 import {
   EVENT_DIVISION_LABELS,
   EVENT_TEAM_FORMAT_LABELS,
@@ -28,6 +29,8 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
   if (!session?.user?.id) redirect("/login");
 
   const { id } = await params;
+
+  const me = await prisma.user.findUnique({ where: { id: session.user.id }, select: { isAdmin: true } });
 
   const event = await prisma.event.findUnique({
     where: { id },
@@ -103,9 +106,16 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
       <NavBar />
 
-      <Link href="/discover?view=events" className="mt-6 inline-block text-sm text-b2b-pink underline">
-        ← Back to events
-      </Link>
+      <div className="mt-6 flex items-center justify-between">
+        <Link href="/discover?view=events" className="inline-block text-sm text-b2b-pink underline">
+          ← Back to events
+        </Link>
+        {me?.isAdmin && (
+          <Link href={`/events/${event.id}/edit`} className="text-sm text-b2b-purple underline">
+            Edit event
+          </Link>
+        )}
+      </div>
 
       <div className="mt-4">
         <SectionCard>
@@ -121,13 +131,7 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
                 )}
               </p>
               <p className="mt-1 text-sm text-b2b-ink/50">
-                {event.date.toLocaleDateString(undefined, {
-                  weekday: "short",
-                  year: "numeric",
-                  month: "short",
-                  day: "numeric",
-                })}{" "}
-                · {event.location}
+                {formatEventDate(event)} · {event.isOnline ? "Online" : event.location}
               </p>
             </div>
             <EventEngagementButtons

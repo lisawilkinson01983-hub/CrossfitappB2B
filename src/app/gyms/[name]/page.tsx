@@ -13,16 +13,26 @@ export default async function GymPage({ params }: { params: Promise<{ name: stri
 
   const { name } = await params;
 
-  const gym = await prisma.gym.findUnique({ where: { name: decodeURIComponent(name) } });
+  const [me, gym] = await Promise.all([
+    prisma.user.findUnique({ where: { id: session.user.id }, select: { isAdmin: true } }),
+    prisma.gym.findUnique({ where: { name: decodeURIComponent(name) } }),
+  ]);
   if (!gym) notFound();
 
   return (
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
       <NavBar />
 
-      <Link href="/discover?view=affiliates" className="mt-6 inline-block text-sm text-b2b-pink underline">
-        ← Back to affiliates
-      </Link>
+      <div className="mt-6 flex items-center justify-between">
+        <Link href="/discover?view=affiliates" className="inline-block text-sm text-b2b-pink underline">
+          ← Back to affiliates
+        </Link>
+        {me?.isAdmin && (
+          <Link href={`/gyms/${encodeURIComponent(gym.name)}/edit`} className="text-sm text-b2b-purple underline">
+            Edit affiliate
+          </Link>
+        )}
+      </div>
 
       <div className="mt-4 flex flex-col gap-6">
         <SectionCard>

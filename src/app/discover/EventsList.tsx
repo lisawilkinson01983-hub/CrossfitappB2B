@@ -5,6 +5,7 @@ import { EventEngagementButtons } from "@/components/EventEngagementButtons";
 import { SectionCard } from "@/components/SectionCard";
 import { Avatar } from "@/components/Avatar";
 import { distanceMiles, ensureUserAreaCoords, ensureEventCoords, DISTANCE_RANGES } from "@/lib/geocode";
+import { formatEventDate } from "@/lib/eventDate";
 
 const TIME_RANGES = {
   week: { label: "Next 7 days", days: 7 },
@@ -173,30 +174,34 @@ export async function EventsList({
             const isInterested = event.interests.some((i) => i.userId === currentUserId);
             return (
               <div key={event.id} className="rounded-xl border border-b2b-purple/10 bg-b2b-card p-4">
-                <div className="flex items-center gap-3">
-                  <Avatar photo={event.photo} name={event.name} size={48} />
-                  <div>
-                    <p className="font-semibold">
-                      <Link href={`/events/${event.id}`} className="hover:underline">
-                        {event.name}
-                      </Link>
-                      {event.tag && (
-                        <span className="ml-2 rounded-full bg-b2b-purple/10 px-2 py-0.5 text-xs text-b2b-purple">
-                          {event.tag}
-                        </span>
-                      )}
-                    </p>
-                    <p className="text-sm text-b2b-ink/50">
-                      {event.date.toLocaleDateString(undefined, {
-                        weekday: "short",
-                        year: "numeric",
-                        month: "short",
-                        day: "numeric",
-                      })}{" "}
-                      · {event.location}
-                      {miles !== null && <> · {miles < 1 ? "<1" : Math.round(miles)} miles away</>}
-                    </p>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <Avatar photo={event.photo} name={event.name} size={48} />
+                    <div>
+                      <p className="font-semibold">
+                        <Link href={`/events/${event.id}`} className="hover:underline">
+                          {event.name}
+                        </Link>
+                        {event.tag && (
+                          <span className="ml-2 rounded-full bg-b2b-purple/10 px-2 py-0.5 text-xs text-b2b-purple">
+                            {event.tag}
+                          </span>
+                        )}
+                      </p>
+                      <p className="text-sm text-b2b-ink/50">
+                        {formatEventDate(event)} · {event.isOnline ? "Online" : event.location}
+                        {miles !== null && <> · {miles < 1 ? "<1" : Math.round(miles)} miles away</>}
+                      </p>
+                    </div>
                   </div>
+                  {currentUser?.isAdmin && (
+                    <Link
+                      href={`/events/${event.id}/edit`}
+                      className="shrink-0 text-xs text-b2b-purple underline"
+                    >
+                      Edit
+                    </Link>
+                  )}
                 </div>
                 {event.description && (
                   <p className="mt-2 line-clamp-2 text-sm text-b2b-ink/70">{event.description}</p>
