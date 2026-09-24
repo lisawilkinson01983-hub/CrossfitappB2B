@@ -55,6 +55,7 @@ export default async function EventNoticesPage({ params }: { params: Promise<{ i
         createdAt: c.createdAt,
         author: c.user,
         parentId: c.parentId,
+        isMine: c.userId === session.user.id,
       })),
     },
     isOwn: notice.userId === session.user.id,

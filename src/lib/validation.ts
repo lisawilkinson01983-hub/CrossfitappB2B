@@ -28,6 +28,28 @@ export type EventTeamFormatOption = (typeof EVENT_TEAM_FORMATS)[number];
 export const EVENT_GENDER_CATEGORIES = ["MALE", "FEMALE", "MIXED"] as const;
 export type EventGenderCategoryOption = (typeof EVENT_GENDER_CATEGORIES)[number];
 
+export const REPORT_TARGET_TYPES = [
+  "USER",
+  "POST",
+  "COMMENT",
+  "MESSAGE",
+  "EVENT_NOTICE",
+  "EVENT_NOTICE_COMMENT",
+] as const;
+export type ReportTargetTypeOption = (typeof REPORT_TARGET_TYPES)[number];
+
+export const REPORT_REASONS = [
+  "SPAM",
+  "HARASSMENT",
+  "HATE",
+  "NUDITY",
+  "VIOLENCE",
+  "SELF_HARM",
+  "IMPERSONATION",
+  "OTHER",
+] as const;
+export type ReportReasonOption = (typeof REPORT_REASONS)[number];
+
 // For a "looking for teammates" notice request — distinct from the event's
 // own EventGenderCategory/EventDivision since a request about one person
 // also needs an "any" option.
@@ -252,3 +274,10 @@ export const changePasswordSchema = z
     path: ["confirmPassword"],
   });
 
+
+export const reportSchema = z.object({
+  targetType: z.enum(REPORT_TARGET_TYPES),
+  targetId: z.string().min(1),
+  reason: z.enum(REPORT_REASONS),
+  details: z.string().trim().max(1000).optional(),
+});

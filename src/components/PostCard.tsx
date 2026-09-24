@@ -17,6 +17,7 @@ import { ExpandableImage } from "@/components/ExpandableImage";
 import { MentionText } from "@/components/MentionText";
 import { MentionTextarea } from "@/components/MentionTextarea";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { ReportButton } from "@/components/ReportButton";
 import { WorkoutDescriptionToggle } from "@/components/WorkoutDescriptionToggle";
 
 export type CommentData = {
@@ -267,7 +268,7 @@ export function PostCard({ post, currentUserId }: { post: PostCardData; currentU
               <button type="button" onClick={() => startReply(comment.id)} className="hover:underline">
                 Reply
               </button>
-              {comment.author.id === currentUserId && (
+              {comment.author.id === currentUserId ? (
                 <button
                   type="button"
                   onClick={() => startEditComment(comment.id, comment.text)}
@@ -275,6 +276,8 @@ export function PostCard({ post, currentUserId }: { post: PostCardData; currentU
                 >
                   Edit
                 </button>
+              ) : (
+                <ReportButton targetType="COMMENT" targetId={comment.id} className="hover:underline" />
               )}
             </div>
           </div>
@@ -368,6 +371,7 @@ export function PostCard({ post, currentUserId }: { post: PostCardData; currentU
             </button>
           </div>
         )}
+        {!post.isOwner && <ReportButton targetType="POST" targetId={post.id} />}
       </div>
 
       {post.linkedWorkout && (

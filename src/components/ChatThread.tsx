@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
+import { ReportButton } from "@/components/ReportButton";
 
 type MessageItem = {
   id: string;
@@ -73,12 +74,17 @@ export function ChatThread({
                 }`}
               >
                 <p>{message.text}</p>
-                <p className={`mt-1 text-xs ${isMine ? "text-white/70" : "text-gray-500"}`}>
-                  {new Date(message.createdAt).toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
-                </p>
+                <div className={`mt-1 flex items-center gap-2 text-xs ${isMine ? "text-white/70" : "text-gray-500"}`}>
+                  <span>
+                    {new Date(message.createdAt).toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </span>
+                  {!isMine && (
+                    <ReportButton targetType="MESSAGE" targetId={message.id} className="hover:underline" />
+                  )}
+                </div>
               </div>
             </div>
           );
