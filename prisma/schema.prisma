@@ -125,6 +125,32 @@ model User {
   // the account is in good standing.
   suspendedAt DateTime?
 
+  // Set once the account owner deletes their account (see
+  // /api/account/delete). The row is kept (rather than hard-deleted) and its
+  // personal fields wiped, so messages/posts/reports that reference it keep
+  // working and just show "Deleted User" — but sign-in is blocked exactly
+  // like a suspension, since the email on the row no longer matches what
+  // they signed up with anyway.
+  deletedAt DateTime?
+
+  // Consent captured at signup (see SignupForm) — timestamps double as an
+  // audit trail of when each was agreed to, not just whether. Existing
+  // accounts from before this shipped are grandfathered by
+  // scripts/backfill-legal-consent.js.
+  termsAcceptedAt DateTime?
+  ageConfirmedAt  DateTime?
+
+  // Email verification — informational (a banner prompts an unverified user
+  // to confirm), never blocks sign-in. Null emailVerifiedAt means unverified.
+  emailVerifiedAt                 DateTime?
+  emailVerificationToken          String?   @unique
+  emailVerificationTokenExpiresAt DateTime?
+
+  // Forgot-password flow (see /forgot-password, /reset-password). Single-use:
+  // cleared once the password is reset.
+  passwordResetToken          String?   @unique
+  passwordResetTokenExpiresAt DateTime?
+
   // Each set once its onboarding popup has been shown (see
   // SectionOnboarding) — hasSeenOnboarding covers the welcome+profile-setup
   // popup shown right after signup; the rest are shown the first time the

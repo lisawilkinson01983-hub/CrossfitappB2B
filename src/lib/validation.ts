@@ -117,6 +117,21 @@ export const signupSchema = z.object({
   name: z.string().trim().min(1, "Name is required"),
   email: z.string().trim().email("Enter a valid email address"),
   password: z.string().min(8, "Password must be at least 8 characters"),
+  agreedToTerms: z.literal(true, {
+    errorMap: () => ({ message: "You must agree to the Terms of Service and Privacy Policy" }),
+  }),
+  confirmedAge: z.literal(true, {
+    errorMap: () => ({ message: "You must confirm you're at least 18 years old" }),
+  }),
+});
+
+export const forgotPasswordSchema = z.object({
+  email: z.string().trim().email("Enter a valid email address"),
+});
+
+export const resetPasswordSchema = z.object({
+  token: z.string().min(1, "Missing reset token"),
+  password: z.string().min(8, "Password must be at least 8 characters"),
 });
 
 /** Treat empty-string form fields as "not provided" instead of failing validation. */

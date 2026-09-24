@@ -2,8 +2,16 @@ import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { signupSchema } from "@/lib/validation";
+import { generateToken } from "@/lib/tokens";
+import { sendEmail } from "@/lib/email";
+import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
 
 export async function POST(req: Request) {
+  const rateLimit = checkRateLimit(getClientIp(req.headers), "signup", { limit: 5, windowMs: 15 * 60 * 1000 });
+  if (!rateLimit.ok) {
+    return NextResponse.json({ error: "Too many attempts. Please try again later." }, { status: 429 });
+  }
+
   const body = await req.json().catch(() => null);
   if (!body) {
     return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
@@ -25,14 +33,35 @@ export async function POST(req: Request) {
   }
 
   const passwordHash = await bcrypt.hash(parsed.data.password, 10);
+  const now = new Date();
+  const emailVerificationToken = generateToken();
 
   const user = await prisma.user.create({
-    data: { name: parsed.data.name, email, passwordHash },
+    data: {
+      name: parsed.data.name,
+      email,
+      passwordHash,
+      termsAcceptedAt: now,
+      ageConfirmedAt: now,
+      emailVerificationToken,
+      emailVerificationTokenExpiresAt: new Date(now.getTime() + 24 * 60 * 60 * 1000),
+    },
   });
 
   await addWelcomeFriend(user.id);
+  await sendVerificationEmail(email, emailVerificationToken);
 
   return NextResponse.json({ ok: true });
+}
+
+async function sendVerificationEmail(email: string, token: string) {
+  const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
+  const verifyUrl = `${baseUrl}/verify-email?token=${token}`;
+  await sendEmail({
+    to: email,
+    subject: "Verify your Box 2 Box email",
+    text: `Welcome to Box 2 Box! Confirm your email address by visiting this link:\n\n${verifyUrl}\n\nThis link expires in 24 hours.`,
+  });
 }
 
 /**

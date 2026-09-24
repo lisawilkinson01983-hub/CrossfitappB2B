@@ -1,3 +1,5 @@
+import { withSentryConfig } from "@sentry/nextjs/config";
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
@@ -11,4 +13,9 @@ const nextConfig = {
   },
 };
 
-export default nextConfig;
+// Wrapping is a no-op until SENTRY_DSN is set (see src/instrumentation.ts) —
+// skipped entirely otherwise so an unconfigured Sentry account can never
+// affect the build.
+export default process.env.SENTRY_DSN
+  ? withSentryConfig(nextConfig, { silent: true, disableLogger: true })
+  : nextConfig;

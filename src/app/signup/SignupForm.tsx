@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState, type FormEvent } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
@@ -9,6 +10,8 @@ export function SignupForm() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [confirmedAge, setConfirmedAge] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -20,13 +23,21 @@ export function SignupForm() {
       setError("Password must be at least 8 characters");
       return;
     }
+    if (!agreedToTerms) {
+      setError("You must agree to the Terms of Service and Privacy Policy");
+      return;
+    }
+    if (!confirmedAge) {
+      setError("You must confirm you're at least 18 years old");
+      return;
+    }
 
     setSubmitting(true);
 
     const res = await fetch("/api/signup", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, email, password }),
+      body: JSON.stringify({ name, email, password, agreedToTerms, confirmedAge }),
     });
 
     if (!res.ok) {
@@ -101,9 +112,40 @@ export function SignupForm() {
         <p className="mt-1 text-xs text-gray-500">At least 8 characters.</p>
       </div>
 
+      <div className="flex flex-col gap-2">
+        <label className="flex items-start gap-2 text-sm text-gray-700">
+          <input
+            type="checkbox"
+            checked={confirmedAge}
+            onChange={(e) => setConfirmedAge(e.target.checked)}
+            className="mt-0.5"
+          />
+          I confirm I'm at least 18 years old.
+        </label>
+        <label className="flex items-start gap-2 text-sm text-gray-700">
+          <input
+            type="checkbox"
+            checked={agreedToTerms}
+            onChange={(e) => setAgreedToTerms(e.target.checked)}
+            className="mt-0.5"
+          />
+          <span>
+            I agree to the{" "}
+            <Link href="/terms" target="_blank" className="text-b2b-pink underline">
+              Terms of Service
+            </Link>{" "}
+            and{" "}
+            <Link href="/privacy" target="_blank" className="text-b2b-pink underline">
+              Privacy Policy
+            </Link>
+            .
+          </span>
+        </label>
+      </div>
+
       <button
         type="submit"
-        disabled={submitting}
+        disabled={submitting || !agreedToTerms || !confirmedAge}
         className="rounded bg-b2b-pink px-4 py-2 font-medium text-white hover:bg-b2b-pink-dark disabled:opacity-50"
       >
         {submitting ? "Creating account..." : "Sign up"}

@@ -8,6 +8,7 @@ import { SectionCard } from "@/components/SectionCard";
 import { BlockMuteControls } from "@/components/BlockMuteControls";
 import { ChangeEmailForm } from "./ChangeEmailForm";
 import { ChangePasswordForm } from "./ChangePasswordForm";
+import { DeleteAccountForm } from "./DeleteAccountForm";
 
 export default async function SettingsPage() {
   const session = await getServerSession(authOptions);
@@ -129,6 +130,24 @@ export default async function SettingsPage() {
               )}
             </div>
           </div>
+        </SectionCard>
+
+        <SectionCard title="Legal">
+          <div className="flex flex-col gap-2 text-sm">
+            <Link href="/terms" className="text-b2b-pink underline">
+              Terms of Service
+            </Link>
+            <Link href="/privacy" className="text-b2b-pink underline">
+              Privacy Policy
+            </Link>
+            <Link href="/guidelines" className="text-b2b-pink underline">
+              Community Guidelines
+            </Link>
+          </div>
+        </SectionCard>
+
+        <SectionCard title="Danger Zone">
+          <DeleteAccountForm />
         </SectionCard>
       </div>
     </main>

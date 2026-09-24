@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "start:railway": "prisma db push --accept-data-loss && node scripts/backfill-gym-pages.js && node scripts/backfill-events.js && node scripts/backfill-admin.js && node scripts/backfill-event-notifications.js && node scripts/backfill-onboarding-seen.js && next start -p $PORT",
+    "start:railway": "prisma db push --accept-data-loss && node scripts/backfill-gym-pages.js && node scripts/backfill-events.js && node scripts/backfill-admin.js && node scripts/backfill-event-notifications.js && node scripts/backfill-onboarding-seen.js && node scripts/backfill-legal-consent.js && next start -p $PORT",
     "lint": "next lint",
     "postinstall": "prisma generate",
     "db:push": "prisma db push",
@@ -14,9 +14,11 @@
   },
   "dependencies": {
     "@prisma/client": "6.19.3",
+    "@sentry/nextjs": "^11.0.0",
     "bcryptjs": "3.0.3",
     "next": "15.5.23",
     "next-auth": "4.24.15",
+    "nodemailer": "^7.0.13",
     "react": "19.0.0",
     "react-dom": "19.0.0",
     "zod": "3.25.76"
@@ -24,6 +26,7 @@
   "devDependencies": {
     "@tailwindcss/postcss": "4.3.3",
     "@types/node": "22.10.10",
+    "@types/nodemailer": "^8.0.2",
     "@types/react": "19.0.8",
     "@types/react-dom": "19.0.3",
     "prisma": "6.19.3",

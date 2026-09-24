@@ -2,6 +2,7 @@ import type { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { prisma } from "./prisma";
+import { checkRateLimit, getClientIp } from "./rateLimit";
 
 export const authOptions: NextAuthOptions = {
   session: { strategy: "jwt" },
@@ -13,12 +14,19 @@ export const authOptions: NextAuthOptions = {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
       },
-      async authorize(credentials) {
+      async authorize(credentials, req) {
         if (!credentials?.email || !credentials?.password) return null;
 
-        const user = await prisma.user.findUnique({
-          where: { email: credentials.email.trim().toLowerCase() },
-        });
+        const email = credentials.email.trim().toLowerCase();
+
+        // Capped per IP and per email attempted, so an attacker can't just
+        // rotate IPs against one account or spray many accounts from one IP.
+        const ip = getClientIp(req.headers ?? {});
+        const ipLimit = checkRateLimit(ip, "login", { limit: 20, windowMs: 15 * 60 * 1000 });
+        const emailLimit = checkRateLimit(email, "login-email", { limit: 8, windowMs: 15 * 60 * 1000 });
+        if (!ipLimit.ok || !emailLimit.ok) throw new Error("TOO_MANY_ATTEMPTS");
+
+        const user = await prisma.user.findUnique({ where: { email } });
         if (!user) return null;
 
         const valid = await bcrypt.compare(credentials.password, user.passwordHash);
@@ -45,9 +53,9 @@ export const authOptions: NextAuthOptions = {
       // API route already treats that as signed out.
       const account = await prisma.user.findUnique({
         where: { id: token.id as string },
-        select: { suspendedAt: true },
+        select: { suspendedAt: true, deletedAt: true },
       });
-      if (!account || account.suspendedAt) {
+      if (!account || account.suspendedAt || account.deletedAt) {
         return { ...session, user: undefined } as unknown as typeof session;
       }
       if (session.user) session.user.id = token.id as string;

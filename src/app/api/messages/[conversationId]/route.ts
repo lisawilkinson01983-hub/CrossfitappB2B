@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { messageSchema } from "@/lib/validation";
+import { checkRateLimit } from "@/lib/rateLimit";
 
 async function loadAuthorizedConversation(conversationId: string, userId: string) {
   const conversation = await prisma.conversation.findUnique({ where: { id: conversationId } });
@@ -49,6 +50,11 @@ export async function POST(req: Request, { params }: { params: Promise<{ convers
   const conversation = await loadAuthorizedConversation(conversationId, session.user.id);
   if (!conversation) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  const rateLimit = checkRateLimit(session.user.id, "send-message", { limit: 30, windowMs: 60 * 1000 });
+  if (!rateLimit.ok) {
+    return NextResponse.json({ error: "You're sending messages too fast. Please slow down." }, { status: 429 });
   }
 
   const body = await req.json().catch(() => null);

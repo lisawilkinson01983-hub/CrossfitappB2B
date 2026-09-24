@@ -24,7 +24,9 @@ export function LoginForm() {
       setError(
         result?.error === "ACCOUNT_SUSPENDED"
           ? "This account has been suspended for breaking the community guidelines."
-          : "Invalid email or password"
+          : result?.error === "TOO_MANY_ATTEMPTS"
+            ? "Too many login attempts. Please wait a while and try again."
+            : "Invalid email or password"
       );
       return;
     }

@@ -5,11 +5,12 @@ import { prisma } from "@/lib/prisma";
 import { Logo } from "./Logo";
 import { SignOutButton } from "./SignOutButton";
 import { BottomTabBar } from "./BottomTabBar";
+import { VerifyEmailBanner } from "./VerifyEmailBanner";
 
 export async function NavBar() {
   const session = await getServerSession(authOptions);
 
-  const [unreadMessages, unreadNotifications] = session?.user?.id
+  const [unreadMessages, unreadNotifications, account] = session?.user?.id
     ? await Promise.all([
         prisma.message.count({
           where: {
@@ -21,11 +22,13 @@ export async function NavBar() {
         prisma.notification.count({
           where: { userId: session.user.id, readAt: null },
         }),
+        prisma.user.findUnique({ where: { id: session.user.id }, select: { emailVerifiedAt: true } }),
       ])
-    : [0, 0];
+    : [0, 0, null];
 
   return (
     <>
+      {session?.user?.id && !account?.emailVerifiedAt && <VerifyEmailBanner />}
       <nav className="flex items-center justify-between gap-3 border-b border-b2b-purple/10 pb-4">
         <Logo size="sm" href="/feed" />
         <div className="flex items-center gap-4">

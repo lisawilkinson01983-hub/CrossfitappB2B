@@ -7,6 +7,11 @@ export default function LoginPage() {
       <h1 className="mb-6 text-2xl font-bold">Log in</h1>
       <LoginForm />
       <p className="mt-4 text-sm text-gray-600">
+        <Link href="/forgot-password" className="text-b2b-pink underline">
+          Forgot your password?
+        </Link>
+      </p>
+      <p className="mt-2 text-sm text-gray-600">
         No account?{" "}
         <Link href="/signup" className="text-b2b-pink underline">
           Sign up
