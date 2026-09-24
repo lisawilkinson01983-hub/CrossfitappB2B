@@ -15,30 +15,33 @@ export default async function ConnectionsPage({
   searchParams,
 }: {
   params: Promise<{ userId: string }>;
-  searchParams: Promise<{ tab?: string }>;
+  searchParams: Promise<{ tab?: string; q?: string }>;
 }) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) redirect("/login");
 
   const { userId } = await params;
-  const { tab } = await searchParams;
+  const { tab, q: qParam } = await searchParams;
   const activeTab = tab === "following" ? "following" : "followers";
+  const q = typeof qParam === "string" ? qParam.trim() : "";
 
   const user = await prisma.user.findUnique({ where: { id: userId }, select: { id: true, name: true } });
   if (!user) notFound();
+
+  const nameFilter = q ? { name: { contains: q } } : {};
 
   const rows =
     activeTab === "followers"
       ? (
           await prisma.follow.findMany({
-            where: { followingId: userId },
+            where: { followingId: userId, follower: nameFilter },
             include: { follower: true },
             orderBy: { createdAt: "desc" },
           })
         ).map((f) => f.follower)
       : (
           await prisma.follow.findMany({
-            where: { followerId: userId },
+            where: { followerId: userId, following: nameFilter },
             include: { following: true },
             orderBy: { createdAt: "desc" },
           })
@@ -90,8 +93,33 @@ export default async function ConnectionsPage({
         </Link>
       </div>
 
+      <form method="GET" className="mt-4 flex gap-2">
+        <input type="hidden" name="tab" value={activeTab} />
+        <input
+          type="text"
+          name="q"
+          placeholder={`Search ${activeTab}`}
+          defaultValue={q}
+          className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-b2b-pink focus:outline-none"
+        />
+        <button
+          type="submit"
+          className="shrink-0 rounded bg-b2b-pink px-4 py-2 text-sm font-medium text-white hover:bg-b2b-pink-dark"
+        >
+          Search
+        </button>
+      </form>
+      {q && (
+        <Link
+          href={`/profile/${userId}/connections?tab=${activeTab}`}
+          className="mt-2 inline-block text-xs text-b2b-ink/50 hover:underline"
+        >
+          Clear search
+        </Link>
+      )}
+
       {rows.length === 0 ? (
-        <p className="mt-6 text-gray-500">No one here yet.</p>
+        <p className="mt-6 text-gray-500">{q ? `No ${activeTab} match "${q}".` : "No one here yet."}</p>
       ) : (
         <div className="mt-6 flex flex-col gap-3">
           {rows.map((row) => {
