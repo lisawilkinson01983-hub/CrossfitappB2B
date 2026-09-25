@@ -15,10 +15,10 @@ export default async function MessagesPage() {
     where: { OR: [{ userOneId: session.user.id }, { userTwoId: session.user.id }] },
     include: {
       userOne: {
-        select: { id: true, name: true, photo: true, isSingle: true, showSingleBadge: true },
+        select: { id: true, name: true, photo: true, isSingle: true, showSingleBadge: true, deletedAt: true },
       },
       userTwo: {
-        select: { id: true, name: true, photo: true, isSingle: true, showSingleBadge: true },
+        select: { id: true, name: true, photo: true, isSingle: true, showSingleBadge: true, deletedAt: true },
       },
       messages: { orderBy: { createdAt: "desc" }, take: 1 },
     },
@@ -44,6 +44,10 @@ export default async function MessagesPage() {
         unreadCount: unreadByConversation.get(conv.id) ?? 0,
       };
     })
+    // A deleted account's messages are kept (not wiped — see /api/account/delete)
+    // so the thread survives for anyone who reported them, but there's no
+    // reason a "Deleted User" placeholder should keep cluttering the inbox.
+    .filter((row) => !row.otherUser.deletedAt)
     .sort((a, b) => b.sortAt.getTime() - a.sortAt.getTime());
 
   return (

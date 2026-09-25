@@ -18,6 +18,7 @@ import { SectionCard } from "@/components/SectionCard";
 import { ExpandableAvatar } from "@/components/ExpandableAvatar";
 import { PbCardBody } from "@/components/PbCardBody";
 import { prisma } from "@/lib/prisma";
+import { isSiteAccountEmail } from "@/lib/siteAccount";
 
 function Badge({ label, className }: { label: string; className: string }) {
   return <span className={`rounded-full px-3 py-1 text-xs font-medium ${className}`}>{label}</span>;
@@ -58,6 +59,10 @@ export async function ProfileDetails({
   };
 
   const isAffiliate = user.accountType === "AFFILIATE";
+  // The brand account (see src/lib/siteAccount.ts) had to fill in area/gym/
+  // ability/CrossFitting-since to get through profile setup like any other
+  // account, but none of that means anything on its own profile page.
+  const isSiteAccount = isSiteAccountEmail(user.email);
   const showRelationshipStatus = user.isSingle != null && user.showRelationshipStatus;
   const showSingleBadge = showsSingleBadge(user);
 
@@ -74,7 +79,7 @@ export async function ProfileDetails({
   const gymHref = gymPage ? `/gyms/${encodeURIComponent(gymPage.name)}` : undefined;
 
   const badges: ReactNode[] = [];
-  if (user.level) {
+  if (user.level && !isSiteAccount) {
     badges.push(
       <Badge key="level" label={LEVEL_LABELS[user.level]} className={LEVEL_BADGE_CLASSES[user.level]} />
     );
@@ -105,8 +110,8 @@ export async function ProfileDetails({
   }
 
   const metaParts: ReactNode[] = [];
-  if (user.area) metaParts.push(<span key="area">{user.area}</span>);
-  if (affiliateGymDisplay) {
+  if (user.area && !isSiteAccount) metaParts.push(<span key="area">{user.area}</span>);
+  if (affiliateGymDisplay && !isSiteAccount) {
     metaParts.push(
       gymHref ? (
         <Link key="gym" href={gymHref} className="text-b2b-pink underline">
@@ -117,7 +122,7 @@ export async function ProfileDetails({
       )
     );
   }
-  if (crossfitSince) {
+  if (crossfitSince && !isSiteAccount) {
     metaParts.push(
       <span key="since">{isAffiliate ? `Established ${crossfitSince}` : `CrossFitting since ${crossfitSince}`}</span>
     );

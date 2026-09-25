@@ -10,9 +10,24 @@ import { prisma } from "@/lib/prisma";
  * configured yet" rather than failing outright.
  */
 export async function getSiteAccountId(): Promise<string | null> {
-  const email = process.env.ADMIN_USER_EMAIL?.toLowerCase().trim();
+  const email = configuredSiteAccountEmail();
   if (!email) return null;
 
   const account = await prisma.user.findUnique({ where: { email }, select: { id: true } });
   return account?.id ?? null;
+}
+
+function configuredSiteAccountEmail(): string | undefined {
+  return process.env.ADMIN_USER_EMAIL?.toLowerCase().trim() || undefined;
+}
+
+/**
+ * Cheap check for "is this the site account" from an email already in hand
+ * (no DB round-trip) — used to hide athlete-only profile fields (area,
+ * affiliate gym, ability, CrossFitting since) that don't make sense on the
+ * brand account's own profile page. See ProfileDetails.
+ */
+export function isSiteAccountEmail(email: string): boolean {
+  const configured = configuredSiteAccountEmail();
+  return Boolean(configured) && email.toLowerCase().trim() === configured;
 }
