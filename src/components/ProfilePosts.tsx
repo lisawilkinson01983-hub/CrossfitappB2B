@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { prisma } from "@/lib/prisma";
 import { SectionCard } from "@/components/SectionCard";
+import { stripMentionMarkup } from "@/lib/mentions";
 
 const PREVIEW_COUNT = 3;
 
@@ -19,7 +20,7 @@ type PreviewPost = {
 
 /** A one-line summary for a post that has no caption of its own (a bare workout/PB/event share). */
 function summarize(post: PreviewPost): string {
-  if (post.contentText) return post.contentText;
+  if (post.contentText) return stripMentionMarkup(post.contentText);
   if (post.linkedWorkout) return post.linkedWorkout.wodName;
   if (post.type === "TEAMMATE_REQUEST") return "Looking for teammates";
   if (post.linkedEvent) return `Competing in ${post.linkedEvent.name}`;
@@ -81,7 +82,7 @@ export async function ProfilePosts({ userId }: { userId: string }) {
                 />
               ) : (
                 <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-b2b-purple/10 text-lg">
-                  {post.video ? "🎥" : post.type === "PR" ? "🏅" : post.type === "WORKOUT" ? "💪" : "📝"}
+                  {post.video ? "🎥" : post.type === "PR" ? "🏅" : post.type === "WORKOUT" ? "💪" : "👤"}
                 </span>
               )}
               <div className="min-w-0 flex-1">

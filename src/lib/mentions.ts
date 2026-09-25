@@ -8,3 +8,12 @@ export function extractMentionIds(text: string | null | undefined): string[] {
   if (!text) return [];
   return [...new Set([...text.matchAll(MENTION_PATTERN)].map((m) => m[2]))];
 }
+
+/**
+ * Collapses "@[Name](userId)" tokens down to plain "@Name" text — for a
+ * plain-text context (like the compact profile posts preview) that can't use
+ * MentionText's actual links, e.g. because it's already nested inside one.
+ */
+export function stripMentionMarkup(text: string): string {
+  return text.replace(MENTION_PATTERN, "@$1");
+}
