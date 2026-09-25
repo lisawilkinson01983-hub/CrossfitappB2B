@@ -6,6 +6,7 @@ import { parseDisplayedPbs, parseLookingFor } from "@/lib/labels";
 import { PB_FIELDS } from "@/lib/validation";
 import { OTHER_GYM, UNAFFILIATED } from "@/lib/gyms";
 import { isProfileSetupComplete } from "@/lib/profileSetup";
+import type { Country } from "@/lib/countries";
 import { NavBar } from "@/components/NavBar";
 import { SectionCard } from "@/components/SectionCard";
 import { SectionOnboarding } from "@/components/SectionOnboarding";
@@ -80,6 +81,11 @@ export default async function EditProfilePage() {
               age: user.age ?? "",
               gender: user.gender ?? "",
               area: user.area ?? "",
+              // Cast: country is a plain String column (see prisma/schema.prisma), not
+              // a Prisma enum, so nothing at the type level guarantees it's one of
+              // COUNTRIES — true for every real profile since this field only accepts
+              // values from that list.
+              country: (user.country as Country | null) ?? "",
               affiliateGym: initialAffiliateGym,
               affiliateGymOther: initialAffiliateGymOther,
               level: user.level ?? "",

@@ -27,6 +27,7 @@ export default async function NotificationsPage() {
       post: { select: { id: true } },
       event: { select: { id: true, name: true } },
       gym: { select: { id: true, name: true } },
+      notice: { select: { id: true, title: true, body: true } },
     },
   });
 
@@ -41,7 +42,22 @@ export default async function NotificationsPage() {
             <p className="text-b2b-ink/40">No notifications yet.</p>
           ) : (
             <div className="flex flex-col divide-y divide-b2b-purple/10">
-              {notifications.map((n) => (
+              {notifications.map((n) =>
+                n.type === "SYSTEM_ANNOUNCEMENT" ? (
+                  <div key={n.id} className="flex items-start gap-3 py-3">
+                    <Avatar photo={n.actor.photo} name={n.actor.name} size={40} />
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-sm font-semibold">{n.actor.name}</p>
+                        <span className="whitespace-nowrap text-xs text-b2b-ink/40">
+                          {n.createdAt.toLocaleDateString()}
+                        </span>
+                      </div>
+                      <p className="mt-0.5 text-sm font-semibold">{n.notice?.title}</p>
+                      <p className="mt-0.5 text-sm text-b2b-ink/70">{n.notice?.body}</p>
+                    </div>
+                  </div>
+                ) : (
                 <Link
                   key={n.id}
                   href={
@@ -91,7 +107,8 @@ export default async function NotificationsPage() {
                     {n.createdAt.toLocaleDateString()}
                   </span>
                 </Link>
-              ))}
+                )
+              )}
             </div>
           )}
         </SectionCard>

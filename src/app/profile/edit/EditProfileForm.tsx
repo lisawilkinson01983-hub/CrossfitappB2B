@@ -19,6 +19,7 @@ import {
 } from "@/lib/validation";
 import { GENDER_LABELS, LEVEL_LABELS, LOOKING_FOR_LABELS, PB_LABELS } from "@/lib/labels";
 import { OTHER_GYM } from "@/lib/gyms";
+import { COUNTRIES, type Country } from "@/lib/countries";
 
 type Initial = {
   name: string;
@@ -28,6 +29,7 @@ type Initial = {
   age: number | "";
   gender: GenderOption | "";
   area: string;
+  country: Country | "";
   affiliateGym: string;
   affiliateGymOther: string;
   level: LevelOption | "";
@@ -71,6 +73,7 @@ export function EditProfileForm({
   const [age, setAge] = useState(String(initial.age));
   const [gender, setGender] = useState(initial.gender);
   const [area, setArea] = useState(initial.area);
+  const [country, setCountry] = useState(initial.country);
   const [affiliateGym, setAffiliateGym] = useState(initial.affiliateGym);
   const [affiliateGymOther, setAffiliateGymOther] = useState(initial.affiliateGymOther);
   const isOtherGym = affiliateGym === OTHER_GYM;
@@ -138,6 +141,7 @@ export function EditProfileForm({
     formData.set("accountType", accountType);
     formData.set("bio", bio);
     formData.set("area", area);
+    formData.set("country", country);
     formData.set("affiliateGym", affiliateGym);
     formData.set("affiliateGymOther", affiliateGymOther);
     formData.set("crossfitSinceYear", crossfitSinceYear);
@@ -326,6 +330,25 @@ export function EditProfileForm({
           onChange={(e) => setArea(e.target.value)}
           className="mt-1 w-full rounded border border-gray-300 px-3 py-2 focus:border-b2b-pink focus:outline-none"
         />
+      </div>
+
+      <div>
+        <label htmlFor="country" className="block text-sm font-medium">
+          Country
+        </label>
+        <select
+          id="country"
+          value={country}
+          onChange={(e) => setCountry(e.target.value as Country | "")}
+          className="mt-1 w-full rounded border border-gray-300 bg-b2b-card px-3 py-2 focus:border-b2b-pink focus:outline-none"
+        >
+          <option value="">Prefer not to say / unset</option>
+          {COUNTRIES.map((c) => (
+            <option key={c} value={c}>
+              {c}
+            </option>
+          ))}
+        </select>
       </div>
 
       <div>

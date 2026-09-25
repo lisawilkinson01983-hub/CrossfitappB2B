@@ -6,6 +6,7 @@ import { generateToken } from "@/lib/tokens";
 import { sendEmail } from "@/lib/email";
 import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
 import { generateUniqueInviteCode, isInviteOnly } from "@/lib/inviteCode";
+import { getSiteAccountId } from "@/lib/siteAccount";
 
 export async function POST(req: Request) {
   const rateLimit = checkRateLimit(getClientIp(req.headers), "signup", { limit: 5, windowMs: 15 * 60 * 1000 });
@@ -90,27 +91,27 @@ async function sendVerificationEmail(email: string, token: string) {
 }
 
 /**
- * The site's own account is auto-connected as a mutual friend for every new
- * signup, MySpace-Tom style, via ADMIN_USER_EMAIL. Best-effort: any failure
- * here (unset env var, admin account not found) never blocks signup itself.
+ * The site's own account (see src/lib/siteAccount.ts) is auto-connected as a
+ * mutual friend for every new signup, MySpace-Tom style. Best-effort: any
+ * failure here (unset env var, account not found) never blocks signup itself.
  */
 async function addWelcomeFriend(newUserId: string) {
-  const adminEmail = process.env.ADMIN_USER_EMAIL?.toLowerCase().trim();
-  if (!adminEmail) return;
+  const siteAccountId = await getSiteAccountId();
+  if (!siteAccountId || siteAccountId === newUserId) return;
 
-  const admin = await prisma.user.findUnique({ where: { email: adminEmail } });
-  if (!admin || admin.id === newUserId) return;
+  const admin = await prisma.user.findUnique({ where: { id: siteAccountId }, select: { isPrivate: true } });
+  if (!admin) return;
 
   // The new user was just created with isPrivate's default (false), so this
   // direction is always a direct follow.
-  await prisma.follow.create({ data: { followerId: admin.id, followingId: newUserId } });
+  await prisma.follow.create({ data: { followerId: siteAccountId, followingId: newUserId } });
 
   // If the admin account is private, leave a paper trail matching the normal
   // accept flow (an ACCEPTED FollowRequest) rather than silently bypassing it.
   if (admin.isPrivate) {
     await prisma.followRequest.create({
-      data: { requesterId: newUserId, targetId: admin.id, status: "ACCEPTED" },
+      data: { requesterId: newUserId, targetId: siteAccountId, status: "ACCEPTED" },
     });
   }
-  await prisma.follow.create({ data: { followerId: newUserId, followingId: admin.id } });
+  await prisma.follow.create({ data: { followerId: newUserId, followingId: siteAccountId } });
 }

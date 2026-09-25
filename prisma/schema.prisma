@@ -80,6 +80,10 @@ enum NotificationType {
   TEAMMATE_SEARCH_MATCH
   // Someone reported a user or piece of content — sent to every admin.
   REPORT_SUBMITTED
+  // A broadcast notice from Box 2 Box itself, sent to an admin-chosen
+  // audience — see /admin/notices. The actor is the site account (see
+  // src/lib/siteAccount.ts), and noticeId below has the actual content.
+  SYSTEM_ANNOUNCEMENT
 }
 
 enum EventStatus {
@@ -199,6 +203,10 @@ model User {
   // by distance. Null until `area` is set/changed and geocoding succeeds.
   areaLat Float?
   areaLng Float?
+  // A fixed list (see src/lib/countries.ts), not free text — kept separate
+  // from `area` so admin notices (see /admin/notices) can filter by country
+  // reliably rather than parsing it out of a free-text town/city.
+  country String?
   // Either an approved Gym's name, "Unaffiliated", or "Other" — never other
   // free text, so search stays exact and reliable. For an AFFILIATE account
   // this is the gym they run rather than the gym they train at.
@@ -321,6 +329,8 @@ model User {
 
   notificationsReceived Notification[] @relation("NotificationRecipient")
   notificationsSent     Notification[] @relation("NotificationActor")
+
+  sentNotices Notice[] @relation("NoticesSent")
 
   reportsMade     Report[] @relation("ReportsMade")
   reportsReceived Report[] @relation("ReportsReceived")
@@ -804,10 +814,52 @@ model Notification {
   gymId String?
   gym   Gym?    @relation(fields: [gymId], references: [id], onDelete: Cascade)
 
+  // Set for SYSTEM_ANNOUNCEMENT — the notice being broadcast (title/body live
+  // there, shared across every recipient's Notification row).
+  noticeId String?
+  notice   Notice? @relation(fields: [noticeId], references: [id], onDelete: Cascade)
+
   readAt    DateTime?
   createdAt DateTime  @default(now())
 
   @@index([userId])
+  @@index([noticeId])
+}
+
+// A broadcast message from Box 2 Box itself, sent to an admin-chosen
+// audience (see /admin/notices and /api/admin/notices). Each recipient gets
+// their own Notification row (type SYSTEM_ANNOUNCEMENT, noticeId pointing
+// here) — this row is the shared content, not a per-recipient copy.
+model Notice {
+  id String @id @default(cuid())
+
+  title String
+  body  String
+
+  sentById String
+  sentBy   User   @relation("NoticesSent", fields: [sentById], references: [id], onDelete: Cascade)
+
+  // Audience filters applied at send time — all optional, null meaning "no
+  // restriction on this dimension". Kept only as a record of who this went
+  // to; recipients are the Notification rows below, never re-derived from
+  // these later (so the audience shown here can't drift from who actually
+  // got it, even if e.g. a user's gym changes afterwards).
+  audienceGender       Gender?
+  audienceMinAge       Int?
+  audienceMaxAge       Int?
+  audienceLevel        Level?
+  audienceAffiliateGym String?
+  audienceCountry      String?
+  audienceAreaQuery    String?
+  audienceRadiusMiles  Int?
+
+  recipientCount Int @default(0)
+
+  createdAt DateTime @default(now())
+
+  notifications Notification[]
+
+  @@index([sentById])
 }
 
 enum ReportTargetType {

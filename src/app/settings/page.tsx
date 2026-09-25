@@ -99,6 +99,9 @@ export default async function SettingsPage() {
               <Link href="/admin/verification-requests" className="text-b2b-purple underline">
                 Verification requests{pendingVerificationCount > 0 ? ` (${pendingVerificationCount})` : ""}
               </Link>
+              <Link href="/admin/notices" className="text-b2b-purple underline">
+                Send a notice
+              </Link>
               {/* A plain link rather than next/link — it's a file download, not a page. */}
               <a href="/api/admin/backup" className="text-b2b-purple underline">
                 Download database backup

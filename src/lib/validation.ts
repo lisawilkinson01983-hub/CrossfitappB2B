@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { OTHER_GYM } from "./gyms";
+import { COUNTRIES } from "./countries";
 
 export const LEVELS = ["SCALED", "INTERMEDIATE", "RX"] as const;
 export type LevelOption = (typeof LEVELS)[number];
@@ -166,6 +167,7 @@ export const profileSchema = z
     age: z.preprocess(emptyToUndefined, z.coerce.number().int().min(13).max(120).optional()),
     gender: z.preprocess(emptyToUndefined, z.enum(GENDERS).optional()),
     area: z.string().trim().min(1, "Area is required"),
+    country: z.preprocess(emptyToUndefined, z.enum(COUNTRIES).optional()),
     // Not a fixed enum: any approved Gym name is selectable (see the dropdown
     // in EditProfileForm), not just the curated few in AFFILIATE_GYMS — the
     // route validates the submitted value against the actual Gym table.
@@ -396,4 +398,24 @@ export const reportSchema = z.object({
   targetId: z.string().min(1),
   reason: z.enum(REPORT_REASONS),
   details: z.string().trim().max(1000).optional(),
+});
+
+// Every field here narrows the audience further — all optional, and none
+// selected means "everyone". Shared between the live "N people match" count
+// (see /api/admin/notices/preview) and actually sending (/api/admin/notices).
+export const noticeAudienceSchema = z.object({
+  gender: z.preprocess(emptyToUndefined, z.enum(GENDERS).optional()),
+  minAge: z.preprocess(emptyToUndefined, z.coerce.number().int().min(13).max(120).optional()),
+  maxAge: z.preprocess(emptyToUndefined, z.coerce.number().int().min(13).max(120).optional()),
+  level: z.preprocess(emptyToUndefined, z.enum(LEVELS).optional()),
+  affiliateGym: z.preprocess(emptyToUndefined, z.string().trim().optional()),
+  country: z.preprocess(emptyToUndefined, z.enum(COUNTRIES).optional()),
+  areaQuery: z.preprocess(emptyToUndefined, z.string().trim().optional()),
+  radiusMiles: z.preprocess(emptyToUndefined, z.coerce.number().int().positive().optional()),
+});
+
+export const noticeSchema = z.object({
+  title: z.string().trim().min(1, "Title is required").max(120),
+  body: z.string().trim().min(1, "Message is required").max(2000),
+  audience: noticeAudienceSchema,
 });
