@@ -1,6 +1,5 @@
 import { PB_FIELDS } from "./validation";
 import type {
-  AppThemeOption,
   EventDivisionOption,
   EventGenderCategoryOption,
   EventTeamFormatOption,
@@ -166,19 +165,6 @@ export const WORKOUT_UNIT_LABELS: Record<WorkoutUnitOption, string> = {
 export const WORKOUT_INTENSITY_LABELS: Record<WorkoutIntensityOption, string> = {
   RX: "Rx",
   SCALED: "Scaled",
-};
-
-export const APP_THEME_LABELS: Record<AppThemeOption, string> = {
-  PINK: "Pink & Purple",
-  BLUE: "Ocean Blue",
-};
-
-// Fixed swatch hexes for the theme picker itself — these must stay literal
-// (not var(--color-b2b-*)) so both options preview correctly no matter which
-// theme is currently active.
-export const APP_THEME_SWATCHES: Record<AppThemeOption, [string, string]> = {
-  PINK: ["#eb4e94", "#7a2fb8"],
-  BLUE: ["#2f6fed", "#1e3a8a"],
 };
 
 export const MONTH_NAMES = [

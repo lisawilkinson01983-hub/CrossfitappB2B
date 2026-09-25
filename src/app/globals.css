@@ -1,42 +1,31 @@
 @import "tailwindcss";
 
 @theme {
-  /* Box 2 Box brand palette — single fixed light theme, no dark mode.
-     Cards carry a soft tint and sit on a white page, matching the
-     prototype (inverse of white cards on a tinted page). */
+  /* Box 2 Box brand palette — grey/gold/white, matching the logo mark (see
+     public/logo-mark.png). Single fixed theme, no user-facing color choice
+     and no dark mode. Cards carry a soft grey tint and sit on a white page.
+     Token names (b2b-pink/b2b-purple/etc.) are historical from an earlier
+     pink/purple palette — kept as-is since every component already
+     references them, only the values changed. */
   --color-b2b-bg: #ffffff;
-  --color-b2b-card: #f6eef7;
-  --color-b2b-ink: #2b0a47;
+  --color-b2b-card: #f5f4f2;
+  --color-b2b-ink: #232223;
 
-  --color-b2b-pink: #eb4e94;
-  --color-b2b-pink-dark: #d53d82;
+  /* Primary accent (buttons, links, highlights) — the logo's gold. */
+  --color-b2b-pink: #b8842a;
+  --color-b2b-pink-dark: #96691f;
 
-  --color-b2b-purple: #7a2fb8;
-  --color-b2b-purple-dark: #64279c;
+  /* Secondary accent (badges, less prominent links/borders) — the logo's charcoal. */
+  --color-b2b-purple: #4a4a4a;
+  --color-b2b-purple-dark: #333333;
 
   /* Only used on the Welcome/Mission screens — the one place that departs
-     from the light theme. */
-  --color-b2b-violet: #17032e;
+     from the light theme. Kept noticeably lighter than the logo mark's own
+     near-black (#232223) so its dark square doesn't disappear against it. */
+  --color-b2b-violet: #3a352d;
 
   --font-display: var(--font-bebas-neue);
   --font-sans: var(--font-inter);
-}
-
-/* Alternate color theme, chosen in Settings and applied via a data-theme
-   attribute on <html> (see src/app/layout.tsx). Every component just uses
-   the b2b-* tokens above, so overriding them here re-themes the whole app
-   with no component changes. */
-[data-theme="blue"] {
-  --color-b2b-card: #eaf2fd;
-  --color-b2b-ink: #0b1f3a;
-
-  --color-b2b-pink: #2f6fed;
-  --color-b2b-pink-dark: #2358c4;
-
-  --color-b2b-purple: #1e3a8a;
-  --color-b2b-purple-dark: #16295e;
-
-  --color-b2b-violet: #050b1f;
 }
 
 body {

@@ -24,11 +24,6 @@ enum Gender {
   PREFER_NOT_TO_DISCLOSE
 }
 
-enum AppTheme {
-  PINK
-  BLUE
-}
-
 // SQLite has no native array type, so `lookingFor` is stored as a
 // JSON-encoded array of these values (see src/lib/lookingFor.ts).
 enum LookingFor {
@@ -249,10 +244,6 @@ model User {
   // Governs whether new followers require approval once a follow system
   // exists; stored now so the setting has somewhere to live.
   isPrivate Boolean @default(false)
-
-  // The app's color theme, set from Settings. Applied as a data-theme
-  // attribute on <html> in the root layout (see src/app/globals.css).
-  theme AppTheme @default(PINK)
 
   // Benchmark movement PBs (kg). Stored as individual nullable columns rather
   // than a JSON blob since SQLite has no native JSON column type. A user can

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 
 const SIZES = {
   sm: { icon: 28, text: "text-xl", layout: "row" as const, gap: "gap-2" },
@@ -6,30 +7,30 @@ const SIZES = {
   lg: { icon: 96, text: "text-6xl", layout: "col" as const, gap: "gap-4" },
 };
 
-/** Two interlocking rounded squares — one box connecting to another. */
+/** The two interlocking squares mark — see public/logo-mark.png (cropped/keyed from the source artwork). */
 function LogoMark({ size }: { size: number }) {
   return (
-    <svg
+    <Image
+      src="/logo-mark.png"
+      alt=""
       width={size}
       height={size}
-      viewBox="0 0 100 100"
-      fill="none"
       className="shrink-0"
-      aria-hidden="true"
-    >
-      <defs>
-        <linearGradient id="b2bLogoGradient" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="var(--color-b2b-pink)" />
-          <stop offset="100%" stopColor="var(--color-b2b-purple)" />
-        </linearGradient>
-      </defs>
-      <rect x="8" y="8" width="56" height="56" rx="14" stroke="currentColor" strokeWidth="9" />
-      <rect x="36" y="36" width="56" height="56" rx="14" stroke="url(#b2bLogoGradient)" strokeWidth="9" />
-    </svg>
+      priority
+    />
   );
 }
 
-export function Logo({ size = "md", href }: { size?: "sm" | "md" | "lg"; href?: string }) {
+export function Logo({
+  size = "md",
+  href,
+  wordmark: showWordmark = true,
+}: {
+  size?: "sm" | "md" | "lg";
+  href?: string;
+  /** False renders just the mark, no "BOX 2 BOX" text — see NavBar. */
+  wordmark?: boolean;
+}) {
   const { icon, text, layout, gap } = SIZES[size];
 
   const wordmark = (
@@ -46,10 +47,12 @@ export function Logo({ size = "md", href }: { size?: "sm" | "md" | "lg"; href?: 
 
   const mark = (
     <span
-      className={`inline-flex items-center ${layout === "col" ? "flex-col" : "flex-row"} ${gap}`}
+      className={`inline-flex items-center ${layout === "col" ? "flex-col" : "flex-row"} ${
+        showWordmark ? gap : ""
+      }`}
     >
       <LogoMark size={icon} />
-      {wordmark}
+      {showWordmark && wordmark}
     </span>
   );
 

@@ -10,7 +10,6 @@ import type { Country } from "@/lib/countries";
 import { NavBar } from "@/components/NavBar";
 import { SectionCard } from "@/components/SectionCard";
 import { SectionOnboarding } from "@/components/SectionOnboarding";
-import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 import { EditProfileForm } from "./EditProfileForm";
 
 export default async function EditProfilePage() {
@@ -106,13 +105,6 @@ export default async function EditProfilePage() {
             }}
           />
         </SectionCard>
-
-        <div className="mt-6">
-          <SectionCard title="Appearance">
-            <p className="mb-3 text-sm text-b2b-ink/60">Choose the app&apos;s color theme.</p>
-            <ThemeSwitcher initialTheme={user.theme} />
-          </SectionCard>
-        </div>
       </div>
     </main>
   );
