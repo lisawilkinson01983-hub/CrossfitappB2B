@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { prisma } from "@/lib/prisma";
 import { SectionCard } from "@/components/SectionCard";
+import { Avatar } from "@/components/Avatar";
 import { stripMentionMarkup } from "@/lib/mentions";
 
 const PREVIEW_COUNT = 3;
@@ -16,6 +17,7 @@ type PreviewPost = {
   _count: { likes: number; comments: number };
   linkedWorkout: { wodName: string } | null;
   linkedEvent: { name: string } | null;
+  user: { name: string; photo: string | null };
 };
 
 /** A one-line summary for a post that has no caption of its own (a bare workout/PB/event share). */
@@ -46,6 +48,7 @@ export async function ProfilePosts({ userId }: { userId: string }) {
         _count: { select: { likes: true, comments: true } },
         linkedWorkout: { select: { wodName: true } },
         linkedEvent: { select: { name: true } },
+        user: { select: { name: true, photo: true } },
       },
     }),
     prisma.post.count({ where: { userId, sharedToFeed: true } }),
@@ -81,9 +84,7 @@ export async function ProfilePosts({ userId }: { userId: string }) {
                   className="h-12 w-12 shrink-0 rounded-lg object-cover"
                 />
               ) : (
-                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-b2b-purple/10 text-lg">
-                  {post.video ? "🎥" : post.type === "PR" ? "🏅" : post.type === "WORKOUT" ? "💪" : "👤"}
-                </span>
+                <Avatar photo={post.user.photo} name={post.user.name} size={48} />
               )}
               <div className="min-w-0 flex-1">
                 <p className="line-clamp-2">{summarize(post)}</p>
