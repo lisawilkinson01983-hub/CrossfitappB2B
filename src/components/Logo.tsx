@@ -2,19 +2,28 @@ import Link from "next/link";
 import Image from "next/image";
 
 const SIZES = {
-  sm: { icon: 28, text: "text-xl", layout: "row" as const, gap: "gap-2" },
-  md: { icon: 44, text: "text-3xl", layout: "row" as const, gap: "gap-3" },
-  lg: { icon: 96, text: "text-6xl", layout: "col" as const, gap: "gap-4" },
+  sm: { icon: 28, wordmarkWidth: 168, layout: "row" as const, gap: "gap-2" },
+  md: { icon: 44, wordmarkWidth: 260, layout: "row" as const, gap: "gap-3" },
+  lg: { icon: 96, wordmarkWidth: 340, layout: "col" as const, gap: "gap-4" },
 };
+
+// public/logo-wordmark.png's own dimensions (900x126) — used to derive a
+// height from whatever width a given size renders it at.
+const WORDMARK_ASPECT = 900 / 126;
 
 /** The two interlocking squares mark — see public/logo-mark.png (cropped/keyed from the source artwork). */
 function LogoMark({ size }: { size: number }) {
+  return <Image src="/logo-mark.png" alt="" width={size} height={size} className="shrink-0" priority />;
+}
+
+/** The "BOX 2 BOX" wordmark — see public/logo-wordmark.png (same source artwork as the mark, own custom typeface). */
+function LogoWordmark({ width }: { width: number }) {
   return (
     <Image
-      src="/logo-mark.png"
-      alt=""
-      width={size}
-      height={size}
+      src="/logo-wordmark.png"
+      alt="Box 2 Box"
+      width={width}
+      height={Math.round(width / WORDMARK_ASPECT)}
       className="shrink-0"
       priority
     />
@@ -28,22 +37,10 @@ export function Logo({
 }: {
   size?: "sm" | "md" | "lg";
   href?: string;
-  /** False renders just the mark, no "BOX 2 BOX" text — see NavBar. */
+  /** False renders just the mark, no "BOX 2 BOX" wordmark — see NavBar. */
   wordmark?: boolean;
 }) {
-  const { icon, text, layout, gap } = SIZES[size];
-
-  const wordmark = (
-    <span className={`inline-block -skew-x-6 font-display ${text}`}>
-      <span className="bg-gradient-to-r from-b2b-pink to-b2b-purple bg-clip-text text-transparent">
-        BOX{" "}
-      </span>
-      <span className="text-b2b-pink">2</span>
-      <span className="bg-gradient-to-r from-b2b-pink to-b2b-purple bg-clip-text text-transparent">
-        {" "}BOX
-      </span>
-    </span>
-  );
+  const { icon, wordmarkWidth, layout, gap } = SIZES[size];
 
   const mark = (
     <span
@@ -52,11 +49,17 @@ export function Logo({
       }`}
     >
       <LogoMark size={icon} />
-      {showWordmark && wordmark}
+      {showWordmark && <LogoWordmark width={wordmarkWidth} />}
     </span>
   );
 
   if (!href) return mark;
 
-  return <Link href={href}>{mark}</Link>;
+  // With the wordmark hidden (NavBar), the icon alone (alt="") leaves the
+  // link with no accessible name — give the link one directly instead.
+  return (
+    <Link href={href} aria-label={showWordmark ? undefined : "Box 2 Box"}>
+      {mark}
+    </Link>
+  );
 }
