@@ -13,6 +13,7 @@
     "db:studio": "prisma studio"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1140.0",
     "@prisma/client": "6.19.3",
     "@sentry/nextjs": "^11.0.0",
     "bcryptjs": "3.0.3",
@@ -21,6 +22,7 @@
     "nodemailer": "^7.0.13",
     "react": "19.0.0",
     "react-dom": "19.0.0",
+    "tar": "^7.5.22",
     "zod": "3.25.76"
   },
   "devDependencies": {
