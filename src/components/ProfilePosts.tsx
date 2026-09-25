@@ -64,32 +64,34 @@ export async function ProfilePosts({ userId }: { userId: string }) {
       {posts.length === 0 ? (
         <p className="text-b2b-ink/40">No posts yet.</p>
       ) : (
-        <div className="flex flex-col gap-1.5">
+        <div className="flex flex-col gap-2">
           {posts.map((post) => (
             <Link
               key={post.id}
               href={`/profile/${userId}/posts#post-${post.id}`}
-              className="flex items-center gap-3 rounded-lg border border-b2b-purple/10 bg-b2b-bg px-3 py-2 text-sm hover:border-b2b-pink/30"
+              className="flex items-start gap-3 rounded-lg border border-b2b-purple/10 bg-b2b-bg px-3 py-2.5 text-sm hover:border-b2b-pink/30"
             >
               {post.photo ? (
                 <Image
                   src={post.photo}
                   alt=""
-                  width={32}
-                  height={32}
-                  className="h-8 w-8 shrink-0 rounded-lg object-cover"
+                  width={48}
+                  height={48}
+                  className="h-12 w-12 shrink-0 rounded-lg object-cover"
                 />
               ) : (
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-b2b-purple/10 text-sm">
+                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-b2b-purple/10 text-lg">
                   {post.video ? "🎥" : post.type === "PR" ? "🏅" : post.type === "WORKOUT" ? "💪" : "📝"}
                 </span>
               )}
-              <span className="min-w-0 flex-1 truncate">{summarize(post)}</span>
-              <span className="shrink-0 text-xs text-b2b-ink/40">
-                {post.createdAt.toLocaleDateString(undefined, { month: "short", day: "numeric" })}
-                {" · "}
-                {post._count.likes} ♡ · {post._count.comments} 💬
-              </span>
+              <div className="min-w-0 flex-1">
+                <p className="line-clamp-2">{summarize(post)}</p>
+                <p className="mt-1 text-xs text-b2b-ink/40">
+                  {post.createdAt.toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                  {" · "}
+                  {post._count.likes} ♡ · {post._count.comments} 💬
+                </p>
+              </div>
             </Link>
           ))}
         </div>
