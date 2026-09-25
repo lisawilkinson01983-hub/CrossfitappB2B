@@ -106,7 +106,6 @@ export default async function UserProfilePage({
           <>
             <ProfileDetails
               user={user}
-              currentUserId={session.user.id}
               showEmail={false}
               followerCount={followerCount}
               followingCount={followingCount}

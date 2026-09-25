@@ -1,19 +1,51 @@
 import Link from "next/link";
+import Image from "next/image";
 import { prisma } from "@/lib/prisma";
 import { SectionCard } from "@/components/SectionCard";
-import { PostCard } from "@/components/PostCard";
-import { postCardInclude, toPostCardData } from "@/lib/posts";
 
 const PREVIEW_COUNT = 3;
 
-/** A profile's own "wall" — most-recent posts, collapsing to a dedicated full-history page. */
-export async function ProfilePosts({ userId, currentUserId }: { userId: string; currentUserId: string }) {
+type PreviewPost = {
+  id: string;
+  type: string;
+  contentText: string | null;
+  photo: string | null;
+  video: string | null;
+  createdAt: Date;
+  _count: { likes: number; comments: number };
+  linkedWorkout: { wodName: string } | null;
+  linkedEvent: { name: string } | null;
+};
+
+/** A one-line summary for a post that has no caption of its own (a bare workout/PB/event share). */
+function summarize(post: PreviewPost): string {
+  if (post.contentText) return post.contentText;
+  if (post.linkedWorkout) return post.linkedWorkout.wodName;
+  if (post.type === "TEAMMATE_REQUEST") return "Looking for teammates";
+  if (post.linkedEvent) return `Competing in ${post.linkedEvent.name}`;
+  if (post.video) return "Shared a video";
+  if (post.photo) return "Shared a photo";
+  return "Update";
+}
+
+/** A profile's own "wall" — compact one-line rows, collapsing to a dedicated full-history page with the real PostCard. */
+export async function ProfilePosts({ userId }: { userId: string }) {
   const [posts, totalCount] = await Promise.all([
     prisma.post.findMany({
       where: { userId, sharedToFeed: true },
       orderBy: { createdAt: "desc" },
       take: PREVIEW_COUNT,
-      include: postCardInclude,
+      select: {
+        id: true,
+        type: true,
+        contentText: true,
+        photo: true,
+        video: true,
+        createdAt: true,
+        _count: { select: { likes: true, comments: true } },
+        linkedWorkout: { select: { wodName: true } },
+        linkedEvent: { select: { name: true } },
+      },
     }),
     prisma.post.count({ where: { userId, sharedToFeed: true } }),
   ]);
@@ -32,9 +64,33 @@ export async function ProfilePosts({ userId, currentUserId }: { userId: string; 
       {posts.length === 0 ? (
         <p className="text-b2b-ink/40">No posts yet.</p>
       ) : (
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-1.5">
           {posts.map((post) => (
-            <PostCard key={post.id} currentUserId={currentUserId} post={toPostCardData(post, currentUserId)} />
+            <Link
+              key={post.id}
+              href={`/profile/${userId}/posts#post-${post.id}`}
+              className="flex items-center gap-3 rounded-lg border border-b2b-purple/10 bg-b2b-bg px-3 py-2 text-sm hover:border-b2b-pink/30"
+            >
+              {post.photo ? (
+                <Image
+                  src={post.photo}
+                  alt=""
+                  width={32}
+                  height={32}
+                  className="h-8 w-8 shrink-0 rounded-lg object-cover"
+                />
+              ) : (
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-b2b-purple/10 text-sm">
+                  {post.video ? "🎥" : post.type === "PR" ? "🏅" : post.type === "WORKOUT" ? "💪" : "📝"}
+                </span>
+              )}
+              <span className="min-w-0 flex-1 truncate">{summarize(post)}</span>
+              <span className="shrink-0 text-xs text-b2b-ink/40">
+                {post.createdAt.toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                {" · "}
+                {post._count.likes} ♡ · {post._count.comments} 💬
+              </span>
+            </Link>
           ))}
         </div>
       )}

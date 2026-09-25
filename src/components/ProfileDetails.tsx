@@ -27,7 +27,6 @@ function Badge({ label, className }: { label: string; className: string }) {
 
 export async function ProfileDetails({
   user,
-  currentUserId,
   showEmail,
   followerCount,
   followingCount,
@@ -36,7 +35,6 @@ export async function ProfileDetails({
   isOwner = false,
 }: {
   user: User;
-  currentUserId: string;
   showEmail: boolean;
   followerCount: number;
   followingCount: number;
@@ -182,7 +180,7 @@ export async function ProfileDetails({
         </div>
       </SectionCard>
 
-      <ProfilePosts userId={user.id} currentUserId={currentUserId} />
+      <ProfilePosts userId={user.id} />
 
       {!isAffiliate && (
         <SectionCard
