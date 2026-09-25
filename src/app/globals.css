@@ -19,11 +19,6 @@
   --color-b2b-purple: #4a4a4a;
   --color-b2b-purple-dark: #333333;
 
-  /* Only used on the Welcome/Mission screens — the one place that departs
-     from the light theme. Kept noticeably lighter than the logo mark's own
-     near-black (#232223) so its dark square doesn't disappear against it. */
-  --color-b2b-violet: #3a352d;
-
   --font-display: var(--font-bebas-neue);
   --font-sans: var(--font-inter);
 }
