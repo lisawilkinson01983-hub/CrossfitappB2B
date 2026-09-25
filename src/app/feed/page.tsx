@@ -7,7 +7,7 @@ import { NavBar } from "@/components/NavBar";
 import { PostCard } from "@/components/PostCard";
 import { SectionCard } from "@/components/SectionCard";
 import { SectionOnboarding } from "@/components/SectionOnboarding";
-import { parseTeammateRequests } from "@/lib/labels";
+import { postCardInclude, toPostCardData } from "@/lib/posts";
 import { PostComposer } from "./PostComposer";
 
 export default async function FeedPage() {
@@ -24,29 +24,7 @@ export default async function FeedPage() {
   const posts = await prisma.post.findMany({
     where: { userId: { notIn: hiddenUserIds }, sharedToFeed: true },
     orderBy: { createdAt: "desc" },
-    include: {
-      user: {
-        select: {
-          id: true,
-          name: true,
-          photo: true,
-          level: true,
-          affiliateGym: true,
-          isSingle: true,
-          showSingleBadge: true,
-        },
-      },
-      linkedWorkout: { select: { wodName: true, score: true, unit: true, intensity: true, description: true } },
-      linkedEvent: { select: { id: true, name: true, date: true, endDate: true, isOnline: true, location: true } },
-      likes: { select: { userId: true } },
-      comments: {
-        orderBy: { createdAt: "asc" },
-        include: {
-          user: { select: { id: true, name: true } },
-          likes: { select: { userId: true } },
-        },
-      },
-    },
+    include: postCardInclude,
   });
 
   return (
@@ -93,30 +71,7 @@ export default async function FeedPage() {
             <PostCard
               key={post.id}
               currentUserId={session.user.id}
-              post={{
-                id: post.id,
-                type: post.type,
-                contentText: post.contentText,
-                teammateRequests: parseTeammateRequests(post.teammateRequests),
-                photo: post.photo,
-                video: post.video,
-                createdAt: post.createdAt,
-                isOwner: post.userId === session.user.id,
-                author: post.user,
-                linkedWorkout: post.linkedWorkout,
-                linkedEvent: post.linkedEvent,
-                likeCount: post.likes.length,
-                likedByMe: post.likes.some((like) => like.userId === session.user.id),
-                comments: post.comments.map((comment) => ({
-                  id: comment.id,
-                  text: comment.text,
-                  createdAt: comment.createdAt,
-                  author: comment.user,
-                  parentId: comment.parentId,
-                  likeCount: comment.likes.length,
-                  likedByMe: comment.likes.some((like) => like.userId === session.user.id),
-                })),
-              }}
+              post={toPostCardData(post, session.user.id)}
             />
           ))}
         </div>

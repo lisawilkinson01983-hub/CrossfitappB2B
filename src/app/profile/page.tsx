@@ -60,6 +60,7 @@ export default async function ProfilePage() {
       <div className="mt-6 flex flex-col gap-6">
         <ProfileDetails
           user={user}
+          currentUserId={user.id}
           showEmail
           isOwner
           followerCount={followerCount}
