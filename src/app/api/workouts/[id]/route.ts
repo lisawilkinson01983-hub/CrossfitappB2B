@@ -3,7 +3,13 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { workoutSchema } from "@/lib/validation";
-import { PhotoUploadError, VideoUploadError, savePhotoUpload, saveVideoUpload } from "@/lib/uploads";
+import {
+  PhotoUploadError,
+  VideoUploadError,
+  savePhotoUpload,
+  saveVideoThumbnailUpload,
+  saveVideoUpload,
+} from "@/lib/uploads";
 import { parseFormData } from "@/lib/http";
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -46,6 +52,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
   let photoPath: string | undefined;
   let videoPath: string | undefined;
+  let videoThumbnailPath: string | null = null;
   if (hasPhoto && photo instanceof File) {
     try {
       photoPath = await savePhotoUpload(photo, session.user.id);
@@ -64,13 +71,20 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       }
       throw err;
     }
+    const thumbnail = formData.get("videoThumbnail");
+    if (thumbnail instanceof File && thumbnail.size > 0) {
+      videoThumbnailPath = await saveVideoThumbnailUpload(thumbnail, session.user.id);
+    }
   }
 
   const data = parsed.data;
   // A newly uploaded photo/video replaces whichever of the pair was there
-  // before, since a workout only ever has one attachment at a time.
+  // before, since a workout only ever has one attachment at a time. A new
+  // video always gets a fresh thumbnail (or none) — the old one would be for
+  // a different clip, so it's never carried over.
   const finalPhoto = hasVideo ? null : (photoPath ?? existing.photo);
   const finalVideo = hasPhoto ? null : (videoPath ?? existing.video);
+  const finalVideoThumbnail = hasVideo ? videoThumbnailPath : hasPhoto ? null : existing.videoThumbnail;
 
   await prisma.workout.update({
     where: { id },
@@ -85,6 +99,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       sharedToFeed: data.sharedToFeed,
       photo: finalPhoto,
       video: finalVideo,
+      videoThumbnail: finalVideoThumbnail,
     },
   });
 
@@ -96,11 +111,13 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       contentText: string | null;
       photo: string | null;
       video: string | null;
+      videoThumbnail: string | null;
     } = {
       type: data.isPb ? "PR" : "WORKOUT",
       contentText: data.notes ?? null,
       photo: finalPhoto,
       video: finalVideo,
+      videoThumbnail: finalVideoThumbnail,
     };
     if (linkedPost) {
       await prisma.post.update({ where: { id: linkedPost.id }, data: postData });

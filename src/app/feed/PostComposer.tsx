@@ -3,10 +3,10 @@
 import { useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { MAX_VIDEO_SECONDS } from "@/lib/media";
-import { readVideoDuration } from "@/lib/readVideoDuration";
+import { readVideoInfo } from "@/lib/readVideoInfo";
 import { MentionTextarea } from "@/components/MentionTextarea";
 
-type Attachment = { kind: "photo" | "video"; file: File };
+type Attachment = { kind: "photo" | "video"; file: File; thumbnail?: Blob | null };
 
 export function PostComposer() {
   const [contentText, setContentText] = useState("");
@@ -22,15 +22,17 @@ export function PostComposer() {
     e.target.value = "";
     if (!file) return;
 
+    let thumbnail: Blob | null | undefined;
     if (kind === "video") {
       try {
-        const duration = await readVideoDuration(file);
-        if (duration > MAX_VIDEO_SECONDS + 0.5) {
+        const info = await readVideoInfo(file);
+        if (info.duration > MAX_VIDEO_SECONDS + 0.5) {
           setError(
-            `Videos must be ${MAX_VIDEO_SECONDS} seconds or under (this one is ${Math.round(duration)}s)`
+            `Videos must be ${MAX_VIDEO_SECONDS} seconds or under (this one is ${Math.round(info.duration)}s)`
           );
           return;
         }
+        thumbnail = info.thumbnail;
       } catch {
         // Can't preview the duration client-side — let the server be the
         // authority rather than blocking the attach here.
@@ -38,7 +40,7 @@ export function PostComposer() {
     }
 
     setError(null);
-    setAttachment({ kind, file });
+    setAttachment({ kind, file, thumbnail });
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -54,7 +56,12 @@ export function PostComposer() {
 
     const formData = new FormData();
     formData.set("contentText", contentText);
-    if (attachment) formData.set(attachment.kind, attachment.file);
+    if (attachment) {
+      formData.set(attachment.kind, attachment.file);
+      if (attachment.kind === "video" && attachment.thumbnail) {
+        formData.set("videoThumbnail", attachment.thumbnail, "thumbnail.jpg");
+      }
+    }
 
     const res = await fetch("/api/posts", { method: "POST", body: formData });
 

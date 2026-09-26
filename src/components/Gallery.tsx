@@ -5,7 +5,13 @@ import { AddMediaButton } from "@/components/AddMediaButton";
 
 const GALLERY_LIMIT = 9;
 
-type MediaItem = { key: string; type: "photo" | "video"; url: string; createdAt: Date };
+type MediaItem = {
+  key: string;
+  type: "photo" | "video";
+  url: string;
+  thumbnail: string | null;
+  createdAt: Date;
+};
 
 /** A limited, most-recent-first strip of a user's uploaded photos/videos, pulled from their posts and logged workouts. */
 export async function Gallery({ userId, canAdd = false }: { userId: string; canAdd?: boolean }) {
@@ -14,13 +20,13 @@ export async function Gallery({ userId, canAdd = false }: { userId: string; canA
       where: { userId, OR: [{ photo: { not: null } }, { video: { not: null } }] },
       orderBy: { createdAt: "desc" },
       take: GALLERY_LIMIT,
-      select: { id: true, photo: true, video: true, createdAt: true },
+      select: { id: true, photo: true, video: true, videoThumbnail: true, createdAt: true },
     }),
     prisma.workout.findMany({
       where: { userId, OR: [{ photo: { not: null } }, { video: { not: null } }] },
       orderBy: { createdAt: "desc" },
       take: GALLERY_LIMIT,
-      select: { id: true, photo: true, video: true, createdAt: true },
+      select: { id: true, photo: true, video: true, videoThumbnail: true, createdAt: true },
     }),
   ]);
 
@@ -29,12 +35,14 @@ export async function Gallery({ userId, canAdd = false }: { userId: string; canA
       key: `post-${p.id}`,
       type: (p.video ? "video" : "photo") as MediaItem["type"],
       url: (p.video ?? p.photo)!,
+      thumbnail: p.videoThumbnail,
       createdAt: p.createdAt,
     })),
     ...workouts.map((w) => ({
       key: `workout-${w.id}`,
       type: (w.video ? "video" : "photo") as MediaItem["type"],
       url: (w.video ?? w.photo)!,
+      thumbnail: w.videoThumbnail,
       createdAt: w.createdAt,
     })),
   ]
@@ -49,7 +57,7 @@ export async function Gallery({ userId, canAdd = false }: { userId: string; canA
           No photos or videos yet — share one from the feed or log a workout with a photo.
         </p>
       ) : (
-        <GalleryLightbox items={items.map(({ key, type, url }) => ({ key, type, url }))} />
+        <GalleryLightbox items={items.map(({ key, type, url, thumbnail }) => ({ key, type, url, thumbnail }))} />
       )}
     </SectionCard>
   );

@@ -16,6 +16,7 @@ type WorkoutCardData = {
   notes: string | null;
   photo: string | null;
   video: string | null;
+  videoThumbnail: string | null;
   isPb: boolean;
   sharedToFeed: boolean;
   pinned?: boolean;
@@ -71,7 +72,12 @@ export function WorkoutCard({
       )}
 
       {workout.video && (
-        <video controls className="mt-2 max-h-64 w-full rounded bg-black">
+        <video
+          controls
+          poster={workout.videoThumbnail ?? undefined}
+          preload="metadata"
+          className="mt-2 max-h-64 w-full rounded bg-black"
+        >
           <source src={workout.video} />
         </video>
       )}

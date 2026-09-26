@@ -38,6 +38,7 @@ export function toPostCardData(post: PostWithCardData, currentUserId: string): P
     teammateRequests: parseTeammateRequests(post.teammateRequests),
     photo: post.photo,
     video: post.video,
+    videoThumbnail: post.videoThumbnail,
     createdAt: post.createdAt,
     isOwner: post.userId === currentUserId,
     author: post.user,

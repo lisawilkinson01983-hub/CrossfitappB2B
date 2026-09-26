@@ -32,6 +32,7 @@ export default async function EditWorkoutPage({ params }: { params: Promise<{ id
               sharedToFeed: workout.sharedToFeed,
               photo: workout.photo,
               video: workout.video,
+              videoThumbnail: workout.videoThumbnail,
             }}
           />
         </SectionCard>

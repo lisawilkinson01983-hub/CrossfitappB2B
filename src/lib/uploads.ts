@@ -20,6 +20,9 @@ const ALLOWED_VIDEO_TYPES: Record<string, string> = {
 // guards against an absurdly bloated file for its length.
 const MAX_VIDEO_BYTES = 150 * 1024 * 1024; // 150MB
 
+// A single JPEG frame captured client-side (see src/lib/readVideoInfo.ts).
+const MAX_THUMBNAIL_BYTES = 2 * 1024 * 1024; // 2MB
+
 export class PhotoUploadError extends Error {}
 export class VideoUploadError extends Error {}
 
@@ -67,6 +70,17 @@ export async function saveVideoUpload(file: File, ownerId: string): Promise<stri
   }
 
   return saveUpload(ownerId, ext, bytes);
+}
+
+/**
+ * Writes a client-captured video poster frame (see src/lib/readVideoInfo.ts).
+ * Best-effort: returns null on anything unexpected rather than throwing,
+ * since a missing thumbnail should never block the video upload itself.
+ */
+export async function saveVideoThumbnailUpload(file: File, ownerId: string): Promise<string | null> {
+  if (file.type !== "image/jpeg" || file.size === 0 || file.size > MAX_THUMBNAIL_BYTES) return null;
+  const bytes = Buffer.from(await file.arrayBuffer());
+  return saveUpload(ownerId, "jpg", bytes);
 }
 
 /**

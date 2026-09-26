@@ -358,6 +358,10 @@ model Workout {
   notes       String?
   photo     String? // served path, e.g. "/media/xyz.jpg" (see src/lib/uploads.ts)
   video     String? // served path, e.g. "/media/xyz.mp4" — mutually exclusive with photo
+  // A frame captured client-side from `video` at attach time (see
+  // src/lib/readVideoInfo.ts) and used as its poster — without one, <video>
+  // just shows a black box until played.
+  videoThumbnail String?
 
   isPb Boolean @default(false)
 
@@ -388,6 +392,10 @@ model Post {
   contentText String?
   photo       String? // served path, e.g. "/media/xyz.jpg" (see src/lib/uploads.ts)
   video       String? // served path, e.g. "/media/xyz.mp4" — mutually exclusive with photo
+  // A frame captured client-side from `video` at attach time (see
+  // src/lib/readVideoInfo.ts) and used as its poster — without one, <video>
+  // just shows a black box until played.
+  videoThumbnail String?
 
   // False for media added straight to the profile Gallery rather than posted
   // to the main feed. Every other kind of post (feed composer, workout

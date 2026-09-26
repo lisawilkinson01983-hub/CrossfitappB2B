@@ -38,6 +38,7 @@ export type PostCardData = {
   teammateRequests: TeammateRequest[];
   photo: string | null;
   video: string | null;
+  videoThumbnail: string | null;
   createdAt: Date;
   isOwner: boolean;
   author: {
@@ -475,7 +476,12 @@ export function PostCard({ post, currentUserId }: { post: PostCardData; currentU
       )}
 
       {post.video && (
-        <video controls className="mt-3 max-h-96 w-full rounded bg-black">
+        <video
+          controls
+          poster={post.videoThumbnail ?? undefined}
+          preload="metadata"
+          className="mt-3 max-h-96 w-full rounded bg-black"
+        >
           <source src={post.video} />
         </video>
       )}

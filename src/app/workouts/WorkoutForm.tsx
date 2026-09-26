@@ -11,7 +11,7 @@ import {
 } from "@/lib/validation";
 import { WORKOUT_INTENSITY_LABELS, WORKOUT_UNIT_LABELS } from "@/lib/labels";
 import { MAX_VIDEO_SECONDS } from "@/lib/media";
-import { readVideoDuration } from "@/lib/readVideoDuration";
+import { readVideoInfo } from "@/lib/readVideoInfo";
 import {
   WOD_CATEGORY_LABELS,
   WOD_DATABASE,
@@ -20,7 +20,7 @@ import {
   type NamedWorkout,
 } from "@/lib/wodDatabase";
 
-type Attachment = { kind: "photo" | "video"; file: File };
+type Attachment = { kind: "photo" | "video"; file: File; thumbnail?: Blob | null };
 
 const pad2 = (v: string) => (v || "0").padStart(2, "0");
 
@@ -43,6 +43,7 @@ type Initial = {
   sharedToFeed: boolean;
   photo: string | null;
   video: string | null;
+  videoThumbnail: string | null;
 };
 
 const BLANK_INITIAL: Initial = {
@@ -56,6 +57,7 @@ const BLANK_INITIAL: Initial = {
   sharedToFeed: true,
   photo: null,
   video: null,
+  videoThumbnail: null,
 };
 
 /** Used both to log a new workout and to edit an existing one — pass workoutId + initial to edit. */
@@ -86,6 +88,7 @@ export function WorkoutForm({ workoutId, initial }: { workoutId?: string; initia
   const [attachment, setAttachment] = useState<Attachment | null>(null);
   const [existingPhoto] = useState(start.photo);
   const [existingVideo] = useState(start.video);
+  const [existingVideoThumbnail] = useState(start.videoThumbnail);
   const photoInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
 
@@ -119,15 +122,17 @@ export function WorkoutForm({ workoutId, initial }: { workoutId?: string; initia
     e.target.value = "";
     if (!file) return;
 
+    let thumbnail: Blob | null | undefined;
     if (kind === "video") {
       try {
-        const duration = await readVideoDuration(file);
-        if (duration > MAX_VIDEO_SECONDS + 0.5) {
+        const info = await readVideoInfo(file);
+        if (info.duration > MAX_VIDEO_SECONDS + 0.5) {
           setError(
-            `Videos must be ${MAX_VIDEO_SECONDS} seconds or under (this one is ${Math.round(duration)}s)`
+            `Videos must be ${MAX_VIDEO_SECONDS} seconds or under (this one is ${Math.round(info.duration)}s)`
           );
           return;
         }
+        thumbnail = info.thumbnail;
       } catch {
         // Can't preview the duration client-side — let the server be the
         // authority rather than blocking the attach here.
@@ -135,7 +140,7 @@ export function WorkoutForm({ workoutId, initial }: { workoutId?: string; initia
     }
 
     setError(null);
-    setAttachment({ kind, file });
+    setAttachment({ kind, file, thumbnail });
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -159,7 +164,12 @@ export function WorkoutForm({ workoutId, initial }: { workoutId?: string; initia
     formData.set("notes", notes);
     if (isPb) formData.set("isPb", "on");
     if (sharedToFeed) formData.set("sharedToFeed", "on");
-    if (attachment) formData.set(attachment.kind, attachment.file);
+    if (attachment) {
+      formData.set(attachment.kind, attachment.file);
+      if (attachment.kind === "video" && attachment.thumbnail) {
+        formData.set("videoThumbnail", attachment.thumbnail, "thumbnail.jpg");
+      }
+    }
 
     const res = await fetch(isEditing ? `/api/workouts/${workoutId}` : "/api/workouts", {
       method: isEditing ? "PATCH" : "POST",
@@ -378,7 +388,13 @@ export function WorkoutForm({ workoutId, initial }: { workoutId?: string; initia
           />
         )}
         {!attachment && existingVideo && (
-          <video src={existingVideo} controls className="mt-2 max-h-40 rounded bg-black" />
+          <video
+            src={existingVideo}
+            controls
+            poster={existingVideoThumbnail ?? undefined}
+            preload="metadata"
+            className="mt-2 max-h-40 rounded bg-black"
+          />
         )}
 
         <input

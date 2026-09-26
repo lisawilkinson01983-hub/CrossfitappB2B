@@ -13,6 +13,7 @@ type PreviewPost = {
   contentText: string | null;
   photo: string | null;
   video: string | null;
+  videoThumbnail: string | null;
   createdAt: Date;
   _count: { likes: number; comments: number };
   linkedWorkout: { wodName: string } | null;
@@ -44,6 +45,7 @@ export async function ProfilePosts({ userId }: { userId: string }) {
         contentText: true,
         photo: true,
         video: true,
+        videoThumbnail: true,
         createdAt: true,
         _count: { select: { likes: true, comments: true } },
         linkedWorkout: { select: { wodName: true } },
@@ -75,9 +77,9 @@ export async function ProfilePosts({ userId }: { userId: string }) {
               href={`/profile/${userId}/posts#post-${post.id}`}
               className="flex items-start gap-3 rounded-lg border border-b2b-purple/10 bg-b2b-bg px-3 py-2.5 text-sm hover:border-b2b-pink/30"
             >
-              {post.photo ? (
+              {post.photo || post.videoThumbnail ? (
                 <Image
-                  src={post.photo}
+                  src={(post.photo ?? post.videoThumbnail)!}
                   alt=""
                   width={48}
                   height={48}

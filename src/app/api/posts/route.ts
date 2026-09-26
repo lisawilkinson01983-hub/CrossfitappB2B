@@ -3,7 +3,13 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { postSchema } from "@/lib/validation";
-import { PhotoUploadError, VideoUploadError, savePhotoUpload, saveVideoUpload } from "@/lib/uploads";
+import {
+  PhotoUploadError,
+  VideoUploadError,
+  savePhotoUpload,
+  saveVideoThumbnailUpload,
+  saveVideoUpload,
+} from "@/lib/uploads";
 import { parseFormData } from "@/lib/http";
 import { notifyMentions } from "@/lib/notify";
 
@@ -43,6 +49,7 @@ export async function POST(req: Request) {
 
   let photoPath: string | undefined;
   let videoPath: string | undefined;
+  let videoThumbnailPath: string | null = null;
   if (hasPhoto && photo instanceof File) {
     try {
       photoPath = await savePhotoUpload(photo, session.user.id);
@@ -61,6 +68,10 @@ export async function POST(req: Request) {
       }
       throw err;
     }
+    const thumbnail = formData.get("videoThumbnail");
+    if (thumbnail instanceof File && thumbnail.size > 0) {
+      videoThumbnailPath = await saveVideoThumbnailUpload(thumbnail, session.user.id);
+    }
   }
 
   const post = await prisma.post.create({
@@ -70,6 +81,7 @@ export async function POST(req: Request) {
       contentText: parsed.data.contentText ?? null,
       photo: photoPath ?? null,
       video: videoPath ?? null,
+      videoThumbnail: videoThumbnailPath,
       sharedToFeed: parsed.data.sharedToFeed,
     },
   });

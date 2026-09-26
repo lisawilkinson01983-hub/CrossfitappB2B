@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 
-type MediaItem = { key: string; type: "photo" | "video"; url: string };
+type MediaItem = { key: string; type: "photo" | "video"; url: string; thumbnail?: string | null };
 
 export function GalleryLightbox({ items }: { items: MediaItem[] }) {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
@@ -38,7 +38,13 @@ export function GalleryLightbox({ items }: { items: MediaItem[] }) {
           >
             {item.type === "video" ? (
               <>
-                <video src={item.url} muted className="h-full w-full object-cover" />
+                <video
+                  src={item.url}
+                  muted
+                  poster={item.thumbnail ?? undefined}
+                  preload="metadata"
+                  className="h-full w-full object-cover"
+                />
                 <span className="absolute bottom-1 right-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-[10px] text-white">
                   ▶
                 </span>
@@ -68,7 +74,13 @@ export function GalleryLightbox({ items }: { items: MediaItem[] }) {
                 className="relative flex h-full w-full flex-shrink-0 snap-center items-center justify-center px-4"
               >
                 {item.type === "video" ? (
-                  <video src={item.url} controls autoPlay className="max-h-full max-w-full" />
+                  <video
+                    src={item.url}
+                    controls
+                    autoPlay
+                    poster={item.thumbnail ?? undefined}
+                    className="max-h-full max-w-full"
+                  />
                 ) : (
                   <Image
                     src={item.url}
