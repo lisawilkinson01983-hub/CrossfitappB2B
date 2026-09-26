@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
-import { readFile, stat } from "fs/promises";
+import { createReadStream } from "fs";
+import { stat } from "fs/promises";
+import { Readable } from "stream";
 import path from "path";
 import { uploadsDir } from "@/lib/uploads";
 
@@ -12,7 +14,9 @@ const CONTENT_TYPES: Record<string, string> = {
   ".mov": "video/quicktime",
 };
 
-export async function GET(_req: Request, { params }: { params: Promise<{ filename: string }> }) {
+const RANGE_PATTERN = /^bytes=(\d*)-(\d*)$/;
+
+export async function GET(req: Request, { params }: { params: Promise<{ filename: string }> }) {
   const { filename } = await params;
 
   // path.basename strips any directory components, so a value like
@@ -26,16 +30,44 @@ export async function GET(_req: Request, { params }: { params: Promise<{ filenam
 
   const filePath = path.join(uploadsDir(), safeName);
 
+  let fileSize: number;
   try {
-    await stat(filePath);
+    fileSize = (await stat(filePath)).size;
   } catch {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  const bytes = await readFile(filePath);
-  return new NextResponse(new Uint8Array(bytes), {
+  // <video> playback depends on range requests — some browsers won't even
+  // start playing (loads, shows a black frame, play does nothing) without a
+  // proper 206 response to the initial range request they send.
+  const range = req.headers.get("range");
+  if (range) {
+    const match = RANGE_PATTERN.exec(range);
+    const start = match?.[1] ? parseInt(match[1], 10) : 0;
+    const end = match?.[2] ? parseInt(match[2], 10) : fileSize - 1;
+    if (!match || start > end || end >= fileSize) {
+      return new NextResponse(null, { status: 416, headers: { "Content-Range": `bytes */${fileSize}` } });
+    }
+
+    const stream = Readable.toWeb(createReadStream(filePath, { start, end })) as ReadableStream;
+    return new NextResponse(stream, {
+      status: 206,
+      headers: {
+        "Content-Type": contentType,
+        "Content-Range": `bytes ${start}-${end}/${fileSize}`,
+        "Content-Length": String(end - start + 1),
+        "Accept-Ranges": "bytes",
+        "Cache-Control": "public, max-age=31536000, immutable",
+      },
+    });
+  }
+
+  const stream = Readable.toWeb(createReadStream(filePath)) as ReadableStream;
+  return new NextResponse(stream, {
     headers: {
       "Content-Type": contentType,
+      "Content-Length": String(fileSize),
+      "Accept-Ranges": "bytes",
       "Cache-Control": "public, max-age=31536000, immutable",
     },
   });
