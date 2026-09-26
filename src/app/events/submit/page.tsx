@@ -24,10 +24,14 @@ export default async function SubmitEventPage() {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) redirect("/login");
 
-  const mySubmissions = await prisma.event.findMany({
-    where: { submittedById: session.user.id },
-    orderBy: { createdAt: "desc" },
-  });
+  const [mySubmissions, approvedGyms] = await Promise.all([
+    prisma.event.findMany({
+      where: { submittedById: session.user.id },
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.gym.findMany({ where: { status: "APPROVED" }, select: { name: true }, orderBy: { name: "asc" } }),
+  ]);
+  const gymOptions = approvedGyms.map((g) => g.name);
 
   return (
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
@@ -60,11 +64,18 @@ export default async function SubmitEventPage() {
                       {formatEventDate(event)} · {event.isOnline ? "Online" : event.location}
                     </p>
                   </div>
-                  <span
-                    className={`whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_BADGE[event.status]}`}
-                  >
-                    {STATUS_LABEL[event.status]}
-                  </span>
+                  <div className="flex shrink-0 items-center gap-2">
+                    {event.isPrivate && (
+                      <span className="whitespace-nowrap rounded-full bg-b2b-purple/10 px-2 py-0.5 text-xs font-medium text-b2b-purple">
+                        🔒 Private
+                      </span>
+                    )}
+                    <span
+                      className={`whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_BADGE[event.status]}`}
+                    >
+                      {STATUS_LABEL[event.status]}
+                    </span>
+                  </div>
                 </div>
               ))}
             </div>
@@ -72,7 +83,7 @@ export default async function SubmitEventPage() {
         )}
 
         <SectionCard title="Submit an event">
-          <EventSubmitForm />
+          <EventSubmitForm gymOptions={gymOptions} />
         </SectionCard>
       </div>
     </main>

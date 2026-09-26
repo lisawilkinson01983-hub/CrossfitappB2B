@@ -8,6 +8,7 @@ import { SectionCard } from "@/components/SectionCard";
 import { EventChatFeed } from "@/components/EventChatFeed";
 import type { EventNoticeEntry } from "@/components/EventNoticeCard";
 import { parseTeammateRequests } from "@/lib/labels";
+import { assertEventVisible } from "@/lib/eventVisibility";
 
 export default async function EventNoticesPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
@@ -33,6 +34,7 @@ export default async function EventNoticesPage({ params }: { params: Promise<{ i
     },
   });
   if (!event) notFound();
+  if (!(await assertEventVisible(event, session.user.id))) notFound();
 
   const participantIds = new Set(event.participants.map((p) => p.userId));
 

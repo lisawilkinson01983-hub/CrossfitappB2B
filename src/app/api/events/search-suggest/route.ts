@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { eventVisibilityWhere } from "@/lib/eventVisibility";
 
 const RESULT_LIMIT = 6;
 
@@ -18,7 +19,7 @@ export async function GET(req: Request) {
   }
 
   const matches = await prisma.event.findMany({
-    where: { status: "APPROVED", name: { contains: q } },
+    where: { AND: [eventVisibilityWhere(session.user.id), { name: { contains: q } }] },
     select: { id: true, name: true, location: true, isOnline: true },
     orderBy: { name: "asc" },
     take: RESULT_LIMIT,

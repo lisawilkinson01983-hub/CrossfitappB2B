@@ -9,8 +9,10 @@ import { Avatar } from "@/components/Avatar";
 import { EventEngagementButtons } from "@/components/EventEngagementButtons";
 import { EventNoticesPanel, type EventNoticeEntry } from "@/components/EventNoticesPanel";
 import { CollapsibleText } from "@/components/CollapsibleText";
+import { InviteToEventForm } from "@/components/InviteToEventForm";
 import { parseJsonArray, parseTeammateRequests } from "@/lib/labels";
 import { formatEventDate } from "@/lib/eventDate";
+import { assertEventVisible } from "@/lib/eventVisibility";
 import {
   EVENT_DIVISION_LABELS,
   EVENT_TEAM_FORMAT_LABELS,
@@ -55,6 +57,14 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
     },
   });
   if (!event) notFound();
+  if (!(await assertEventVisible(event, session.user.id))) notFound();
+
+  const isOrganizer = event.createdById === session.user.id || event.submittedById === session.user.id;
+  const gymOptions = event.isPrivate && isOrganizer
+    ? (await prisma.gym.findMany({ where: { status: "APPROVED" }, select: { name: true }, orderBy: { name: "asc" } })).map(
+        (g) => g.name
+      )
+    : [];
 
   const participantIds = new Set(event.participants.map((p) => p.userId));
   const isParticipating = participantIds.has(session.user.id);
@@ -124,6 +134,11 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
             <div>
               <p className="text-xl font-semibold">
                 {event.name}
+                {event.isPrivate && (
+                  <span className="ml-2 rounded-full bg-b2b-purple/10 px-2 py-0.5 text-xs text-b2b-purple">
+                    🔒 Private
+                  </span>
+                )}
                 {event.tag && (
                   <span className="ml-2 rounded-full bg-b2b-purple/10 px-2 py-0.5 text-xs text-b2b-purple">
                     {event.tag}
@@ -179,6 +194,12 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
             >
               Event website
             </a>
+          )}
+
+          {event.isPrivate && isOrganizer && (
+            <div className="mt-4">
+              <InviteToEventForm eventId={event.id} gymOptions={gymOptions} />
+            </div>
           )}
         </SectionCard>
       </div>

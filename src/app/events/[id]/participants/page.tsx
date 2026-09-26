@@ -7,6 +7,7 @@ import { NavBar } from "@/components/NavBar";
 import { SectionCard } from "@/components/SectionCard";
 import { Avatar } from "@/components/Avatar";
 import { showsSingleBadge } from "@/lib/labels";
+import { assertEventVisible } from "@/lib/eventVisibility";
 
 export default async function EventParticipantsPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
@@ -26,6 +27,7 @@ export default async function EventParticipantsPage({ params }: { params: Promis
     },
   });
   if (!event) notFound();
+  if (!(await assertEventVisible(event, session.user.id))) notFound();
 
   return (
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">

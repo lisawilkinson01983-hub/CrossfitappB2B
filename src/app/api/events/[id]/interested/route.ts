@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { assertEventVisible } from "@/lib/eventVisibility";
 
 export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
@@ -14,6 +15,9 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
 
   const event = await prisma.event.findUnique({ where: { id: eventId } });
   if (!event) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+  if (!(await assertEventVisible(event, userId))) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 

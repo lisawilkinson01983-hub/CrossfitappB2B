@@ -16,8 +16,10 @@ import {
   EVENT_GENDER_CATEGORY_LABELS,
   EVENT_TEAM_FORMAT_LABELS,
 } from "@/lib/labels";
+import { Avatar } from "@/components/Avatar";
 
 type DuplicateMatch = { id: string; name: string; date: string; location: string | null };
+type UserOption = { id: string; name: string; photo: string | null };
 
 export type EventFormInitial = {
   name: string;
@@ -38,10 +40,13 @@ export function EventSubmitForm({
   mode = "create",
   eventId,
   initial,
+  gymOptions = [],
 }: {
   mode?: "create" | "edit";
   eventId?: string;
   initial?: EventFormInitial;
+  /** Approved gym names, for the private-event "invite everyone at gym X" picker. */
+  gymOptions?: string[];
 }) {
   const router = useRouter();
   const [name, setName] = useState(initial?.name ?? "");
@@ -60,6 +65,39 @@ export function EventSubmitForm({
   const [image, setImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(initial?.photo ?? null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [isPrivate, setIsPrivate] = useState(false);
+  const [inviteQuery, setInviteQuery] = useState("");
+  const [inviteResults, setInviteResults] = useState<UserOption[]>([]);
+  const [invitees, setInvitees] = useState<UserOption[]>([]);
+  const [inviteFollowers, setInviteFollowers] = useState(false);
+  const [inviteAffiliateGym, setInviteAffiliateGym] = useState("");
+  const inviteRequestId = useRef(0);
+
+  async function handleInviteQueryChange(value: string) {
+    setInviteQuery(value);
+    if (!value.trim()) {
+      setInviteResults([]);
+      return;
+    }
+    const thisRequest = ++inviteRequestId.current;
+    const res = await fetch(`/api/users/search?q=${encodeURIComponent(value.trim())}`);
+    if (thisRequest !== inviteRequestId.current) return;
+    if (res.ok) {
+      const body = await res.json();
+      setInviteResults(body.users ?? []);
+    }
+  }
+
+  function addInvitee(user: UserOption) {
+    setInvitees((prev) => (prev.some((u) => u.id === user.id) ? prev : [...prev, user]));
+    setInviteQuery("");
+    setInviteResults([]);
+  }
+
+  function removeInvitee(userId: string) {
+    setInvitees((prev) => prev.filter((u) => u.id !== userId));
+  }
 
   function handleImageChange(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0] ?? null;
@@ -88,6 +126,7 @@ export function EventSubmitForm({
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [lastSubmitWasPrivate, setLastSubmitWasPrivate] = useState(false);
 
   // Not useful in edit mode — the event being edited would just flag itself.
   useEffect(() => {
@@ -144,6 +183,14 @@ export function EventSubmitForm({
     teamFormat.forEach((v) => formData.append("teamFormat", v));
     genderCategory.forEach((v) => formData.append("genderCategory", v));
     if (image) formData.set("image", image);
+    if (mode === "create") {
+      formData.set("isPrivate", isPrivate ? "on" : "");
+      if (isPrivate) {
+        invitees.forEach((u) => formData.append("inviteUserIds", u.id));
+        formData.set("inviteFollowers", inviteFollowers ? "on" : "");
+        formData.set("inviteAffiliateGym", inviteAffiliateGym);
+      }
+    }
 
     const res = await fetch(mode === "edit" ? `/api/events/${eventId}` : "/api/events/submit", {
       method: mode === "edit" ? "PATCH" : "POST",
@@ -163,6 +210,7 @@ export function EventSubmitForm({
       return;
     }
 
+    setLastSubmitWasPrivate(isPrivate);
     setName("");
     setDate("");
     setEndDate("");
@@ -178,6 +226,10 @@ export function EventSubmitForm({
     setImage(null);
     setImagePreview(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
+    setIsPrivate(false);
+    setInvitees([]);
+    setInviteFollowers(false);
+    setInviteAffiliateGym("");
     setSubmitted(true);
     router.refresh();
   }
@@ -188,7 +240,9 @@ export function EventSubmitForm({
         <p className="rounded bg-green-50 px-3 py-2 text-sm text-green-700">
           {mode === "edit"
             ? "Event updated."
-            : 'Submitted — it\'ll appear once a moderator reviews it. Check "Your submissions" below for its status.'}
+            : lastSubmitWasPrivate
+              ? "Created — it's live now and anyone you invited has been notified."
+              : 'Submitted — it\'ll appear once a moderator reviews it. Check "Your submissions" below for its status.'}
         </p>
       )}
       {error && <p className="rounded bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
@@ -417,6 +471,104 @@ export function EventSubmitForm({
           </button>
         </div>
       </div>
+
+      {mode === "create" && (
+        <div className="rounded-lg border border-b2b-purple/15 p-4">
+          <label className="flex items-center gap-2 text-sm font-medium">
+            <input type="checkbox" checked={isPrivate} onChange={(e) => setIsPrivate(e.target.checked)} />
+            Make this a private event
+          </label>
+          <p className="mt-1 text-xs text-b2b-ink/40">
+            Skips review and never appears in Discover — only the people you invite below can see or join it.
+            Good for social meetups or gym-only competitions.
+          </p>
+
+          {isPrivate && (
+            <div className="mt-4 flex flex-col gap-4">
+              {invitees.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {invitees.map((user) => (
+                    <span
+                      key={user.id}
+                      className="flex items-center gap-1.5 rounded-full bg-b2b-purple/10 py-1 pl-1.5 pr-2 text-sm text-b2b-purple"
+                    >
+                      <Avatar photo={user.photo} name={user.name} size={20} />
+                      {user.name}
+                      <button
+                        type="button"
+                        onClick={() => removeInvitee(user.id)}
+                        aria-label={`Remove ${user.name}`}
+                        className="text-b2b-purple/60 hover:text-b2b-purple"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              <div className="relative">
+                <label htmlFor="invite-search" className="block text-sm font-medium">
+                  Invite individual athletes
+                </label>
+                <input
+                  id="invite-search"
+                  type="text"
+                  value={inviteQuery}
+                  onChange={(e) => handleInviteQueryChange(e.target.value)}
+                  placeholder="Search people by name..."
+                  className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-b2b-pink focus:outline-none"
+                />
+                {inviteResults.length > 0 && (
+                  <div className="absolute z-10 mt-1 w-full overflow-hidden rounded border border-gray-200 bg-b2b-card shadow-lg">
+                    {inviteResults
+                      .filter((u) => !invitees.some((s) => s.id === u.id))
+                      .map((user) => (
+                        <button
+                          key={user.id}
+                          type="button"
+                          onClick={() => addInvitee(user)}
+                          className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-b2b-bg"
+                        >
+                          <Avatar photo={user.photo} name={user.name} size={28} />
+                          {user.name}
+                        </button>
+                      ))}
+                  </div>
+                )}
+              </div>
+
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={inviteFollowers}
+                  onChange={(e) => setInviteFollowers(e.target.checked)}
+                />
+                Invite everyone who follows me
+              </label>
+
+              <div>
+                <label htmlFor="invite-gym" className="block text-sm font-medium">
+                  Invite everyone at a gym <span className="font-normal text-b2b-ink/40">(optional)</span>
+                </label>
+                <select
+                  id="invite-gym"
+                  value={inviteAffiliateGym}
+                  onChange={(e) => setInviteAffiliateGym(e.target.value)}
+                  className="mt-1 w-full rounded border border-gray-300 bg-b2b-card px-3 py-2 text-sm focus:border-b2b-pink focus:outline-none"
+                >
+                  <option value="">Don't invite by gym</option>
+                  {gymOptions.map((name) => (
+                    <option key={name} value={name}>
+                      {name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       <button
         type="submit"

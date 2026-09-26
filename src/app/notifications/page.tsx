@@ -67,7 +67,7 @@ export default async function NotificationsPage() {
                         ? "/gyms/review"
                         : n.type === "REPORT_SUBMITTED"
                           ? "/reports/review"
-                        : n.type === "TEAMMATE_REQUEST_MATCH" || n.type === "TEAMMATE_SEARCH_MATCH"
+                        : n.type === "TEAMMATE_REQUEST_MATCH" || n.type === "TEAMMATE_SEARCH_MATCH" || n.type === "EVENT_INVITE"
                           ? `/events/${n.event?.id ?? ""}`
                           : n.post
                             ? `/feed#post-${n.post.id}`
@@ -101,7 +101,9 @@ export default async function NotificationsPage() {
                                 ? `posted a teammate request matching your search for "${n.event?.name ?? "an event"}"`
                                 : n.type === "TEAMMATE_SEARCH_MATCH"
                                   ? `is looking for a team matching your request for "${n.event?.name ?? "an event"}"`
-                                  : "mentioned you"}
+                                  : n.type === "EVENT_INVITE"
+                                    ? `invited you to "${n.event?.name ?? "an event"}"`
+                                    : "mentioned you"}
                   </p>
                   <span className="whitespace-nowrap text-xs text-b2b-ink/40">
                     {n.createdAt.toLocaleDateString()}

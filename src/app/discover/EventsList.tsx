@@ -7,6 +7,7 @@ import { Avatar } from "@/components/Avatar";
 import { distanceMiles, ensureUserAreaCoords, ensureEventCoords, DISTANCE_RANGES } from "@/lib/geocode";
 import { formatEventDate } from "@/lib/eventDate";
 import { SearchSuggestInput } from "@/components/SearchSuggestInput";
+import { eventVisibilityWhere } from "@/lib/eventVisibility";
 
 const TIME_RANGES = {
   week: { label: "Next 7 days", days: 7 },
@@ -33,9 +34,11 @@ export async function EventsList({
   const distance = DISTANCE_RANGES.find((d) => String(d) === sp.distance);
 
   const where: Prisma.EventWhereInput = {
-    status: "APPROVED",
-    ...(q ? { OR: [{ name: { contains: q } }, { location: { contains: q } }] } : {}),
-    ...(time ? { date: { lte: new Date(Date.now() + TIME_RANGES[time].days * 86400000) } } : {}),
+    AND: [
+      eventVisibilityWhere(currentUserId),
+      ...(q ? [{ OR: [{ name: { contains: q } }, { location: { contains: q } }] }] : []),
+      ...(time ? [{ date: { lte: new Date(Date.now() + TIME_RANGES[time].days * 86400000) } }] : []),
+    ],
   };
 
   const [events, currentUser, pendingCount] = await Promise.all([

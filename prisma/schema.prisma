@@ -79,6 +79,8 @@ enum NotificationType {
   // audience — see /admin/notices. The actor is the site account (see
   // src/lib/siteAccount.ts), and noticeId below has the actual content.
   SYSTEM_ANNOUNCEMENT
+  // Invited to a private event (see EventInvite) — eventId below has the event.
+  EVENT_INVITE
 }
 
 enum EventStatus {
@@ -312,6 +314,8 @@ model User {
   eventNoticeLikes     EventNoticeLike[]
   eventNoticeComments  EventNoticeComment[]
   eventTeammateAlerts  EventTeammateAlert[]
+  eventInvitesReceived EventInvite[] @relation("EventInvitesReceived")
+  eventInvitesSent     EventInvite[] @relation("EventInvitesSent")
 
   blocksMade     Block[] @relation("BlocksMade")
   blocksReceived Block[] @relation("BlocksReceived")
@@ -618,8 +622,16 @@ model Event {
   // bookkeeping for whichever account performed that action, not a real
   // author. A user submission (source "user_submission") is created
   // PENDING with createdById/submittedById both set to the real submitter,
-  // and only shows up in Discover once a moderator approves it.
+  // and only shows up in Discover once a moderator approves it. A private
+  // submission (isPrivate) skips review entirely — it's created APPROVED
+  // straight away, since it's never publicly listed regardless of status.
   status EventStatus @default(APPROVED)
+
+  // A private event never appears in Discover/search and needs no admin
+  // review — only its creator and whoever's invited (see EventInvite) or
+  // already joined can see it at all. Meant for casual social meetups and
+  // gym-only ("in-affiliate") competitions rather than public listings.
+  isPrivate Boolean @default(false)
 
   createdById String
   createdBy   User   @relation(fields: [createdById], references: [id], onDelete: Cascade)
@@ -641,8 +653,30 @@ model Event {
   posts          Post[]
   notifications  Notification[]
   teammateAlerts EventTeammateAlert[]
+  invites        EventInvite[]
 
   @@index([date])
+}
+
+// An invitation to a private event — the invitee can see and join the event
+// (see /api/events/[id]/participate) once invited, even before they do.
+// Individually-picked invitees and bulk ones (e.g. "everyone who follows me"
+// or "everyone at gym X" — see src/lib/eventInvites.ts) end up as the same
+// kind of row here; there's no record of which bulk criteria produced it.
+model EventInvite {
+  id      String @id @default(cuid())
+  eventId String
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  userId  String
+  user    User   @relation("EventInvitesReceived", fields: [userId], references: [id], onDelete: Cascade)
+
+  invitedById String
+  invitedBy   User   @relation("EventInvitesSent", fields: [invitedById], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([eventId, userId])
+  @@index([userId])
 }
 
 model EventParticipant {

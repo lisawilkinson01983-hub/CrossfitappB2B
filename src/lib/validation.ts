@@ -141,7 +141,7 @@ const emptyToUndefined = (value: unknown) =>
   value === "" || value === null || value === undefined ? undefined : value;
 
 /** Form checkboxes send "on" when checked and nothing at all when unchecked. */
-const checkboxToBoolean = z.preprocess((v) => v === "on" || v === true, z.boolean());
+export const checkboxToBoolean = z.preprocess((v) => v === "on" || v === true, z.boolean());
 
 /** A three-way Yes/No/unanswered select, sent as "true" | "false" | "". */
 const optionalYesNo = z.preprocess(
@@ -304,6 +304,10 @@ export const eventSubmissionSchema = z
     division: z.array(z.enum(EVENT_DIVISIONS)).min(1, "Select at least one division"),
     teamFormat: z.array(z.enum(EVENT_TEAM_FORMATS)).min(1, "Select at least one team format"),
     genderCategory: z.array(z.enum(EVENT_GENDER_CATEGORIES)).min(1, "Select at least one gender category"),
+    // A private event skips review and is only visible to whoever's invited
+    // (see EventInvite) — meant for social meetups and gym-only competitions
+    // rather than public listings.
+    isPrivate: checkboxToBoolean,
   })
   .superRefine((data, ctx) => {
     if (!data.isOnline && !data.location) {
@@ -367,6 +371,14 @@ export const gymEditSchema = z.object({
   address: z.preprocess(emptyToUndefined, z.string().trim().optional()),
   websiteUrl: z.preprocess(emptyToUndefined, z.string().trim().url("Enter a valid website URL").optional()),
   description: z.preprocess(emptyToUndefined, z.string().trim().max(2000).optional()),
+});
+
+// Who to invite to a private event — see src/lib/eventInvites.ts for how
+// this gets resolved into actual user ids.
+export const eventInviteAudienceSchema = z.object({
+  userIds: z.array(z.string()).max(200).default([]),
+  inviteFollowers: checkboxToBoolean,
+  inviteAffiliateGym: z.preprocess(emptyToUndefined, z.string().trim().optional()),
 });
 
 export const messageSchema = z.object({
