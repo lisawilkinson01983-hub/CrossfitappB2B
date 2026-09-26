@@ -54,11 +54,11 @@ export async function resolveReportTarget(
     case "MESSAGE": {
       const message = await prisma.message.findUnique({
         where: { id: targetId },
-        include: { conversation: { select: { userOneId: true, userTwoId: true } } },
+        include: { conversation: { select: { participants: { select: { userId: true } } } } },
       });
       if (!message) return null;
-      const { userOneId, userTwoId } = message.conversation;
-      if (reporterId !== userOneId && reporterId !== userTwoId) return null;
+      const isParticipant = message.conversation.participants.some((p) => p.userId === reporterId);
+      if (!isParticipant) return null;
       // No href: admins aren't participants, so they can't open the
       // conversation — the snapshot is all they get.
       return { ownerId: message.senderId, contentSnapshot: message.text, mediaSnapshot: null, href: null };

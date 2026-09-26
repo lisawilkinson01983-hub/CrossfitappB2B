@@ -17,7 +17,7 @@ export async function NavBar({ isProfileEditPage = false }: { isProfileEditPage?
     ? await Promise.all([
         prisma.message.count({
           where: {
-            conversation: { OR: [{ userOneId: session.user.id }, { userTwoId: session.user.id }] },
+            conversation: { participants: { some: { userId: session.user.id } } },
             senderId: { not: session.user.id },
             readAt: null,
           },

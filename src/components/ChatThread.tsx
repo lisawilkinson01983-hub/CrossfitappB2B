@@ -2,11 +2,14 @@
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { ReportButton } from "@/components/ReportButton";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 
 type MessageItem = {
   id: string;
   text: string;
   createdAt: string;
+  editedAt: string | null;
+  deletedAt: string | null;
   sender: { id: string; name: string };
 };
 
@@ -16,15 +19,23 @@ export function ChatThread({
   conversationId,
   initialMessages,
   currentUserId,
+  isGroup,
 }: {
   conversationId: string;
   initialMessages: MessageItem[];
   currentUserId: string;
+  isGroup: boolean;
 }) {
   const [messages, setMessages] = useState<MessageItem[]>(initialMessages);
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editText, setEditText] = useState("");
+  const [editSaving, setEditSaving] = useState(false);
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     const interval = setInterval(async () => {
@@ -58,6 +69,39 @@ export function ChatThread({
     }
   }
 
+  function startEdit(message: MessageItem) {
+    setEditingId(message.id);
+    setEditText(message.text);
+  }
+
+  async function submitEdit(messageId: string) {
+    if (!editText.trim() || editSaving) return;
+    setEditSaving(true);
+    const res = await fetch(`/api/messages/${conversationId}/${messageId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text: editText }),
+    });
+    setEditSaving(false);
+    if (res.ok) {
+      const body = await res.json();
+      setMessages((prev) => prev.map((m) => (m.id === messageId ? body.message : m)));
+      setEditingId(null);
+    }
+  }
+
+  async function confirmDelete() {
+    if (!deleteTargetId) return;
+    setDeleting(true);
+    const res = await fetch(`/api/messages/${conversationId}/${deleteTargetId}`, { method: "DELETE" });
+    setDeleting(false);
+    if (res.ok) {
+      const body = await res.json();
+      setMessages((prev) => prev.map((m) => (m.id === deleteTargetId ? body.message : m)));
+    }
+    setDeleteTargetId(null);
+  }
+
   return (
     <div className="flex flex-col">
       <div className="flex max-h-[60vh] min-h-[300px] flex-col gap-3 overflow-y-auto py-2">
@@ -66,28 +110,78 @@ export function ChatThread({
         )}
         {messages.map((message) => {
           const isMine = message.sender.id === currentUserId;
+          const isEditing = editingId === message.id;
+          const isDeleted = !!message.deletedAt;
+
           return (
             <div key={message.id} className={`flex ${isMine ? "justify-end" : "justify-start"}`}>
-              <div
-                className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-sm shadow-sm ${
-                  isMine
-                    ? "rounded-br-md bg-b2b-pink text-white"
-                    : "rounded-bl-md bg-b2b-card text-b2b-ink"
-                }`}
-              >
-                <p className="whitespace-pre-wrap">{message.text}</p>
+              <div className={`max-w-[75%] ${isMine ? "items-end" : "items-start"} flex flex-col`}>
+                {isGroup && !isMine && (
+                  <span className="mb-0.5 px-1 text-xs font-medium text-b2b-ink/50">{message.sender.name}</span>
+                )}
                 <div
-                  className={`mt-1 flex items-center gap-2 text-xs ${isMine ? "text-white/70" : "text-b2b-ink/40"}`}
+                  className={`rounded-2xl px-4 py-2.5 text-sm shadow-sm ${
+                    isMine
+                      ? "rounded-br-md bg-b2b-pink text-white"
+                      : "rounded-bl-md bg-b2b-card text-b2b-ink"
+                  }`}
                 >
-                  <span>
-                    {new Date(message.createdAt).toLocaleTimeString([], {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </span>
-                  {!isMine && (
-                    <ReportButton targetType="MESSAGE" targetId={message.id} className="hover:underline" />
+                  {isEditing ? (
+                    <div className="flex flex-col gap-2">
+                      <input
+                        type="text"
+                        value={editText}
+                        onChange={(e) => setEditText(e.target.value)}
+                        autoFocus
+                        className="rounded border border-white/30 bg-white/10 px-2 py-1 text-sm text-inherit placeholder:text-inherit/60 focus:outline-none"
+                      />
+                      <div className="flex gap-3 text-xs">
+                        <button
+                          type="button"
+                          onClick={() => submitEdit(message.id)}
+                          disabled={editSaving || !editText.trim()}
+                          className="font-semibold underline disabled:opacity-50"
+                        >
+                          Save
+                        </button>
+                        <button type="button" onClick={() => setEditingId(null)} className="underline">
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className={`whitespace-pre-wrap ${isDeleted ? "italic opacity-70" : ""}`}>
+                      {isDeleted ? "This message was deleted" : message.text}
+                    </p>
                   )}
+                  <div
+                    className={`mt-1 flex flex-wrap items-center gap-2 text-xs ${isMine ? "text-white/70" : "text-b2b-ink/40"}`}
+                  >
+                    <span>
+                      {new Date(message.createdAt).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </span>
+                    {!isDeleted && message.editedAt && <span>(edited)</span>}
+                    {!isEditing && !isDeleted && isMine && (
+                      <>
+                        <button type="button" onClick={() => startEdit(message)} className="hover:underline">
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDeleteTargetId(message.id)}
+                          className="hover:underline"
+                        >
+                          Delete
+                        </button>
+                      </>
+                    )}
+                    {!isMine && !isDeleted && (
+                      <ReportButton targetType="MESSAGE" targetId={message.id} className="hover:underline" />
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -113,6 +207,14 @@ export function ChatThread({
           ➤
         </button>
       </form>
+
+      <ConfirmDialog
+        open={deleteTargetId !== null}
+        message="This will delete the message for everyone in the conversation."
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteTargetId(null)}
+        confirming={deleting}
+      />
     </div>
   );
 }

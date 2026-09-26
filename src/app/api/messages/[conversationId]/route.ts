@@ -6,8 +6,11 @@ import { messageSchema } from "@/lib/validation";
 import { checkRateLimit } from "@/lib/rateLimit";
 
 async function loadAuthorizedConversation(conversationId: string, userId: string) {
-  const conversation = await prisma.conversation.findUnique({ where: { id: conversationId } });
-  if (!conversation || (conversation.userOneId !== userId && conversation.userTwoId !== userId)) {
+  const conversation = await prisma.conversation.findUnique({
+    where: { id: conversationId },
+    include: { participants: { select: { userId: true } } },
+  });
+  if (!conversation || !conversation.participants.some((p) => p.userId === userId)) {
     return null;
   }
   return conversation;
@@ -25,7 +28,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ convers
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  // Viewing the thread marks the other participant's messages as read.
+  // Viewing the thread marks the other participants' messages as read.
   await prisma.message.updateMany({
     where: { conversationId, senderId: { not: session.user.id }, readAt: null },
     data: { readAt: new Date() },

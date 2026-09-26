@@ -7,6 +7,7 @@ import { NavBar } from "@/components/NavBar";
 import { Avatar } from "@/components/Avatar";
 import { ChatThread } from "@/components/ChatThread";
 import { showsSingleBadge } from "@/lib/labels";
+import { conversationDisplayName } from "@/lib/conversations";
 
 export default async function ConversationPage({
   params,
@@ -21,21 +22,22 @@ export default async function ConversationPage({
   const conversation = await prisma.conversation.findUnique({
     where: { id: conversationId },
     include: {
-      userOne: { select: { id: true, name: true, photo: true, isSingle: true, showSingleBadge: true } },
-      userTwo: { select: { id: true, name: true, photo: true, isSingle: true, showSingleBadge: true } },
+      participants: {
+        include: {
+          user: { select: { id: true, name: true, photo: true, isSingle: true, showSingleBadge: true, deletedAt: true } },
+        },
+      },
     },
   });
 
-  if (
-    !conversation ||
-    (conversation.userOneId !== session.user.id && conversation.userTwoId !== session.user.id)
-  ) {
+  if (!conversation || !conversation.participants.some((p) => p.userId === session.user.id)) {
     notFound();
   }
 
-  const otherUser = conversation.userOneId === session.user.id ? conversation.userTwo : conversation.userOne;
+  const others = conversation.participants.map((p) => p.user).filter((u) => u.id !== session.user.id);
+  const displayName = conversationDisplayName(conversation, others.filter((u) => !u.deletedAt).map((u) => u.name));
 
-  // Viewing the thread marks the other participant's messages as read.
+  // Viewing the thread marks the other participants' messages as read.
   await prisma.message.updateMany({
     where: { conversationId, senderId: { not: session.user.id }, readAt: null },
     data: { readAt: new Date() },
@@ -54,23 +56,37 @@ export default async function ConversationPage({
         ← All messages
       </Link>
       <div className="mt-3 flex items-center gap-3">
-        <Avatar
-          photo={otherUser.photo}
-          name={otherUser.name}
-          size={40}
-          showSingleBadge={showsSingleBadge(otherUser)}
-        />
-        <h1 className="text-xl font-bold">{otherUser.name}</h1>
+        {conversation.isGroup ? (
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-b2b-purple/10 font-semibold text-b2b-purple">
+            #
+          </div>
+        ) : (
+          <Avatar
+            photo={others[0]?.photo ?? null}
+            name={displayName}
+            size={40}
+            showSingleBadge={others[0] ? showsSingleBadge(others[0]) : false}
+          />
+        )}
+        <div className="min-w-0">
+          <h1 className="truncate text-xl font-bold">{displayName}</h1>
+          {conversation.isGroup && (
+            <p className="text-xs text-b2b-ink/50">{others.length + 1} people</p>
+          )}
+        </div>
       </div>
 
       <div className="mt-4">
         <ChatThread
           conversationId={conversationId}
           currentUserId={session.user.id}
+          isGroup={conversation.isGroup}
           initialMessages={messages.map((m) => ({
             id: m.id,
             text: m.text,
             createdAt: m.createdAt.toISOString(),
+            editedAt: m.editedAt ? m.editedAt.toISOString() : null,
+            deletedAt: m.deletedAt ? m.deletedAt.toISOString() : null,
             sender: m.sender,
           }))}
         />

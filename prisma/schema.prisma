@@ -297,9 +297,10 @@ model User {
   sentFollowRequests     FollowRequest[] @relation("SentFollowRequests")
   receivedFollowRequests FollowRequest[] @relation("ReceivedFollowRequests")
 
-  conversationsAsUserOne Conversation[] @relation("ConversationsAsUserOne")
-  conversationsAsUserTwo Conversation[] @relation("ConversationsAsUserTwo")
-  sentMessages           Message[]
+  conversationsAsUserOne   Conversation[]             @relation("ConversationsAsUserOne")
+  conversationsAsUserTwo   Conversation[]             @relation("ConversationsAsUserTwo")
+  conversationParticipants ConversationParticipant[]
+  sentMessages             Message[]
 
   createdEvents        Event[]
   submittedEvents      Event[] @relation("EventSubmissions")
@@ -515,25 +516,46 @@ model FollowRequest {
   @@index([targetId])
 }
 
-// One row per pair of participants. userOneId/userTwoId are always stored in
-// a canonical order (lexicographically smaller id first — see
-// src/lib/conversations.ts) so the unique constraint catches a duplicate
-// conversation regardless of who started it.
+// A conversation between any number of participants (see
+// ConversationParticipant) — a 1:1 chat is just a two-participant
+// conversation with isGroup false. name is only ever set for a group;
+// a null name falls back to the other participants' names joined together
+// (see conversationDisplayName in src/lib/conversations.ts).
 model Conversation {
-  id String @id @default(cuid())
+  id      String  @id @default(cuid())
+  isGroup Boolean @default(false)
+  name    String?
 
-  userOneId String
-  userOne   User   @relation("ConversationsAsUserOne", fields: [userOneId], references: [id], onDelete: Cascade)
-
-  userTwoId String
-  userTwo   User   @relation("ConversationsAsUserTwo", fields: [userTwoId], references: [id], onDelete: Cascade)
+  // Legacy 1:1 columns from before groups existed — superseded by
+  // ConversationParticipant below and no longer written to. Kept (nullable)
+  // only so scripts/backfill-conversation-participants.js can read existing
+  // conversations' participants once after this deploy; safe to drop in a
+  // later cleanup once that backfill has run everywhere.
+  userOneId String?
+  userOne   User?   @relation("ConversationsAsUserOne", fields: [userOneId], references: [id])
+  userTwoId String?
+  userTwo   User?   @relation("ConversationsAsUserTwo", fields: [userTwoId], references: [id])
 
   createdAt DateTime @default(now())
 
-  messages Message[]
+  participants ConversationParticipant[]
+  messages     Message[]
+}
 
-  @@unique([userOneId, userTwoId])
-  @@index([userTwoId])
+// One row per (conversation, member) — replaces the old fixed
+// userOneId/userTwoId columns so a conversation can have any number of
+// participants, not just exactly two.
+model ConversationParticipant {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  joinedAt DateTime @default(now())
+
+  @@unique([conversationId, userId])
+  @@index([userId])
 }
 
 model Message {
@@ -547,6 +569,13 @@ model Message {
   text String
 
   createdAt DateTime  @default(now())
+  // Set when the sender edits the text after sending.
+  editedAt  DateTime?
+  // Set when the sender deletes the message — text is replaced with a
+  // placeholder rather than the row being removed, so the thread's shape
+  // (and everyone else's scroll position/read state) doesn't shift, same
+  // pattern as Comment/EventNoticeComment soft-deletion.
+  deletedAt DateTime?
   readAt    DateTime?
 
   @@index([conversationId])
