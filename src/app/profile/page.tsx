@@ -19,6 +19,11 @@ export default async function ProfilePage() {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) redirect("/login");
 
+  // See feed/page.tsx's matching timer — same diagnostic, same reason:
+  // ruling the page's own data-fetching in/out as the remaining source of
+  // reported lag now that images are confirmed small.
+  const fetchStart = Date.now();
+
   const user = await prisma.user.findUnique({ where: { id: session.user.id } });
   if (!user) redirect("/login");
 
@@ -52,6 +57,7 @@ export default async function ProfilePage() {
         orderBy: { date: "asc" },
       }),
     ]);
+  console.log(`/profile: data fetch took ${Date.now() - fetchStart}ms`);
 
   let suggestedGym: string | undefined;
   if (user.affiliateGym === OTHER_GYM && user.affiliateGymOther) {

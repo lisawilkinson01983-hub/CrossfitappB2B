@@ -30,12 +30,19 @@ export async function GET(req: Request, { params }: { params: Promise<{ filename
 
   const filePath = path.join(uploadsDir(), safeName);
 
+  // Reported image loads taking several seconds even for files already
+  // confirmed small (see uploads.ts's resizePhoto logging) — timing the one
+  // disk read this handler itself waits on tells us whether that's the
+  // volume's read latency specifically, or something after this returns
+  // (network, client-side rendering).
+  const statStart = Date.now();
   let fileSize: number;
   try {
     fileSize = (await stat(filePath)).size;
   } catch {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
+  console.log(`/media/${safeName}: stat took ${Date.now() - statStart}ms (${fileSize} bytes)`);
 
   // <video> playback depends on range requests — some browsers won't even
   // start playing (loads, shows a black frame, play does nothing) without a

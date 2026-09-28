@@ -20,6 +20,12 @@ export default async function FeedPage({
 
   const { post: highlightPostId, comment: highlightCommentId } = await searchParams;
 
+  // Timing this to separate "the page's own data-fetching is slow" from "the
+  // images are slow once the page has already rendered" — reported lag
+  // persisted after confirming images are now small, so this rules in/out
+  // the query itself as the remaining cause.
+  const fetchStart = Date.now();
+
   const [currentUser, blocked, muted] = await Promise.all([
     prisma.user.findUnique({ where: { id: session.user.id }, select: { hasSeenFeedTour: true, accountType: true } }),
     prisma.block.findMany({ where: { blockerId: session.user.id }, select: { blockedId: true } }),
@@ -33,6 +39,7 @@ export default async function FeedPage({
     take: FEED_PAGE_SIZE + 1,
     include: postCardInclude,
   });
+  console.log(`/feed: data fetch took ${Date.now() - fetchStart}ms (${posts.length} posts)`);
   const hasMore = posts.length > FEED_PAGE_SIZE;
   const page = posts.slice(0, FEED_PAGE_SIZE);
 
