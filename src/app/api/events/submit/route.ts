@@ -30,6 +30,8 @@ export async function POST(req: Request) {
     teamFormat: formData.getAll("teamFormat"),
     genderCategory: formData.getAll("genderCategory"),
     isPrivate: formData.get("isPrivate"),
+    eventKind: formData.get("eventKind"),
+    eventKindOther: formData.get("eventKindOther"),
   });
 
   if (!parsed.success) {
@@ -67,6 +69,8 @@ export async function POST(req: Request) {
       genderCategory: JSON.stringify(data.genderCategory),
       photo: photoPath,
       isPrivate: data.isPrivate,
+      eventKind: data.eventKind,
+      eventKindOther: data.eventKind === "OTHER" ? (data.eventKindOther ?? null) : null,
       // A private event needs no review — it's never publicly listed
       // regardless of status, so there's nothing for a moderator to gate.
       status: data.isPrivate ? "APPROVED" : "PENDING",

@@ -92,22 +92,37 @@ enum EventStatus {
 // SQLite has no native array type, so `division`, `teamFormat`, and
 // `genderCategory` on Event are each stored as a JSON-encoded array of
 // these values, same pattern as User.lookingFor.
+// NA opts out of this field entirely — e.g. a social event with no ability
+// requirement — and is mutually exclusive with the real values (see the
+// `toggle` helper in EventSubmitForm).
 enum EventDivision {
   SCALED
   RX
   INTERMEDIATE
+  NA
 }
 
 enum EventTeamFormat {
   SINGLES
   PAIRS
   TEAMS
+  NA
 }
 
 enum EventGenderCategory {
   MALE
   FEMALE
   MIXED
+  NA
+}
+
+// A free-choice classification for what kind of event this is — OTHER pairs
+// with Event.eventKindOther for free text, same pattern as
+// User.affiliateGym/affiliateGymOther.
+enum EventKind {
+  COMPETITION
+  SOCIAL
+  OTHER
 }
 
 model User {
@@ -632,6 +647,19 @@ model Event {
   // already joined can see it at all. Meant for casual social meetups and
   // gym-only ("in-affiliate") competitions rather than public listings.
   isPrivate Boolean @default(false)
+
+  // What kind of event this is — OTHER pairs with eventKindOther for free
+  // text, same pattern as User.affiliateGym/affiliateGymOther. Nullable
+  // since curated/legacy listings predate this field.
+  eventKind      EventKind?
+  eventKindOther String?
+
+  // The group conversation used by "Message attendees" (private events only,
+  // organizer-only action — see /api/events/[id]/message-attendees). Not a
+  // foreign key (same as Report.targetId) so the event doesn't depend on the
+  // conversation ever existing; null until the organizer messages attendees
+  // for the first time.
+  attendeesConversationId String?
 
   createdById String
   createdBy   User   @relation(fields: [createdById], references: [id], onDelete: Cascade)

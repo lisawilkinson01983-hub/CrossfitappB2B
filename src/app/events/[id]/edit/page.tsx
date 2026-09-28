@@ -49,6 +49,8 @@ export default async function EditEventPage({ params }: { params: Promise<{ id: 
               teamFormat: parseJsonArray<EventTeamFormatOption>(event.teamFormat),
               genderCategory: parseJsonArray<EventGenderCategoryOption>(event.genderCategory),
               photo: event.photo,
+              eventKind: event.eventKind ?? "",
+              eventKindOther: event.eventKindOther ?? "",
             }}
           />
         </SectionCard>

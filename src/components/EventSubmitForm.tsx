@@ -6,14 +6,17 @@ import Image from "next/image";
 import {
   EVENT_DIVISIONS,
   EVENT_GENDER_CATEGORIES,
+  EVENT_KINDS,
   EVENT_TEAM_FORMATS,
   type EventDivisionOption,
   type EventGenderCategoryOption,
+  type EventKindOption,
   type EventTeamFormatOption,
 } from "@/lib/validation";
 import {
   EVENT_DIVISION_LABELS,
   EVENT_GENDER_CATEGORY_LABELS,
+  EVENT_KIND_LABELS,
   EVENT_TEAM_FORMAT_LABELS,
 } from "@/lib/labels";
 import { Avatar } from "@/components/Avatar";
@@ -33,6 +36,8 @@ export type EventFormInitial = {
   teamFormat: EventTeamFormatOption[];
   genderCategory: EventGenderCategoryOption[];
   photo: string | null;
+  eventKind: EventKindOption | "";
+  eventKindOther: string;
 };
 
 /** Used both to submit a new event for review, and (mode="edit") for an admin editing an existing one directly. */
@@ -62,6 +67,8 @@ export function EventSubmitForm({
   const [division, setDivision] = useState<EventDivisionOption[]>(initial?.division ?? []);
   const [teamFormat, setTeamFormat] = useState<EventTeamFormatOption[]>(initial?.teamFormat ?? []);
   const [genderCategory, setGenderCategory] = useState<EventGenderCategoryOption[]>(initial?.genderCategory ?? []);
+  const [eventKind, setEventKind] = useState<EventKindOption | "">(initial?.eventKind ?? "");
+  const [eventKindOther, setEventKindOther] = useState(initial?.eventKindOther ?? "");
   const [image, setImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(initial?.photo ?? null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -148,8 +155,19 @@ export function EventSubmitForm({
   const duplicateKey = duplicates.map((m) => m.id).join(",");
   const showDuplicateWarning = duplicates.length > 0 && dismissedKey !== duplicateKey;
 
+  // "NA" ("doesn't apply", e.g. no ability requirement for a social event) is
+  // mutually exclusive with the real options in the same fieldset: picking it
+  // clears everything else, and picking anything else drops it.
   function toggle<T extends string>(list: T[], setList: (v: T[]) => void, value: T) {
-    setList(list.includes(value) ? list.filter((v) => v !== value) : [...list, value]);
+    if (list.includes(value)) {
+      setList(list.filter((v) => v !== value));
+      return;
+    }
+    if (value === "NA") {
+      setList([value]);
+      return;
+    }
+    setList([...list.filter((v) => v !== ("NA" as T)), value]);
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -165,7 +183,15 @@ export function EventSubmitForm({
       return;
     }
     if (mode === "create" && (division.length === 0 || teamFormat.length === 0 || genderCategory.length === 0)) {
-      setError("Select at least one option for division, team format, and gender category");
+      setError("Select at least one option for division, team format, and gender category (or N/A)");
+      return;
+    }
+    if (mode === "create" && !eventKind) {
+      setError("Select an event type");
+      return;
+    }
+    if (eventKind === "OTHER" && !eventKindOther.trim()) {
+      setError("Describe the event type");
       return;
     }
 
@@ -182,6 +208,8 @@ export function EventSubmitForm({
     division.forEach((v) => formData.append("division", v));
     teamFormat.forEach((v) => formData.append("teamFormat", v));
     genderCategory.forEach((v) => formData.append("genderCategory", v));
+    formData.set("eventKind", eventKind);
+    formData.set("eventKindOther", eventKind === "OTHER" ? eventKindOther : "");
     if (image) formData.set("image", image);
     if (mode === "create") {
       formData.set("isPrivate", isPrivate ? "on" : "");
@@ -223,6 +251,8 @@ export function EventSubmitForm({
     setDivision([]);
     setTeamFormat([]);
     setGenderCategory([]);
+    setEventKind("");
+    setEventKindOther("");
     setImage(null);
     setImagePreview(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
@@ -247,6 +277,104 @@ export function EventSubmitForm({
       )}
       {error && <p className="rounded bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
 
+      {mode === "create" && (
+        <div className="rounded-lg border border-b2b-purple/15 p-4">
+          <label className="flex items-center gap-2 text-sm font-medium">
+            <input type="checkbox" checked={isPrivate} onChange={(e) => setIsPrivate(e.target.checked)} />
+            Make this a private event
+          </label>
+          <p className="mt-1 text-xs text-b2b-ink/40">
+            Skips review and never appears in Discover — only the people you invite below can see or join it.
+            Good for social meetups or gym-only competitions. Leave unchecked for a public event.
+          </p>
+
+          {isPrivate && (
+            <div className="mt-4 flex flex-col gap-4">
+              {invitees.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {invitees.map((user) => (
+                    <span
+                      key={user.id}
+                      className="flex items-center gap-1.5 rounded-full bg-b2b-purple/10 py-1 pl-1.5 pr-2 text-sm text-b2b-purple"
+                    >
+                      <Avatar photo={user.photo} name={user.name} size={20} />
+                      {user.name}
+                      <button
+                        type="button"
+                        onClick={() => removeInvitee(user.id)}
+                        aria-label={`Remove ${user.name}`}
+                        className="text-b2b-purple/60 hover:text-b2b-purple"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              <div className="relative">
+                <label htmlFor="invite-search" className="block text-sm font-medium">
+                  Invite individual athletes
+                </label>
+                <input
+                  id="invite-search"
+                  type="text"
+                  value={inviteQuery}
+                  onChange={(e) => handleInviteQueryChange(e.target.value)}
+                  placeholder="Search people by name..."
+                  className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-b2b-pink focus:outline-none"
+                />
+                {inviteResults.length > 0 && (
+                  <div className="absolute z-10 mt-1 w-full overflow-hidden rounded border border-gray-200 bg-b2b-card shadow-lg">
+                    {inviteResults
+                      .filter((u) => !invitees.some((s) => s.id === u.id))
+                      .map((user) => (
+                        <button
+                          key={user.id}
+                          type="button"
+                          onClick={() => addInvitee(user)}
+                          className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-b2b-bg"
+                        >
+                          <Avatar photo={user.photo} name={user.name} size={28} />
+                          {user.name}
+                        </button>
+                      ))}
+                  </div>
+                )}
+              </div>
+
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={inviteFollowers}
+                  onChange={(e) => setInviteFollowers(e.target.checked)}
+                />
+                Invite everyone who follows me
+              </label>
+
+              <div>
+                <label htmlFor="invite-gym" className="block text-sm font-medium">
+                  Invite everyone at a gym <span className="font-normal text-b2b-ink/40">(optional)</span>
+                </label>
+                <select
+                  id="invite-gym"
+                  value={inviteAffiliateGym}
+                  onChange={(e) => setInviteAffiliateGym(e.target.value)}
+                  className="mt-1 w-full rounded border border-gray-300 bg-b2b-card px-3 py-2 text-sm focus:border-b2b-pink focus:outline-none"
+                >
+                  <option value="">Don't invite by gym</option>
+                  {gymOptions.map((name) => (
+                    <option key={name} value={name}>
+                      {name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       <div>
         <label htmlFor="name" className="block text-sm font-medium">
           Event name
@@ -260,6 +388,33 @@ export function EventSubmitForm({
           className="mt-1 w-full rounded border border-gray-300 px-3 py-2 focus:border-b2b-pink focus:outline-none"
         />
       </div>
+
+      <fieldset>
+        <legend className="text-sm font-medium">Event type</legend>
+        <div className="mt-2 flex flex-col gap-2">
+          {EVENT_KINDS.map((option) => (
+            <label key={option} className="flex items-center gap-2 text-sm">
+              <input
+                type="radio"
+                name="eventKind"
+                checked={eventKind === option}
+                onChange={() => setEventKind(option)}
+              />
+              {EVENT_KIND_LABELS[option]}
+            </label>
+          ))}
+        </div>
+        {eventKind === "OTHER" && (
+          <input
+            type="text"
+            value={eventKindOther}
+            onChange={(e) => setEventKindOther(e.target.value)}
+            placeholder="Describe the event type"
+            maxLength={100}
+            className="mt-2 w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-b2b-pink focus:outline-none"
+          />
+        )}
+      </fieldset>
 
       <div className="grid grid-cols-2 gap-3">
         <div>
@@ -471,104 +626,6 @@ export function EventSubmitForm({
           </button>
         </div>
       </div>
-
-      {mode === "create" && (
-        <div className="rounded-lg border border-b2b-purple/15 p-4">
-          <label className="flex items-center gap-2 text-sm font-medium">
-            <input type="checkbox" checked={isPrivate} onChange={(e) => setIsPrivate(e.target.checked)} />
-            Make this a private event
-          </label>
-          <p className="mt-1 text-xs text-b2b-ink/40">
-            Skips review and never appears in Discover — only the people you invite below can see or join it.
-            Good for social meetups or gym-only competitions.
-          </p>
-
-          {isPrivate && (
-            <div className="mt-4 flex flex-col gap-4">
-              {invitees.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {invitees.map((user) => (
-                    <span
-                      key={user.id}
-                      className="flex items-center gap-1.5 rounded-full bg-b2b-purple/10 py-1 pl-1.5 pr-2 text-sm text-b2b-purple"
-                    >
-                      <Avatar photo={user.photo} name={user.name} size={20} />
-                      {user.name}
-                      <button
-                        type="button"
-                        onClick={() => removeInvitee(user.id)}
-                        aria-label={`Remove ${user.name}`}
-                        className="text-b2b-purple/60 hover:text-b2b-purple"
-                      >
-                        ×
-                      </button>
-                    </span>
-                  ))}
-                </div>
-              )}
-
-              <div className="relative">
-                <label htmlFor="invite-search" className="block text-sm font-medium">
-                  Invite individual athletes
-                </label>
-                <input
-                  id="invite-search"
-                  type="text"
-                  value={inviteQuery}
-                  onChange={(e) => handleInviteQueryChange(e.target.value)}
-                  placeholder="Search people by name..."
-                  className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-b2b-pink focus:outline-none"
-                />
-                {inviteResults.length > 0 && (
-                  <div className="absolute z-10 mt-1 w-full overflow-hidden rounded border border-gray-200 bg-b2b-card shadow-lg">
-                    {inviteResults
-                      .filter((u) => !invitees.some((s) => s.id === u.id))
-                      .map((user) => (
-                        <button
-                          key={user.id}
-                          type="button"
-                          onClick={() => addInvitee(user)}
-                          className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-b2b-bg"
-                        >
-                          <Avatar photo={user.photo} name={user.name} size={28} />
-                          {user.name}
-                        </button>
-                      ))}
-                  </div>
-                )}
-              </div>
-
-              <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={inviteFollowers}
-                  onChange={(e) => setInviteFollowers(e.target.checked)}
-                />
-                Invite everyone who follows me
-              </label>
-
-              <div>
-                <label htmlFor="invite-gym" className="block text-sm font-medium">
-                  Invite everyone at a gym <span className="font-normal text-b2b-ink/40">(optional)</span>
-                </label>
-                <select
-                  id="invite-gym"
-                  value={inviteAffiliateGym}
-                  onChange={(e) => setInviteAffiliateGym(e.target.value)}
-                  className="mt-1 w-full rounded border border-gray-300 bg-b2b-card px-3 py-2 text-sm focus:border-b2b-pink focus:outline-none"
-                >
-                  <option value="">Don't invite by gym</option>
-                  {gymOptions.map((name) => (
-                    <option key={name} value={name}>
-                      {name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
 
       <button
         type="submit"

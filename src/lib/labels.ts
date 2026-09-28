@@ -2,6 +2,7 @@ import { PB_FIELDS } from "./validation";
 import type {
   EventDivisionOption,
   EventGenderCategoryOption,
+  EventKindOption,
   EventTeamFormatOption,
   GenderOption,
   LevelOption,
@@ -66,19 +67,35 @@ export const EVENT_DIVISION_LABELS: Record<EventDivisionOption, string> = {
   SCALED: "Scaled",
   RX: "Rx",
   INTERMEDIATE: "Intermediate",
+  NA: "N/A",
 };
 
 export const EVENT_TEAM_FORMAT_LABELS: Record<EventTeamFormatOption, string> = {
   SINGLES: "Singles",
   PAIRS: "Pairs",
   TEAMS: "Teams",
+  NA: "N/A",
 };
 
 export const EVENT_GENDER_CATEGORY_LABELS: Record<EventGenderCategoryOption, string> = {
   MALE: "Male",
   FEMALE: "Female",
   MIXED: "Mixed",
+  NA: "N/A",
 };
+
+export const EVENT_KIND_LABELS: Record<EventKindOption, string> = {
+  COMPETITION: "Competition",
+  SOCIAL: "Social",
+  OTHER: "Other",
+};
+
+/** Display text for an event's type — OTHER falls back to its free-text eventKindOther. Null if the event predates this field. */
+export function eventKindLabel(event: { eventKind: EventKindOption | null; eventKindOther: string | null }): string | null {
+  if (!event.eventKind) return null;
+  if (event.eventKind === "OTHER") return event.eventKindOther?.trim() || "Other";
+  return EVENT_KIND_LABELS[event.eventKind];
+}
 
 export const TEAMMATE_GENDER_LABELS: Record<TeammateGenderOption, string> = {
   MALE: "Male",

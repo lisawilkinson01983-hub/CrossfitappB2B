@@ -16,12 +16,14 @@ async function main() {
 
     let count = 0;
     for (const conv of conversations) {
+      // skipDuplicates isn't supported on SQLite, but it's unneeded here
+      // anyway — the query above only selects conversations with zero
+      // participant rows, so these two inserts can't collide with anything.
       await prisma.conversationParticipant.createMany({
         data: [
           { conversationId: conv.id, userId: conv.userOneId },
           { conversationId: conv.id, userId: conv.userTwoId },
         ],
-        skipDuplicates: true,
       });
       count++;
     }

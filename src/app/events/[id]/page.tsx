@@ -10,7 +10,8 @@ import { EventEngagementButtons } from "@/components/EventEngagementButtons";
 import { EventNoticesPanel, type EventNoticeEntry } from "@/components/EventNoticesPanel";
 import { CollapsibleText } from "@/components/CollapsibleText";
 import { InviteToEventForm } from "@/components/InviteToEventForm";
-import { parseJsonArray, parseTeammateRequests } from "@/lib/labels";
+import { MessageAttendeesButton } from "@/components/MessageAttendeesButton";
+import { parseJsonArray, parseTeammateRequests, eventKindLabel } from "@/lib/labels";
 import { formatEventDate } from "@/lib/eventDate";
 import { assertEventVisible } from "@/lib/eventVisibility";
 import {
@@ -37,6 +38,7 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
   const event = await prisma.event.findUnique({
     where: { id },
     include: {
+      createdBy: { select: { id: true, name: true, photo: true } },
       participants: { select: { userId: true } },
       interests: { where: { userId: session.user.id }, select: { id: true } },
       notices: {
@@ -106,11 +108,14 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
   const division = parseJsonArray<EventDivisionOption>(event.division);
   const teamFormat = parseJsonArray<EventTeamFormatOption>(event.teamFormat);
   const genderCategory = parseJsonArray<EventGenderCategoryOption>(event.genderCategory);
+  // "N/A" opts a field out entirely (see EventSubmitForm) — nothing useful to
+  // show for it, so it's dropped rather than rendered as its own tag.
   const categoryTags = [
-    ...division.map((v) => EVENT_DIVISION_LABELS[v]),
-    ...teamFormat.map((v) => EVENT_TEAM_FORMAT_LABELS[v]),
-    ...genderCategory.map((v) => EVENT_GENDER_CATEGORY_LABELS[v]),
+    ...division.filter((v) => v !== "NA").map((v) => EVENT_DIVISION_LABELS[v]),
+    ...teamFormat.filter((v) => v !== "NA").map((v) => EVENT_TEAM_FORMAT_LABELS[v]),
+    ...genderCategory.filter((v) => v !== "NA").map((v) => EVENT_GENDER_CATEGORY_LABELS[v]),
   ];
+  const kindLabel = eventKindLabel(event);
 
   return (
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
@@ -139,6 +144,11 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
                     🔒 Private
                   </span>
                 )}
+                {kindLabel && (
+                  <span className="ml-2 rounded-full bg-b2b-purple/10 px-2 py-0.5 text-xs text-b2b-purple">
+                    {kindLabel}
+                  </span>
+                )}
                 {event.tag && (
                   <span className="ml-2 rounded-full bg-b2b-purple/10 px-2 py-0.5 text-xs text-b2b-purple">
                     {event.tag}
@@ -148,6 +158,14 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
               <p className="mt-1 text-sm text-b2b-ink/50">
                 {formatEventDate(event)} · {event.isOnline ? "Online" : event.location}
               </p>
+              {event.createdBy && (
+                <p className="mt-1 text-xs text-b2b-ink/40">
+                  Organized by{" "}
+                  <Link href={`/profile/${event.createdBy.id}`} className="font-medium text-b2b-ink/60 hover:underline">
+                    {event.createdBy.name}
+                  </Link>
+                </p>
+              )}
             </div>
             <EventEngagementButtons
               eventId={event.id}
@@ -197,7 +215,10 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
           )}
 
           {event.isPrivate && isOrganizer && (
-            <div className="mt-4">
+            <div className="mt-4 flex flex-col gap-3">
+              {event.participants.some((p) => p.userId !== session.user.id) && (
+                <MessageAttendeesButton eventId={event.id} />
+              )}
               <InviteToEventForm eventId={event.id} gymOptions={gymOptions} />
             </div>
           )}

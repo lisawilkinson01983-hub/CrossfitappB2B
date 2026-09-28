@@ -20,14 +20,20 @@ export type WorkoutUnitOption = (typeof WORKOUT_UNITS)[number];
 export const WORKOUT_INTENSITIES = ["RX", "SCALED"] as const;
 export type WorkoutIntensityOption = (typeof WORKOUT_INTENSITIES)[number];
 
-export const EVENT_DIVISIONS = ["SCALED", "RX", "INTERMEDIATE"] as const;
+// "NA" opts out of the field entirely (e.g. a social event with no ability
+// requirement) — see the `toggle` helper in EventSubmitForm, which treats it
+// as mutually exclusive with the real values.
+export const EVENT_DIVISIONS = ["SCALED", "RX", "INTERMEDIATE", "NA"] as const;
 export type EventDivisionOption = (typeof EVENT_DIVISIONS)[number];
 
-export const EVENT_TEAM_FORMATS = ["SINGLES", "PAIRS", "TEAMS"] as const;
+export const EVENT_TEAM_FORMATS = ["SINGLES", "PAIRS", "TEAMS", "NA"] as const;
 export type EventTeamFormatOption = (typeof EVENT_TEAM_FORMATS)[number];
 
-export const EVENT_GENDER_CATEGORIES = ["MALE", "FEMALE", "MIXED"] as const;
+export const EVENT_GENDER_CATEGORIES = ["MALE", "FEMALE", "MIXED", "NA"] as const;
 export type EventGenderCategoryOption = (typeof EVENT_GENDER_CATEGORIES)[number];
+
+export const EVENT_KINDS = ["COMPETITION", "SOCIAL", "OTHER"] as const;
+export type EventKindOption = (typeof EVENT_KINDS)[number];
 
 export const REPORT_TARGET_TYPES = [
   "USER",
@@ -308,6 +314,9 @@ export const eventSubmissionSchema = z
     // (see EventInvite) — meant for social meetups and gym-only competitions
     // rather than public listings.
     isPrivate: checkboxToBoolean,
+    eventKind: z.enum(EVENT_KINDS, { errorMap: () => ({ message: "Select an event type" }) }),
+    // Only required when eventKind is "OTHER" — see the superRefine below.
+    eventKindOther: z.preprocess(emptyToUndefined, z.string().trim().max(100).optional()),
   })
   .superRefine((data, ctx) => {
     if (!data.isOnline && !data.location) {
@@ -319,6 +328,9 @@ export const eventSubmissionSchema = z
         message: "End date can't be before the start date",
         path: ["endDate"],
       });
+    }
+    if (data.eventKind === "OTHER" && !data.eventKindOther) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Describe the event type", path: ["eventKindOther"] });
     }
   });
 
@@ -340,6 +352,8 @@ export const eventEditSchema = z
     division: z.array(z.enum(EVENT_DIVISIONS)).optional().default([]),
     teamFormat: z.array(z.enum(EVENT_TEAM_FORMATS)).optional().default([]),
     genderCategory: z.array(z.enum(EVENT_GENDER_CATEGORIES)).optional().default([]),
+    eventKind: z.preprocess(emptyToUndefined, z.enum(EVENT_KINDS).optional()),
+    eventKindOther: z.preprocess(emptyToUndefined, z.string().trim().max(100).optional()),
   })
   .superRefine((data, ctx) => {
     if (!data.isOnline && !data.location) {
@@ -351,6 +365,9 @@ export const eventEditSchema = z
         message: "End date can't be before the start date",
         path: ["endDate"],
       });
+    }
+    if (data.eventKind === "OTHER" && !data.eventKindOther) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Describe the event type", path: ["eventKindOther"] });
     }
   });
 
