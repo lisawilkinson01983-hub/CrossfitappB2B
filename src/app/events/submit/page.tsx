@@ -32,9 +32,9 @@ export default async function SubmitEventPage() {
         </SectionCard>
       </div>
       <p className="mt-3 text-center text-sm text-b2b-ink/40">
-        Track the status of what you've submitted under Settings →{" "}
-        <Link href="/settings#event-submissions" className="text-b2b-pink underline">
-          Event submissions
+        Track the status of what you've submitted under{" "}
+        <Link href="/settings/events" className="text-b2b-pink underline">
+          Settings → Event submissions
         </Link>
         .
       </p>

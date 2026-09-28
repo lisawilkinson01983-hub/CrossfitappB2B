@@ -1,18 +1,10 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NavBar } from "@/components/NavBar";
 import { SectionCard } from "@/components/SectionCard";
-import { BlockMuteControls } from "@/components/BlockMuteControls";
-import { ChangeEmailForm } from "./ChangeEmailForm";
-import { ChangePasswordForm } from "./ChangePasswordForm";
-import { DeleteAccountForm } from "./DeleteAccountForm";
-import { InviteCodeCard } from "./InviteCodeCard";
-import { generateUniqueInviteCode } from "@/lib/inviteCode";
-import { EVENT_STATUS_BADGE_CLASSES, EVENT_STATUS_LABELS } from "@/lib/labels";
-import { formatEventDate } from "@/lib/eventDate";
+import { SettingsMenuLink } from "@/components/SettingsMenuLink";
 
 export default async function SettingsPage() {
   const session = await getServerSession(authOptions);
@@ -20,35 +12,18 @@ export default async function SettingsPage() {
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { isPrivate: true, isAdmin: true, inviteCode: true, _count: { select: { referrals: true } } },
+    select: { isAdmin: true, _count: { select: { referrals: true } } },
   });
   if (!user) redirect("/login");
 
-  // Self-healing fallback — every new signup gets a code already, and
-  // scripts/backfill-invite-codes.js covers accounts from before that
-  // shipped, but this keeps the page correct even if neither has run yet.
-  let inviteCode = user.inviteCode;
-  if (!inviteCode) {
-    inviteCode = await generateUniqueInviteCode();
-    await prisma.user.update({ where: { id: session.user.id }, data: { inviteCode } });
-  }
-
-  const [blocks, mutes, openReportCount, pendingVerificationCount, mySubmissions] = await Promise.all([
-    prisma.block.findMany({
-      where: { blockerId: session.user.id },
-      include: { blocked: { select: { id: true, name: true } } },
-      orderBy: { createdAt: "desc" },
-    }),
-    prisma.mute.findMany({
-      where: { userId: session.user.id },
-      include: { mutedUser: { select: { id: true, name: true } } },
-      orderBy: { createdAt: "desc" },
-    }),
+  const [blockCount, muteCount, submissionCount, openReportCount, pendingVerificationCount] = await Promise.all([
+    prisma.block.count({ where: { blockerId: session.user.id } }),
+    prisma.mute.count({ where: { userId: session.user.id } }),
+    prisma.event.count({ where: { submittedById: session.user.id } }),
     user.isAdmin ? prisma.report.count({ where: { status: "OPEN" } }) : 0,
     user.isAdmin
       ? prisma.user.count({ where: { accountType: "AFFILIATE", verificationRequestedAt: { not: null }, verifiedAt: null } })
       : 0,
-    prisma.event.findMany({ where: { submittedById: session.user.id }, orderBy: { createdAt: "desc" } }),
   ]);
 
   return (
@@ -56,196 +31,39 @@ export default async function SettingsPage() {
       <NavBar />
       <h1 className="mt-6 text-2xl font-bold">Settings</h1>
 
-      <div className="mt-6 flex flex-col gap-6">
-        <SectionCard
-          title="Account"
-          action={
-            <Link href="/profile/edit" className="text-sm text-b2b-pink underline">
-              Edit your profile
-            </Link>
-          }
-        >
-          <div className="flex flex-col gap-4">
-            <div className="rounded-lg border border-b2b-purple/10 bg-b2b-bg p-4">
-              <h3 className="text-xs font-semibold uppercase tracking-wide text-b2b-ink/50">
-                Change email
-              </h3>
-              <div className="mt-2">
-                <ChangeEmailForm />
-              </div>
-            </div>
-
-            <div className="rounded-lg border border-b2b-purple/10 bg-b2b-bg p-4">
-              <h3 className="text-xs font-semibold uppercase tracking-wide text-b2b-ink/50">
-                Change password
-              </h3>
-              <div className="mt-2">
-                <ChangePasswordForm />
-              </div>
-            </div>
-          </div>
-        </SectionCard>
-
-        <SectionCard title="Invite Friends">
-          <InviteCodeCard code={inviteCode} referralCount={user._count.referrals} />
-        </SectionCard>
-
-        {mySubmissions.length > 0 && (
-          <SectionCard title="Event submissions">
-            <div id="event-submissions" className="scroll-mt-6" />
-            <div className="flex flex-col gap-3">
-              {mySubmissions.map((event) => (
-                <div
-                  key={event.id}
-                  className="flex items-center justify-between rounded-lg border border-b2b-purple/10 bg-b2b-bg p-3"
-                >
-                  <div>
-                    <p className="font-medium">
-                      {event.status === "APPROVED" ? (
-                        <Link href={`/events/${event.id}`} className="hover:underline">
-                          {event.name}
-                        </Link>
-                      ) : (
-                        event.name
-                      )}
-                    </p>
-                    <p className="text-sm text-b2b-ink/50">
-                      {formatEventDate(event)} · {event.isOnline ? "Online" : event.location}
-                    </p>
-                  </div>
-                  <div className="flex shrink-0 items-center gap-2">
-                    {event.isPrivate && (
-                      <span className="whitespace-nowrap rounded-full bg-b2b-purple/10 px-2 py-0.5 text-xs font-medium text-b2b-purple">
-                        🔒 Private
-                      </span>
-                    )}
-                    <span
-                      className={`whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium ${EVENT_STATUS_BADGE_CLASSES[event.status]}`}
-                    >
-                      {EVENT_STATUS_LABELS[event.status]}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </SectionCard>
-        )}
-
-        {user.isAdmin && (
-          <SectionCard title="Admin">
-            <div className="flex flex-col gap-2">
-              <AdminLink href="/reports/review" label="Review reports" count={openReportCount} />
-              <AdminLink href="/leaderboard" label="Activity leaderboard" />
-              <AdminLink
-                href="/admin/verification-requests"
-                label="Verification requests"
-                count={pendingVerificationCount}
+      <div className="mt-6">
+        <SectionCard>
+          <div className="flex flex-col gap-2">
+            <SettingsMenuLink href="/settings/account" label="Account" description="Email, password, profile" />
+            <SettingsMenuLink
+              href="/settings/invite"
+              label="Invite Friends"
+              description={`${user._count.referrals} ${user._count.referrals === 1 ? "person has" : "people have"} joined using your code`}
+            />
+            <SettingsMenuLink
+              href="/settings/events"
+              label="Event submissions"
+              description="Track events you've submitted"
+              count={submissionCount}
+            />
+            <SettingsMenuLink
+              href="/settings/privacy"
+              label="Privacy & Safety"
+              description={`${blockCount} blocked · ${muteCount} muted`}
+            />
+            <SettingsMenuLink href="/settings/legal" label="Legal" description="Terms, privacy policy, guidelines" />
+            {user.isAdmin && (
+              <SettingsMenuLink
+                href="/settings/admin"
+                label="Admin"
+                description="Reports, verification, notices, backups"
+                count={openReportCount + pendingVerificationCount}
               />
-              <AdminLink href="/admin/notices" label="Send a notice" />
-              {/* A plain <a>, not AdminLink/next/link — it's a file download, not a page. */}
-              <a
-                href="/api/admin/backup"
-                className="flex items-center justify-between rounded-lg border border-b2b-purple/10 bg-b2b-bg px-4 py-2.5 text-sm font-medium text-b2b-ink transition hover:border-b2b-pink/40 hover:bg-b2b-pink/5"
-              >
-                Download database backup
-              </a>
-              <p className="mt-1 text-xs text-b2b-ink/50">
-                Save one weekly (and before big changes) somewhere safe like Google Drive. Photos aren't
-                included.
-              </p>
-            </div>
-          </SectionCard>
-        )}
-
-        <SectionCard title="Privacy &amp; Safety">
-          <p className="text-sm text-b2b-ink/60">
-            Your profile is currently <strong>{user.isPrivate ? "private" : "public"}</strong>.{" "}
-            <Link href="/profile/edit" className="text-b2b-pink underline">
-              Change this
-            </Link>
-          </p>
-
-          <div className="mt-4 flex flex-col gap-4">
-            <div className="rounded-lg border border-b2b-purple/10 bg-b2b-bg p-4">
-              <h3 className="text-xs font-semibold uppercase tracking-wide text-b2b-ink/50">
-                Blocked users ({blocks.length})
-              </h3>
-              {blocks.length === 0 ? (
-                <p className="mt-1 text-sm text-b2b-ink/40">No one blocked.</p>
-              ) : (
-                <div className="mt-2 flex flex-col gap-2">
-                  {blocks.map((b) => (
-                    <div key={b.id} className="flex items-center justify-between text-sm">
-                      <span>{b.blocked.name}</span>
-                      <BlockMuteControls
-                        targetUserId={b.blocked.id}
-                        initialBlocked={true}
-                        initialMuted={false}
-                      />
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div className="rounded-lg border border-b2b-purple/10 bg-b2b-bg p-4">
-              <h3 className="text-xs font-semibold uppercase tracking-wide text-b2b-ink/50">
-                Muted accounts ({mutes.length})
-              </h3>
-              {mutes.length === 0 ? (
-                <p className="mt-1 text-sm text-b2b-ink/40">No one muted.</p>
-              ) : (
-                <div className="mt-2 flex flex-col gap-2">
-                  {mutes.map((m) => (
-                    <div key={m.id} className="flex items-center justify-between text-sm">
-                      <span>{m.mutedUser.name}</span>
-                      <BlockMuteControls
-                        targetUserId={m.mutedUser.id}
-                        initialBlocked={false}
-                        initialMuted={true}
-                      />
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+            )}
+            <SettingsMenuLink href="/settings/danger" label="Danger Zone" description="Delete your account" />
           </div>
-        </SectionCard>
-
-        <SectionCard title="Legal">
-          <div className="flex flex-col gap-2 text-sm">
-            <Link href="/terms" className="text-b2b-pink underline">
-              Terms of Service
-            </Link>
-            <Link href="/privacy" className="text-b2b-pink underline">
-              Privacy Policy
-            </Link>
-            <Link href="/guidelines" className="text-b2b-pink underline">
-              Community Guidelines
-            </Link>
-          </div>
-        </SectionCard>
-
-        <SectionCard title="Danger Zone">
-          <DeleteAccountForm />
         </SectionCard>
       </div>
     </main>
-  );
-}
-
-function AdminLink({ href, label, count }: { href: string; label: string; count?: number }) {
-  return (
-    <Link
-      href={href}
-      className="flex items-center justify-between rounded-lg border border-b2b-purple/10 bg-b2b-bg px-4 py-2.5 text-sm font-medium text-b2b-ink transition hover:border-b2b-pink/40 hover:bg-b2b-pink/5"
-    >
-      {label}
-      {!!count && (
-        <span className="flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-b2b-pink px-1.5 text-xs font-medium text-white">
-          {count}
-        </span>
-      )}
-    </Link>
   );
 }

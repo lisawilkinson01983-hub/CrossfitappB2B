@@ -52,7 +52,7 @@ export default async function LeaderboardPage({
     <main className="mx-auto max-w-4xl px-4 pt-8 pb-28">
       <NavBar />
 
-      <Link href="/settings" className="mt-6 inline-block text-sm text-b2b-pink underline">
+      <Link href="/settings/admin" className="mt-6 inline-block text-sm text-b2b-pink underline">
         ← Back to settings
       </Link>
 
