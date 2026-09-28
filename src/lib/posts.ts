@@ -22,6 +22,10 @@ export const postCardInclude = {
   },
   linkedWorkout: { select: { wodName: true, score: true, unit: true, intensity: true, description: true } },
   linkedEvent: { select: { id: true, name: true, date: true, endDate: true, isOnline: true, location: true } },
+  media: {
+    orderBy: { order: "asc" },
+    select: { id: true, kind: true, url: true, thumbnail: true },
+  },
   likes: { select: { userId: true } },
   comments: {
     orderBy: { createdAt: "asc" },
@@ -43,6 +47,7 @@ export function toPostCardData(post: PostWithCardData, currentUserId: string): P
     photo: post.photo,
     video: post.video,
     videoThumbnail: post.videoThumbnail,
+    media: post.media,
     createdAt: post.createdAt,
     isOwner: post.userId === currentUserId,
     author: post.user,

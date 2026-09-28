@@ -13,6 +13,11 @@ import {
 import { parseFormData } from "@/lib/http";
 import { notifyMentions } from "@/lib/notify";
 
+// A generous cap on how many photos/videos one post can carry — high enough
+// nobody genuinely posting a workout/PB will hit it, low enough to keep a
+// single request from uploading an unbounded batch of files.
+const MAX_MEDIA_PER_POST = 10;
+
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
@@ -32,45 +37,54 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
   }
 
-  const photo = formData.get("photo");
-  const hasPhoto = photo instanceof File && photo.size > 0;
-  const video = formData.get("video");
-  const hasVideo = video instanceof File && video.size > 0;
+  const mediaFiles = formData.getAll("media").filter((f): f is File => f instanceof File && f.size > 0);
+  const mediaKinds = formData.getAll("mediaKind").filter((k): k is string => typeof k === "string");
+  if (mediaFiles.length !== mediaKinds.length) {
+    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+  }
+  if (mediaFiles.length > MAX_MEDIA_PER_POST) {
+    return NextResponse.json({ error: `You can attach up to ${MAX_MEDIA_PER_POST} photos/videos` }, { status: 400 });
+  }
+  const hasMedia = mediaFiles.length > 0;
 
-  if (!parsed.data.contentText && !hasPhoto && !hasVideo) {
+  if (!parsed.data.contentText && !hasMedia) {
     return NextResponse.json({ error: "Write something, or add a photo or video" }, { status: 400 });
   }
 
-  // A post kept out of the feed only ever shows up via its photo/video in the
+  // A post kept out of the feed only ever shows up via its media in the
   // gallery — text alone would be saved somewhere nobody can ever see it.
-  if (!parsed.data.sharedToFeed && !hasPhoto && !hasVideo) {
+  if (!parsed.data.sharedToFeed && !hasMedia) {
     return NextResponse.json({ error: "Add a photo or video" }, { status: 400 });
   }
 
-  let photoPath: string | undefined;
-  let videoPath: string | undefined;
-  let videoThumbnailPath: string | null = null;
-  if (hasPhoto && photo instanceof File) {
-    try {
-      photoPath = await savePhotoUpload(photo, session.user.id);
-    } catch (err) {
-      if (err instanceof PhotoUploadError) {
-        return NextResponse.json({ error: err.message }, { status: 400 });
+  const media: { kind: "PHOTO" | "VIDEO"; url: string; thumbnail: string | null; order: number }[] = [];
+  for (let i = 0; i < mediaFiles.length; i++) {
+    const file = mediaFiles[i];
+    if (mediaKinds[i] === "video") {
+      try {
+        const url = await saveVideoUpload(file, session.user.id);
+        let thumbnail: string | null = null;
+        const thumbnailFile = formData.get(`thumbnail-${i}`);
+        if (thumbnailFile instanceof File && thumbnailFile.size > 0) {
+          thumbnail = await saveVideoThumbnailUpload(thumbnailFile, session.user.id);
+        }
+        media.push({ kind: "VIDEO", url, thumbnail, order: i });
+      } catch (err) {
+        if (err instanceof VideoUploadError) {
+          return NextResponse.json({ error: err.message }, { status: 400 });
+        }
+        throw err;
       }
-      throw err;
-    }
-  } else if (hasVideo && video instanceof File) {
-    try {
-      videoPath = await saveVideoUpload(video, session.user.id);
-    } catch (err) {
-      if (err instanceof VideoUploadError) {
-        return NextResponse.json({ error: err.message }, { status: 400 });
+    } else {
+      try {
+        const url = await savePhotoUpload(file, session.user.id);
+        media.push({ kind: "PHOTO", url, thumbnail: null, order: i });
+      } catch (err) {
+        if (err instanceof PhotoUploadError) {
+          return NextResponse.json({ error: err.message }, { status: 400 });
+        }
+        throw err;
       }
-      throw err;
-    }
-    const thumbnail = formData.get("videoThumbnail");
-    if (thumbnail instanceof File && thumbnail.size > 0) {
-      videoThumbnailPath = await saveVideoThumbnailUpload(thumbnail, session.user.id);
     }
   }
 
@@ -79,10 +93,8 @@ export async function POST(req: Request) {
       userId: session.user.id,
       type: "UPDATE",
       contentText: parsed.data.contentText ?? null,
-      photo: photoPath ?? null,
-      video: videoPath ?? null,
-      videoThumbnail: videoThumbnailPath,
       sharedToFeed: parsed.data.sharedToFeed,
+      media: { create: media },
     },
   });
 

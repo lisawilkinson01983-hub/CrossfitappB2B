@@ -14,6 +14,7 @@ import {
 import type { LevelOption, TeammateRequest, WorkoutIntensityOption, WorkoutUnitOption } from "@/lib/validation";
 import { Avatar } from "@/components/Avatar";
 import { ExpandableImage } from "@/components/ExpandableImage";
+import { PostMediaCarousel } from "@/components/PostMediaCarousel";
 import { MentionText } from "@/components/MentionText";
 import { MentionTextarea } from "@/components/MentionTextarea";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
@@ -31,14 +32,24 @@ export type CommentData = {
   likedByMe: boolean;
 };
 
+export type PostMediaItem = {
+  id: string;
+  kind: "PHOTO" | "VIDEO";
+  url: string;
+  thumbnail: string | null;
+};
+
 export type PostCardData = {
   id: string;
   type: "WORKOUT" | "PR" | "UPDATE" | "TEAMMATE_REQUEST";
   contentText: string | null;
   teammateRequests: TeammateRequest[];
+  // Legacy single-attachment fields — only ever set on a post created before
+  // multi-media support; `media` is what every new post uses (see PostMedia).
   photo: string | null;
   video: string | null;
   videoThumbnail: string | null;
+  media: PostMediaItem[];
   createdAt: Date;
   isOwner: boolean;
   author: {
@@ -523,23 +534,29 @@ export function PostCard({
         )
       )}
 
-      {post.photo && (
-        <ExpandableImage
-          src={post.photo}
-          alt="Post photo"
-          className="mt-3 max-h-96 w-full rounded object-cover"
-        />
-      )}
+      {post.media.length > 0 ? (
+        <PostMediaCarousel items={post.media} />
+      ) : (
+        <>
+          {post.photo && (
+            <ExpandableImage
+              src={post.photo}
+              alt="Post photo"
+              className="mt-3 max-h-96 w-full rounded object-cover"
+            />
+          )}
 
-      {post.video && (
-        <video
-          controls
-          poster={post.videoThumbnail ?? undefined}
-          preload="metadata"
-          className="mt-3 max-h-96 w-full rounded bg-black"
-        >
-          <source src={post.video} />
-        </video>
+          {post.video && (
+            <video
+              controls
+              poster={post.videoThumbnail ?? undefined}
+              preload="metadata"
+              className="mt-3 max-h-96 w-full rounded bg-black"
+            >
+              <source src={post.video} />
+            </video>
+          )}
+        </>
       )}
 
       <div className="mt-3 flex items-center gap-4 border-t border-gray-100 pt-3 text-sm">

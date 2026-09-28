@@ -14,8 +14,9 @@ type PreviewPost = {
   photo: string | null;
   video: string | null;
   videoThumbnail: string | null;
+  media: { kind: "PHOTO" | "VIDEO"; url: string; thumbnail: string | null }[];
   createdAt: Date;
-  _count: { likes: number; comments: number };
+  _count: { likes: number; comments: number; media: number };
   linkedWorkout: { wodName: string } | null;
   linkedEvent: { name: string } | null;
   user: { name: string; photo: string | null };
@@ -27,9 +28,17 @@ function summarize(post: PreviewPost): string {
   if (post.linkedWorkout) return post.linkedWorkout.wodName;
   if (post.type === "TEAMMATE_REQUEST") return "Looking for teammates";
   if (post.linkedEvent) return `Competing in ${post.linkedEvent.name}`;
-  if (post.video) return "Shared a video";
-  if (post.photo) return "Shared a photo";
+  if (post._count.media > 1) return `Shared ${post._count.media} photos/videos`;
+  if (post.media[0]?.kind === "VIDEO" || post.video) return "Shared a video";
+  if (post.media[0]?.kind === "PHOTO" || post.photo) return "Shared a photo";
   return "Update";
+}
+
+/** The one thumbnail shown for a preview row — the post's first media item, or its legacy single photo/video. */
+function previewThumbnail(post: PreviewPost): string | null {
+  const first = post.media[0];
+  if (first) return first.kind === "VIDEO" ? first.thumbnail : first.url;
+  return post.photo ?? post.videoThumbnail;
 }
 
 /** A profile's own "wall" — compact one-line rows, collapsing to a dedicated full-history page with the real PostCard. */
@@ -46,8 +55,9 @@ export async function ProfilePosts({ userId }: { userId: string }) {
         photo: true,
         video: true,
         videoThumbnail: true,
+        media: { orderBy: { order: "asc" }, take: 1, select: { kind: true, url: true, thumbnail: true } },
         createdAt: true,
-        _count: { select: { likes: true, comments: true } },
+        _count: { select: { likes: true, comments: true, media: true } },
         linkedWorkout: { select: { wodName: true } },
         linkedEvent: { select: { name: true } },
         user: { select: { name: true, photo: true } },
@@ -77,9 +87,9 @@ export async function ProfilePosts({ userId }: { userId: string }) {
               href={`/profile/${userId}/posts#post-${post.id}`}
               className="flex items-start gap-3 rounded-lg border border-b2b-purple/10 bg-b2b-bg px-3 py-2.5 text-sm hover:border-b2b-pink/30"
             >
-              {post.photo || post.videoThumbnail ? (
+              {previewThumbnail(post) ? (
                 <Image
-                  src={(post.photo ?? post.videoThumbnail)!}
+                  src={previewThumbnail(post)!}
                   alt=""
                   width={48}
                   height={48}

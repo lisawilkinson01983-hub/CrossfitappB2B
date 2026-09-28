@@ -7,53 +7,70 @@ import { readVideoInfo } from "@/lib/readVideoInfo";
 
 type Attachment = { kind: "photo" | "video"; file: File; thumbnail?: Blob | null };
 
-/** Adds a photo or video straight to the gallery, with an option to also post it to the feed. */
+const MAX_ATTACHMENTS = 10;
+const MEDIA_ACCEPT = "image/jpeg,image/png,image/webp,video/mp4,video/quicktime";
+
+/** Adds one or more photos/videos straight to the gallery, with an option to also post them to the feed. */
 export function AddMediaButton() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [attachment, setAttachment] = useState<Attachment | null>(null);
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [sharedToFeed, setSharedToFeed] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const photoInputRef = useRef<HTMLInputElement>(null);
-  const videoInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   function reset() {
-    setAttachment(null);
+    setAttachments([]);
     setSharedToFeed(false);
     setError(null);
     setOpen(false);
   }
 
-  async function handleFileChange(kind: "photo" | "video", e: ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0] ?? null;
+  async function handleFilesChange(e: ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? []);
     e.target.value = "";
-    if (!file) return;
+    if (files.length === 0) return;
 
-    let thumbnail: Blob | null | undefined;
-    if (kind === "video") {
-      try {
-        const info = await readVideoInfo(file);
-        if (info.duration > MAX_VIDEO_SECONDS + 0.5) {
-          setError(
-            `Videos must be ${MAX_VIDEO_SECONDS} seconds or under (this one is ${Math.round(info.duration)}s)`
-          );
-          return;
+    setError(null);
+    const room = MAX_ATTACHMENTS - attachments.length;
+    if (files.length > room) {
+      setError(`You can attach up to ${MAX_ATTACHMENTS} photos/videos`);
+    }
+
+    const next: Attachment[] = [];
+    for (const file of files.slice(0, Math.max(room, 0))) {
+      const kind = file.type.startsWith("video/") ? "video" : "photo";
+      if (kind === "video") {
+        try {
+          const info = await readVideoInfo(file);
+          if (info.duration > MAX_VIDEO_SECONDS + 0.5) {
+            setError(
+              `Videos must be ${MAX_VIDEO_SECONDS} seconds or under (${file.name} is ${Math.round(info.duration)}s)`
+            );
+            continue;
+          }
+          next.push({ kind, file, thumbnail: info.thumbnail });
+        } catch {
+          // Can't preview the duration client-side — let the server be the
+          // authority rather than blocking the attach here.
+          next.push({ kind, file });
         }
-        thumbnail = info.thumbnail;
-      } catch {
-        // Can't preview the duration client-side — let the server be the
-        // authority rather than blocking the attach here.
+      } else {
+        next.push({ kind, file });
       }
     }
 
-    setError(null);
-    setAttachment({ kind, file, thumbnail });
+    setAttachments((prev) => [...prev, ...next]);
+  }
+
+  function removeAttachment(index: number) {
+    setAttachments((prev) => prev.filter((_, i) => i !== index));
   }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    if (!attachment) {
+    if (attachments.length === 0) {
       setError("Add a photo or video");
       return;
     }
@@ -63,10 +80,13 @@ export function AddMediaButton() {
 
     const formData = new FormData();
     formData.set("sharedToFeed", sharedToFeed ? "true" : "false");
-    formData.set(attachment.kind, attachment.file);
-    if (attachment.kind === "video" && attachment.thumbnail) {
-      formData.set("videoThumbnail", attachment.thumbnail, "thumbnail.jpg");
-    }
+    attachments.forEach((att, i) => {
+      formData.append("media", att.file);
+      formData.append("mediaKind", att.kind);
+      if (att.kind === "video" && att.thumbnail) {
+        formData.append(`thumbnail-${i}`, att.thumbnail, "thumbnail.jpg");
+      }
+    });
 
     const res = await fetch("/api/posts", { method: "POST", body: formData });
     setSubmitting(false);
@@ -95,56 +115,45 @@ export function AddMediaButton() {
         {error && <p className="rounded bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
 
         <input
-          ref={photoInputRef}
+          ref={fileInputRef}
           type="file"
-          accept="image/jpeg,image/png,image/webp"
-          onChange={(e) => handleFileChange("photo", e)}
-          className="hidden"
-        />
-        <input
-          ref={videoInputRef}
-          type="file"
-          accept="video/mp4,video/quicktime"
-          onChange={(e) => handleFileChange("video", e)}
+          accept={MEDIA_ACCEPT}
+          multiple
+          onChange={handleFilesChange}
           className="hidden"
         />
 
-        <div className="flex items-center gap-2">
+        <div>
           <button
             type="button"
-            onClick={() => photoInputRef.current?.click()}
-            className={`rounded-full border px-3 py-1.5 text-sm font-medium ${
-              attachment?.kind === "photo"
-                ? "border-b2b-pink bg-b2b-pink/10 text-b2b-pink"
-                : "border-b2b-purple/20 text-b2b-ink/60 hover:border-b2b-pink hover:text-b2b-pink"
-            }`}
+            onClick={() => fileInputRef.current?.click()}
+            disabled={attachments.length >= MAX_ATTACHMENTS}
+            className="rounded-full border border-b2b-purple/20 px-3 py-1.5 text-sm font-medium text-b2b-ink/60 hover:border-b2b-pink hover:text-b2b-pink disabled:opacity-50"
           >
-            📷 Photo
-          </button>
-          <button
-            type="button"
-            onClick={() => videoInputRef.current?.click()}
-            className={`rounded-full border px-3 py-1.5 text-sm font-medium ${
-              attachment?.kind === "video"
-                ? "border-b2b-pink bg-b2b-pink/10 text-b2b-pink"
-                : "border-b2b-purple/20 text-b2b-ink/60 hover:border-b2b-pink hover:text-b2b-pink"
-            }`}
-          >
-            🎥 Video
+            📎 Upload media
           </button>
         </div>
 
-        {attachment && (
-          <div className="flex items-center justify-between rounded border border-b2b-purple/10 bg-b2b-card px-3 py-2 text-sm text-b2b-ink/60">
-            <span className="truncate">{attachment.file.name}</span>
-            <button
-              type="button"
-              onClick={() => setAttachment(null)}
-              aria-label="Remove attachment"
-              className="ml-2 text-lg leading-none text-b2b-ink/40 hover:text-b2b-ink"
-            >
-              ×
-            </button>
+        {attachments.length > 0 && (
+          <div className="flex flex-col gap-2">
+            {attachments.map((att, i) => (
+              <div
+                key={i}
+                className="flex items-center justify-between rounded border border-b2b-purple/10 bg-b2b-card px-3 py-2 text-sm text-b2b-ink/60"
+              >
+                <span className="truncate">
+                  {att.kind === "video" ? "🎥" : "📷"} {att.file.name}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => removeAttachment(i)}
+                  aria-label={`Remove ${att.file.name}`}
+                  className="ml-2 text-lg leading-none text-b2b-ink/40 hover:text-b2b-ink"
+                >
+                  ×
+                </button>
+              </div>
+            ))}
           </div>
         )}
 
@@ -160,7 +169,7 @@ export function AddMediaButton() {
         <div className="flex gap-3">
           <button
             type="submit"
-            disabled={submitting || !attachment}
+            disabled={submitting || attachments.length === 0}
             className="rounded bg-b2b-pink px-4 py-2 text-sm font-medium text-white hover:bg-b2b-pink-dark disabled:opacity-50"
           >
             {submitting ? "Adding..." : "Add to gallery"}

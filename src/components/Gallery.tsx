@@ -17,10 +17,17 @@ type MediaItem = {
 export async function Gallery({ userId, canAdd = false }: { userId: string; canAdd?: boolean }) {
   const [posts, workouts] = await Promise.all([
     prisma.post.findMany({
-      where: { userId, OR: [{ photo: { not: null } }, { video: { not: null } }] },
+      where: { userId, OR: [{ photo: { not: null } }, { video: { not: null } }, { media: { some: {} } }] },
       orderBy: { createdAt: "desc" },
       take: GALLERY_LIMIT,
-      select: { id: true, photo: true, video: true, videoThumbnail: true, createdAt: true },
+      select: {
+        id: true,
+        photo: true,
+        video: true,
+        videoThumbnail: true,
+        createdAt: true,
+        media: { orderBy: { order: "asc" }, select: { id: true, kind: true, url: true, thumbnail: true } },
+      },
     }),
     prisma.workout.findMany({
       where: { userId, OR: [{ photo: { not: null } }, { video: { not: null } }] },
@@ -31,13 +38,27 @@ export async function Gallery({ userId, canAdd = false }: { userId: string; canA
   ]);
 
   const items: MediaItem[] = [
-    ...posts.map((p) => ({
-      key: `post-${p.id}`,
-      type: (p.video ? "video" : "photo") as MediaItem["type"],
-      url: (p.video ?? p.photo)!,
-      thumbnail: p.videoThumbnail,
-      createdAt: p.createdAt,
-    })),
+    // A multi-media post contributes one gallery tile per photo/video —
+    // the gallery is a flat grid, not carousels within a grid.
+    ...posts.flatMap((p) =>
+      p.media.length > 0
+        ? p.media.map((m) => ({
+            key: `post-${p.id}-${m.id}`,
+            type: (m.kind === "VIDEO" ? "video" : "photo") as MediaItem["type"],
+            url: m.url,
+            thumbnail: m.thumbnail,
+            createdAt: p.createdAt,
+          }))
+        : [
+            {
+              key: `post-${p.id}`,
+              type: (p.video ? "video" : "photo") as MediaItem["type"],
+              url: (p.video ?? p.photo)!,
+              thumbnail: p.videoThumbnail,
+              createdAt: p.createdAt,
+            },
+          ]
+    ),
     ...workouts.map((w) => ({
       key: `workout-${w.id}`,
       type: (w.video ? "video" : "photo") as MediaItem["type"],

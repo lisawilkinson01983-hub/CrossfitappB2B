@@ -53,6 +53,11 @@ enum PostType {
   TEAMMATE_REQUEST
 }
 
+enum PostMediaKind {
+  PHOTO
+  VIDEO
+}
+
 enum FollowRequestStatus {
   PENDING
   ACCEPTED
@@ -410,12 +415,18 @@ model Post {
 
   type        PostType
   contentText String?
+  // Single-media legacy fields — posts created before multi-media support
+  // (PostMedia below) still read from these; every new post uses `media`
+  // instead, even for just one photo or video.
   photo       String? // served path, e.g. "/media/xyz.jpg" (see src/lib/uploads.ts)
   video       String? // served path, e.g. "/media/xyz.mp4" — mutually exclusive with photo
   // A frame captured client-side from `video` at attach time (see
   // src/lib/readVideoInfo.ts) and used as its poster — without one, <video>
   // just shows a black box until played.
   videoThumbnail String?
+
+  // A post's photos/videos, in carousel order — see PostMedia below.
+  media PostMedia[]
 
   // False for media added straight to the profile Gallery rather than posted
   // to the main feed. Every other kind of post (feed composer, workout
@@ -447,6 +458,22 @@ model Post {
 
   @@index([userId])
   @@index([createdAt])
+}
+
+// One photo or video in a post's carousel (see Post.media). `order` controls
+// display/swipe order; `thumbnail` is only ever set for a VIDEO (a poster
+// frame captured client-side, same as Post.videoThumbnail).
+model PostMedia {
+  id     String @id @default(cuid())
+  postId String
+  post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  kind      PostMediaKind
+  url       String
+  thumbnail String?
+  order     Int
+
+  @@index([postId])
 }
 
 model Like {
