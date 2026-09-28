@@ -154,34 +154,32 @@ export function ChatThread({
                       {isDeleted ? "This message was deleted" : message.text}
                     </p>
                   )}
-                  <div
-                    className={`mt-1 flex flex-wrap items-center gap-2 text-xs ${isMine ? "text-white/70" : "text-b2b-ink/40"}`}
-                  >
-                    <span>
-                      {new Date(message.createdAt).toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </span>
-                    {!isDeleted && message.editedAt && <span>(edited)</span>}
-                    {!isEditing && !isDeleted && isMine && (
-                      <>
-                        <button type="button" onClick={() => startEdit(message)} className="hover:underline">
-                          Edit
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setDeleteTargetId(message.id)}
-                          className="hover:underline"
-                        >
-                          Delete
-                        </button>
-                      </>
-                    )}
-                    {!isMine && !isDeleted && (
-                      <ReportButton targetType="MESSAGE" targetId={message.id} className="hover:underline" />
-                    )}
-                  </div>
+                </div>
+                <div className="mt-1 flex flex-wrap items-center gap-2 px-1 text-xs text-b2b-ink/40">
+                  <span>
+                    {new Date(message.createdAt).toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </span>
+                  {!isDeleted && message.editedAt && <span>(edited)</span>}
+                  {!isEditing && !isDeleted && isMine && (
+                    <>
+                      <button type="button" onClick={() => startEdit(message)} className="hover:underline">
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDeleteTargetId(message.id)}
+                        className="hover:underline"
+                      >
+                        Delete
+                      </button>
+                    </>
+                  )}
+                  {!isMine && !isDeleted && (
+                    <ReportButton targetType="MESSAGE" targetId={message.id} className="hover:underline" />
+                  )}
                 </div>
               </div>
             </div>
