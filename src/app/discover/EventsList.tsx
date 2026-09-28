@@ -68,12 +68,12 @@ export async function EventsList({
   ]);
 
   const myCoords = currentUser
-    ? await ensureUserAreaCoords({ id: currentUserId, ...currentUser })
+    ? await ensureUserAreaCoords({ id: currentUserId, ...currentUser }, { background: true })
     : null;
 
   const eventsWithDistance = await Promise.all(
     events.map(async (event) => {
-      const coords = myCoords ? await ensureEventCoords(event) : null;
+      const coords = myCoords ? await ensureEventCoords(event, { background: true }) : null;
       const miles = coords && myCoords ? distanceMiles(myCoords, coords) : null;
       return { event, miles };
     }),

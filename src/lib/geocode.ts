@@ -59,18 +59,37 @@ export function distanceMiles(a: Coords, b: Coords): number {
   return EARTH_RADIUS_MILES * 2 * Math.asin(Math.sqrt(Math.min(1, h)));
 }
 
+type EnsureCoordsOptions = {
+  // A page rendering a whole list (Discover's tabs, My Events) can't afford
+  // to block on a live external geocode call for every not-yet-cached row —
+  // that's what was turning a single visit into several seconds of waiting
+  // on Nominatim. With this on, an uncached row still kicks off the geocode
+  // (so it's cached by the *next* visit) but returns null immediately rather
+  // than waiting on it. The one caller that can't tolerate that
+  // (resolveAudienceUserIds, an admin broadcast that only ever runs once per
+  // announcement) leaves this off and gets the accurate synchronous result.
+  background?: boolean;
+};
+
 // Lazily geocodes and caches a user's area, for anyone (the viewer, or a
 // search result) who set their area before distance filtering existed, or
 // whose first geocode attempt failed. Used by both Discover's Athletes and
 // Events tabs.
-export async function ensureUserAreaCoords(user: {
-  id: string;
-  area: string | null;
-  areaLat: number | null;
-  areaLng: number | null;
-}): Promise<Coords | null> {
+export async function ensureUserAreaCoords(
+  user: { id: string; area: string | null; areaLat: number | null; areaLng: number | null },
+  options: EnsureCoordsOptions = {}
+): Promise<Coords | null> {
   if (user.areaLat !== null && user.areaLng !== null) return { lat: user.areaLat, lng: user.areaLng };
   if (!user.area) return null;
+
+  if (options.background) {
+    void geocode(user.area)
+      .then((coords) =>
+        coords ? prisma.user.update({ where: { id: user.id }, data: { areaLat: coords.lat, areaLng: coords.lng } }) : null
+      )
+      .catch(() => {});
+    return null;
+  }
 
   const coords = await geocode(user.area);
   if (!coords) return null;
@@ -85,14 +104,21 @@ export async function ensureUserAreaCoords(user: {
 // Events are added directly to the database (no in-app creation form), so
 // they may not have been geocoded yet — do it lazily on first read and cache
 // the result on the row. Used by Discover's Events tab and "My Events".
-export async function ensureEventCoords(event: {
-  id: string;
-  location: string | null;
-  lat: number | null;
-  lng: number | null;
-}): Promise<Coords | null> {
+export async function ensureEventCoords(
+  event: { id: string; location: string | null; lat: number | null; lng: number | null },
+  options: EnsureCoordsOptions = {}
+): Promise<Coords | null> {
   if (event.lat !== null && event.lng !== null) return { lat: event.lat, lng: event.lng };
   if (!event.location) return null; // online event — nothing to geocode
+
+  if (options.background) {
+    void geocode(event.location)
+      .then((coords) =>
+        coords ? prisma.event.update({ where: { id: event.id }, data: { lat: coords.lat, lng: coords.lng } }) : null
+      )
+      .catch(() => {});
+    return null;
+  }
 
   const coords = await geocode(event.location);
   if (!coords) return null;

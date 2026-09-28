@@ -14,16 +14,18 @@ export type AffiliateSearchParams = {
 
 // Gyms in the fixed list may not have been geocoded yet — do it lazily on
 // first read and cache the result on the row. User-submitted gyms are
-// geocoded from their submitted address the same way.
-async function ensureGymCoords(gym: { name: string; address: string | null; lat: number | null; lng: number | null }) {
-  if (gym.lat !== null && gym.lng !== null) return { lat: gym.lat, lng: gym.lng };
-  if (!gym.address) return null;
+// geocoded from their submitted address the same way. Kicked off in the
+// background rather than awaited: this list renders on every Discover
+// visit, and waiting on a live external geocode call for every not-yet-
+// cached gym turned a single page view into several seconds of waiting.
+function ensureGymCoords(gym: { name: string; address: string | null; lat: number | null; lng: number | null }) {
+  if (gym.lat !== null && gym.lng !== null) return Promise.resolve({ lat: gym.lat, lng: gym.lng });
+  if (!gym.address) return Promise.resolve(null);
 
-  const coords = await geocode(gym.address);
-  if (!coords) return null;
-
-  await prisma.gym.update({ where: { name: gym.name }, data: { lat: coords.lat, lng: coords.lng } });
-  return coords;
+  void geocode(gym.address)
+    .then((coords) => (coords ? prisma.gym.update({ where: { name: gym.name }, data: { lat: coords.lat, lng: coords.lng } }) : null))
+    .catch(() => {});
+  return Promise.resolve(null);
 }
 
 /**
@@ -63,7 +65,7 @@ export async function AffiliatesList({
   const countByName = new Map(athleteCounts.map((c) => [c.affiliateGym as string, c._count]));
 
   const myCoords = currentUser
-    ? await ensureUserAreaCoords({ id: currentUserId, ...currentUser })
+    ? await ensureUserAreaCoords({ id: currentUserId, ...currentUser }, { background: true })
     : null;
 
   const gymsWithDistance = await Promise.all(

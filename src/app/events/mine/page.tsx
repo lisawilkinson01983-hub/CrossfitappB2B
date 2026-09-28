@@ -62,11 +62,13 @@ export default async function MyEventsPage({
 
   const pinnedIds = new Set(pins.map((p) => p.eventId));
 
-  const myCoords = currentUser ? await ensureUserAreaCoords({ id: userId, ...currentUser }) : null;
+  const myCoords = currentUser
+    ? await ensureUserAreaCoords({ id: userId, ...currentUser }, { background: true })
+    : null;
 
   const eventsWithDistance = await Promise.all(
     events.map(async (event) => {
-      const coords = myCoords ? await ensureEventCoords(event) : null;
+      const coords = myCoords ? await ensureEventCoords(event, { background: true }) : null;
       const miles = coords && myCoords ? distanceMiles(myCoords, coords) : null;
       return { event, miles, pinned: pinnedIds.has(event.id) };
     }),

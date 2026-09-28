@@ -60,7 +60,7 @@ export async function AthletesSearch({
   const gym = gymFilterOptions.find((g) => g === sp.gym);
 
   const myCoords = currentUser
-    ? await ensureUserAreaCoords({ id: currentUserId, ...currentUser })
+    ? await ensureUserAreaCoords({ id: currentUserId, ...currentUser }, { background: true })
     : null;
 
   const where: Prisma.UserWhereInput = {
@@ -102,7 +102,7 @@ export async function AthletesSearch({
 
   const candidatesWithDistance = await Promise.all(
     candidates.map(async (user) => {
-      const coords = myCoords ? await ensureUserAreaCoords(user) : null;
+      const coords = myCoords ? await ensureUserAreaCoords(user, { background: true }) : null;
       const miles = coords && myCoords ? distanceMiles(myCoords, coords) : null;
       return { user, miles };
     })
