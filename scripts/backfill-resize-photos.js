@@ -39,7 +39,12 @@ async function resizeIfNeeded(filename, ext) {
     return "missing";
   }
 
-  const metadata = await sharp(bytes).metadata().catch(() => null);
+  const metadata = await sharp(bytes)
+    .metadata()
+    .catch((err) => {
+      console.error(`backfill-resize-photos: sharp couldn't read metadata for ${filename}:`, err);
+      return null;
+    });
   if (!metadata) return "unreadable";
   if ((metadata.width ?? 0) <= MAX_DIMENSION && (metadata.height ?? 0) <= MAX_DIMENSION) {
     return "already-small";
@@ -97,7 +102,10 @@ async function main() {
 
     const counts = { resized: 0, "already-small": 0, missing: 0, unreadable: 0 };
     for (const [filename, ext] of files) {
-      const result = await resizeIfNeeded(filename, ext).catch(() => "unreadable");
+      const result = await resizeIfNeeded(filename, ext).catch((err) => {
+        console.error(`backfill-resize-photos: failed on ${filename}:`, err);
+        return "unreadable";
+      });
       counts[result]++;
     }
 

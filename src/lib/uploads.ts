@@ -21,7 +21,13 @@ const MAX_PHOTO_BYTES = 5 * 1024 * 1024; // 5MB
 // what made every image on a page like the profile page slow to appear.
 const MAX_PHOTO_DIMENSION = 1600;
 
-/** Resizes/recompresses a photo buffer — falls back to the original bytes if sharp can't process it rather than blocking the upload. */
+/**
+ * Resizes/recompresses a photo buffer — falls back to the original bytes if
+ * sharp can't process it rather than blocking the upload. Logs either way:
+ * this previously failed silently, which made a broken sharp install (e.g.
+ * missing its native binary on a given host) indistinguishable from working
+ * as intended — every upload just quietly kept its full original size.
+ */
 async function resizePhoto(bytes: Buffer, ext: string): Promise<Buffer> {
   try {
     // .rotate() with no argument applies the orientation already recorded in
@@ -31,15 +37,16 @@ async function resizePhoto(bytes: Buffer, ext: string): Promise<Buffer> {
     const pipeline = sharp(bytes)
       .rotate()
       .resize({ width: MAX_PHOTO_DIMENSION, height: MAX_PHOTO_DIMENSION, fit: "inside", withoutEnlargement: true });
-    switch (ext) {
-      case "png":
-        return await pipeline.png({ quality: 82 }).toBuffer();
-      case "webp":
-        return await pipeline.webp({ quality: 82 }).toBuffer();
-      default:
-        return await pipeline.jpeg({ quality: 82, mozjpeg: true }).toBuffer();
-    }
-  } catch {
+    const resized =
+      ext === "png"
+        ? await pipeline.png({ quality: 82 }).toBuffer()
+        : ext === "webp"
+          ? await pipeline.webp({ quality: 82 }).toBuffer()
+          : await pipeline.jpeg({ quality: 82, mozjpeg: true }).toBuffer();
+    console.log(`resizePhoto: ${bytes.length} -> ${resized.length} bytes`);
+    return resized;
+  } catch (err) {
+    console.error("resizePhoto failed, storing original bytes unresized:", err);
     return bytes;
   }
 }
