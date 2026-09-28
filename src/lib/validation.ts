@@ -305,14 +305,16 @@ export const eventSubmissionSchema = z
     endDate: z.preprocess(emptyToUndefined, z.coerce.date({ errorMap: () => ({ message: "Enter a valid end date" }) }).optional()),
     isOnline: checkboxToBoolean,
     location: z.preprocess(emptyToUndefined, z.string().trim().optional()),
-    // Required unless the event is private (see the superRefine below) — a
-    // private social meetup or in-affiliate competition often has no website
-    // of its own to link to.
+    // Required unless the event is private or social (see the superRefine
+    // below) — a private meetup or a social often has no website of its own
+    // to link to.
     websiteUrl: z.preprocess(emptyToUndefined, z.string().trim().url("Enter a valid website URL").optional()),
     description: z.string().trim().min(1, "Event information is required").max(2000),
-    division: z.array(z.enum(EVENT_DIVISIONS)).min(1, "Select at least one division"),
-    teamFormat: z.array(z.enum(EVENT_TEAM_FORMATS)).min(1, "Select at least one team format"),
-    genderCategory: z.array(z.enum(EVENT_GENDER_CATEGORIES)).min(1, "Select at least one gender category"),
+    // Required unless the event is social (see the superRefine below) — a
+    // social has no ability/team/gender structure to speak of.
+    division: z.array(z.enum(EVENT_DIVISIONS)).default([]),
+    teamFormat: z.array(z.enum(EVENT_TEAM_FORMATS)).default([]),
+    genderCategory: z.array(z.enum(EVENT_GENDER_CATEGORIES)).default([]),
     // A private event skips review and is only visible to whoever's invited
     // (see EventInvite) — meant for social meetups and gym-only competitions
     // rather than public listings.
@@ -335,8 +337,23 @@ export const eventSubmissionSchema = z
     if (data.eventKind === "OTHER" && !data.eventKindOther) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Describe the event type", path: ["eventKindOther"] });
     }
-    if (!data.isPrivate && !data.websiteUrl) {
+    if (!data.isPrivate && data.eventKind !== "SOCIAL" && !data.websiteUrl) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Event website is required", path: ["websiteUrl"] });
+    }
+    if (data.eventKind !== "SOCIAL") {
+      if (data.division.length === 0) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Select at least one division", path: ["division"] });
+      }
+      if (data.teamFormat.length === 0) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Select at least one team format", path: ["teamFormat"] });
+      }
+      if (data.genderCategory.length === 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Select at least one gender category",
+          path: ["genderCategory"],
+        });
+      }
     }
   });
 

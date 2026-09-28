@@ -155,6 +155,21 @@ export function EventSubmitForm({
   const duplicateKey = duplicates.map((m) => m.id).join(",");
   const showDuplicateWarning = duplicates.length > 0 && dismissedKey !== duplicateKey;
 
+  const isSocial = eventKind === "SOCIAL";
+
+  // A social event has no ability/team/gender structure and often no
+  // website of its own — clear them on the way in so switching to
+  // Competition/Other later never resurfaces stale leftover values.
+  function handleEventKindChange(option: EventKindOption) {
+    setEventKind(option);
+    if (option === "SOCIAL") {
+      setDivision([]);
+      setTeamFormat([]);
+      setGenderCategory([]);
+      setWebsiteUrl("");
+    }
+  }
+
   // "NA" ("doesn't apply", e.g. no ability requirement for a social event) is
   // mutually exclusive with the real options in the same fieldset: picking it
   // clears everything else, and picking anything else drops it.
@@ -182,7 +197,11 @@ export function EventSubmitForm({
       setError("Location is required for an in-person event");
       return;
     }
-    if (mode === "create" && (division.length === 0 || teamFormat.length === 0 || genderCategory.length === 0)) {
+    if (
+      mode === "create" &&
+      !isSocial &&
+      (division.length === 0 || teamFormat.length === 0 || genderCategory.length === 0)
+    ) {
       setError("Select at least one option for division, team format, and gender category (or N/A)");
       return;
     }
@@ -398,7 +417,7 @@ export function EventSubmitForm({
                 type="radio"
                 name="eventKind"
                 checked={eventKind === option}
-                onChange={() => setEventKind(option)}
+                onChange={() => handleEventKindChange(option)}
               />
               {EVENT_KIND_LABELS[option]}
             </label>
@@ -521,21 +540,23 @@ export function EventSubmitForm({
         </div>
       )}
 
-      <div>
-        <label htmlFor="websiteUrl" className="block text-sm font-medium">
-          Event website{" "}
-          {isPrivate && <span className="font-normal text-b2b-ink/40">(optional)</span>}
-        </label>
-        <input
-          id="websiteUrl"
-          type="url"
-          required={mode === "create" && !isPrivate}
-          placeholder="https://..."
-          value={websiteUrl}
-          onChange={(e) => setWebsiteUrl(e.target.value)}
-          className="mt-1 w-full rounded border border-gray-300 px-3 py-2 focus:border-b2b-pink focus:outline-none"
-        />
-      </div>
+      {!isSocial && (
+        <div>
+          <label htmlFor="websiteUrl" className="block text-sm font-medium">
+            Event website{" "}
+            {isPrivate && <span className="font-normal text-b2b-ink/40">(optional)</span>}
+          </label>
+          <input
+            id="websiteUrl"
+            type="url"
+            required={mode === "create" && !isPrivate}
+            placeholder="https://..."
+            value={websiteUrl}
+            onChange={(e) => setWebsiteUrl(e.target.value)}
+            className="mt-1 w-full rounded border border-gray-300 px-3 py-2 focus:border-b2b-pink focus:outline-none"
+          />
+        </div>
+      )}
 
       <div>
         <label htmlFor="description" className="block text-sm font-medium">
@@ -551,53 +572,57 @@ export function EventSubmitForm({
         />
       </div>
 
-      <fieldset>
-        <legend className="text-sm font-medium">Division</legend>
-        <div className="mt-2 flex flex-col gap-2">
-          {EVENT_DIVISIONS.map((option) => (
-            <label key={option} className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={division.includes(option)}
-                onChange={() => toggle(division, setDivision, option)}
-              />
-              {EVENT_DIVISION_LABELS[option]}
-            </label>
-          ))}
-        </div>
-      </fieldset>
+      {!isSocial && (
+        <>
+          <fieldset>
+            <legend className="text-sm font-medium">Division</legend>
+            <div className="mt-2 flex flex-col gap-2">
+              {EVENT_DIVISIONS.map((option) => (
+                <label key={option} className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={division.includes(option)}
+                    onChange={() => toggle(division, setDivision, option)}
+                  />
+                  {EVENT_DIVISION_LABELS[option]}
+                </label>
+              ))}
+            </div>
+          </fieldset>
 
-      <fieldset>
-        <legend className="text-sm font-medium">Team format</legend>
-        <div className="mt-2 flex flex-col gap-2">
-          {EVENT_TEAM_FORMATS.map((option) => (
-            <label key={option} className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={teamFormat.includes(option)}
-                onChange={() => toggle(teamFormat, setTeamFormat, option)}
-              />
-              {EVENT_TEAM_FORMAT_LABELS[option]}
-            </label>
-          ))}
-        </div>
-      </fieldset>
+          <fieldset>
+            <legend className="text-sm font-medium">Team format</legend>
+            <div className="mt-2 flex flex-col gap-2">
+              {EVENT_TEAM_FORMATS.map((option) => (
+                <label key={option} className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={teamFormat.includes(option)}
+                    onChange={() => toggle(teamFormat, setTeamFormat, option)}
+                  />
+                  {EVENT_TEAM_FORMAT_LABELS[option]}
+                </label>
+              ))}
+            </div>
+          </fieldset>
 
-      <fieldset>
-        <legend className="text-sm font-medium">Gender category</legend>
-        <div className="mt-2 flex flex-col gap-2">
-          {EVENT_GENDER_CATEGORIES.map((option) => (
-            <label key={option} className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={genderCategory.includes(option)}
-                onChange={() => toggle(genderCategory, setGenderCategory, option)}
-              />
-              {EVENT_GENDER_CATEGORY_LABELS[option]}
-            </label>
-          ))}
-        </div>
-      </fieldset>
+          <fieldset>
+            <legend className="text-sm font-medium">Gender category</legend>
+            <div className="mt-2 flex flex-col gap-2">
+              {EVENT_GENDER_CATEGORIES.map((option) => (
+                <label key={option} className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={genderCategory.includes(option)}
+                    onChange={() => toggle(genderCategory, setGenderCategory, option)}
+                  />
+                  {EVENT_GENDER_CATEGORY_LABELS[option]}
+                </label>
+              ))}
+            </div>
+          </fieldset>
+        </>
+      )}
 
       <div>
         <label className="block text-sm font-medium">Event image</label>
