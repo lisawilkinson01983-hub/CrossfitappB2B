@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { PostCard, type PostCardData } from "@/components/PostCard";
 
 /** The API route returns dates as JSON strings — PostCard needs real Date objects (see formatEventDate/toLocaleString). */
@@ -37,6 +37,16 @@ export function FeedPostList({
   const [cursor, setCursor] = useState(initialCursor);
   const [hasMore, setHasMore] = useState(initialHasMore);
   const [loading, setLoading] = useState(false);
+
+  // router.refresh() (after posting or deleting) re-runs the server component
+  // and hands down a fresh first page — without this, this component's own
+  // state (set up once on mount) would never pick it up, so a just-created
+  // post wouldn't show until a full manual reload.
+  useEffect(() => {
+    setPosts(initialPosts);
+    setCursor(initialCursor);
+    setHasMore(initialHasMore);
+  }, [initialPosts, initialCursor, initialHasMore]);
 
   async function loadMore() {
     if (!cursor || loading) return;
