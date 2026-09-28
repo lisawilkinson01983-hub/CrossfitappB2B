@@ -7,6 +7,7 @@ import { Avatar } from "@/components/Avatar";
 import { distanceMiles, ensureUserAreaCoords, ensureEventCoords, DISTANCE_RANGES } from "@/lib/geocode";
 import { formatEventDate } from "@/lib/eventDate";
 import { SearchSuggestInput } from "@/components/SearchSuggestInput";
+import { SearchFilters } from "@/components/SearchFilters";
 import { eventVisibilityWhere } from "@/lib/eventVisibility";
 import { isCompetitionEvent } from "@/lib/labels";
 
@@ -33,6 +34,7 @@ export async function EventsList({
   const q = typeof sp.q === "string" ? sp.q.trim() : "";
   const time = (Object.keys(TIME_RANGES) as TimeRange[]).find((t) => t === sp.time);
   const distance = DISTANCE_RANGES.find((d) => String(d) === sp.distance);
+  const activeFilterCount = [distance, time].filter(Boolean).length;
 
   const now = new Date();
   // An event's "effective end" is endDate if it has one, otherwise date — so
@@ -115,48 +117,50 @@ export async function EventsList({
               className="w-full rounded border border-gray-300 px-3 py-2 focus:border-b2b-pink focus:outline-none"
             />
           </div>
-          <div>
-            <label htmlFor="distance" className="block text-sm font-medium">
-              Distance
-            </label>
-            <select
-              id="distance"
-              name="distance"
-              defaultValue={distance ? String(distance) : ""}
-              disabled={!myCoords}
-              className="mt-1 w-full max-w-xs rounded border border-gray-300 bg-b2b-card px-3 py-2 focus:border-b2b-pink focus:outline-none disabled:opacity-50"
-            >
-              <option value="">Any distance</option>
-              {DISTANCE_RANGES.map((d) => (
-                <option key={d} value={d}>
-                  Within {d} miles
-                </option>
-              ))}
-            </select>
-            {!myCoords && (
-              <p className="mt-1 text-xs text-b2b-ink/40">
-                Set your area on your profile to filter events by distance.
-              </p>
-            )}
-          </div>
-          <div>
-            <label htmlFor="time" className="block text-sm font-medium">
-              When
-            </label>
-            <select
-              id="time"
-              name="time"
-              defaultValue={time ?? ""}
-              className="mt-1 w-full max-w-xs rounded border border-gray-300 bg-b2b-card px-3 py-2 focus:border-b2b-pink focus:outline-none"
-            >
-              <option value="">Any time</option>
-              {(Object.keys(TIME_RANGES) as TimeRange[]).map((t) => (
-                <option key={t} value={t}>
-                  {TIME_RANGES[t].label}
-                </option>
-              ))}
-            </select>
-          </div>
+          <SearchFilters activeCount={activeFilterCount} defaultOpen={activeFilterCount > 0}>
+            <div>
+              <label htmlFor="distance" className="block text-sm font-medium">
+                Distance
+              </label>
+              <select
+                id="distance"
+                name="distance"
+                defaultValue={distance ? String(distance) : ""}
+                disabled={!myCoords}
+                className="mt-1 w-full max-w-xs rounded border border-gray-300 bg-b2b-card px-3 py-2 focus:border-b2b-pink focus:outline-none disabled:opacity-50"
+              >
+                <option value="">Any distance</option>
+                {DISTANCE_RANGES.map((d) => (
+                  <option key={d} value={d}>
+                    Within {d} miles
+                  </option>
+                ))}
+              </select>
+              {!myCoords && (
+                <p className="mt-1 text-xs text-b2b-ink/40">
+                  Set your area on your profile to filter events by distance.
+                </p>
+              )}
+            </div>
+            <div>
+              <label htmlFor="time" className="block text-sm font-medium">
+                When
+              </label>
+              <select
+                id="time"
+                name="time"
+                defaultValue={time ?? ""}
+                className="mt-1 w-full max-w-xs rounded border border-gray-300 bg-b2b-card px-3 py-2 focus:border-b2b-pink focus:outline-none"
+              >
+                <option value="">Any time</option>
+                {(Object.keys(TIME_RANGES) as TimeRange[]).map((t) => (
+                  <option key={t} value={t}>
+                    {TIME_RANGES[t].label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </SearchFilters>
           <div className="flex gap-3">
             <button
               type="submit"

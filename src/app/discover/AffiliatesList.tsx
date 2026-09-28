@@ -6,6 +6,7 @@ import { Avatar } from "@/components/Avatar";
 import { SectionCard } from "@/components/SectionCard";
 import { DISTANCE_RANGES, distanceMiles, ensureUserAreaCoords, geocode } from "@/lib/geocode";
 import { SearchSuggestInput } from "@/components/SearchSuggestInput";
+import { SearchFilters } from "@/components/SearchFilters";
 
 export type AffiliateSearchParams = {
   q?: string;
@@ -45,6 +46,7 @@ export async function AffiliatesList({
 }) {
   const q = typeof sp.q === "string" ? sp.q.trim().toLowerCase() : "";
   const distance = DISTANCE_RANGES.find((d) => String(d) === sp.distance);
+  const activeFilterCount = distance ? 1 : 0;
 
   await Promise.all(AFFILIATE_GYMS.map((name) => ensureGymPage(name)));
 
@@ -114,30 +116,32 @@ export async function AffiliatesList({
               className="mt-1 w-full rounded border border-gray-300 px-3 py-2 focus:border-b2b-pink focus:outline-none"
             />
           </div>
-          <div>
-            <label htmlFor="distance" className="block text-sm font-medium">
-              Distance
-            </label>
-            <select
-              id="distance"
-              name="distance"
-              defaultValue={distance ? String(distance) : ""}
-              disabled={!myCoords}
-              className="mt-1 w-full max-w-xs rounded border border-gray-300 bg-b2b-card px-3 py-2 focus:border-b2b-pink focus:outline-none disabled:opacity-50"
-            >
-              <option value="">Any distance</option>
-              {DISTANCE_RANGES.map((d) => (
-                <option key={d} value={d}>
-                  Within {d} miles
-                </option>
-              ))}
-            </select>
-            {!myCoords && (
-              <p className="mt-1 text-xs text-b2b-ink/40">
-                Set your area on your profile to filter affiliates by distance.
-              </p>
-            )}
-          </div>
+          <SearchFilters activeCount={activeFilterCount} defaultOpen={activeFilterCount > 0}>
+            <div>
+              <label htmlFor="distance" className="block text-sm font-medium">
+                Distance
+              </label>
+              <select
+                id="distance"
+                name="distance"
+                defaultValue={distance ? String(distance) : ""}
+                disabled={!myCoords}
+                className="mt-1 w-full max-w-xs rounded border border-gray-300 bg-b2b-card px-3 py-2 focus:border-b2b-pink focus:outline-none disabled:opacity-50"
+              >
+                <option value="">Any distance</option>
+                {DISTANCE_RANGES.map((d) => (
+                  <option key={d} value={d}>
+                    Within {d} miles
+                  </option>
+                ))}
+              </select>
+              {!myCoords && (
+                <p className="mt-1 text-xs text-b2b-ink/40">
+                  Set your area on your profile to filter affiliates by distance.
+                </p>
+              )}
+            </div>
+          </SearchFilters>
           <div className="flex gap-3">
             <button
               type="submit"

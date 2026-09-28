@@ -16,6 +16,7 @@ import { UNAFFILIATED } from "@/lib/gyms";
 import { DISTANCE_RANGES, distanceMiles, ensureUserAreaCoords } from "@/lib/geocode";
 import { SectionCard } from "@/components/SectionCard";
 import { Avatar } from "@/components/Avatar";
+import { SearchFilters } from "@/components/SearchFilters";
 
 // "Prefer not to disclose" is a profile-level privacy choice, not a search filter.
 const SEARCHABLE_GENDERS = GENDERS.filter((g) => g !== "PREFER_NOT_TO_DISCLOSE");
@@ -58,6 +59,7 @@ export async function AthletesSearch({
   // manually-added or user-submitted affiliate shows up here too.
   const gymFilterOptions = [...approvedGyms.map((g) => g.name), UNAFFILIATED];
   const gym = gymFilterOptions.find((g) => g === sp.gym);
+  const activeFilterCount = [gym, distance, gender, level, lookingForFilter.length > 0].filter(Boolean).length;
 
   const myCoords = currentUser
     ? await ensureUserAreaCoords({ id: currentUserId, ...currentUser }, { background: true })
@@ -149,103 +151,105 @@ export async function AthletesSearch({
             className="w-full rounded border border-gray-300 px-3 py-2 focus:border-b2b-pink focus:outline-none"
           />
         </div>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div>
-            <label htmlFor="gym" className="block text-sm font-medium">
-              Affiliate gym
-            </label>
-            <select
-              id="gym"
-              name="gym"
-              defaultValue={gym ?? ""}
-              className="mt-1 w-full rounded border border-gray-300 bg-b2b-card px-3 py-2 focus:border-b2b-pink focus:outline-none"
-            >
-              <option value="">Any</option>
-              {gymFilterOptions.map((g) => (
-                <option key={g} value={g}>
-                  {g}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label htmlFor="distance" className="block text-sm font-medium">
-              Distance
-            </label>
-            <select
-              id="distance"
-              name="distance"
-              defaultValue={distance ? String(distance) : ""}
-              disabled={!myCoords}
-              className="mt-1 w-full rounded border border-gray-300 bg-b2b-card px-3 py-2 focus:border-b2b-pink focus:outline-none disabled:opacity-50"
-            >
-              <option value="">Any distance</option>
-              {DISTANCE_RANGES.map((d) => (
-                <option key={d} value={d}>
-                  Within {d} miles
-                </option>
-              ))}
-            </select>
-            {!myCoords && (
-              <p className="mt-1 text-xs text-b2b-ink/40">
-                Set your area on your profile to filter athletes by distance.
-              </p>
-            )}
-          </div>
-          <div>
-            <label htmlFor="gender" className="block text-sm font-medium">
-              Gender
-            </label>
-            <select
-              id="gender"
-              name="gender"
-              defaultValue={gender ?? ""}
-              className="mt-1 w-full rounded border border-gray-300 bg-b2b-card px-3 py-2 focus:border-b2b-pink focus:outline-none"
-            >
-              <option value="">Any</option>
-              {SEARCHABLE_GENDERS.map((g) => (
-                <option key={g} value={g}>
-                  {GENDER_LABELS[g]}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label htmlFor="level" className="block text-sm font-medium">
-              Level
-            </label>
-            <select
-              id="level"
-              name="level"
-              defaultValue={level ?? ""}
-              className="mt-1 w-full rounded border border-gray-300 bg-b2b-card px-3 py-2 focus:border-b2b-pink focus:outline-none"
-            >
-              <option value="">Any</option>
-              {LEVELS.map((l) => (
-                <option key={l} value={l}>
-                  {LEVEL_LABELS[l]}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        <fieldset>
-          <legend className="text-sm font-medium">Looking for</legend>
-          <div className="mt-2 flex flex-wrap gap-4">
-            {LOOKING_FOR_OPTIONS.map((option) => (
-              <label key={option} className="flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  name="lookingFor"
-                  value={option}
-                  defaultChecked={lookingForFilter.includes(option)}
-                />
-                {LOOKING_FOR_LABELS[option]}
+        <SearchFilters activeCount={activeFilterCount} defaultOpen={activeFilterCount > 0}>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label htmlFor="gym" className="block text-sm font-medium">
+                Affiliate gym
               </label>
-            ))}
+              <select
+                id="gym"
+                name="gym"
+                defaultValue={gym ?? ""}
+                className="mt-1 w-full rounded border border-gray-300 bg-b2b-card px-3 py-2 focus:border-b2b-pink focus:outline-none"
+              >
+                <option value="">Any</option>
+                {gymFilterOptions.map((g) => (
+                  <option key={g} value={g}>
+                    {g}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label htmlFor="distance" className="block text-sm font-medium">
+                Distance
+              </label>
+              <select
+                id="distance"
+                name="distance"
+                defaultValue={distance ? String(distance) : ""}
+                disabled={!myCoords}
+                className="mt-1 w-full rounded border border-gray-300 bg-b2b-card px-3 py-2 focus:border-b2b-pink focus:outline-none disabled:opacity-50"
+              >
+                <option value="">Any distance</option>
+                {DISTANCE_RANGES.map((d) => (
+                  <option key={d} value={d}>
+                    Within {d} miles
+                  </option>
+                ))}
+              </select>
+              {!myCoords && (
+                <p className="mt-1 text-xs text-b2b-ink/40">
+                  Set your area on your profile to filter athletes by distance.
+                </p>
+              )}
+            </div>
+            <div>
+              <label htmlFor="gender" className="block text-sm font-medium">
+                Gender
+              </label>
+              <select
+                id="gender"
+                name="gender"
+                defaultValue={gender ?? ""}
+                className="mt-1 w-full rounded border border-gray-300 bg-b2b-card px-3 py-2 focus:border-b2b-pink focus:outline-none"
+              >
+                <option value="">Any</option>
+                {SEARCHABLE_GENDERS.map((g) => (
+                  <option key={g} value={g}>
+                    {GENDER_LABELS[g]}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label htmlFor="level" className="block text-sm font-medium">
+                Level
+              </label>
+              <select
+                id="level"
+                name="level"
+                defaultValue={level ?? ""}
+                className="mt-1 w-full rounded border border-gray-300 bg-b2b-card px-3 py-2 focus:border-b2b-pink focus:outline-none"
+              >
+                <option value="">Any</option>
+                {LEVELS.map((l) => (
+                  <option key={l} value={l}>
+                    {LEVEL_LABELS[l]}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
-        </fieldset>
+
+          <fieldset>
+            <legend className="text-sm font-medium">Looking for</legend>
+            <div className="mt-2 flex flex-wrap gap-4">
+              {LOOKING_FOR_OPTIONS.map((option) => (
+                <label key={option} className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    name="lookingFor"
+                    value={option}
+                    defaultChecked={lookingForFilter.includes(option)}
+                  />
+                  {LOOKING_FOR_LABELS[option]}
+                </label>
+              ))}
+            </div>
+          </fieldset>
+        </SearchFilters>
 
         <div className="flex gap-3">
           <button
