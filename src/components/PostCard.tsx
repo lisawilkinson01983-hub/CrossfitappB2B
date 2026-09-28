@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -73,15 +73,28 @@ export type PostCardData = {
 const textareaClass =
   "flex-1 resize-none rounded border border-gray-300 px-2 py-1.5 text-sm focus:border-b2b-pink focus:outline-none";
 
-export function PostCard({ post, currentUserId }: { post: PostCardData; currentUserId: string }) {
+export function PostCard({
+  post,
+  currentUserId,
+  highlightPostId,
+  highlightCommentId,
+}: {
+  post: PostCardData;
+  currentUserId: string;
+  /** Set when arriving from a notification link (see /feed?post=&comment=) to scroll straight to the relevant post/comment. */
+  highlightPostId?: string;
+  highlightCommentId?: string;
+}) {
   const router = useRouter();
   const isPb = post.type === "PR";
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const [liked, setLiked] = useState(post.likedByMe);
   const [likeCount, setLikeCount] = useState(post.likeCount);
   const [likeBusy, setLikeBusy] = useState(false);
 
   const [showComments, setShowComments] = useState(false);
+  const [flashCommentId, setFlashCommentId] = useState<string | null>(null);
   const [comments, setComments] = useState(post.comments);
   const [commentText, setCommentText] = useState("");
   const [commentBusy, setCommentBusy] = useState(false);
@@ -100,6 +113,28 @@ export function PostCard({ post, currentUserId }: { post: PostCardData; currentU
   const [contentText, setContentText] = useState(post.contentText);
   const [postSaving, setPostSaving] = useState(false);
   const [postError, setPostError] = useState<string | null>(null);
+
+  // Arrived from a notification link — jump straight to this post (and its
+  // specific comment, if any) instead of leaving the reader to hunt for it.
+  useEffect(() => {
+    if (highlightPostId !== post.id) return;
+    if (highlightCommentId) {
+      setShowComments(true);
+      setFlashCommentId(highlightCommentId);
+    } else {
+      containerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+    // Only ever run for the initial page load this link landed on.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (!showComments || !flashCommentId) return;
+    const el = document.getElementById(`comment-${flashCommentId}`);
+    el?.scrollIntoView({ behavior: "smooth", block: "center" });
+    const timer = setTimeout(() => setFlashCommentId(null), 2500);
+    return () => clearTimeout(timer);
+  }, [showComments, flashCommentId]);
 
   async function toggleLike() {
     if (likeBusy) return;
@@ -230,7 +265,14 @@ export function PostCard({ post, currentUserId }: { post: PostCardData; currentU
     const replies = repliesByParent.get(comment.id) ?? [];
 
     return (
-      <div key={comment.id} className="flex flex-col gap-1" style={{ marginLeft: depth * 20 }}>
+      <div
+        key={comment.id}
+        id={`comment-${comment.id}`}
+        className={`flex flex-col gap-1 rounded-lg transition-colors duration-1000 ${
+          flashCommentId === comment.id ? "bg-yellow-100" : ""
+        }`}
+        style={{ marginLeft: depth * 20 }}
+      >
         {isEditing ? (
           <div className="flex gap-2">
             <input
@@ -320,6 +362,7 @@ export function PostCard({ post, currentUserId }: { post: PostCardData; currentU
 
   return (
     <div
+      ref={containerRef}
       id={`post-${post.id}`}
       className={`rounded-xl border bg-b2b-card p-4 ${
         isPb

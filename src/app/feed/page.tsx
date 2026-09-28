@@ -10,9 +10,15 @@ import { SectionOnboarding } from "@/components/SectionOnboarding";
 import { postCardInclude, toPostCardData } from "@/lib/posts";
 import { PostComposer } from "./PostComposer";
 
-export default async function FeedPage() {
+export default async function FeedPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ post?: string; comment?: string }>;
+}) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) redirect("/login");
+
+  const { post: highlightPostId, comment: highlightCommentId } = await searchParams;
 
   const [currentUser, blocked, muted] = await Promise.all([
     prisma.user.findUnique({ where: { id: session.user.id }, select: { hasSeenFeedTour: true, accountType: true } }),
@@ -72,6 +78,8 @@ export default async function FeedPage() {
               key={post.id}
               currentUserId={session.user.id}
               post={toPostCardData(post, session.user.id)}
+              highlightPostId={highlightPostId}
+              highlightCommentId={highlightCommentId}
             />
           ))}
         </div>

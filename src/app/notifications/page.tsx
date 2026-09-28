@@ -25,6 +25,7 @@ export default async function NotificationsPage() {
     include: {
       actor: { select: { id: true, name: true, photo: true, isSingle: true, showSingleBadge: true } },
       post: { select: { id: true } },
+      comment: { select: { id: true } },
       event: { select: { id: true, name: true } },
       gym: { select: { id: true, name: true } },
       notice: { select: { id: true, title: true, body: true } },
@@ -70,7 +71,7 @@ export default async function NotificationsPage() {
                         : n.type === "TEAMMATE_REQUEST_MATCH" || n.type === "TEAMMATE_SEARCH_MATCH" || n.type === "EVENT_INVITE"
                           ? `/events/${n.event?.id ?? ""}`
                           : n.post
-                            ? `/feed#post-${n.post.id}`
+                            ? `/feed?post=${n.post.id}${n.comment ? `&comment=${n.comment.id}` : ""}`
                             : `/profile/${n.actor.id}`
                   }
                   className="flex items-center gap-3 py-3 hover:bg-b2b-purple/5"
