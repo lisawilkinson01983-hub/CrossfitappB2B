@@ -13,6 +13,7 @@ import { IncomingFollowRequests } from "@/components/IncomingFollowRequests";
 import { GymUpdateNudge } from "@/components/GymUpdateNudge";
 import { OTHER_GYM } from "@/lib/gyms";
 import { formatEventDate } from "@/lib/eventDate";
+import type { Prisma } from "@prisma/client";
 
 export default async function ProfilePage() {
   const session = await getServerSession(authOptions);
@@ -20,6 +21,14 @@ export default async function ProfilePage() {
 
   const user = await prisma.user.findUnique({ where: { id: session.user.id } });
   if (!user) redirect("/login");
+
+  const now = new Date();
+  // An event's "effective end" is endDate if it has one, otherwise date — so
+  // a multi-day event stays listed until its last day, not just its start.
+  const notPastFilter: Prisma.EventWhereInput["OR"] = [
+    { endDate: null, date: { gte: now } },
+    { endDate: { gte: now } },
+  ];
 
   const [recentWorkouts, followerCount, followingCount, incomingRequests, competingIn, interestedIn] =
     await Promise.all([
@@ -35,11 +44,11 @@ export default async function ProfilePage() {
         include: { requester: { select: { id: true, name: true } } },
       }),
       prisma.event.findMany({
-        where: { participants: { some: { userId: user.id } } },
+        where: { AND: [{ participants: { some: { userId: user.id } } }, { OR: notPastFilter }] },
         orderBy: { date: "asc" },
       }),
       prisma.event.findMany({
-        where: { interests: { some: { userId: user.id } } },
+        where: { AND: [{ interests: { some: { userId: user.id } } }, { OR: notPastFilter }] },
         orderBy: { date: "asc" },
       }),
     ]);

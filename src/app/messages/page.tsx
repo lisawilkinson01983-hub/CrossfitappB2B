@@ -5,6 +5,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NavBar } from "@/components/NavBar";
 import { Avatar } from "@/components/Avatar";
+import { GroupIcon } from "@/components/GroupIcon";
 import { showsSingleBadge } from "@/lib/labels";
 import { conversationDisplayName } from "@/lib/conversations";
 
@@ -87,9 +88,7 @@ export default async function MessagesPage() {
               className="flex items-center gap-3 rounded-xl border border-b2b-purple/10 bg-b2b-card p-3 transition hover:border-b2b-pink/30"
             >
               {row.isGroup ? (
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-b2b-purple/10 text-lg font-semibold text-b2b-purple">
-                  #
-                </div>
+                <GroupIcon size={48} />
               ) : (
                 <Avatar
                   photo={row.avatarUser?.photo ?? null}

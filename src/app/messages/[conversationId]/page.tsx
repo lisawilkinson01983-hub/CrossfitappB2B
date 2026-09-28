@@ -5,6 +5,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NavBar } from "@/components/NavBar";
 import { Avatar } from "@/components/Avatar";
+import { GroupIcon } from "@/components/GroupIcon";
 import { ChatThread } from "@/components/ChatThread";
 import { showsSingleBadge } from "@/lib/labels";
 import { conversationDisplayName } from "@/lib/conversations";
@@ -57,9 +58,7 @@ export default async function ConversationPage({
       </Link>
       <div className="mt-3 flex items-center gap-3">
         {conversation.isGroup ? (
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-b2b-purple/10 font-semibold text-b2b-purple">
-            #
-          </div>
+          <GroupIcon size={40} />
         ) : (
           <Avatar
             photo={others[0]?.photo ?? null}
