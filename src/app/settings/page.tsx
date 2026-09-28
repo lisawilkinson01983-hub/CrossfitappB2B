@@ -12,7 +12,7 @@ export default async function SettingsPage() {
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { isAdmin: true, _count: { select: { referrals: true } } },
+    select: { isAdmin: true, accountType: true, _count: { select: { referrals: true } } },
   });
   if (!user) redirect("/login");
 
@@ -46,6 +46,13 @@ export default async function SettingsPage() {
               description="Track events you've submitted"
               count={submissionCount}
             />
+            {user.accountType === "AFFILIATE" && (
+              <SettingsMenuLink
+                href="/settings/gym"
+                label="Bookings"
+                description="Where Intro Session/Drop-in requests go"
+              />
+            )}
             <SettingsMenuLink
               href="/settings/privacy"
               label="Privacy & Safety"

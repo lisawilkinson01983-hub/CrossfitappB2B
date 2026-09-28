@@ -83,3 +83,15 @@ export async function ensureGymPage(name: string): Promise<void> {
     await prisma.gym.update({ where: { name }, data: fill });
   }
 }
+
+/**
+ * The AFFILIATE account that runs this gym, if any — only a *verified* one
+ * (see User.verifiedAt), so an account that's merely typed a gym's name into
+ * its own affiliateGym field can't intercept that gym's booking requests.
+ */
+export function findVerifiedGymOwner(gymName: string) {
+  return prisma.user.findFirst({
+    where: { accountType: "AFFILIATE", affiliateGym: gymName, verifiedAt: { not: null }, deletedAt: null },
+    select: { id: true },
+  });
+}

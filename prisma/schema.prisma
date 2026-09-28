@@ -1074,6 +1074,15 @@ model Gym {
   lat Float?
   lng Float?
 
+  // Where a "Book an Intro Session"/"Book a Drop-in" tap on this gym's page
+  // goes. Null (the default) means it's routed as an in-app message to the
+  // verified AFFILIATE account running this gym (see findVerifiedGymOwner in
+  // src/lib/gymPages.ts); set means it opens the requester's email client
+  // addressed here instead. Only a verified affiliate can set this (see
+  // /api/gyms/[id]/book's PATCH) so an unverified account can't hijack an
+  // established gym's booking requests.
+  bookingEmail String?
+
   status GymStatus @default(APPROVED)
 
   submittedById String?

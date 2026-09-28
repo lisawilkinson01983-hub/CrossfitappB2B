@@ -431,6 +431,12 @@ export const messageSchema = z.object({
   text: z.string().trim().min(1, "Message can't be empty").max(2000),
 });
 
+// Empty string clears bookingEmail back to null (routes bookings to in-app
+// messages instead) — see /api/gyms/[id]/book's PATCH.
+export const gymBookingEmailSchema = z.object({
+  bookingEmail: z.preprocess(emptyToUndefined, z.string().trim().email("Enter a valid email address").optional()),
+});
+
 export const changeEmailSchema = z.object({
   currentPassword: z.string().min(1, "Enter your current password"),
   newEmail: z.string().trim().email("Enter a valid email address"),

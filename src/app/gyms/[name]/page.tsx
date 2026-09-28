@@ -6,6 +6,14 @@ import { prisma } from "@/lib/prisma";
 import { NavBar } from "@/components/NavBar";
 import { SectionCard } from "@/components/SectionCard";
 import { Avatar } from "@/components/Avatar";
+import { GymBookingButtons } from "@/components/GymBookingButtons";
+import { findVerifiedGymOwner } from "@/lib/gymPages";
+
+function bookingMailto(email: string, type: "Intro Session" | "Drop-in", gymName: string) {
+  const subject = encodeURIComponent(`${type} booking — ${gymName}`);
+  const body = encodeURIComponent(`Hi, I'd like to book a${type === "Intro Session" ? "n" : ""} ${type} at ${gymName}.`);
+  return `mailto:${email}?subject=${subject}&body=${body}`;
+}
 
 export default async function GymPage({ params }: { params: Promise<{ name: string }> }) {
   const session = await getServerSession(authOptions);
@@ -18,6 +26,11 @@ export default async function GymPage({ params }: { params: Promise<{ name: stri
     prisma.gym.findUnique({ where: { name: decodeURIComponent(name) } }),
   ]);
   if (!gym) notFound();
+
+  // Only worth showing the buttons if there's somewhere for a booking to
+  // actually go, and not to the affiliate viewing their own gym's page.
+  const owner = gym.bookingEmail ? null : await findVerifiedGymOwner(gym.name);
+  const canBook = (gym.bookingEmail != null || owner != null) && owner?.id !== session.user.id;
 
   return (
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
@@ -46,6 +59,26 @@ export default async function GymPage({ params }: { params: Promise<{ name: stri
             >
               Browse athletes at {gym.name}
             </Link>
+
+            {canBook &&
+              (gym.bookingEmail ? (
+                <div className="flex flex-wrap justify-center gap-2">
+                  <a
+                    href={bookingMailto(gym.bookingEmail, "Intro Session", gym.name)}
+                    className="rounded bg-b2b-purple px-4 py-2 text-sm font-medium text-white hover:bg-b2b-purple-dark"
+                  >
+                    Book an Intro Session
+                  </a>
+                  <a
+                    href={bookingMailto(gym.bookingEmail, "Drop-in", gym.name)}
+                    className="rounded bg-b2b-purple px-4 py-2 text-sm font-medium text-white hover:bg-b2b-purple-dark"
+                  >
+                    Book a Drop-in
+                  </a>
+                </div>
+              ) : (
+                <GymBookingButtons gymId={gym.id} />
+              ))}
           </div>
 
           {gym.description && <p className="mt-6 whitespace-pre-wrap text-b2b-ink/80">{gym.description}</p>}

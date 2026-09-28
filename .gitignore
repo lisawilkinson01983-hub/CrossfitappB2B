@@ -16,6 +16,8 @@
 # prisma
 /prisma/dev.db
 /prisma/dev.db-journal
+/prisma/dev.db-wal
+/prisma/dev.db-shm
 
 # uploaded user content (served via the /media route, see src/lib/uploads.ts)
 /uploads/
