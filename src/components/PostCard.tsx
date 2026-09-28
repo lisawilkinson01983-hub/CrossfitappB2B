@@ -121,7 +121,6 @@ export function PostCard({
   // which comment) the notification was about.
   useEffect(() => {
     if (highlightPostId !== post.id) return;
-    containerRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
     setPopped(true);
     if (highlightCommentId) {
       setShowComments(true);
@@ -374,11 +373,15 @@ export function PostCard({
       <div
         ref={containerRef}
         id={`post-${post.id}`}
-        className={`rounded-xl border bg-b2b-card p-4 transition-all duration-300 ${
+        className={`rounded-xl border bg-b2b-card p-4 ${
           isPb
             ? "border-yellow-400 shadow-[0_0_0_1px_rgba(240,192,32,0.35),0_8px_20px_-12px_rgba(240,192,32,0.6)]"
             : "border-b2b-purple/10"
-        } ${popped ? "relative z-50 scale-[1.02] shadow-2xl" : ""}`}
+        } ${
+          popped
+            ? "fixed left-1/2 top-1/2 z-50 max-h-[85vh] w-[calc(100%-2rem)] max-w-2xl -translate-x-1/2 -translate-y-1/2 overflow-y-auto shadow-2xl"
+            : ""
+        }`}
       >
       <div className="flex items-start justify-between gap-3">
         <Link href={`/profile/${post.author.id}`} className="flex min-w-0 flex-1 items-center gap-3">
