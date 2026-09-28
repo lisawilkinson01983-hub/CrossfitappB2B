@@ -76,7 +76,10 @@ export function WorkoutCard({
           controls
           poster={workout.videoThumbnail ?? undefined}
           preload="metadata"
-          className="mt-2 max-h-64 w-full rounded bg-black"
+          // Sized to the video's own aspect ratio (not forced full-width) so
+          // a vertical phone recording doesn't get letterboxed with black
+          // bars either side — see PostCard.tsx for the same fix.
+          className="mx-auto mt-2 block max-h-[28rem] w-auto max-w-full rounded"
         >
           <source src={workout.video} />
         </video>

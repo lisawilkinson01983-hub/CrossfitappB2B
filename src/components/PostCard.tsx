@@ -551,7 +551,13 @@ export function PostCard({
               controls
               poster={post.videoThumbnail ?? undefined}
               preload="metadata"
-              className="mt-3 max-h-96 w-full rounded bg-black"
+              // No w-full/bg-black: forcing full width let the browser
+              // letterbox a vertical phone video inside a wide box, showing
+              // as black bars either side. Capping only the height and
+              // letting width follow the video's own aspect ratio (mx-auto
+              // to center what's left over) makes the box match the video
+              // itself, so there's nothing left to paint black.
+              className="mx-auto mt-3 block max-h-[32rem] w-auto max-w-full rounded"
             >
               <source src={post.video} />
             </video>

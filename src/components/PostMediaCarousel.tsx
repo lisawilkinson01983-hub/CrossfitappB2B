@@ -6,11 +6,19 @@ import type { PostMediaItem } from "@/components/PostCard";
 
 function MediaItem({ item, className }: { item: PostMediaItem; className: string }) {
   return item.kind === "VIDEO" ? (
-    <video controls poster={item.thumbnail ?? undefined} preload="metadata" className={`bg-black ${className}`}>
+    // mx-auto + w-auto (not the photo's w-full/object-cover) so a vertical
+    // phone video sizes to its own aspect ratio instead of getting
+    // letterboxed with black bars inside a forced-wide box.
+    <video
+      controls
+      poster={item.thumbnail ?? undefined}
+      preload="metadata"
+      className={`mx-auto block w-auto max-w-full ${className}`}
+    >
       <source src={item.url} />
     </video>
   ) : (
-    <ExpandableImage src={item.url} alt="Post photo" className={`object-cover ${className}`} />
+    <ExpandableImage src={item.url} alt="Post photo" className={`w-full object-cover ${className}`} />
   );
 }
 
@@ -22,7 +30,7 @@ export function PostMediaCarousel({ items }: { items: PostMediaItem[] }) {
   if (items.length === 0) return null;
 
   if (items.length === 1) {
-    return <MediaItem item={items[0]} className="mt-3 max-h-96 w-full rounded" />;
+    return <MediaItem item={items[0]} className="mt-3 max-h-96 rounded" />;
   }
 
   function handleScroll() {
@@ -40,7 +48,7 @@ export function PostMediaCarousel({ items }: { items: PostMediaItem[] }) {
       >
         {items.map((item) => (
           <div key={item.id} className="w-full shrink-0 snap-center">
-            <MediaItem item={item} className="max-h-96 w-full" />
+            <MediaItem item={item} className="max-h-96" />
           </div>
         ))}
       </div>
