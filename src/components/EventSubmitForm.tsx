@@ -416,7 +416,10 @@ export function EventSubmitForm({
         )}
       </fieldset>
 
-      <div className="grid grid-cols-2 gap-3">
+      {/* Stacked below sm: a native date input needs more width than half of
+          a phone screen to show mm/dd/yyyy plus the picker icon without
+          clipping — side-by-side only once there's room (tablet/desktop). */}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div>
           <label htmlFor="date" className="block text-sm font-medium">
             Start date
