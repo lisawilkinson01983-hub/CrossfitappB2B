@@ -41,6 +41,7 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
       createdBy: { select: { id: true, name: true, photo: true } },
       participants: { select: { userId: true } },
       interests: { where: { userId: session.user.id }, select: { id: true } },
+      _count: { select: { interests: true } },
       notices: {
         orderBy: { createdAt: "desc" },
         include: {
@@ -182,8 +183,14 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
                 Athletes ({event.participants.length})
               </Link>
               <Link
+                href={`/events/${event.id}/interested`}
+                className="rounded-xl border border-gray-300 bg-b2b-card px-4 py-3 text-center text-sm font-medium text-b2b-ink hover:bg-b2b-bg"
+              >
+                Interested ({event._count.interests})
+              </Link>
+              <Link
                 href={`/events/${event.id}/notices`}
-                className="rounded-xl border border-b2b-purple/20 bg-b2b-purple/10 px-4 py-3 text-center text-sm font-medium text-b2b-purple hover:bg-b2b-purple/20"
+                className="col-span-2 rounded-xl border border-b2b-purple/20 bg-b2b-purple/10 px-4 py-3 text-center text-sm font-medium text-b2b-purple hover:bg-b2b-purple/20"
               >
                 Notice Board{chatMessageCount > 0 ? ` (${chatMessageCount})` : ""}
               </Link>
