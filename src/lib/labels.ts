@@ -84,6 +84,19 @@ export const EVENT_GENDER_CATEGORY_LABELS: Record<EventGenderCategoryOption, str
   NA: "N/A",
 };
 
+// Shown on a user's own submission-status list (see Settings → Event submissions).
+export const EVENT_STATUS_LABELS: Record<string, string> = {
+  PENDING: "Pending review",
+  APPROVED: "Approved",
+  REJECTED: "Rejected",
+};
+
+export const EVENT_STATUS_BADGE_CLASSES: Record<string, string> = {
+  PENDING: "bg-yellow-100 text-yellow-800",
+  APPROVED: "bg-green-100 text-green-700",
+  REJECTED: "bg-red-100 text-red-700",
+};
+
 export const EVENT_KIND_LABELS: Record<EventKindOption, string> = {
   COMPETITION: "Competition",
   SOCIAL: "Social",

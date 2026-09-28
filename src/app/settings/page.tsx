@@ -11,6 +11,8 @@ import { ChangePasswordForm } from "./ChangePasswordForm";
 import { DeleteAccountForm } from "./DeleteAccountForm";
 import { InviteCodeCard } from "./InviteCodeCard";
 import { generateUniqueInviteCode } from "@/lib/inviteCode";
+import { EVENT_STATUS_BADGE_CLASSES, EVENT_STATUS_LABELS } from "@/lib/labels";
+import { formatEventDate } from "@/lib/eventDate";
 
 export default async function SettingsPage() {
   const session = await getServerSession(authOptions);
@@ -31,7 +33,7 @@ export default async function SettingsPage() {
     await prisma.user.update({ where: { id: session.user.id }, data: { inviteCode } });
   }
 
-  const [blocks, mutes, openReportCount, pendingVerificationCount] = await Promise.all([
+  const [blocks, mutes, openReportCount, pendingVerificationCount, mySubmissions] = await Promise.all([
     prisma.block.findMany({
       where: { blockerId: session.user.id },
       include: { blocked: { select: { id: true, name: true } } },
@@ -46,6 +48,7 @@ export default async function SettingsPage() {
     user.isAdmin
       ? prisma.user.count({ where: { accountType: "AFFILIATE", verificationRequestedAt: { not: null }, verifiedAt: null } })
       : 0,
+    prisma.event.findMany({ where: { submittedById: session.user.id }, orderBy: { createdAt: "desc" } }),
   ]);
 
   return (
@@ -86,6 +89,47 @@ export default async function SettingsPage() {
         <SectionCard title="Invite Friends">
           <InviteCodeCard code={inviteCode} referralCount={user._count.referrals} />
         </SectionCard>
+
+        {mySubmissions.length > 0 && (
+          <SectionCard title="Event submissions">
+            <div id="event-submissions" className="scroll-mt-6" />
+            <div className="flex flex-col gap-3">
+              {mySubmissions.map((event) => (
+                <div
+                  key={event.id}
+                  className="flex items-center justify-between rounded-lg border border-b2b-purple/10 bg-b2b-bg p-3"
+                >
+                  <div>
+                    <p className="font-medium">
+                      {event.status === "APPROVED" ? (
+                        <Link href={`/events/${event.id}`} className="hover:underline">
+                          {event.name}
+                        </Link>
+                      ) : (
+                        event.name
+                      )}
+                    </p>
+                    <p className="text-sm text-b2b-ink/50">
+                      {formatEventDate(event)} · {event.isOnline ? "Online" : event.location}
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-2">
+                    {event.isPrivate && (
+                      <span className="whitespace-nowrap rounded-full bg-b2b-purple/10 px-2 py-0.5 text-xs font-medium text-b2b-purple">
+                        🔒 Private
+                      </span>
+                    )}
+                    <span
+                      className={`whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium ${EVENT_STATUS_BADGE_CLASSES[event.status]}`}
+                    >
+                      {EVENT_STATUS_LABELS[event.status]}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </SectionCard>
+        )}
 
         {user.isAdmin && (
           <SectionCard title="Admin">

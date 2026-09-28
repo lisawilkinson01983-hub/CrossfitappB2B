@@ -63,7 +63,7 @@ export async function POST(req: Request) {
       isOnline: data.isOnline,
       location: data.isOnline ? null : (data.location ?? null),
       description: data.description,
-      websiteUrl: data.websiteUrl,
+      websiteUrl: data.websiteUrl ?? null,
       division: JSON.stringify(data.division),
       teamFormat: JSON.stringify(data.teamFormat),
       genderCategory: JSON.stringify(data.genderCategory),

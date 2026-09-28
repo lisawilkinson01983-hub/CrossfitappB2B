@@ -305,7 +305,10 @@ export const eventSubmissionSchema = z
     endDate: z.preprocess(emptyToUndefined, z.coerce.date({ errorMap: () => ({ message: "Enter a valid end date" }) }).optional()),
     isOnline: checkboxToBoolean,
     location: z.preprocess(emptyToUndefined, z.string().trim().optional()),
-    websiteUrl: z.string().trim().url("Enter a valid website URL"),
+    // Required unless the event is private (see the superRefine below) — a
+    // private social meetup or in-affiliate competition often has no website
+    // of its own to link to.
+    websiteUrl: z.preprocess(emptyToUndefined, z.string().trim().url("Enter a valid website URL").optional()),
     description: z.string().trim().min(1, "Event information is required").max(2000),
     division: z.array(z.enum(EVENT_DIVISIONS)).min(1, "Select at least one division"),
     teamFormat: z.array(z.enum(EVENT_TEAM_FORMATS)).min(1, "Select at least one team format"),
@@ -331,6 +334,9 @@ export const eventSubmissionSchema = z
     }
     if (data.eventKind === "OTHER" && !data.eventKindOther) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Describe the event type", path: ["eventKindOther"] });
+    }
+    if (!data.isPrivate && !data.websiteUrl) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Event website is required", path: ["websiteUrl"] });
     }
   });
 

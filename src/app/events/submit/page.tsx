@@ -6,31 +6,16 @@ import { prisma } from "@/lib/prisma";
 import { NavBar } from "@/components/NavBar";
 import { SectionCard } from "@/components/SectionCard";
 import { EventSubmitForm } from "@/components/EventSubmitForm";
-import { formatEventDate } from "@/lib/eventDate";
-
-const STATUS_BADGE: Record<string, string> = {
-  PENDING: "bg-yellow-100 text-yellow-800",
-  APPROVED: "bg-green-100 text-green-700",
-  REJECTED: "bg-red-100 text-red-700",
-};
-
-const STATUS_LABEL: Record<string, string> = {
-  PENDING: "Pending review",
-  APPROVED: "Approved",
-  REJECTED: "Rejected",
-};
 
 export default async function SubmitEventPage() {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) redirect("/login");
 
-  const [mySubmissions, approvedGyms] = await Promise.all([
-    prisma.event.findMany({
-      where: { submittedById: session.user.id },
-      orderBy: { createdAt: "desc" },
-    }),
-    prisma.gym.findMany({ where: { status: "APPROVED" }, select: { name: true }, orderBy: { name: "asc" } }),
-  ]);
+  const approvedGyms = await prisma.gym.findMany({
+    where: { status: "APPROVED" },
+    select: { name: true },
+    orderBy: { name: "asc" },
+  });
   const gymOptions = approvedGyms.map((g) => g.name);
 
   return (
@@ -41,51 +26,18 @@ export default async function SubmitEventPage() {
         ← Back to events
       </Link>
 
-      <div className="mt-4 flex flex-col gap-6">
-        {mySubmissions.length > 0 && (
-          <SectionCard title="Your submissions">
-            <div className="flex flex-col gap-3">
-              {mySubmissions.map((event) => (
-                <div
-                  key={event.id}
-                  className="flex items-center justify-between rounded-lg border border-b2b-purple/10 bg-b2b-bg p-3"
-                >
-                  <div>
-                    <p className="font-medium">
-                      {event.status === "APPROVED" ? (
-                        <Link href={`/events/${event.id}`} className="hover:underline">
-                          {event.name}
-                        </Link>
-                      ) : (
-                        event.name
-                      )}
-                    </p>
-                    <p className="text-sm text-b2b-ink/50">
-                      {formatEventDate(event)} · {event.isOnline ? "Online" : event.location}
-                    </p>
-                  </div>
-                  <div className="flex shrink-0 items-center gap-2">
-                    {event.isPrivate && (
-                      <span className="whitespace-nowrap rounded-full bg-b2b-purple/10 px-2 py-0.5 text-xs font-medium text-b2b-purple">
-                        🔒 Private
-                      </span>
-                    )}
-                    <span
-                      className={`whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_BADGE[event.status]}`}
-                    >
-                      {STATUS_LABEL[event.status]}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </SectionCard>
-        )}
-
+      <div className="mt-4">
         <SectionCard title="Submit an event">
           <EventSubmitForm gymOptions={gymOptions} />
         </SectionCard>
       </div>
+      <p className="mt-3 text-center text-sm text-b2b-ink/40">
+        Track the status of what you've submitted under Settings →{" "}
+        <Link href="/settings#event-submissions" className="text-b2b-pink underline">
+          Event submissions
+        </Link>
+        .
+      </p>
     </main>
   );
 }

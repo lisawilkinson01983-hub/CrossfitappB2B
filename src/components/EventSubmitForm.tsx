@@ -520,12 +520,13 @@ export function EventSubmitForm({
 
       <div>
         <label htmlFor="websiteUrl" className="block text-sm font-medium">
-          Event website
+          Event website{" "}
+          {isPrivate && <span className="font-normal text-b2b-ink/40">(optional)</span>}
         </label>
         <input
           id="websiteUrl"
           type="url"
-          required={mode === "create"}
+          required={mode === "create" && !isPrivate}
           placeholder="https://..."
           value={websiteUrl}
           onChange={(e) => setWebsiteUrl(e.target.value)}
