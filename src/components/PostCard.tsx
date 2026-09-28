@@ -95,6 +95,7 @@ export function PostCard({
 
   const [showComments, setShowComments] = useState(false);
   const [flashCommentId, setFlashCommentId] = useState<string | null>(null);
+  const [flashPost, setFlashPost] = useState(false);
   const [comments, setComments] = useState(post.comments);
   const [commentText, setCommentText] = useState("");
   const [commentBusy, setCommentBusy] = useState(false);
@@ -123,6 +124,7 @@ export function PostCard({
       setFlashCommentId(highlightCommentId);
     } else {
       containerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      setFlashPost(true);
     }
     // Only ever run for the initial page load this link landed on.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -135,6 +137,12 @@ export function PostCard({
     const timer = setTimeout(() => setFlashCommentId(null), 2500);
     return () => clearTimeout(timer);
   }, [showComments, flashCommentId]);
+
+  useEffect(() => {
+    if (!flashPost) return;
+    const timer = setTimeout(() => setFlashPost(false), 2500);
+    return () => clearTimeout(timer);
+  }, [flashPost]);
 
   async function toggleLike() {
     if (likeBusy) return;
@@ -364,11 +372,11 @@ export function PostCard({
     <div
       ref={containerRef}
       id={`post-${post.id}`}
-      className={`rounded-xl border bg-b2b-card p-4 ${
+      className={`rounded-xl border bg-b2b-card p-4 transition-shadow duration-1000 ${
         isPb
           ? "border-yellow-400 shadow-[0_0_0_1px_rgba(240,192,32,0.35),0_8px_20px_-12px_rgba(240,192,32,0.6)]"
           : "border-b2b-purple/10"
-      }`}
+      } ${flashPost ? "ring-2 ring-b2b-pink ring-offset-2 ring-offset-b2b-bg" : ""}`}
     >
       <div className="flex items-start justify-between gap-3">
         <Link href={`/profile/${post.author.id}`} className="flex min-w-0 flex-1 items-center gap-3">
