@@ -4,7 +4,9 @@ import { useRef, useState } from "react";
 import { Avatar } from "@/components/Avatar";
 import { MENTION_PATTERN } from "@/lib/mentions";
 
-type UserSuggestion = { id: string; name: string; photo: string | null };
+type UserSuggestion = { kind: "user"; id: string; name: string; photo: string | null };
+type GymSuggestion = { kind: "gym"; id: string; name: string; photo: string | null };
+type Suggestion = UserSuggestion | GymSuggestion;
 
 // Matches the "@partialname" the user is currently typing, right up to the
 // cursor — used to know what to search for and what to replace on pick.
@@ -52,7 +54,7 @@ export function MentionTextarea({
   className?: string;
   autoFocus?: boolean;
 }) {
-  const [suggestions, setSuggestions] = useState<UserSuggestion[]>([]);
+  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [mentionStart, setMentionStart] = useState<number | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const backdropRef = useRef<HTMLDivElement>(null);
@@ -74,22 +76,33 @@ export function MentionTextarea({
     setMentionStart(cursor - query.length - 1);
 
     const thisRequest = ++requestId.current;
-    const res = await fetch(`/api/users/search?q=${encodeURIComponent(query)}`);
+    const [userRes, gymRes] = await Promise.all([
+      fetch(`/api/users/search?q=${encodeURIComponent(query)}`),
+      fetch(`/api/gyms/search-suggest?q=${encodeURIComponent(query)}`),
+    ]);
     if (thisRequest !== requestId.current) return; // a newer keystroke superseded this lookup
-    if (res.ok) {
-      const body = await res.json();
-      setSuggestions(body.users ?? []);
-    }
+
+    const users: Array<{ id: string; name: string; photo: string | null }> = userRes.ok
+      ? ((await userRes.json()).users ?? [])
+      : [];
+    const gyms: Array<{ id: string; name: string; photo: string | null }> = gymRes.ok
+      ? ((await gymRes.json()).matches ?? [])
+      : [];
+
+    setSuggestions([
+      ...users.map((u): UserSuggestion => ({ kind: "user", ...u })),
+      ...gyms.map((g): GymSuggestion => ({ kind: "gym", id: g.id, name: g.name, photo: g.photo })),
+    ]);
   }
 
-  function pickSuggestion(user: UserSuggestion) {
+  function pickSuggestion(item: Suggestion) {
     const textarea = textareaRef.current;
     if (mentionStart == null || !textarea) return;
 
     const cursor = textarea.selectionStart ?? value.length;
     const before = value.slice(0, mentionStart);
     const after = value.slice(cursor);
-    const token = `@[${user.name}](${user.id}) `;
+    const token = item.kind === "gym" ? `@[${item.name}](gym:${item.id}) ` : `@[${item.name}](${item.id}) `;
     onChange(`${before}${token}${after}`);
     setSuggestions([]);
     setMentionStart(null);
@@ -131,15 +144,20 @@ export function MentionTextarea({
       </div>
       {suggestions.length > 0 && (
         <div className="absolute z-10 mt-1 w-full overflow-hidden rounded border border-gray-200 bg-b2b-card shadow-lg">
-          {suggestions.map((user) => (
+          {suggestions.map((item) => (
             <button
-              key={user.id}
+              key={`${item.kind}-${item.id}`}
               type="button"
-              onClick={() => pickSuggestion(user)}
+              onClick={() => pickSuggestion(item)}
               className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-b2b-bg"
             >
-              <Avatar photo={user.photo} name={user.name} size={24} />
-              {user.name}
+              <Avatar photo={item.photo} name={item.name} size={24} />
+              <span className="flex-1 truncate">{item.name}</span>
+              {item.kind === "gym" && (
+                <span className="shrink-0 rounded-full bg-b2b-purple/10 px-2 py-0.5 text-xs text-b2b-purple">
+                  Gym
+                </span>
+              )}
             </button>
           ))}
         </div>

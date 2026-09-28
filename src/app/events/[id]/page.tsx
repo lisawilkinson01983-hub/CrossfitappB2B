@@ -171,6 +171,7 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
               eventId={event.id}
               initialParticipating={isParticipating}
               initialInterested={isInterested}
+              isCompetition={event.eventKind === "COMPETITION"}
             />
 
             <div className="grid w-full grid-cols-2 gap-3">

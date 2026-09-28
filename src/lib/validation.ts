@@ -421,6 +421,12 @@ export const eventInviteAudienceSchema = z.object({
   inviteAffiliateGym: z.preprocess(emptyToUndefined, z.string().trim().optional()),
 });
 
+// Teammates tagged when marking "I'm participating" on a competition — see
+// /api/events/[id]/participate. Optional; skipping is always allowed.
+export const eventParticipateSchema = z.object({
+  teammateIds: z.array(z.string()).max(20).optional().default([]),
+});
+
 export const messageSchema = z.object({
   text: z.string().trim().min(1, "Message can't be empty").max(2000),
 });

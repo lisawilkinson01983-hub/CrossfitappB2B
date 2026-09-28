@@ -219,6 +219,7 @@ export async function EventsList({
                     eventId={event.id}
                     initialParticipating={isParticipating}
                     initialInterested={isInterested}
+                    isCompetition={event.eventKind === "COMPETITION"}
                   />
                 </div>
               </div>

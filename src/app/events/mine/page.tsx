@@ -216,6 +216,7 @@ export default async function MyEventsPage({
                         eventId={event.id}
                         initialParticipating={isParticipating}
                         initialInterested={isInterested}
+                        isCompetition={event.eventKind === "COMPETITION"}
                       />
                     </div>
                   )}

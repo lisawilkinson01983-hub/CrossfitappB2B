@@ -19,7 +19,7 @@ export async function GET(req: Request) {
 
   const matches = await prisma.gym.findMany({
     where: { status: "APPROVED", name: { contains: q } },
-    select: { id: true, name: true, address: true },
+    select: { id: true, name: true, address: true, photo: true },
     orderBy: { name: "asc" },
     take: RESULT_LIMIT,
   });

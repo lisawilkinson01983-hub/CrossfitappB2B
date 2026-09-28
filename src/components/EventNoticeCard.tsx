@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Avatar } from "@/components/Avatar";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { ReportButton } from "@/components/ReportButton";
+import { MentionText } from "@/components/MentionText";
 import { formatTeammateRequest } from "@/lib/labels";
 import type { TeammateRequest } from "@/lib/validation";
 
@@ -290,7 +291,7 @@ export function EventNoticeCard({
           </div>
         </div>
       ) : (
-        text && <p className="mt-2 whitespace-pre-wrap text-b2b-ink">{text}</p>
+        text && <MentionText text={text} className="mt-2 block whitespace-pre-wrap text-b2b-ink" />
       )}
 
       <div className="mt-2 flex items-center gap-4 border-t border-b2b-purple/10 pt-2 text-xs">

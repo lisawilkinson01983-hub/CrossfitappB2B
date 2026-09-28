@@ -3,8 +3,9 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { assertEventVisible } from "@/lib/eventVisibility";
+import { eventParticipateSchema } from "@/lib/validation";
 
-export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
@@ -44,6 +45,26 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
     await prisma.post.create({
       data: { userId, type: "UPDATE", linkedEventId: eventId },
     });
+
+    // Teammates tagged in the "I'm participating" prompt (competitions only
+    // — see EventEngagementButtons) get announced on the event's Notice
+    // Board, tagged so anyone can tap through to their profile.
+    const body = await req.json().catch(() => ({}));
+    const parsed = eventParticipateSchema.safeParse(body);
+    const teammateIds = (parsed.success ? parsed.data.teammateIds : []).filter((id) => id !== userId);
+
+    if (teammateIds.length > 0) {
+      const teammates = await prisma.user.findMany({
+        where: { id: { in: teammateIds }, deletedAt: null },
+        select: { id: true, name: true },
+      });
+      if (teammates.length > 0) {
+        const mentions = teammates.map((t) => `@[${t.name}](${t.id})`).join(" ");
+        await prisma.eventNotice.create({
+          data: { eventId, userId, text: `I'm competing with my team: ${mentions}` },
+        });
+      }
+    }
   }
 
   const [participantRow, interestRow] = await Promise.all([
