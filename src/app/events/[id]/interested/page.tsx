@@ -7,8 +7,12 @@ import { NavBar } from "@/components/NavBar";
 import { SectionCard } from "@/components/SectionCard";
 import { Avatar } from "@/components/Avatar";
 import { MessageButton } from "@/components/MessageButton";
-import { LEVEL_BADGE_CLASSES, LEVEL_LABELS, showsSingleBadge } from "@/lib/labels";
+import { GENDER_LABELS, LEVEL_BADGE_CLASSES, LEVEL_LABELS, showsSingleBadge } from "@/lib/labels";
+import { GENDERS, LEVELS } from "@/lib/validation";
 import { assertEventVisible } from "@/lib/eventVisibility";
+
+// "Prefer not to disclose" is a profile-level privacy choice, not a search filter.
+const SEARCHABLE_GENDERS = GENDERS.filter((g) => g !== "PREFER_NOT_TO_DISCLOSE");
 
 /**
  * Everyone currently marked "interested" in this event — i.e. still looking
@@ -22,14 +26,17 @@ export default async function EventInterestedPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ q?: string }>;
+  searchParams: Promise<{ q?: string; level?: string; gender?: string }>;
 }) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) redirect("/login");
 
   const { id } = await params;
-  const { q: qRaw } = await searchParams;
+  const { q: qRaw, level: levelRaw, gender: genderRaw } = await searchParams;
   const q = typeof qRaw === "string" ? qRaw.trim() : "";
+  const level = LEVELS.find((l) => l === levelRaw);
+  const gender = SEARCHABLE_GENDERS.find((g) => g === genderRaw);
+  const hasFilters = !!q || !!level || !!gender;
 
   const event = await prisma.event.findUnique({
     where: { id },
@@ -43,7 +50,11 @@ export default async function EventInterestedPage({
       interests: {
         where: {
           userId: { not: session.user.id },
-          ...(q ? { user: { name: { contains: q } } } : {}),
+          user: {
+            ...(q ? { name: { contains: q } } : {}),
+            ...(level ? { level } : {}),
+            ...(gender ? { gender } : {}),
+          },
         },
         orderBy: { createdAt: "asc" },
         include: {
@@ -76,30 +87,71 @@ export default async function EventInterestedPage({
       <div className="mt-4 flex flex-col gap-4">
         <SectionCard>
           <p className="text-sm text-b2b-ink/50">
-            Athletes still looking for a team for {event.name} — browse below, or search by name.
+            Athletes still looking for a team for {event.name} — browse below, search by name, or filter by ability
+            and gender.
           </p>
-          <form method="GET" className="mt-3 flex gap-2">
-            <label htmlFor="q" className="sr-only">
-              Search interested athletes by name
-            </label>
-            <input
-              id="q"
-              name="q"
-              type="text"
-              placeholder="Search by name"
-              defaultValue={q}
-              className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-b2b-pink focus:outline-none"
-            />
+          <form method="GET" className="mt-3 flex flex-col gap-3">
+            <div>
+              <label htmlFor="q" className="sr-only">
+                Search interested athletes by name
+              </label>
+              <input
+                id="q"
+                name="q"
+                type="text"
+                placeholder="Search by name"
+                defaultValue={q}
+                className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-b2b-pink focus:outline-none"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label htmlFor="level" className="block text-xs font-medium text-b2b-ink/60">
+                  Ability
+                </label>
+                <select
+                  id="level"
+                  name="level"
+                  defaultValue={level ?? ""}
+                  className="mt-1 w-full rounded border border-gray-300 bg-b2b-card px-2 py-2 text-sm focus:border-b2b-pink focus:outline-none"
+                >
+                  <option value="">Any</option>
+                  {LEVELS.map((l) => (
+                    <option key={l} value={l}>
+                      {LEVEL_LABELS[l]}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label htmlFor="gender" className="block text-xs font-medium text-b2b-ink/60">
+                  Gender
+                </label>
+                <select
+                  id="gender"
+                  name="gender"
+                  defaultValue={gender ?? ""}
+                  className="mt-1 w-full rounded border border-gray-300 bg-b2b-card px-2 py-2 text-sm focus:border-b2b-pink focus:outline-none"
+                >
+                  <option value="">Any</option>
+                  {SEARCHABLE_GENDERS.map((g) => (
+                    <option key={g} value={g}>
+                      {GENDER_LABELS[g]}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
             <button
               type="submit"
-              className="shrink-0 rounded bg-b2b-pink px-4 py-2 text-sm font-medium text-white hover:bg-b2b-pink-dark"
+              className="rounded bg-b2b-pink px-4 py-2 text-sm font-medium text-white hover:bg-b2b-pink-dark"
             >
               Search
             </button>
           </form>
-          {q && (
+          {hasFilters && (
             <Link href={`/events/${event.id}/interested`} className="mt-2 inline-block text-xs text-b2b-ink/50 hover:underline">
-              Clear search
+              Clear filters
             </Link>
           )}
         </SectionCard>
@@ -109,7 +161,7 @@ export default async function EventInterestedPage({
         >
           {event.interests.length === 0 ? (
             <p className="text-b2b-ink/40">
-              {q ? "No one matching that search yet." : "No one's marked interested yet — check back later."}
+              {hasFilters ? "No one matching those filters yet." : "No one's marked interested yet — check back later."}
             </p>
           ) : (
             <div className="flex flex-col gap-3">

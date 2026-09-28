@@ -7,11 +7,11 @@ import { NavBar } from "@/components/NavBar";
 import { SectionCard } from "@/components/SectionCard";
 import { Avatar } from "@/components/Avatar";
 import { EventEngagementButtons } from "@/components/EventEngagementButtons";
-import { EventNoticesPanel, type EventNoticeEntry } from "@/components/EventNoticesPanel";
+import { EventNoticesPanel } from "@/components/EventNoticesPanel";
 import { CollapsibleText } from "@/components/CollapsibleText";
 import { InviteToEventForm } from "@/components/InviteToEventForm";
 import { MessageAttendeesButton } from "@/components/MessageAttendeesButton";
-import { parseJsonArray, parseTeammateRequests, eventKindLabel } from "@/lib/labels";
+import { parseJsonArray, eventKindLabel } from "@/lib/labels";
 import { formatEventDate } from "@/lib/eventDate";
 import { assertEventVisible } from "@/lib/eventVisibility";
 import {
@@ -19,13 +19,7 @@ import {
   EVENT_TEAM_FORMAT_LABELS,
   EVENT_GENDER_CATEGORY_LABELS,
 } from "@/lib/labels";
-import type {
-  EventDivisionOption,
-  EventTeamFormatOption,
-  EventGenderCategoryOption,
-  TeammateDivisionOption,
-  TeammateGenderOption,
-} from "@/lib/validation";
+import type { EventDivisionOption, EventTeamFormatOption, EventGenderCategoryOption } from "@/lib/validation";
 
 export default async function EventPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
@@ -42,21 +36,9 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
       participants: { select: { userId: true } },
       interests: { where: { userId: session.user.id }, select: { id: true } },
       _count: { select: { interests: true } },
-      notices: {
-        orderBy: { createdAt: "desc" },
-        include: {
-          user: { select: { id: true, name: true, photo: true } },
-          likes: { select: { userId: true } },
-          comments: {
-            orderBy: { createdAt: "asc" },
-            include: { user: { select: { id: true, name: true } } },
-          },
-        },
-      },
-      teammateAlerts: {
-        where: { userId: session.user.id },
-        select: { id: true, gender: true, division: true },
-      },
+      // Only the count is needed here — the notices themselves are rendered
+      // on the dedicated Notice Board page.
+      notices: { select: { id: true } },
     },
   });
   if (!event) notFound();
@@ -73,38 +55,8 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
   const isParticipating = participantIds.has(session.user.id);
   const isInterested = event.interests.length > 0;
 
-  const noticeEntries: EventNoticeEntry[] = event.notices
-    .map((notice) => ({
-      notice: {
-        id: notice.id,
-        text: notice.text,
-        teammateRequests: parseTeammateRequests(notice.teammateRequests),
-        createdAt: notice.createdAt,
-        author: notice.user,
-        likeCount: notice.likes.length,
-        likedByMe: notice.likes.some((l) => l.userId === session.user.id),
-        comments: notice.comments.map((c) => ({
-          id: c.id,
-          text: c.text,
-          createdAt: c.createdAt,
-          author: c.user,
-          parentId: c.parentId,
-          isMine: c.userId === session.user.id,
-        })),
-      },
-      isOwn: notice.userId === session.user.id,
-      isAuthorParticipating: participantIds.has(notice.userId),
-    }))
-    .filter((entry) => entry.notice.teammateRequests.length > 0);
-
   // Every notice — search or free text — shows up on the shared notice board.
   const chatMessageCount = event.notices.length;
-
-  const myAlerts = event.teammateAlerts.map((a) => ({
-    id: a.id,
-    gender: a.gender as TeammateGenderOption,
-    division: a.division as TeammateDivisionOption,
-  }));
 
   const division = parseJsonArray<EventDivisionOption>(event.division);
   const teamFormat = parseJsonArray<EventTeamFormatOption>(event.teamFormat);
@@ -234,9 +186,9 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
       </div>
 
       <div className="mt-6">
-        <SectionCard title="Search">
+        <SectionCard title="Find a teammate">
           <p className="mb-3 text-sm text-b2b-ink/50">Looking for teammates for {event.name}? Post it here.</p>
-          <EventNoticesPanel eventId={event.id} notices={noticeEntries} myAlerts={myAlerts} />
+          <EventNoticesPanel eventId={event.id} />
         </SectionCard>
       </div>
     </main>
