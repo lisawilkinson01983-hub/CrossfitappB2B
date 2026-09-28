@@ -45,31 +45,14 @@ export async function AthletesSearch({
     LOOKING_FOR_OPTIONS.includes(v as LookingForOption)
   );
 
-  const [blocked, currentUser, approvedGyms, lookingForCandidates] = await Promise.all([
+  const [blocked, currentUser, approvedGyms] = await Promise.all([
     prisma.block.findMany({ where: { blockerId: currentUserId }, select: { blockedId: true } }),
     prisma.user.findUnique({
       where: { id: currentUserId },
       select: { area: true, areaLat: true, areaLng: true },
     }),
     prisma.gym.findMany({ where: { status: "APPROVED" }, select: { name: true }, orderBy: { name: "asc" } }),
-    // For the "Browse interested athletes" counts below — a lightweight,
-    // unfiltered read of who's tagged as looking for what, independent of
-    // whatever search filters are currently applied.
-    prisma.user.findMany({
-      where: { id: { not: currentUserId }, deletedAt: null, accountType: "ATHLETE", showLookingFor: true },
-      select: { lookingFor: true },
-    }),
   ]);
-
-  const lookingForCounts = Object.fromEntries(LOOKING_FOR_OPTIONS.map((o) => [o, 0])) as Record<
-    LookingForOption,
-    number
-  >;
-  for (const candidate of lookingForCandidates) {
-    for (const tag of parseLookingFor(candidate.lookingFor)) {
-      lookingForCounts[tag] = (lookingForCounts[tag] ?? 0) + 1;
-    }
-  }
 
   // Any approved gym is filterable, not just the fixed curated list — so a
   // manually-added or user-submitted affiliate shows up here too.
@@ -150,29 +133,6 @@ export async function AthletesSearch({
 
   return (
     <div className="mt-4 flex flex-col gap-6">
-      <SectionCard title="Browse interested athletes">
-        <p className="text-sm text-b2b-ink/50">Jump straight to athletes looking to connect:</p>
-        <div className="mt-3 flex flex-wrap gap-2">
-          {LOOKING_FOR_OPTIONS.map((option) => {
-            const active = lookingForFilter.length === 1 && lookingForFilter[0] === option;
-            return (
-              <Link
-                key={option}
-                href={`/discover?view=athletes&lookingFor=${option}`}
-                className={`rounded-full border px-3 py-1.5 text-sm font-medium ${
-                  active
-                    ? "border-b2b-pink bg-b2b-pink/10 text-b2b-pink"
-                    : "border-b2b-purple/20 text-b2b-ink/60 hover:border-b2b-pink hover:text-b2b-pink"
-                }`}
-              >
-                {LOOKING_FOR_LABELS[option]}
-                {lookingForCounts[option] > 0 && ` (${lookingForCounts[option]})`}
-              </Link>
-            );
-          })}
-        </div>
-      </SectionCard>
-
       <SectionCard>
       <form method="GET" className="flex flex-col gap-4">
         <input type="hidden" name="view" value="athletes" />
