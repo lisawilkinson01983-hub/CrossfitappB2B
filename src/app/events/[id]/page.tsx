@@ -11,7 +11,7 @@ import { EventNoticesPanel } from "@/components/EventNoticesPanel";
 import { CollapsibleText } from "@/components/CollapsibleText";
 import { InviteToEventForm } from "@/components/InviteToEventForm";
 import { MessageAttendeesButton } from "@/components/MessageAttendeesButton";
-import { parseJsonArray, eventKindLabel } from "@/lib/labels";
+import { parseJsonArray, eventKindLabel, isCompetitionEvent } from "@/lib/labels";
 import { formatEventDate } from "@/lib/eventDate";
 import { assertEventVisible } from "@/lib/eventVisibility";
 import {
@@ -124,7 +124,7 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
               eventId={event.id}
               initialParticipating={isParticipating}
               initialInterested={isInterested}
-              isCompetition={event.eventKind === "COMPETITION"}
+              isCompetition={isCompetitionEvent(event)}
             />
 
             <div className="grid w-full grid-cols-2 gap-3">

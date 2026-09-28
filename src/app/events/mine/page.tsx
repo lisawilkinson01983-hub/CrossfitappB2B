@@ -12,6 +12,7 @@ import { PinButton } from "@/components/PinButton";
 import { EventEngagementButtons } from "@/components/EventEngagementButtons";
 import { distanceMiles, ensureUserAreaCoords, ensureEventCoords } from "@/lib/geocode";
 import { formatEventDate } from "@/lib/eventDate";
+import { isCompetitionEvent } from "@/lib/labels";
 
 export default async function MyEventsPage({
   searchParams,
@@ -216,7 +217,7 @@ export default async function MyEventsPage({
                         eventId={event.id}
                         initialParticipating={isParticipating}
                         initialInterested={isInterested}
-                        isCompetition={event.eventKind === "COMPETITION"}
+                        isCompetition={isCompetitionEvent(event)}
                       />
                     </div>
                   )}

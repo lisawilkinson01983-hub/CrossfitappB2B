@@ -103,6 +103,16 @@ export const EVENT_KIND_LABELS: Record<EventKindOption, string> = {
   OTHER: "Other",
 };
 
+/**
+ * Whether an event should get competition-only treatment (the teammate-tag
+ * prompt on joining). A null eventKind means the event predates the
+ * Competition/Social/Other split, back when every event already had the
+ * division/team/gender fields a competition has — so it's treated as one.
+ */
+export function isCompetitionEvent(event: { eventKind: EventKindOption | null }): boolean {
+  return event.eventKind === "COMPETITION" || event.eventKind === null;
+}
+
 /** Display text for an event's type — OTHER falls back to its free-text eventKindOther. Null if the event predates this field. */
 export function eventKindLabel(event: { eventKind: EventKindOption | null; eventKindOther: string | null }): string | null {
   if (!event.eventKind) return null;

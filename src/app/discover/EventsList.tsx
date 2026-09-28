@@ -8,6 +8,7 @@ import { distanceMiles, ensureUserAreaCoords, ensureEventCoords, DISTANCE_RANGES
 import { formatEventDate } from "@/lib/eventDate";
 import { SearchSuggestInput } from "@/components/SearchSuggestInput";
 import { eventVisibilityWhere } from "@/lib/eventVisibility";
+import { isCompetitionEvent } from "@/lib/labels";
 
 const TIME_RANGES = {
   week: { label: "Next 7 days", days: 7 },
@@ -33,9 +34,18 @@ export async function EventsList({
   const time = (Object.keys(TIME_RANGES) as TimeRange[]).find((t) => t === sp.time);
   const distance = DISTANCE_RANGES.find((d) => String(d) === sp.distance);
 
+  const now = new Date();
+  // An event's "effective end" is endDate if it has one, otherwise date — so
+  // a multi-day event stays listed until its last day, not just its start.
+  const notPastFilter: Prisma.EventWhereInput["OR"] = [
+    { endDate: null, date: { gte: now } },
+    { endDate: { gte: now } },
+  ];
+
   const where: Prisma.EventWhereInput = {
     AND: [
       eventVisibilityWhere(currentUserId),
+      { OR: notPastFilter },
       ...(q ? [{ OR: [{ name: { contains: q } }, { location: { contains: q } }] }] : []),
       ...(time ? [{ date: { lte: new Date(Date.now() + TIME_RANGES[time].days * 86400000) } }] : []),
     ],
@@ -219,7 +229,7 @@ export async function EventsList({
                     eventId={event.id}
                     initialParticipating={isParticipating}
                     initialInterested={isInterested}
-                    isCompetition={event.eventKind === "COMPETITION"}
+                    isCompetition={isCompetitionEvent(event)}
                   />
                 </div>
               </div>
