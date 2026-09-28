@@ -215,10 +215,10 @@ export function EventNoticeCard({
         <Link href={`/profile/${notice.author.id}`} className="flex items-center gap-3">
           <Avatar photo={notice.author.photo} name={notice.author.name} size={40} />
           <div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
               <span className="font-semibold hover:underline">{notice.author.name}</span>
               {isAuthorParticipating && (
-                <span className="rounded-full bg-b2b-purple/10 px-2 py-0.5 text-xs font-medium text-b2b-purple">
+                <span className="whitespace-nowrap rounded-full bg-b2b-purple/10 px-2 py-0.5 text-xs font-medium text-b2b-purple">
                   ✓ I'm in!
                 </span>
               )}
