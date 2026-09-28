@@ -2,6 +2,10 @@ import type { Prisma } from "@prisma/client";
 import { parseTeammateRequests } from "@/lib/labels";
 import type { PostCardData } from "@/components/PostCard";
 
+// How many posts the feed loads at a time — both the initial server render
+// and each "Load more" page (see /api/posts/feed).
+export const FEED_PAGE_SIZE = 20;
+
 // Shared between the main feed and a profile's posts (preview + full
 // history) so the query shape and PostCard mapping stay in one place.
 export const postCardInclude = {

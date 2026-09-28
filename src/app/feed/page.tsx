@@ -4,11 +4,11 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NavBar } from "@/components/NavBar";
-import { PostCard } from "@/components/PostCard";
 import { SectionCard } from "@/components/SectionCard";
 import { SectionOnboarding } from "@/components/SectionOnboarding";
-import { postCardInclude, toPostCardData } from "@/lib/posts";
+import { FEED_PAGE_SIZE, postCardInclude, toPostCardData } from "@/lib/posts";
 import { PostComposer } from "./PostComposer";
+import { FeedPostList } from "./FeedPostList";
 
 export default async function FeedPage({
   searchParams,
@@ -30,8 +30,25 @@ export default async function FeedPage({
   const posts = await prisma.post.findMany({
     where: { userId: { notIn: hiddenUserIds }, sharedToFeed: true },
     orderBy: { createdAt: "desc" },
+    take: FEED_PAGE_SIZE + 1,
     include: postCardInclude,
   });
+  const hasMore = posts.length > FEED_PAGE_SIZE;
+  const page = posts.slice(0, FEED_PAGE_SIZE);
+
+  let initialPosts = page.map((p) => toPostCardData(p, session.user.id));
+
+  // A notification can point at a post older than the first page — make sure
+  // it's still there to pop open, even though "Load more" hasn't reached it.
+  if (highlightPostId && !initialPosts.some((p) => p.id === highlightPostId)) {
+    const highlighted = await prisma.post.findFirst({
+      where: { id: highlightPostId, userId: { notIn: hiddenUserIds }, sharedToFeed: true },
+      include: postCardInclude,
+    });
+    if (highlighted) {
+      initialPosts = [toPostCardData(highlighted, session.user.id), ...initialPosts];
+    }
+  }
 
   return (
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
@@ -67,22 +84,19 @@ export default async function FeedPage({
         </SectionCard>
       </div>
 
-      {posts.length === 0 ? (
+      {initialPosts.length === 0 ? (
         <p className="mt-6 text-b2b-ink/50">
           No posts yet — be the first to share something, or share a workout from your log.
         </p>
       ) : (
-        <div className="mt-6 flex flex-col gap-4">
-          {posts.map((post) => (
-            <PostCard
-              key={post.id}
-              currentUserId={session.user.id}
-              post={toPostCardData(post, session.user.id)}
-              highlightPostId={highlightPostId}
-              highlightCommentId={highlightCommentId}
-            />
-          ))}
-        </div>
+        <FeedPostList
+          initialPosts={initialPosts}
+          initialCursor={page.length > 0 ? page[page.length - 1].id : null}
+          initialHasMore={hasMore}
+          currentUserId={session.user.id}
+          highlightPostId={highlightPostId}
+          highlightCommentId={highlightCommentId}
+        />
       )}
     </main>
   );
