@@ -1,6 +1,7 @@
 import { mkdir, writeFile } from "fs/promises";
 import path from "path";
 import crypto from "crypto";
+import sharp from "sharp";
 import { MAX_VIDEO_SECONDS } from "./media";
 
 const ALLOWED_PHOTO_TYPES: Record<string, string> = {
@@ -9,6 +10,39 @@ const ALLOWED_PHOTO_TYPES: Record<string, string> = {
   "image/webp": "webp",
 };
 const MAX_PHOTO_BYTES = 5 * 1024 * 1024; // 5MB
+
+// Every photo (avatars, gallery, post/event/workout/gym photos, video
+// thumbnails) gets capped to this on its long edge before being written to
+// disk — plenty for a full-screen view, far more than any of the small
+// spots (a 40px avatar, a gallery tile) actually need. Images were
+// previously stored exactly as uploaded (up to the full 5MB cap, often a
+// multi-megapixel phone photo), so every one of them — including a tiny
+// profile picture — had to be downloaded in full just to render, which is
+// what made every image on a page like the profile page slow to appear.
+const MAX_PHOTO_DIMENSION = 1600;
+
+/** Resizes/recompresses a photo buffer — falls back to the original bytes if sharp can't process it rather than blocking the upload. */
+async function resizePhoto(bytes: Buffer, ext: string): Promise<Buffer> {
+  try {
+    // .rotate() with no argument applies the orientation already recorded in
+    // the photo's EXIF data — without it, a resized photo taken on a phone
+    // held sideways/upside-down can come out rotated wrong, since EXIF
+    // orientation is otherwise only honored by whatever renders the *original*.
+    const pipeline = sharp(bytes)
+      .rotate()
+      .resize({ width: MAX_PHOTO_DIMENSION, height: MAX_PHOTO_DIMENSION, fit: "inside", withoutEnlargement: true });
+    switch (ext) {
+      case "png":
+        return await pipeline.png({ quality: 82 }).toBuffer();
+      case "webp":
+        return await pipeline.webp({ quality: 82 }).toBuffer();
+      default:
+        return await pipeline.jpeg({ quality: 82, mozjpeg: true }).toBuffer();
+    }
+  } catch {
+    return bytes;
+  }
+}
 
 // iPhone videos only (mp4/mov share the same ISO-BMFF/QuickTime "moov" box
 // layout, which is how getMp4DurationSeconds reads their length below).
@@ -50,7 +84,8 @@ export async function savePhotoUpload(file: File, ownerId: string): Promise<stri
   const ext = ALLOWED_PHOTO_TYPES[file.type];
   if (!ext) throw new PhotoUploadError("Photo must be a JPEG, PNG, or WebP image");
   if (file.size > MAX_PHOTO_BYTES) throw new PhotoUploadError("Photo must be smaller than 5MB");
-  const bytes = Buffer.from(await file.arrayBuffer());
+  const original = Buffer.from(await file.arrayBuffer());
+  const bytes = await resizePhoto(original, ext);
   return saveUpload(ownerId, ext, bytes);
 }
 
@@ -79,7 +114,8 @@ export async function saveVideoUpload(file: File, ownerId: string): Promise<stri
  */
 export async function saveVideoThumbnailUpload(file: File, ownerId: string): Promise<string | null> {
   if (file.type !== "image/jpeg" || file.size === 0 || file.size > MAX_THUMBNAIL_BYTES) return null;
-  const bytes = Buffer.from(await file.arrayBuffer());
+  const original = Buffer.from(await file.arrayBuffer());
+  const bytes = await resizePhoto(original, "jpg");
   return saveUpload(ownerId, "jpg", bytes);
 }
 
