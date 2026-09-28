@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Avatar } from "@/components/Avatar";
 import { MENTION_PATTERN } from "@/lib/mentions";
 
@@ -8,37 +8,103 @@ type UserSuggestion = { kind: "user"; id: string; name: string; photo: string | 
 type GymSuggestion = { kind: "gym"; id: string; name: string; photo: string | null };
 type Suggestion = UserSuggestion | GymSuggestion;
 
+// Where one placed mention sits within the *display* text (the friendly
+// "@Name" the textarea actually shows and edits), plus what it maps back to.
+type MentionSpan = { start: number; end: number; name: string; id: string; isGym: boolean };
+
 // Matches the "@partialname" the user is currently typing, right up to the
 // cursor — used to know what to search for and what to replace on pick.
 const TYPING_MENTION = /(?:^|\s)@([a-zA-Z0-9' -]{1,30})$/;
 
-// Renders the same text as the real textarea, but with mention tokens shown
-// as "@Name" instead of the raw "@[Name](id)" — sits behind the (invisible)
-// textarea so what the user sees while typing looks like plain text.
-function MentionBackdrop({ text }: { text: string }) {
-  const parts: React.ReactNode[] = [];
+/** Expands "@[Name](id)" tokens into plain "@Name" text, recording where each one landed. */
+function toDisplay(raw: string): { display: string; spans: MentionSpan[] } {
+  let display = "";
+  const spans: MentionSpan[] = [];
   let lastIndex = 0;
-  let key = 0;
 
-  for (const match of text.matchAll(MENTION_PATTERN)) {
-    const [full, name] = match;
+  for (const match of raw.matchAll(MENTION_PATTERN)) {
+    const [full, name, gymMarker, id] = match;
     const index = match.index ?? 0;
-    if (index > lastIndex) parts.push(<span key={key++}>{text.slice(lastIndex, index)}</span>);
-    parts.push(
-      <span key={key++} className="font-medium text-b2b-pink">
-        @{name}
-      </span>
-    );
+    display += raw.slice(lastIndex, index);
+    const start = display.length;
+    display += `@${name}`;
+    spans.push({ start, end: display.length, name, id, isGym: !!gymMarker });
     lastIndex = index + full.length;
   }
-  if (lastIndex < text.length) parts.push(<span key={key++}>{text.slice(lastIndex)}</span>);
+  display += raw.slice(lastIndex);
+  return { display, spans };
+}
+
+/** The inverse of toDisplay — rebuilds "@[Name](id)" tokens from display text + its current spans. */
+function toRaw(display: string, spans: MentionSpan[]): string {
+  let raw = "";
+  let lastIndex = 0;
+  for (const span of spans) {
+    raw += display.slice(lastIndex, span.start);
+    raw += `@[${span.name}](${span.isGym ? "gym:" : ""}${span.id})`;
+    lastIndex = span.end;
+  }
+  raw += display.slice(lastIndex);
+  return raw;
+}
+
+/** The shared prefix/suffix boundaries of an edit, so spans outside it can be left alone. */
+function editBounds(oldStr: string, newStr: string) {
+  const maxLen = Math.min(oldStr.length, newStr.length);
+  let prefix = 0;
+  while (prefix < maxLen && oldStr[prefix] === newStr[prefix]) prefix++;
+  let suffix = 0;
+  const maxSuffix = maxLen - prefix;
+  while (suffix < maxSuffix && oldStr[oldStr.length - 1 - suffix] === newStr[newStr.length - 1 - suffix]) suffix++;
+  return { prefix, oldEnd: oldStr.length - suffix };
+}
+
+/**
+ * Carries placed mentions across an edit: a span entirely before or after the
+ * changed region just shifts with it; one the edit actually touches loses its
+ * link and becomes ordinary text (same as typing inside any other word).
+ */
+function updateSpans(spans: MentionSpan[], oldDisplay: string, newDisplay: string): MentionSpan[] {
+  const { prefix, oldEnd } = editBounds(oldDisplay, newDisplay);
+  const delta = newDisplay.length - oldDisplay.length;
+  const next: MentionSpan[] = [];
+  for (const span of spans) {
+    if (span.end <= prefix) {
+      next.push(span);
+    } else if (span.start >= oldEnd) {
+      next.push({ ...span, start: span.start + delta, end: span.end + delta });
+    }
+  }
+  return next;
+}
+
+// Renders the same text the real textarea shows, with each placed mention
+// colored — sits behind the (invisible) textarea. Unlike coloring within the
+// raw "@[Name](id)" markup itself, this operates on the *display* text, which
+// is exactly what the textarea contains character-for-character, so the two
+// layers always wrap identically and the real caret lines up with what's
+// visible instead of landing past a block of hidden markup.
+function MentionBackdrop({ text, spans }: { text: string; spans: MentionSpan[] }) {
+  const parts: React.ReactNode[] = [];
+  let lastIndex = 0;
+
+  spans.forEach((span, i) => {
+    if (span.start > lastIndex) parts.push(<span key={`t-${i}`}>{text.slice(lastIndex, span.start)}</span>);
+    parts.push(
+      <span key={`m-${i}`} className="font-medium text-b2b-pink">
+        {text.slice(span.start, span.end)}
+      </span>
+    );
+    lastIndex = span.end;
+  });
+  if (lastIndex < text.length) parts.push(<span key="tail">{text.slice(lastIndex)}</span>);
   // A trailing newline needs an extra space to force the wrapped div to reserve its line, matching the textarea.
-  if (text.endsWith("\n")) parts.push(<span key={key++}> </span>);
+  if (text.endsWith("\n")) parts.push(<span key="nl"> </span>);
 
   return <>{parts}</>;
 }
 
-/** A textarea that offers an @mention picker; selecting a user inserts an "@[Name](userId)" token (see src/lib/mentions.ts), while displaying it to the user as plain "@Name". */
+/** A textarea that offers an @mention picker; selecting a user shows "@Name" in the box, while the raw "@[Name](userId)" token (see src/lib/mentions.ts) is what's actually sent via onChange. */
 export function MentionTextarea({
   value,
   onChange,
@@ -54,18 +120,42 @@ export function MentionTextarea({
   className?: string;
   autoFocus?: boolean;
 }) {
+  const [display, setDisplay] = useState(() => toDisplay(value).display);
+  const [spans, setSpans] = useState<MentionSpan[]>(() => toDisplay(value).spans);
+  const lastEmittedRaw = useRef(value);
+
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [mentionStart, setMentionStart] = useState<number | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const backdropRef = useRef<HTMLDivElement>(null);
   const requestId = useRef(0);
 
-  async function handleChange(e: React.ChangeEvent<HTMLTextAreaElement>) {
-    const newValue = e.target.value;
-    onChange(newValue);
+  // The parent reset or replaced `value` from outside (clearing the form,
+  // loading a different post into edit mode) — anything other than an echo
+  // of what we ourselves just emitted needs re-deriving from scratch.
+  useEffect(() => {
+    if (value === lastEmittedRaw.current) return;
+    const next = toDisplay(value);
+    setDisplay(next.display);
+    setSpans(next.spans);
+    lastEmittedRaw.current = value;
+  }, [value]);
 
-    const cursor = e.target.selectionStart ?? newValue.length;
-    const match = TYPING_MENTION.exec(newValue.slice(0, cursor));
+  function emit(newDisplay: string, newSpans: MentionSpan[]) {
+    setDisplay(newDisplay);
+    setSpans(newSpans);
+    const raw = toRaw(newDisplay, newSpans);
+    lastEmittedRaw.current = raw;
+    onChange(raw);
+  }
+
+  async function handleChange(e: React.ChangeEvent<HTMLTextAreaElement>) {
+    const newDisplay = e.target.value;
+    const newSpans = updateSpans(spans, display, newDisplay);
+    emit(newDisplay, newSpans);
+
+    const cursor = e.target.selectionStart ?? newDisplay.length;
+    const match = TYPING_MENTION.exec(newDisplay.slice(0, cursor));
     if (!match) {
       setSuggestions([]);
       setMentionStart(null);
@@ -99,17 +189,29 @@ export function MentionTextarea({
     const textarea = textareaRef.current;
     if (mentionStart == null || !textarea) return;
 
-    const cursor = textarea.selectionStart ?? value.length;
-    const before = value.slice(0, mentionStart);
-    const after = value.slice(cursor);
-    const token = item.kind === "gym" ? `@[${item.name}](gym:${item.id}) ` : `@[${item.name}](${item.id}) `;
-    onChange(`${before}${token}${after}`);
+    const cursor = textarea.selectionStart ?? display.length;
+    const before = display.slice(0, mentionStart);
+    const after = display.slice(cursor);
+    const chip = `@${item.name}`;
+    const newDisplay = `${before}${chip} ${after}`;
+
+    const spanStart = before.length;
+    const spanEnd = spanStart + chip.length;
+    const newSpan: MentionSpan = { start: spanStart, end: spanEnd, name: item.name, id: item.id, isGym: item.kind === "gym" };
+    const delta = newDisplay.length - display.length;
+    const newSpans = [
+      ...spans.filter((s) => s.end <= mentionStart),
+      newSpan,
+      ...spans.filter((s) => s.start >= cursor).map((s) => ({ ...s, start: s.start + delta, end: s.end + delta })),
+    ].sort((a, b) => a.start - b.start);
+
+    emit(newDisplay, newSpans);
     setSuggestions([]);
     setMentionStart(null);
 
     requestAnimationFrame(() => {
       textarea.focus();
-      const pos = before.length + token.length;
+      const pos = spanEnd + 1;
       textarea.setSelectionRange(pos, pos);
     });
   }
@@ -129,13 +231,13 @@ export function MentionTextarea({
           aria-hidden
           className={`${className ?? ""} pointer-events-none absolute inset-0 z-0 overflow-hidden whitespace-pre-wrap break-words border-transparent`}
         >
-          <MentionBackdrop text={value} />
+          <MentionBackdrop text={display} spans={spans} />
         </div>
         <textarea
           ref={textareaRef}
           rows={rows}
           placeholder={placeholder}
-          value={value}
+          value={display}
           onChange={handleChange}
           onScroll={syncScroll}
           autoFocus={autoFocus}
