@@ -11,6 +11,7 @@ import { EventNoticesPanel } from "@/components/EventNoticesPanel";
 import { CollapsibleText } from "@/components/CollapsibleText";
 import { InviteToEventForm } from "@/components/InviteToEventForm";
 import { MessageAttendeesButton } from "@/components/MessageAttendeesButton";
+import { ShareEventButton } from "@/components/ShareEventButton";
 import { parseJsonArray, eventKindLabel, isCompetitionEvent } from "@/lib/labels";
 import { formatEventDate } from "@/lib/eventDate";
 import { assertEventVisible } from "@/lib/eventVisibility";
@@ -149,6 +150,7 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
               >
                 Find a teammate
               </a>
+              {!event.isPrivate && <ShareEventButton eventId={event.id} />}
               <Link
                 href={`/events/${event.id}/notices`}
                 className="col-span-2 rounded-xl border border-b2b-purple/20 bg-b2b-purple/10 px-4 py-3 text-center text-sm font-medium text-b2b-purple hover:bg-b2b-purple/20"

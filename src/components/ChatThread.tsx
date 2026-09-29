@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { ReportButton } from "@/components/ReportButton";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { MentionText } from "@/components/MentionText";
 
 type MessageItem = {
   id: string;
@@ -151,7 +152,14 @@ export function ChatThread({
                     </div>
                   ) : (
                     <p className={`whitespace-pre-wrap ${isDeleted ? "italic opacity-70" : ""}`}>
-                      {isDeleted ? "This message was deleted" : message.text}
+                      {isDeleted ? (
+                        "This message was deleted"
+                      ) : (
+                        <MentionText
+                          text={message.text}
+                          linkClassName={isMine ? "font-medium underline" : "font-medium text-b2b-pink hover:underline"}
+                        />
+                      )}
                     </p>
                   )}
                 </div>
