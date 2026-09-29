@@ -140,6 +140,15 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
               >
                 Interested ({event._count.interests})
               </Link>
+              {/* Jumps to the "Find a teammate" section further down this
+                  same page — it's easy to miss on scroll, so this gives it a
+                  shortcut right next to the buttons someone taps first. */}
+              <a
+                href="#find-teammate"
+                className="col-span-2 rounded-xl border border-gray-300 bg-b2b-card px-4 py-3 text-center text-sm font-medium text-b2b-ink hover:bg-b2b-bg"
+              >
+                Find a teammate
+              </a>
               <Link
                 href={`/events/${event.id}/notices`}
                 className="col-span-2 rounded-xl border border-b2b-purple/20 bg-b2b-purple/10 px-4 py-3 text-center text-sm font-medium text-b2b-purple hover:bg-b2b-purple/20"
@@ -185,7 +194,7 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
         </SectionCard>
       </div>
 
-      <div className="mt-6">
+      <div id="find-teammate" className="mt-6 scroll-mt-6">
         <SectionCard title="Find a teammate">
           <p className="mb-3 text-sm text-b2b-ink/50">Looking for teammates for {event.name}? Post it here.</p>
           <EventNoticesPanel eventId={event.id} />
