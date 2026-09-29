@@ -21,6 +21,7 @@ import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { ReportButton } from "@/components/ReportButton";
 import { WorkoutDescriptionToggle } from "@/components/WorkoutDescriptionToggle";
 import { formatEventDate } from "@/lib/eventDate";
+import { formatDateTime } from "@/lib/dates";
 
 export type CommentData = {
   id: string;
@@ -416,7 +417,7 @@ export function PostCard({
             </div>
             <p className="truncate text-xs text-b2b-ink/40">
               {post.author.affiliateGym && `${post.author.affiliateGym} · `}
-              {post.createdAt.toLocaleString()}
+              {formatDateTime(post.createdAt)}
             </p>
           </div>
         </Link>

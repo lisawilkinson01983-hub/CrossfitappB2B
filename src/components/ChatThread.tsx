@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { ReportButton } from "@/components/ReportButton";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { formatTime } from "@/lib/dates";
 
 type MessageItem = {
   id: string;
@@ -157,10 +158,7 @@ export function ChatThread({
                 </div>
                 <div className="mt-1 flex flex-wrap items-center gap-2 px-1 text-xs text-b2b-ink/40">
                   <span>
-                    {new Date(message.createdAt).toLocaleTimeString([], {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
+                    {formatTime(message.createdAt)}
                   </span>
                   {!isDeleted && message.editedAt && <span>(edited)</span>}
                   {!isEditing && !isDeleted && isMine && (

@@ -20,6 +20,7 @@ import {
   EVENT_TEAM_FORMAT_LABELS,
 } from "@/lib/labels";
 import { Avatar } from "@/components/Avatar";
+import { formatDate } from "@/lib/dates";
 
 type DuplicateMatch = { id: string; name: string; date: string; location: string | null };
 type UserOption = { id: string; name: string; photo: string | null };
@@ -526,7 +527,7 @@ export function EventSubmitForm({
           <ul className="mt-1 list-disc pl-5">
             {duplicates.map((m) => (
               <li key={m.id}>
-                {m.name} — {new Date(m.date).toLocaleDateString()} · {m.location ?? "Online"}
+                {m.name} — {formatDate(m.date)} · {m.location ?? "Online"}
               </li>
             ))}
           </ul>

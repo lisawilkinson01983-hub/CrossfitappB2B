@@ -5,6 +5,7 @@ import type { WorkoutIntensityOption, WorkoutUnitOption } from "@/lib/validation
 import { DeleteWorkoutButton } from "./DeleteWorkoutButton";
 import { PinButton } from "./PinButton";
 import { WorkoutDescriptionToggle } from "./WorkoutDescriptionToggle";
+import { formatDate } from "@/lib/dates";
 
 type WorkoutCardData = {
   id: string;
@@ -54,7 +55,7 @@ export function WorkoutCard({
           </p>
         </div>
         <p className="whitespace-nowrap text-xs text-gray-400">
-          {workout.createdAt.toLocaleDateString()}
+          {formatDate(workout.createdAt)}
         </p>
       </div>
 

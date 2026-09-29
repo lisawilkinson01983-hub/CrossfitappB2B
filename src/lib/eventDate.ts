@@ -1,10 +1,12 @@
-/** Formats an event's date, showing a range (e.g. "Oct 4 – Oct 6, 2026") when endDate is set and differs from date. */
+import { formatDate } from "@/lib/dates";
+
+/** Formats an event's date, showing a range (e.g. "4 Oct – 6 Oct 2026") when endDate is set and differs from date. */
 export function formatEventDate(event: { date: Date; endDate: Date | null }): string {
   const { date, endDate } = event;
   const isRange = endDate && endDate.toDateString() !== date.toDateString();
 
   if (!isRange) {
-    return date.toLocaleDateString(undefined, {
+    return formatDate(date, {
       weekday: "short",
       year: "numeric",
       month: "short",
@@ -12,8 +14,8 @@ export function formatEventDate(event: { date: Date; endDate: Date | null }): st
     });
   }
 
-  const startStr = date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
-  const endStr = endDate.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+  const startStr = formatDate(date, { month: "short", day: "numeric" });
+  const endStr = formatDate(endDate, { month: "short", day: "numeric", year: "numeric" });
   return `${startStr} – ${endStr}`;
 }
 

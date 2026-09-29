@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { SectionCard } from "@/components/SectionCard";
 import { Avatar } from "@/components/Avatar";
 import { stripMentionMarkup } from "@/lib/mentions";
+import { formatDate } from "@/lib/dates";
 
 const PREVIEW_COUNT = 3;
 
@@ -101,7 +102,7 @@ export async function ProfilePosts({ userId }: { userId: string }) {
               <div className="min-w-0 flex-1">
                 <p className="line-clamp-2">{summarize(post)}</p>
                 <p className="mt-1 text-xs text-b2b-ink/40">
-                  {post.createdAt.toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                  {formatDate(post.createdAt, { month: "short", day: "numeric" })}
                   {" · "}
                   {post._count.likes} ♡ · {post._count.comments} 💬
                 </p>
