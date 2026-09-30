@@ -21,6 +21,7 @@ import {
 import { GENDER_LABELS, LEVEL_LABELS, LOOKING_FOR_LABELS, PB_LABELS } from "@/lib/labels";
 import { OTHER_GYM } from "@/lib/gyms";
 import { COUNTRIES, type Country } from "@/lib/countries";
+import { AvatarCropper } from "@/components/AvatarCropper";
 
 type Initial = {
   name: string;
@@ -109,6 +110,10 @@ export function EditProfileForm({
   }
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(initial.photo);
+  // Set while a just-picked photo is awaiting reposition/zoom in the
+  // cropper — separate from photoPreview, which only ever holds the final,
+  // already-cropped result.
+  const [cropSource, setCropSource] = useState<string | null>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
 
   const [error, setError] = useState<string | null>(null);
@@ -128,8 +133,23 @@ export function EditProfileForm({
 
   function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0] ?? null;
+    if (file) setCropSource(URL.createObjectURL(file));
+    // Reset so picking the same file again (e.g. after cancelling the
+    // cropper) still fires this handler.
+    e.target.value = "";
+  }
+
+  function handleCropCancel() {
+    if (cropSource) URL.revokeObjectURL(cropSource);
+    setCropSource(null);
+  }
+
+  function handleCropped(blob: Blob) {
+    if (cropSource) URL.revokeObjectURL(cropSource);
+    setCropSource(null);
+    const file = new File([blob], "avatar.jpg", { type: "image/jpeg" });
     setPhotoFile(file);
-    if (file) setPhotoPreview(URL.createObjectURL(file));
+    setPhotoPreview(URL.createObjectURL(blob));
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -191,6 +211,10 @@ export function EditProfileForm({
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+      {cropSource && (
+        <AvatarCropper imageSrc={cropSource} onCancel={handleCropCancel} onCropped={handleCropped} />
+      )}
+
       {error && <p className="rounded bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
 
       <fieldset>

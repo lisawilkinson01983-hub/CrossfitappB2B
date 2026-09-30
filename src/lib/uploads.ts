@@ -27,16 +27,34 @@ const MAX_PHOTO_DIMENSION = 1600;
  * this previously failed silently, which made a broken sharp install (e.g.
  * missing its native binary on a given host) indistinguishable from working
  * as intended — every upload just quietly kept its full original size.
+ *
+ * `square: true` (avatars only) additionally crops to a 1:1 square here,
+ * at upload time, rather than leaving it to the CSS `object-cover` the
+ * Avatar component displays every photo through. That CSS crop is always
+ * anchored dead-center, which can cut off the top of someone's head on a
+ * non-square photo; cropping with sharp's "attention" strategy instead
+ * picks the square that keeps the most visually salient part of the
+ * image (faces, in practice) rather than blindly centering.
  */
-async function resizePhoto(bytes: Buffer, ext: string): Promise<Buffer> {
+async function resizePhoto(bytes: Buffer, ext: string, options: { square?: boolean } = {}): Promise<Buffer> {
   try {
     // .rotate() with no argument applies the orientation already recorded in
     // the photo's EXIF data — without it, a resized photo taken on a phone
     // held sideways/upside-down can come out rotated wrong, since EXIF
     // orientation is otherwise only honored by whatever renders the *original*.
-    const pipeline = sharp(bytes)
-      .rotate()
-      .resize({ width: MAX_PHOTO_DIMENSION, height: MAX_PHOTO_DIMENSION, fit: "inside", withoutEnlargement: true });
+    const pipeline = options.square
+      ? sharp(bytes)
+          .rotate()
+          .resize({
+            width: MAX_PHOTO_DIMENSION,
+            height: MAX_PHOTO_DIMENSION,
+            fit: "cover",
+            position: sharp.strategy.attention,
+            withoutEnlargement: true,
+          })
+      : sharp(bytes)
+          .rotate()
+          .resize({ width: MAX_PHOTO_DIMENSION, height: MAX_PHOTO_DIMENSION, fit: "inside", withoutEnlargement: true });
     const resized =
       ext === "png"
         ? await pipeline.png({ quality: 82 }).toBuffer()
@@ -86,13 +104,21 @@ async function saveUpload(ownerId: string, ext: string, bytes: Buffer): Promise<
   return `/media/${filename}`;
 }
 
-/** Validates and writes an uploaded photo, returning its public /media/... path. */
-export async function savePhotoUpload(file: File, ownerId: string): Promise<string> {
+/**
+ * Validates and writes an uploaded photo, returning its public /media/...
+ * path. Pass `{ square: true }` for a photo always displayed in a fixed 1:1
+ * frame (currently just profile avatars) — see resizePhoto for why.
+ */
+export async function savePhotoUpload(
+  file: File,
+  ownerId: string,
+  options: { square?: boolean } = {}
+): Promise<string> {
   const ext = ALLOWED_PHOTO_TYPES[file.type];
   if (!ext) throw new PhotoUploadError("Photo must be a JPEG, PNG, or WebP image");
   if (file.size > MAX_PHOTO_BYTES) throw new PhotoUploadError("Photo must be smaller than 5MB");
   const original = Buffer.from(await file.arrayBuffer());
-  const bytes = await resizePhoto(original, ext);
+  const bytes = await resizePhoto(original, ext, options);
   return saveUpload(ownerId, ext, bytes);
 }
 

@@ -64,7 +64,7 @@ export async function PATCH(req: Request) {
   const photo = formData.get("photo");
   if (photo instanceof File && photo.size > 0) {
     try {
-      photoPath = await savePhotoUpload(photo, session.user.id);
+      photoPath = await savePhotoUpload(photo, session.user.id, { square: true });
     } catch (err) {
       if (err instanceof PhotoUploadError) {
         return NextResponse.json({ error: err.message }, { status: 400 });
