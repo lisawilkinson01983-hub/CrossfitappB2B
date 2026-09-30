@@ -1,5 +1,5 @@
-import { parseLookingFor } from "@/lib/labels";
-import type { AccountType, Level } from "@prisma/client";
+import { parseLookingFor, parseLevels } from "@/lib/labels";
+import type { AccountType } from "@prisma/client";
 
 /**
  * Whether a profile has everything setup requires: personal info (name,
@@ -15,12 +15,12 @@ export function isProfileSetupComplete(user: {
   accountType: AccountType;
   area: string | null;
   affiliateGym: string | null;
-  level: Level | null;
+  levels: string | null;
   lookingFor: string | null;
 }): boolean {
   if (!user.area || !user.affiliateGym) return false;
   if (user.accountType === "ATHLETE") {
-    if (!user.level) return false;
+    if (parseLevels(user.levels).length === 0) return false;
     if (parseLookingFor(user.lookingFor).length === 0) return false;
   }
   return true;

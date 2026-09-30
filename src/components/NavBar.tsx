@@ -32,7 +32,7 @@ export async function NavBar({ isProfileEditPage = false }: { isProfileEditPage?
             accountType: true,
             area: true,
             affiliateGym: true,
-            level: true,
+            levels: true,
             lookingFor: true,
           },
         }),

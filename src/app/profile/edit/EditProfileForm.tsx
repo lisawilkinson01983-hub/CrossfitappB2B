@@ -9,6 +9,7 @@ import {
   LEVELS,
   LOOKING_FOR_OPTIONS,
   MAX_DISPLAYED_PBS,
+  MAX_LEVELS,
   PB_CATEGORIES,
   PB_FIELDS,
   type AccountTypeOption,
@@ -32,7 +33,7 @@ type Initial = {
   country: Country | "";
   affiliateGym: string;
   affiliateGymOther: string;
-  level: LevelOption | "";
+  levels: LevelOption[];
   crossfitSinceYear: number | "";
   crossfitSinceMonth: number | "";
   lookingFor: LookingForOption[];
@@ -77,7 +78,7 @@ export function EditProfileForm({
   const [affiliateGym, setAffiliateGym] = useState(initial.affiliateGym);
   const [affiliateGymOther, setAffiliateGymOther] = useState(initial.affiliateGymOther);
   const isOtherGym = affiliateGym === OTHER_GYM;
-  const [level, setLevel] = useState(initial.level);
+  const [levels, setLevels] = useState<LevelOption[]>(initial.levels);
   const [crossfitSinceYear, setCrossfitSinceYear] = useState(String(initial.crossfitSinceYear));
   const [crossfitSinceMonth, setCrossfitSinceMonth] = useState(String(initial.crossfitSinceMonth));
   const [lookingFor, setLookingFor] = useState<LookingForOption[]>(initial.lookingFor);
@@ -119,6 +120,12 @@ export function EditProfileForm({
     );
   }
 
+  function toggleLevel(option: LevelOption) {
+    setLevels((prev) =>
+      prev.includes(option) ? prev.filter((v) => v !== option) : prev.length >= MAX_LEVELS ? prev : [...prev, option]
+    );
+  }
+
   function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0] ?? null;
     setPhotoFile(file);
@@ -129,6 +136,10 @@ export function EditProfileForm({
     e.preventDefault();
     setError(null);
 
+    if (isAthlete && levels.length === 0) {
+      setError("Select a level");
+      return;
+    }
     if (isAthlete && lookingFor.length === 0) {
       setError("Choose at least one thing you're looking for");
       return;
@@ -149,7 +160,7 @@ export function EditProfileForm({
     if (isAthlete) {
       formData.set("age", age);
       formData.set("gender", gender);
-      formData.set("level", level);
+      levels.forEach((v) => formData.append("levels", v));
       lookingFor.forEach((v) => formData.append("lookingFor", v));
       if (showLookingFor) formData.set("showLookingFor", "on");
       formData.set("isSingle", isSingle);
@@ -385,27 +396,26 @@ export function EditProfileForm({
       </div>
 
       {isAthlete && (
-        <div>
-          <label htmlFor="level" className="block text-sm font-medium">
-            Level
-          </label>
-          <select
-            id="level"
-            required
-            value={level}
-            onChange={(e) => setLevel(e.target.value as LevelOption)}
-            className="mt-1 w-full rounded border border-gray-300 bg-b2b-card px-3 py-2 focus:border-b2b-pink focus:outline-none"
-          >
-            <option value="" disabled>
-              Select a level
-            </option>
+        <fieldset>
+          <legend className="text-sm font-medium">Level</legend>
+          <p className="mt-0.5 text-xs text-b2b-ink/50">
+            Select up to {MAX_LEVELS} — competing across two abilities (e.g. Scaled and Intermediate) means teams
+            searching for either can find you.
+          </p>
+          <div className="mt-2 flex flex-col gap-2">
             {LEVELS.map((l) => (
-              <option key={l} value={l}>
+              <label key={l} className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={levels.includes(l)}
+                  disabled={!levels.includes(l) && levels.length >= MAX_LEVELS}
+                  onChange={() => toggleLevel(l)}
+                />
                 {LEVEL_LABELS[l]}
-              </option>
+              </label>
             ))}
-          </select>
-        </div>
+          </div>
+        </fieldset>
       )}
 
       <div>

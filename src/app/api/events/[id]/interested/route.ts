@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { assertEventVisible } from "@/lib/eventVisibility";
-import { parseTeammateRequests } from "@/lib/labels";
+import { parseTeammateRequests, parseLevels } from "@/lib/labels";
 import { teammateCriteriaMatch } from "@/lib/teammateMatch";
 
 /**
@@ -18,9 +18,10 @@ import { teammateCriteriaMatch } from "@/lib/teammateMatch";
 async function notifyMatchingTeammateRequests(eventId: string, interestedUserId: string) {
   const interestedUser = await prisma.user.findUnique({
     where: { id: interestedUserId },
-    select: { gender: true, level: true },
+    select: { gender: true, levels: true },
   });
-  if (!interestedUser?.gender || !interestedUser.level) return;
+  const athleteLevels = parseLevels(interestedUser?.levels ?? null);
+  if (!interestedUser?.gender || athleteLevels.length === 0) return;
 
   const notices = await prisma.eventNotice.findMany({
     where: { eventId, userId: { not: interestedUserId }, teammateRequests: { not: null } },
@@ -30,9 +31,11 @@ async function notifyMatchingTeammateRequests(eventId: string, interestedUserId:
   const matchedAuthorIds = new Set<string>();
   for (const notice of notices) {
     const requests = parseTeammateRequests(notice.teammateRequests);
-    if (requests.some((req) => teammateCriteriaMatch({ gender: interestedUser.gender!, division: interestedUser.level! }, req))) {
-      matchedAuthorIds.add(notice.userId);
-    }
+    // An athlete competing across two levels fits a request matching either.
+    const fits = requests.some((req) =>
+      athleteLevels.some((division) => teammateCriteriaMatch({ gender: interestedUser.gender!, division }, req))
+    );
+    if (fits) matchedAuthorIds.add(notice.userId);
   }
 
   if (matchedAuthorIds.size > 0) {

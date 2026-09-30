@@ -237,6 +237,17 @@ export function parseLookingFor(value: string | null): LookingForOption[] {
   }
 }
 
+/** User.levels is JSON-encoded (see prisma/schema.prisma) — up to MAX_LEVELS values, same parsing as parseLookingFor. */
+export function parseLevels(value: string | null): LevelOption[] {
+  if (!value) return [];
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
 /** Parses any JSON-encoded-array string column (Event.division/teamFormat/genderCategory, etc). */
 export function parseJsonArray<T extends string>(value: string | null): T[] {
   if (!value) return [];

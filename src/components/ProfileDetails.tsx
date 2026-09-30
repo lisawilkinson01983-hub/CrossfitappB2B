@@ -10,6 +10,7 @@ import {
   PB_LABELS,
   parseDisplayedPbs,
   parseLookingFor,
+  parseLevels,
   showsSingleBadge,
 } from "@/lib/labels";
 import { PB_FIELDS, type PbField } from "@/lib/validation";
@@ -80,10 +81,10 @@ export async function ProfileDetails({
   const gymHref = gymPage ? `/gyms/${encodeURIComponent(gymPage.name)}` : undefined;
 
   const badges: ReactNode[] = [];
-  if (user.level && !isSiteAccount) {
-    badges.push(
-      <Badge key="level" label={LEVEL_LABELS[user.level]} className={LEVEL_BADGE_CLASSES[user.level]} />
-    );
+  if (!isSiteAccount) {
+    for (const level of parseLevels(user.levels)) {
+      badges.push(<Badge key={`level-${level}`} label={LEVEL_LABELS[level]} className={LEVEL_BADGE_CLASSES[level]} />);
+    }
   }
   if (user.showAge && user.age != null) {
     badges.push(<Badge key="age" label={`${user.age} yrs`} className="bg-gray-100 text-gray-600" />);

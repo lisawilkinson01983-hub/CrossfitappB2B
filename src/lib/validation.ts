@@ -4,6 +4,9 @@ import { COUNTRIES } from "./countries";
 
 export const LEVELS = ["SCALED", "INTERMEDIATE", "RX"] as const;
 export type LevelOption = (typeof LEVELS)[number];
+// An athlete competing across two abilities (e.g. Scaled and Intermediate)
+// can pick both, so teammate searches/matching find them under either.
+export const MAX_LEVELS = 2;
 
 export const ACCOUNT_TYPES = ["ATHLETE", "AFFILIATE"] as const;
 export type AccountTypeOption = (typeof ACCOUNT_TYPES)[number];
@@ -176,7 +179,7 @@ export const profileSchema = z
     // route validates the submitted value against the actual Gym table.
     affiliateGym: z.string().trim().min(1, "Select a gym"),
     affiliateGymOther: z.preprocess(emptyToUndefined, z.string().trim().max(200).optional()),
-    level: z.preprocess(emptyToUndefined, z.enum(LEVELS).optional()),
+    levels: z.array(z.enum(LEVELS)).max(MAX_LEVELS, `Select up to ${MAX_LEVELS} levels`).default([]),
     crossfitSinceYear: z.preprocess(
       emptyToUndefined,
       z.coerce.number().int().min(1970).max(new Date().getFullYear()).optional()
@@ -205,8 +208,8 @@ export const profileSchema = z
     if (data.affiliateGym === OTHER_GYM && !data.affiliateGymOther) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Enter your gym name", path: ["affiliateGymOther"] });
     }
-    if (data.accountType === "ATHLETE" && !data.level) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Select a level", path: ["level"] });
+    if (data.accountType === "ATHLETE" && data.levels.length === 0) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Select a level", path: ["levels"] });
     }
     if (data.accountType === "ATHLETE" && data.lookingFor.length === 0) {
       ctx.addIssue({

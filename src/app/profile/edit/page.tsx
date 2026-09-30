@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { parseDisplayedPbs, parseLookingFor } from "@/lib/labels";
+import { parseDisplayedPbs, parseLookingFor, parseLevels } from "@/lib/labels";
 import { PB_FIELDS } from "@/lib/validation";
 import { OTHER_GYM, UNAFFILIATED } from "@/lib/gyms";
 import { isProfileSetupComplete } from "@/lib/profileSetup";
@@ -87,7 +87,7 @@ export default async function EditProfilePage() {
               country: (user.country as Country | null) ?? "",
               affiliateGym: initialAffiliateGym,
               affiliateGymOther: initialAffiliateGymOther,
-              level: user.level ?? "",
+              levels: parseLevels(user.levels),
               crossfitSinceYear: user.crossfitSinceYear ?? "",
               crossfitSinceMonth: user.crossfitSinceMonth ?? "",
               lookingFor: parseLookingFor(user.lookingFor),

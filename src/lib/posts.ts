@@ -1,5 +1,5 @@
 import type { Prisma } from "@prisma/client";
-import { parseTeammateRequests } from "@/lib/labels";
+import { parseTeammateRequests, parseLevels } from "@/lib/labels";
 import type { PostCardData } from "@/components/PostCard";
 
 // How many posts the feed loads at a time — both the initial server render
@@ -14,7 +14,7 @@ export const postCardInclude = {
       id: true,
       name: true,
       photo: true,
-      level: true,
+      levels: true,
       affiliateGym: true,
       isSingle: true,
       showSingleBadge: true,
@@ -50,7 +50,7 @@ export function toPostCardData(post: PostWithCardData, currentUserId: string): P
     media: post.media,
     createdAt: post.createdAt,
     isOwner: post.userId === currentUserId,
-    author: post.user,
+    author: { ...post.user, levels: parseLevels(post.user.levels) },
     linkedWorkout: post.linkedWorkout,
     linkedEvent: post.linkedEvent,
     likeCount: post.likes.length,

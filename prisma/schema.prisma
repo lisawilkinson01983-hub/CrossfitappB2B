@@ -232,7 +232,14 @@ model User {
   // for reference so it can be added to the official list later. Never
   // searched/filtered on.
   affiliateGymOther String?
-  level             Level?
+  // Deprecated — superseded by `levels` below (an athlete can now hold up to
+  // 2 ability levels, e.g. Scaled and Intermediate, to find teams across
+  // both). Kept rather than dropped so scripts/backfill-levels.js has
+  // something to migrate from; never read or written to elsewhere.
+  level Level?
+  // JSON-encoded array of Level values (see src/lib/validation.ts's LEVELS),
+  // max 2 — same JSON-string-array pattern as lookingFor below.
+  levels String?
 
   // An AFFILIATE account can ask, from the bottom of the profile-setup form,
   // to be confirmed as the legitimate owner/manager of the gym named in

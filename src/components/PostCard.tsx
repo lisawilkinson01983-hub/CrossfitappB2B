@@ -56,7 +56,7 @@ export type PostCardData = {
     id: string;
     name: string;
     photo: string | null;
-    level: LevelOption | null;
+    levels: LevelOption[];
     affiliateGym: string | null;
     isSingle: boolean | null;
     showSingleBadge: boolean;
@@ -405,13 +405,11 @@ export function PostCard({
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
               <span className="break-words font-semibold hover:underline">{post.author.name}</span>
-              {post.author.level && (
-                <span
-                  className={`shrink-0 rounded-full px-2 py-0.5 text-xs ${LEVEL_BADGE_CLASSES[post.author.level]}`}
-                >
-                  {LEVEL_LABELS[post.author.level]}
+              {post.author.levels.map((level) => (
+                <span key={level} className={`shrink-0 rounded-full px-2 py-0.5 text-xs ${LEVEL_BADGE_CLASSES[level]}`}>
+                  {LEVEL_LABELS[level]}
                 </span>
-              )}
+              ))}
               {isPb && <span className="shrink-0 text-sm font-semibold text-yellow-600">★ PB</span>}
             </div>
             <p className="truncate text-xs text-b2b-ink/40">

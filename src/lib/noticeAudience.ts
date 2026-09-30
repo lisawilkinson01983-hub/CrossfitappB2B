@@ -21,7 +21,10 @@ export async function resolveAudienceUserIds(audience: Audience, excludeUserId: 
     suspendedAt: null,
     ...(excludeUserId ? { id: { not: excludeUserId } } : {}),
     ...(audience.gender ? { gender: audience.gender } : {}),
-    ...(audience.level ? { level: audience.level } : {}),
+    // levels is a JSON-encoded array (see prisma/schema.prisma) — none of
+    // SCALED/INTERMEDIATE/RX is a substring of another, so a plain "contains"
+    // on the raw string safely means "has this level among theirs".
+    ...(audience.level ? { levels: { contains: audience.level } } : {}),
     ...(audience.affiliateGym ? { affiliateGym: audience.affiliateGym } : {}),
     ...(audience.country ? { country: audience.country } : {}),
     ...(audience.minAge !== undefined || audience.maxAge !== undefined

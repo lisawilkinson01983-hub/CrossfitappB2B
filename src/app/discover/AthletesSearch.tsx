@@ -10,6 +10,7 @@ import {
   LEVEL_LABELS,
   LOOKING_FOR_LABELS,
   parseLookingFor,
+  parseLevels,
   showsSingleBadge,
 } from "@/lib/labels";
 import { UNAFFILIATED } from "@/lib/gyms";
@@ -72,7 +73,10 @@ export async function AthletesSearch({
     ...(q ? { name: { contains: q } } : {}),
     ...(gym ? { affiliateGym: gym } : {}),
     ...(gender ? { gender } : {}),
-    ...(level ? { level } : {}),
+    // levels is a JSON-encoded array (see prisma/schema.prisma) — none of
+    // SCALED/INTERMEDIATE/RX is a substring of another, so "contains" safely
+    // means "has this level among theirs".
+    ...(level ? { levels: { contains: level } } : {}),
   };
 
   let candidates = await prisma.user.findMany({
@@ -81,7 +85,7 @@ export async function AthletesSearch({
       id: true,
       name: true,
       photo: true,
-      level: true,
+      levels: true,
       area: true,
       areaLat: true,
       areaLng: true,
@@ -287,13 +291,11 @@ export async function AthletesSearch({
                     <p className="font-medium">
                       {user.name}
                       {user.isPrivate && <span className="ml-1 text-sm">🔒</span>}
-                      {user.level && (
-                        <span
-                          className={`ml-2 rounded-full px-2 py-0.5 text-xs ${LEVEL_BADGE_CLASSES[user.level]}`}
-                        >
-                          {LEVEL_LABELS[user.level]}
+                      {parseLevels(user.levels).map((level) => (
+                        <span key={level} className={`ml-2 rounded-full px-2 py-0.5 text-xs ${LEVEL_BADGE_CLASSES[level]}`}>
+                          {LEVEL_LABELS[level]}
                         </span>
-                      )}
+                      ))}
                     </p>
                     <p className="text-sm text-b2b-ink/50">
                       {[user.area, user.affiliateGym].filter(Boolean).join(" · ")}
