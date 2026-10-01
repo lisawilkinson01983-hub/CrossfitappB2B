@@ -1,5 +1,4 @@
 import Link from "next/link";
-import Image from "next/image";
 import { redirect, notFound } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -9,6 +8,7 @@ import { SectionCard } from "@/components/SectionCard";
 import { Avatar } from "@/components/Avatar";
 import { EventEngagementButtons } from "@/components/EventEngagementButtons";
 import { EventWorkoutsCarousel } from "@/components/EventWorkoutsCarousel";
+import { EventPlatformBadge } from "@/components/EventPlatformBadge";
 import { CollapsibleText } from "@/components/CollapsibleText";
 import { InviteToEventForm } from "@/components/InviteToEventForm";
 import { MessageAttendeesButton } from "@/components/MessageAttendeesButton";
@@ -16,7 +16,7 @@ import { ShareEventButton } from "@/components/ShareEventButton";
 import { parseJsonArray, eventKindLabel, isCompetitionEvent } from "@/lib/labels";
 import { formatEventDate } from "@/lib/eventDate";
 import { assertEventVisible } from "@/lib/eventVisibility";
-import { isAretasUrl } from "@/lib/eventWebsite";
+import { detectEventPlatform } from "@/lib/eventWebsite";
 import {
   EVENT_DIVISION_LABELS,
   EVENT_TEAM_FORMAT_LABELS,
@@ -73,7 +73,7 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
     ...genderCategory.filter((v) => v !== "NA").map((v) => EVENT_GENDER_CATEGORY_LABELS[v]),
   ];
   const kindLabel = eventKindLabel(event);
-  const isAretas = isAretasUrl(event.websiteUrl);
+  const eventPlatform = detectEventPlatform(event.websiteUrl);
 
   return (
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
@@ -90,16 +90,12 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
         )}
       </div>
 
-      {isAretas && (
-        <div className="mt-4 flex justify-center">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-[#1c1c1c] py-1 pl-1 pr-3 text-xs font-semibold text-[#c3dd3a]">
-            <Image src="/aretas-logo.png" alt="" width={18} height={18} className="rounded-full" />
-            Aretas Event
-          </span>
-        </div>
-      )}
-
-      <div className="mt-4">
+      <div className="relative mt-4">
+        {eventPlatform && (
+          <div className="absolute right-3 top-3 z-10">
+            <EventPlatformBadge platform={eventPlatform} />
+          </div>
+        )}
         <SectionCard>
           <div className="flex flex-col items-center gap-3 text-center">
             <Avatar photo={event.photo} name={event.name} size={112} />
