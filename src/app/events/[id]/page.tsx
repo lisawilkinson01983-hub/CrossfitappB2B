@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { redirect, notFound } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -15,6 +16,7 @@ import { ShareEventButton } from "@/components/ShareEventButton";
 import { parseJsonArray, eventKindLabel, isCompetitionEvent } from "@/lib/labels";
 import { formatEventDate } from "@/lib/eventDate";
 import { assertEventVisible } from "@/lib/eventVisibility";
+import { isAretasUrl } from "@/lib/eventWebsite";
 import {
   EVENT_DIVISION_LABELS,
   EVENT_TEAM_FORMAT_LABELS,
@@ -71,6 +73,7 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
     ...genderCategory.filter((v) => v !== "NA").map((v) => EVENT_GENDER_CATEGORY_LABELS[v]),
   ];
   const kindLabel = eventKindLabel(event);
+  const isAretas = isAretasUrl(event.websiteUrl);
 
   return (
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
@@ -86,6 +89,15 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
           </Link>
         )}
       </div>
+
+      {isAretas && (
+        <div className="mt-4 flex justify-center">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-[#1c1c1c] py-1 pl-1 pr-3 text-xs font-semibold text-[#c3dd3a]">
+            <Image src="/aretas-logo.png" alt="" width={18} height={18} className="rounded-full" />
+            Aretas Event
+          </span>
+        </div>
+      )}
 
       <div className="mt-4">
         <SectionCard>
@@ -200,9 +212,9 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
               href={event.websiteUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-3 block text-center text-sm text-b2b-pink underline"
+              className="mt-4 block rounded-xl bg-b2b-pink px-4 py-3 text-center text-sm font-bold text-white hover:bg-b2b-pink-dark"
             >
-              Event website
+              Register
             </a>
           )}
 
