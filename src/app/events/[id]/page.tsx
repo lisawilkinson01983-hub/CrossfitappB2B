@@ -48,7 +48,6 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
   if (!(await assertEventVisible(event, session.user.id))) notFound();
 
   const isOrganizer = event.createdById === session.user.id || event.submittedById === session.user.id;
-  const isOrganizerOrAdmin = isOrganizer || !!me?.isAdmin;
   const gymOptions = event.isPrivate && isOrganizer
     ? (await prisma.gym.findMany({ where: { status: "APPROVED" }, select: { name: true }, orderBy: { name: "asc" } })).map(
         (g) => g.name
@@ -82,9 +81,9 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
         <Link href="/discover?view=events" className="inline-block text-sm text-b2b-pink underline">
           ← Back to events
         </Link>
-        {me?.isAdmin && (
+        {(isOrganizer || me?.isAdmin) && (
           <Link href={`/events/${event.id}/edit`} className="text-sm text-b2b-purple underline">
-            Edit event
+            {me?.isAdmin ? "Edit event" : "Event settings"}
           </Link>
         )}
       </div>
@@ -205,8 +204,7 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
             eventId={event.id}
             photos={event.workoutPhotos}
             currentUserId={session.user.id}
-            canAdd={isOrganizerOrAdmin}
-            isOrganizerOrAdmin={isOrganizerOrAdmin}
+            readOnly
           />
         </SectionCard>
       </div>

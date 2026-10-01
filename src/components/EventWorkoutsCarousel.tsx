@@ -7,23 +7,27 @@ import { ExpandableImage } from "@/components/ExpandableImage";
 export type EventWorkoutPhotoData = { id: string; photo: string; userId: string };
 
 /**
- * An event's "Workouts" section — a carousel for the organizer to post
- * things like the released competition workouts. Deliberately separate from
- * the Notice Board: this is the event's own curated gallery, shown
- * prominently on the event page itself rather than mixed into the chat feed.
+ * An event's "Workouts" carousel — things like the released competition
+ * workouts. Deliberately separate from the Notice Board: this is the
+ * event's own curated gallery, not a chat message. Rendered twice: read-only
+ * on the event homepage (just the photos), and with add/remove controls on
+ * the event's edit page, where the organizer actually manages it.
  */
 export function EventWorkoutsCarousel({
   eventId,
   photos,
   currentUserId,
-  canAdd,
-  isOrganizerOrAdmin,
+  canAdd = false,
+  isOrganizerOrAdmin = false,
+  readOnly = false,
 }: {
   eventId: string;
   photos: EventWorkoutPhotoData[];
   currentUserId: string;
-  canAdd: boolean;
-  isOrganizerOrAdmin: boolean;
+  canAdd?: boolean;
+  isOrganizerOrAdmin?: boolean;
+  /** The event homepage's display-only view — no add/remove controls, just the photos. Management lives on the event's edit page instead. */
+  readOnly?: boolean;
 }) {
   const router = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -40,21 +44,25 @@ export function EventWorkoutsCarousel({
   }
 
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0] ?? null;
+    const files = Array.from(e.target.files ?? []);
     e.target.value = "";
-    if (!file) return;
+    if (files.length === 0) return;
 
     setUploading(true);
     setError(null);
-    const formData = new FormData();
-    formData.set("photo", file);
-    const res = await fetch(`/api/events/${eventId}/workout-photos`, { method: "POST", body: formData });
-    setUploading(false);
-    if (!res.ok) {
-      const body = await res.json().catch(() => ({}));
-      setError(body.error ?? "Couldn't add that photo. Please try again.");
-      return;
+    // Uploaded one at a time (rather than batched) so a failure partway
+    // through still keeps whatever succeeded before it.
+    for (const file of files) {
+      const formData = new FormData();
+      formData.set("photo", file);
+      const res = await fetch(`/api/events/${eventId}/workout-photos`, { method: "POST", body: formData });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        setError(body.error ?? "Couldn't add that photo. Please try again.");
+        break;
+      }
     }
+    setUploading(false);
     router.refresh();
   }
 
@@ -65,16 +73,23 @@ export function EventWorkoutsCarousel({
     if (res.ok) router.refresh();
   }
 
-  const addButton = canAdd && (
+  const addButton = !readOnly && canAdd && (
     <>
-      <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={handleFileChange} className="hidden" />
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        multiple
+        onChange={handleFileChange}
+        className="hidden"
+      />
       <button
         type="button"
         onClick={() => fileInputRef.current?.click()}
         disabled={uploading}
         className="rounded border border-gray-300 px-3 py-1.5 text-sm hover:bg-b2b-bg disabled:opacity-50"
       >
-        {uploading ? "Adding…" : "📷 Add photo"}
+        {uploading ? "Adding…" : "📷 Add photos"}
       </button>
     </>
   );
@@ -93,7 +108,7 @@ export function EventWorkoutsCarousel({
     <div>
       <div ref={containerRef} onScroll={handleScroll} className="flex snap-x snap-mandatory overflow-x-auto rounded">
         {photos.map((item) => {
-          const canDelete = isOrganizerOrAdmin || item.userId === currentUserId;
+          const canDelete = !readOnly && (isOrganizerOrAdmin || item.userId === currentUserId);
           return (
             <div key={item.id} className="relative w-full shrink-0 snap-center">
               {/* object-contain, not -cover: a workout poster's text needs
