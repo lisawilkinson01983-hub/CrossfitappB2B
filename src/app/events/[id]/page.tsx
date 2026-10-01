@@ -8,6 +8,7 @@ import { SectionCard } from "@/components/SectionCard";
 import { Avatar } from "@/components/Avatar";
 import { EventEngagementButtons } from "@/components/EventEngagementButtons";
 import { EventNoticesPanel } from "@/components/EventNoticesPanel";
+import { EventWorkoutsCarousel } from "@/components/EventWorkoutsCarousel";
 import { CollapsibleText } from "@/components/CollapsibleText";
 import { InviteToEventForm } from "@/components/InviteToEventForm";
 import { MessageAttendeesButton } from "@/components/MessageAttendeesButton";
@@ -40,12 +41,14 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
       // Only the count is needed here — the notices themselves are rendered
       // on the dedicated Notice Board page.
       notices: { select: { id: true } },
+      workoutPhotos: { orderBy: { createdAt: "asc" }, select: { id: true, photo: true, userId: true } },
     },
   });
   if (!event) notFound();
   if (!(await assertEventVisible(event, session.user.id))) notFound();
 
   const isOrganizer = event.createdById === session.user.id || event.submittedById === session.user.id;
+  const isOrganizerOrAdmin = isOrganizer || !!me?.isAdmin;
   const gymOptions = event.isPrivate && isOrganizer
     ? (await prisma.gym.findMany({ where: { status: "APPROVED" }, select: { name: true }, orderBy: { name: "asc" } })).map(
         (g) => g.name
@@ -193,6 +196,18 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
               <InviteToEventForm eventId={event.id} gymOptions={gymOptions} />
             </div>
           )}
+        </SectionCard>
+      </div>
+
+      <div className="mt-6">
+        <SectionCard title="Workouts">
+          <EventWorkoutsCarousel
+            eventId={event.id}
+            photos={event.workoutPhotos}
+            currentUserId={session.user.id}
+            canAdd={isOrganizerOrAdmin}
+            isOrganizerOrAdmin={isOrganizerOrAdmin}
+          />
         </SectionCard>
       </div>
 

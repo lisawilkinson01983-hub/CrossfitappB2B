@@ -343,6 +343,7 @@ model User {
   eventTeammateAlerts  EventTeammateAlert[]
   eventInvitesReceived EventInvite[] @relation("EventInvitesReceived")
   eventInvitesSent     EventInvite[] @relation("EventInvitesSent")
+  eventWorkoutPhotos   EventWorkoutPhoto[]
 
   blocksMade     Block[] @relation("BlocksMade")
   blocksReceived Block[] @relation("BlocksReceived")
@@ -716,6 +717,7 @@ model Event {
   notifications  Notification[]
   teammateAlerts EventTeammateAlert[]
   invites        EventInvite[]
+  workoutPhotos  EventWorkoutPhoto[]
 
   @@index([date])
 }
@@ -823,6 +825,25 @@ model EventNotice {
 
   likes    EventNoticeLike[]
   comments EventNoticeComment[]
+
+  @@index([eventId])
+}
+
+// A photo in an event's "Workouts" carousel (see its own page section) —
+// e.g. a poster of the released competition workouts. Deliberately separate
+// from EventNotice: this is the event's own curated gallery, not a chat
+// message, so it's added/removed by the organizer rather than appearing in
+// the Notice Board feed.
+model EventWorkoutPhoto {
+  id      String @id @default(cuid())
+  eventId String
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  userId  String
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  photo String // served path (see src/lib/uploads.ts)
+
+  createdAt DateTime @default(now())
 
   @@index([eventId])
 }
