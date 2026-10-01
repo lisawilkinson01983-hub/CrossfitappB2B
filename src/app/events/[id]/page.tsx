@@ -129,8 +129,27 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
               isCompetition={isCompetitionEvent(event)}
             />
 
+            {/* The two things someone's most likely here to do — given equal
+                weight so neither gets missed, and placed right after the
+                engagement toggle since they matter more than the stats
+                below. */}
+            <div className="flex w-full flex-col gap-2">
+              <Link
+                href={`/events/${event.id}/notices#find-teammate`}
+                className="rounded-xl bg-b2b-pink px-4 py-3 text-center text-sm font-bold text-white hover:bg-b2b-pink-dark"
+              >
+                Find a teammate
+              </Link>
+              <Link
+                href={`/events/${event.id}/notices`}
+                className="rounded-xl bg-b2b-pink px-4 py-3 text-center text-sm font-bold text-white hover:bg-b2b-pink-dark"
+              >
+                Notice Board{chatMessageCount > 0 ? ` · ${chatMessageCount} new` : ""}
+              </Link>
+            </div>
+
             {/* Quick stats + utilities, kept small so they don't compete with
-                the two CTAs below. */}
+                the two CTAs above. */}
             <div className="flex w-full flex-wrap items-center justify-center gap-2">
               <Link
                 href={`/events/${event.id}/participants`}
@@ -159,23 +178,6 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
                   className="inline-flex items-center gap-1.5 rounded-full border border-gray-300 bg-b2b-card px-3.5 py-2 text-xs font-semibold text-b2b-ink hover:bg-b2b-bg"
                 />
               )}
-            </div>
-
-            {/* The two things someone's most likely here to do — given equal
-                weight so neither gets missed, unlike the quick stats above. */}
-            <div className="flex w-full flex-col gap-2">
-              <Link
-                href={`/events/${event.id}/notices#find-teammate`}
-                className="rounded-xl bg-b2b-pink px-4 py-3 text-center text-sm font-bold text-white hover:bg-b2b-pink-dark"
-              >
-                Find a teammate
-              </Link>
-              <Link
-                href={`/events/${event.id}/notices`}
-                className="rounded-xl bg-b2b-pink px-4 py-3 text-center text-sm font-bold text-white hover:bg-b2b-pink-dark"
-              >
-                Notice Board{chatMessageCount > 0 ? ` · ${chatMessageCount} new` : ""}
-              </Link>
             </div>
           </div>
 
