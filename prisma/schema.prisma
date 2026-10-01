@@ -86,6 +86,9 @@ enum NotificationType {
   SYSTEM_ANNOUNCEMENT
   // Invited to a private event (see EventInvite) — eventId below has the event.
   EVENT_INVITE
+  // Someone started following this user (immediately, for a public profile —
+  // a private profile's pending request is a separate flow, not notified here).
+  FOLLOW
 }
 
 enum EventStatus {

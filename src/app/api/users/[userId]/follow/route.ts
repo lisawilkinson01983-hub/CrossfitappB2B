@@ -50,6 +50,9 @@ export async function POST(_req: Request, { params }: { params: Promise<{ userId
   }
 
   await prisma.follow.create({ data: { followerId, followingId: targetId } });
+  await prisma.notification.create({
+    data: { userId: targetId, actorId: followerId, type: "FOLLOW" },
+  });
   return NextResponse.json({ status: "following" });
 }
 

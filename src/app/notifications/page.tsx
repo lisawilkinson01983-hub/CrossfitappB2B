@@ -104,7 +104,9 @@ export default async function NotificationsPage() {
                                   ? `is looking for a team matching your request for "${n.event?.name ?? "an event"}"`
                                   : n.type === "EVENT_INVITE"
                                     ? `invited you to "${n.event?.name ?? "an event"}"`
-                                    : "mentioned you"}
+                                    : n.type === "FOLLOW"
+                                      ? "started following you"
+                                      : "mentioned you"}
                   </p>
                   <span className="whitespace-nowrap text-xs text-b2b-ink/40">
                     {n.createdAt.toLocaleDateString()}
