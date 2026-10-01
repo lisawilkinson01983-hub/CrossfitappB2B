@@ -2,23 +2,22 @@ import { mkdir, writeFile } from "fs/promises";
 import path from "path";
 import crypto from "crypto";
 import sharp from "sharp";
-import { MAX_VIDEO_SECONDS } from "./media";
+import { MAX_VIDEO_SECONDS, MAX_PHOTO_BYTES, MAX_PHOTO_MB } from "./media";
 
 const ALLOWED_PHOTO_TYPES: Record<string, string> = {
   "image/jpeg": "jpg",
   "image/png": "png",
   "image/webp": "webp",
 };
-const MAX_PHOTO_BYTES = 5 * 1024 * 1024; // 5MB
 
 // Every photo (avatars, gallery, post/event/workout/gym photos, video
 // thumbnails) gets capped to this on its long edge before being written to
 // disk — plenty for a full-screen view, far more than any of the small
 // spots (a 40px avatar, a gallery tile) actually need. Images were
-// previously stored exactly as uploaded (up to the full 5MB cap, often a
-// multi-megapixel phone photo), so every one of them — including a tiny
-// profile picture — had to be downloaded in full just to render, which is
-// what made every image on a page like the profile page slow to appear.
+// previously stored exactly as uploaded (up to the full MAX_PHOTO_BYTES cap,
+// often a multi-megapixel phone photo), so every one of them — including a
+// tiny profile picture — had to be downloaded in full just to render, which
+// is what made every image on a page like the profile page slow to appear.
 const MAX_PHOTO_DIMENSION = 1600;
 
 /**
@@ -116,7 +115,7 @@ export async function savePhotoUpload(
 ): Promise<string> {
   const ext = ALLOWED_PHOTO_TYPES[file.type];
   if (!ext) throw new PhotoUploadError("Photo must be a JPEG, PNG, or WebP image");
-  if (file.size > MAX_PHOTO_BYTES) throw new PhotoUploadError("Photo must be smaller than 5MB");
+  if (file.size > MAX_PHOTO_BYTES) throw new PhotoUploadError(`Photo must be smaller than ${MAX_PHOTO_MB}MB`);
   const original = Buffer.from(await file.arrayBuffer());
   const bytes = await resizePhoto(original, ext, options);
   return saveUpload(ownerId, ext, bytes);
