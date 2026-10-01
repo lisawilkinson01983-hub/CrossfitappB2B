@@ -135,7 +135,7 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
                 below. */}
             <div className="flex w-full flex-col gap-2">
               <Link
-                href={`/events/${event.id}/notices#find-teammate`}
+                href={`/events/${event.id}/find-teammate`}
                 className="rounded-xl bg-b2b-pink px-4 py-3 text-center text-sm font-bold text-white hover:bg-b2b-pink-dark"
               >
                 Find a teammate
