@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Avatar } from "@/components/Avatar";
@@ -9,6 +9,7 @@ import { ReportButton } from "@/components/ReportButton";
 import { MentionText } from "@/components/MentionText";
 import { ExpandableImage } from "@/components/ExpandableImage";
 import { formatTeammateRequest } from "@/lib/labels";
+import { autoGrowTextarea } from "@/lib/autoGrowTextarea";
 import type { TeammateRequest } from "@/lib/validation";
 
 export type EventNoticeCommentData = {
@@ -72,6 +73,17 @@ export function EventNoticeCard({
   const [replyingToId, setReplyingToId] = useState<string | null>(null);
   const [replyText, setReplyText] = useState("");
   const [replyBusy, setReplyBusy] = useState(false);
+
+  // Grows each box to fit its content instead of leaving it a fixed number
+  // of rows with its own internal scrollbar — keyed to each box's own text
+  // so it also shrinks back down once the text is cleared after posting,
+  // not just while typing.
+  const editNoticeTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const commentTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const replyTextareaRef = useRef<HTMLTextAreaElement>(null);
+  useEffect(() => autoGrowTextarea(editNoticeTextareaRef.current), [editNoticeText]);
+  useEffect(() => autoGrowTextarea(commentTextareaRef.current), [commentText]);
+  useEffect(() => autoGrowTextarea(replyTextareaRef.current), [replyText]);
 
   async function confirmDelete() {
     setDeleting(true);
@@ -189,6 +201,7 @@ export function EventNoticeCard({
             className="mt-1 flex gap-2"
           >
             <textarea
+              ref={replyTextareaRef}
               rows={1}
               value={replyText}
               onChange={(e) => setReplyText(e.target.value)}
@@ -269,6 +282,7 @@ export function EventNoticeCard({
         <div className="mt-2 flex flex-col gap-2">
           {noticeError && <p className="text-sm text-red-600">{noticeError}</p>}
           <textarea
+            ref={editNoticeTextareaRef}
             rows={3}
             value={editNoticeText}
             onChange={(e) => setEditNoticeText(e.target.value)}
@@ -330,6 +344,7 @@ export function EventNoticeCard({
           {topLevelComments.map((c) => renderComment(c, 0))}
           <form onSubmit={submitComment} className="flex gap-2">
             <textarea
+              ref={commentTextareaRef}
               rows={1}
               value={commentText}
               onChange={(e) => setCommentText(e.target.value)}
