@@ -803,6 +803,11 @@ model EventNotice {
   // teammateRequests.
   text String?
 
+  // An optional attached image — e.g. the organizer sharing a poster of the
+  // released competition workouts. Served path (see src/lib/uploads.ts),
+  // same as every other photo field.
+  photo String?
+
   // JSON-encoded array of teammate requests posted together for this event,
   // e.g. [{"quantity":1,"gender":"MALE","division":"RX"},{"quantity":1,"gender":"FEMALE","division":"RX"}]
   // — multiple athletes needed for the same event stay one feed post rather

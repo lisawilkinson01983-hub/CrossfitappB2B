@@ -46,6 +46,7 @@ export default async function EventNoticesPage({ params }: { params: Promise<{ i
     notice: {
       id: notice.id,
       text: notice.text,
+      photo: notice.photo,
       teammateRequests: parseTeammateRequests(notice.teammateRequests),
       createdAt: notice.createdAt,
       author: notice.user,

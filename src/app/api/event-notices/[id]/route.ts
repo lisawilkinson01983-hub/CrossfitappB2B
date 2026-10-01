@@ -23,7 +23,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
   }
 
-  if (!notice.teammateRequests && !parsed.data.text) {
+  if (!notice.teammateRequests && !notice.photo && !parsed.data.text) {
     return NextResponse.json({ error: "Notice can't be empty" }, { status: 400 });
   }
 

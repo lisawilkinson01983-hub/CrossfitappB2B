@@ -272,17 +272,15 @@ export type TeammateRequest = z.infer<typeof teammateRequestSchema>;
 // or more structured "looking for teammates" requests for the same event —
 // posted together as a single notice so they share one feed card. Never
 // both empty.
-export const eventNoticeSchema = z
-  .object({
-    text: z.preprocess(emptyToUndefined, z.string().trim().max(1000).optional()),
-    teammateRequests: z.array(teammateRequestSchema).max(20).optional(),
-    // Also cross-post this search to the main feed (see linkedEventId on Post).
-    postToFeed: z.boolean().optional(),
-  })
-  .refine((data) => (data.teammateRequests && data.teammateRequests.length > 0) || !!data.text, {
-    message: "Add at least one athlete request — or write a notice",
-    path: ["text"],
-  });
+// "At least one of text/teammateRequests/a photo" is checked in the route
+// instead of a .refine here, since a photo arrives as a FormData File
+// alongside this schema's fields rather than through it.
+export const eventNoticeSchema = z.object({
+  text: z.preprocess(emptyToUndefined, z.string().trim().max(1000).optional()),
+  teammateRequests: z.array(teammateRequestSchema).max(20).optional(),
+  // Also cross-post this search to the main feed (see linkedEventId on Post).
+  postToFeed: z.boolean().optional(),
+});
 
 // Editing an existing notice only ever changes its text — a free-text
 // notice's message, or a teammate request's optional extra detail. The

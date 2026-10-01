@@ -7,6 +7,7 @@ import { Avatar } from "@/components/Avatar";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { ReportButton } from "@/components/ReportButton";
 import { MentionText } from "@/components/MentionText";
+import { ExpandableImage } from "@/components/ExpandableImage";
 import { formatTeammateRequest } from "@/lib/labels";
 import type { TeammateRequest } from "@/lib/validation";
 
@@ -23,6 +24,7 @@ export type EventNoticeCommentData = {
 export type EventNoticeData = {
   id: string;
   text: string | null;
+  photo: string | null;
   teammateRequests: TeammateRequest[];
   createdAt: string | Date;
   author: { id: string; name: string; photo: string | null };
@@ -292,6 +294,17 @@ export function EventNoticeCard({
         </div>
       ) : (
         text && <MentionText text={text} className="mt-2 block whitespace-pre-wrap text-b2b-ink" />
+      )}
+
+      {notice.photo && (
+        // object-contain (not -cover): this is often a poster with text
+        // readers need in full — e.g. a released competition workout —
+        // so nothing about it should ever get cropped off.
+        <ExpandableImage
+          src={notice.photo}
+          alt="Notice attachment"
+          className="mt-3 max-h-96 w-full rounded bg-b2b-bg object-contain"
+        />
       )}
 
       <div className="mt-2 flex items-center gap-4 border-t border-b2b-purple/10 pt-2 text-xs">
