@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { NavBar } from "@/components/NavBar";
 import { SectionCard } from "@/components/SectionCard";
 import { EventChatFeed } from "@/components/EventChatFeed";
+import { EventNoticesPanel } from "@/components/EventNoticesPanel";
 import type { EventNoticeEntry } from "@/components/EventNoticeCard";
 import { parseTeammateRequests } from "@/lib/labels";
 import { assertEventVisible } from "@/lib/eventVisibility";
@@ -38,10 +39,9 @@ export default async function EventNoticesPage({ params }: { params: Promise<{ i
 
   const participantIds = new Set(event.participants.map((p) => p.userId));
 
-  // The composer/filter for "looking for teammates" searches lives on the
-  // main event page, but every notice — search or free text — also shows up
-  // here on the shared notice board, with the same likes/comments/replies
-  // as the main feed.
+  // Every notice — a teammate search from the panel above, or free text from
+  // the chat composer below — shows up together here on the shared notice
+  // board, with the same likes/comments/replies either way.
   const chatEntries: EventNoticeEntry[] = event.notices.map((notice) => ({
     notice: {
       id: notice.id,
@@ -73,7 +73,14 @@ export default async function EventNoticesPage({ params }: { params: Promise<{ i
         ← Back to {event.name}
       </Link>
 
-      <div className="mt-4">
+      <div id="find-teammate" className="mt-4 scroll-mt-6">
+        <SectionCard title="Find a teammate">
+          <p className="mb-3 text-sm text-b2b-ink/50">Looking for teammates for {event.name}? Post it here.</p>
+          <EventNoticesPanel eventId={event.id} />
+        </SectionCard>
+      </div>
+
+      <div className="mt-6">
         <SectionCard title="Notice Board">
           <p className="mb-3 text-sm text-b2b-ink/50">
             A lift, a training partner, or anything else about {event.name}.

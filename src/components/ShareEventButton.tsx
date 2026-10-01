@@ -6,7 +6,7 @@ import { Avatar } from "@/components/Avatar";
 type UserOption = { id: string; name: string; photo: string | null };
 
 /** Shares a public event as an opening message in a 1:1 conversation with each person picked. */
-export function ShareEventButton({ eventId }: { eventId: string }) {
+export function ShareEventButton({ eventId, className }: { eventId: string; className?: string }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<UserOption[]>([]);
@@ -67,7 +67,10 @@ export function ShareEventButton({ eventId }: { eventId: string }) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="col-span-2 rounded-xl border border-gray-300 bg-b2b-card px-4 py-3 text-center text-sm font-medium text-b2b-ink hover:bg-b2b-bg"
+        className={
+          className ??
+          "w-full rounded-xl border border-gray-300 bg-b2b-card px-4 py-3 text-center text-sm font-medium text-b2b-ink hover:bg-b2b-bg"
+        }
       >
         Share event
       </button>
@@ -75,7 +78,7 @@ export function ShareEventButton({ eventId }: { eventId: string }) {
   }
 
   return (
-    <div className="col-span-2 flex flex-col gap-3 rounded-xl border border-b2b-purple/15 p-4">
+    <div className="flex w-full flex-col gap-3 rounded-xl border border-b2b-purple/15 p-4">
       <div className="flex items-center justify-between">
         <p className="text-sm font-medium">Share this event</p>
         <button type="button" onClick={() => setOpen(false)} className="text-sm text-b2b-ink/50 hover:underline">

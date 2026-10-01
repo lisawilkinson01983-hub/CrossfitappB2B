@@ -7,7 +7,6 @@ import { NavBar } from "@/components/NavBar";
 import { SectionCard } from "@/components/SectionCard";
 import { Avatar } from "@/components/Avatar";
 import { EventEngagementButtons } from "@/components/EventEngagementButtons";
-import { EventNoticesPanel } from "@/components/EventNoticesPanel";
 import { EventWorkoutsCarousel } from "@/components/EventWorkoutsCarousel";
 import { CollapsibleText } from "@/components/CollapsibleText";
 import { InviteToEventForm } from "@/components/InviteToEventForm";
@@ -130,34 +129,52 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
               isCompetition={isCompetitionEvent(event)}
             />
 
-            <div className="grid w-full grid-cols-2 gap-3">
+            {/* Quick stats + utilities, kept small so they don't compete with
+                the two CTAs below. */}
+            <div className="flex w-full flex-wrap items-center justify-center gap-2">
               <Link
                 href={`/events/${event.id}/participants`}
-                className="rounded-xl border border-gray-300 bg-b2b-card px-4 py-3 text-center text-sm font-medium text-b2b-ink hover:bg-b2b-bg"
+                className="inline-flex items-center gap-1.5 rounded-full border border-gray-300 bg-b2b-card px-3.5 py-2 text-xs font-semibold text-b2b-ink hover:bg-b2b-bg"
               >
-                Athletes ({event.participants.length})
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2" />
+                  <circle cx="10" cy="7" r="4" />
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                </svg>
+                {event.participants.length} athletes
               </Link>
               <Link
                 href={`/events/${event.id}/interested`}
-                className="rounded-xl border border-gray-300 bg-b2b-card px-4 py-3 text-center text-sm font-medium text-b2b-ink hover:bg-b2b-bg"
+                className="inline-flex items-center gap-1.5 rounded-full border border-gray-300 bg-b2b-card px-3.5 py-2 text-xs font-semibold text-b2b-ink hover:bg-b2b-bg"
               >
-                Interested ({event._count.interests})
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                </svg>
+                {event._count.interests} interested
               </Link>
-              {/* Jumps to the "Find a teammate" section further down this
-                  same page — it's easy to miss on scroll, so this gives it a
-                  shortcut right next to the buttons someone taps first. */}
-              <a
-                href="#find-teammate"
-                className="col-span-2 rounded-xl border border-gray-300 bg-b2b-card px-4 py-3 text-center text-sm font-medium text-b2b-ink hover:bg-b2b-bg"
+              {!event.isPrivate && (
+                <ShareEventButton
+                  eventId={event.id}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-gray-300 bg-b2b-card px-3.5 py-2 text-xs font-semibold text-b2b-ink hover:bg-b2b-bg"
+                />
+              )}
+            </div>
+
+            {/* The two things someone's most likely here to do — given equal
+                weight so neither gets missed, unlike the quick stats above. */}
+            <div className="flex w-full flex-col gap-2">
+              <Link
+                href={`/events/${event.id}/notices#find-teammate`}
+                className="rounded-xl bg-b2b-pink px-4 py-3 text-center text-sm font-bold text-white hover:bg-b2b-pink-dark"
               >
                 Find a teammate
-              </a>
-              {!event.isPrivate && <ShareEventButton eventId={event.id} />}
+              </Link>
               <Link
                 href={`/events/${event.id}/notices`}
-                className="col-span-2 rounded-xl border border-b2b-purple/20 bg-b2b-purple/10 px-4 py-3 text-center text-sm font-medium text-b2b-purple hover:bg-b2b-purple/20"
+                className="rounded-xl bg-b2b-pink px-4 py-3 text-center text-sm font-bold text-white hover:bg-b2b-pink-dark"
               >
-                Notice Board{chatMessageCount > 0 ? ` (${chatMessageCount})` : ""}
+                Notice Board{chatMessageCount > 0 ? ` · ${chatMessageCount} new` : ""}
               </Link>
             </div>
           </div>
@@ -206,13 +223,6 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
             currentUserId={session.user.id}
             readOnly
           />
-        </SectionCard>
-      </div>
-
-      <div id="find-teammate" className="mt-6 scroll-mt-6">
-        <SectionCard title="Find a teammate">
-          <p className="mb-3 text-sm text-b2b-ink/50">Looking for teammates for {event.name}? Post it here.</p>
-          <EventNoticesPanel eventId={event.id} />
         </SectionCard>
       </div>
     </main>
