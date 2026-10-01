@@ -141,8 +141,11 @@ model User {
 
   photo  String? // served path, e.g. "/media/xyz.jpg" (see src/lib/uploads.ts)
   bio    String?
-  age    Int?
-  gender Gender?
+  // Stored as a date of birth (not a static age) so a displayed age stays
+  // correct after a birthday without anyone having to go edit it — see
+  // src/lib/age.ts for deriving the actual age from this.
+  dateOfBirth DateTime?
+  gender      Gender?
 
   // Grants access to /events/review (approve/reject user-submitted events).
   // No broader role system — this is the only admin-gated capability so far.

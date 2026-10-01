@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { OTHER_GYM } from "./gyms";
 import { COUNTRIES } from "./countries";
+import { isValidDateOfBirth } from "./age";
 
 export const LEVELS = ["SCALED", "INTERMEDIATE", "RX"] as const;
 export type LevelOption = (typeof LEVELS)[number];
@@ -170,7 +171,13 @@ export const profileSchema = z
     // looking-for entirely — see the superRefine below and EditProfileForm.
     accountType: z.enum(ACCOUNT_TYPES).default("ATHLETE"),
     bio: z.preprocess(emptyToUndefined, z.string().trim().max(2000).optional()),
-    age: z.preprocess(emptyToUndefined, z.coerce.number().int().min(13).max(120).optional()),
+    dateOfBirth: z.preprocess(
+      emptyToUndefined,
+      z.coerce
+        .date({ errorMap: () => ({ message: "Enter a valid date of birth" }) })
+        .refine(isValidDateOfBirth, { message: "You must be between 13 and 120 years old" })
+        .optional()
+    ),
     gender: z.preprocess(emptyToUndefined, z.enum(GENDERS).optional()),
     area: z.string().trim().min(1, "Area is required"),
     country: z.preprocess(emptyToUndefined, z.enum(COUNTRIES).optional()),

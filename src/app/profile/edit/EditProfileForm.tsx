@@ -22,13 +22,14 @@ import { GENDER_LABELS, LEVEL_LABELS, LOOKING_FOR_LABELS, PB_LABELS } from "@/li
 import { OTHER_GYM } from "@/lib/gyms";
 import { COUNTRIES, type Country } from "@/lib/countries";
 import { AvatarCropper } from "@/components/AvatarCropper";
+import { calculateAge } from "@/lib/age";
 
 type Initial = {
   name: string;
   photo: string | null;
   accountType: AccountTypeOption;
   bio: string;
-  age: number | "";
+  dateOfBirth: string;
   gender: GenderOption | "";
   area: string;
   country: Country | "";
@@ -72,7 +73,7 @@ export function EditProfileForm({
   const isAthlete = accountType === "ATHLETE";
   const [verificationRequested, setVerificationRequested] = useState(initial.verificationRequested);
   const [bio, setBio] = useState(initial.bio);
-  const [age, setAge] = useState(String(initial.age));
+  const [dateOfBirth, setDateOfBirth] = useState(initial.dateOfBirth);
   const [gender, setGender] = useState(initial.gender);
   const [area, setArea] = useState(initial.area);
   const [country, setCountry] = useState(initial.country);
@@ -178,7 +179,7 @@ export function EditProfileForm({
     formData.set("crossfitSinceYear", crossfitSinceYear);
     formData.set("crossfitSinceMonth", crossfitSinceMonth);
     if (isAthlete) {
-      formData.set("age", age);
+      formData.set("dateOfBirth", dateOfBirth);
       formData.set("gender", gender);
       levels.forEach((v) => formData.append("levels", v));
       lookingFor.forEach((v) => formData.append("lookingFor", v));
@@ -314,18 +315,22 @@ export function EditProfileForm({
       {isAthlete && (
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label htmlFor="age" className="block text-sm font-medium">
-              Age
+            <label htmlFor="dateOfBirth" className="block text-sm font-medium">
+              Date of birth
             </label>
             <input
-              id="age"
-              type="number"
-              min={13}
-              max={120}
-              value={age}
-              onChange={(e) => setAge(e.target.value)}
+              id="dateOfBirth"
+              type="date"
+              value={dateOfBirth}
+              onChange={(e) => setDateOfBirth(e.target.value)}
               className="mt-1 w-full rounded border border-gray-300 px-3 py-2 focus:border-b2b-pink focus:outline-none"
             />
+            {dateOfBirth && !Number.isNaN(new Date(dateOfBirth).getTime()) && (
+              <p className="mt-1 text-xs text-b2b-ink/40">
+                That makes you {calculateAge(new Date(dateOfBirth))} — kept up to date automatically, no need to
+                update it yourself each year.
+              </p>
+            )}
             <label className="mt-2 flex items-center gap-2 text-sm">
               <input type="checkbox" checked={showAge} onChange={(e) => setShowAge(e.target.checked)} />
               Display my age on my profile

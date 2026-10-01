@@ -12,6 +12,10 @@ import { SectionCard } from "@/components/SectionCard";
 import { SectionOnboarding } from "@/components/SectionOnboarding";
 import { EditProfileForm } from "./EditProfileForm";
 
+function toDateInputValue(date: Date | null): string {
+  return date ? date.toISOString().slice(0, 10) : "";
+}
+
 export default async function EditProfilePage() {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) redirect("/login");
@@ -77,7 +81,7 @@ export default async function EditProfilePage() {
               verificationRequested: user.verificationRequestedAt != null && user.verifiedAt == null,
               isVerified: user.verifiedAt != null,
               bio: user.bio ?? "",
-              age: user.age ?? "",
+              dateOfBirth: toDateInputValue(user.dateOfBirth),
               gender: user.gender ?? "",
               area: user.area ?? "",
               // Cast: country is a plain String column (see prisma/schema.prisma), not

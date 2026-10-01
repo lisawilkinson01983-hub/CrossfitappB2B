@@ -21,6 +21,7 @@ import { PbCardBody } from "@/components/PbCardBody";
 import { ProfilePosts } from "@/components/ProfilePosts";
 import { prisma } from "@/lib/prisma";
 import { isSiteAccountEmail } from "@/lib/siteAccount";
+import { calculateAge } from "@/lib/age";
 
 function Badge({ label, className }: { label: string; className: string }) {
   return <span className={`rounded-full px-3 py-1 text-xs font-medium ${className}`}>{label}</span>;
@@ -86,8 +87,10 @@ export async function ProfileDetails({
       badges.push(<Badge key={`level-${level}`} label={LEVEL_LABELS[level]} className={LEVEL_BADGE_CLASSES[level]} />);
     }
   }
-  if (user.showAge && user.age != null) {
-    badges.push(<Badge key="age" label={`${user.age} yrs`} className="bg-gray-100 text-gray-600" />);
+  if (user.showAge && user.dateOfBirth != null) {
+    badges.push(
+      <Badge key="age" label={`${calculateAge(user.dateOfBirth)} yrs`} className="bg-gray-100 text-gray-600" />
+    );
   }
   if (user.gender) {
     badges.push(

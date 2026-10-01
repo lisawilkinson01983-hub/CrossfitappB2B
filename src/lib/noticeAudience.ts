@@ -2,6 +2,7 @@ import type { Prisma } from "@prisma/client";
 import type { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { distanceMiles, ensureUserAreaCoords, geocode } from "@/lib/geocode";
+import { ageRangeToDateOfBirthRange } from "@/lib/age";
 import type { noticeAudienceSchema } from "@/lib/validation";
 
 type Audience = z.infer<typeof noticeAudienceSchema>;
@@ -28,7 +29,7 @@ export async function resolveAudienceUserIds(audience: Audience, excludeUserId: 
     ...(audience.affiliateGym ? { affiliateGym: audience.affiliateGym } : {}),
     ...(audience.country ? { country: audience.country } : {}),
     ...(audience.minAge !== undefined || audience.maxAge !== undefined
-      ? { age: { gte: audience.minAge, lte: audience.maxAge } }
+      ? { dateOfBirth: ageRangeToDateOfBirthRange(audience.minAge, audience.maxAge) }
       : {}),
   };
 
