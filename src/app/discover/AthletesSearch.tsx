@@ -6,11 +6,9 @@ import { BlockMuteControls } from "@/components/BlockMuteControls";
 import { GENDERS, LEVELS, LOOKING_FOR_OPTIONS, type LookingForOption } from "@/lib/validation";
 import {
   GENDER_LABELS,
-  LEVEL_BADGE_CLASSES,
   LEVEL_LABELS,
   LOOKING_FOR_LABELS,
   parseLookingFor,
-  parseLevels,
   showsSingleBadge,
 } from "@/lib/labels";
 import { UNAFFILIATED } from "@/lib/gyms";
@@ -85,12 +83,10 @@ export async function AthletesSearch({
       id: true,
       name: true,
       photo: true,
-      levels: true,
       area: true,
       areaLat: true,
       areaLng: true,
       affiliateGym: true,
-      isPrivate: true,
       lookingFor: true,
       isSingle: true,
       showSingleBadge: true,
@@ -273,7 +269,7 @@ export async function AthletesSearch({
         <p className="text-b2b-ink/50">No athletes match those filters.</p>
       ) : (
         <div className="flex flex-col gap-3">
-          {results.map(({ user, miles }) => {
+          {results.map(({ user }) => {
             const status: FollowStatus = myFollowingIds.has(user.id)
               ? "following"
               : myPendingIds.has(user.id)
@@ -288,19 +284,8 @@ export async function AthletesSearch({
                 <Link href={`/profile/${user.id}`} className="flex flex-1 items-center gap-3">
                   <Avatar photo={user.photo} name={user.name} size={48} showSingleBadge={showsSingleBadge(user)} />
                   <div>
-                    <p className="font-medium">
-                      {user.name}
-                      {user.isPrivate && <span className="ml-1 text-sm">🔒</span>}
-                      {parseLevels(user.levels).map((level) => (
-                        <span key={level} className={`ml-2 rounded-full px-2 py-0.5 text-xs ${LEVEL_BADGE_CLASSES[level]}`}>
-                          {LEVEL_LABELS[level]}
-                        </span>
-                      ))}
-                    </p>
-                    <p className="text-sm text-b2b-ink/50">
-                      {[user.area, user.affiliateGym].filter(Boolean).join(" · ")}
-                      {miles !== null && <> · {miles < 1 ? "<1" : Math.round(miles)} miles away</>}
-                    </p>
+                    <p className="font-medium">{user.name}</p>
+                    {user.affiliateGym && <p className="text-sm text-b2b-ink/50">{user.affiliateGym}</p>}
                   </div>
                 </Link>
                 <div className="flex flex-col items-end gap-1">
