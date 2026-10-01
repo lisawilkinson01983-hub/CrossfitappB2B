@@ -7,7 +7,7 @@ const PLATFORM_LABELS: Record<EventPlatform, string> = {
   circle21: "Circle 21 Event",
 };
 
-const ICON_SIZE = 32;
+const ICON_SIZE = 64;
 
 /** Competition Corner's mark: a double chevron over their interlocking "C" loop, ringed in their yellow. */
 function CompetitionCornerIcon() {
