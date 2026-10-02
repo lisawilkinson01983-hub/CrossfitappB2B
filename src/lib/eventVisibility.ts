@@ -21,20 +21,13 @@ export async function assertEventVisible(
   return !!participant || !!invite;
 }
 
-/** Prisma where-fragment for any list of events (Discover, search) — AND this in alongside other filters. */
-export function eventVisibilityWhere(userId: string): Prisma.EventWhereInput {
-  return {
-    OR: [
-      { isPrivate: false, status: "APPROVED" },
-      {
-        isPrivate: true,
-        OR: [
-          { createdById: userId },
-          { submittedById: userId },
-          { participants: { some: { userId } } },
-          { invites: { some: { userId } } },
-        ],
-      },
-    ],
-  };
+/**
+ * Prisma where-fragment for a browse/search listing (Discover, search-suggest)
+ * — AND this in alongside other filters. A private event never appears here,
+ * even for its creator or someone invited to or already participating in it
+ * — those are found via My Events or a direct link instead (see
+ * assertEventVisible above for actually opening one).
+ */
+export function eventVisibilityWhere(_userId: string): Prisma.EventWhereInput {
+  return { isPrivate: false, status: "APPROVED" };
 }

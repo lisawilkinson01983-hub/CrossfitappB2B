@@ -62,7 +62,13 @@ export function toPostCardData(post: PostWithCardData, currentUserId: string): P
     id: original.id,
     feedItemId: post.id,
     sharedBy: post.sharedFrom
-      ? { id: post.user.id, name: post.user.name, photo: post.user.photo, sharedAt: post.createdAt }
+      ? {
+          id: post.user.id,
+          name: post.user.name,
+          photo: post.user.photo,
+          sharedAt: post.createdAt,
+          message: post.contentText,
+        }
       : null,
     type: original.type,
     contentText: original.contentText,

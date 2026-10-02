@@ -47,7 +47,7 @@ export type PostCardData = {
   // otherwise the same as `id`. Only used as the list key and to unshare.
   feedItemId: string;
   // Set when this entry is someone's reshare of the original post below.
-  sharedBy: { id: string; name: string; photo: string | null; sharedAt: Date } | null;
+  sharedBy: { id: string; name: string; photo: string | null; sharedAt: Date; message: string | null } | null;
   shareCount: number;
   sharedByMe: boolean;
   // False once the original author has turned off post sharing — hides the
@@ -125,6 +125,12 @@ export function PostCard({
   const [shareCount, setShareCount] = useState(post.shareCount);
   const [shareBusy, setShareBusy] = useState(false);
   const [unsharing, setUnsharing] = useState(false);
+  const [composingShare, setComposingShare] = useState(false);
+  const [shareMessageDraft, setShareMessageDraft] = useState("");
+  const [shareMessage, setShareMessage] = useState(post.sharedBy?.message ?? null);
+  const [editingShareMessage, setEditingShareMessage] = useState(false);
+  const [editShareMessageText, setEditShareMessageText] = useState("");
+  const [shareMessageSaving, setShareMessageSaving] = useState(false);
 
   const [showComments, setShowComments] = useState(false);
   const [flashCommentId, setFlashCommentId] = useState<string | null>(null);
@@ -184,7 +190,31 @@ export function PostCard({
     }
   }
 
-  async function toggleShare() {
+  function openShareComposer() {
+    setShareMessageDraft("");
+    setComposingShare(true);
+  }
+
+  async function submitShare() {
+    if (shareBusy) return;
+    setShareBusy(true);
+    const res = await fetch(`/api/posts/${post.id}/share`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: shareMessageDraft }),
+    });
+    setShareBusy(false);
+    if (res.ok) {
+      const body = await res.json();
+      setShared(body.shared);
+      setShareCount(body.count);
+      setShareMessage(shareMessageDraft.trim() || null);
+      setComposingShare(false);
+      router.refresh();
+    }
+  }
+
+  async function unshareNow() {
     if (shareBusy) return;
     setShareBusy(true);
     const res = await fetch(`/api/posts/${post.id}/share`, { method: "POST" });
@@ -194,6 +224,25 @@ export function PostCard({
       setShared(body.shared);
       setShareCount(body.count);
       router.refresh();
+    }
+  }
+
+  function startEditShareMessage() {
+    setEditShareMessageText(shareMessage ?? "");
+    setEditingShareMessage(true);
+  }
+
+  async function submitEditShareMessage() {
+    setShareMessageSaving(true);
+    const res = await fetch(`/api/posts/${post.feedItemId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ contentText: editShareMessageText }),
+    });
+    setShareMessageSaving(false);
+    if (res.ok) {
+      setShareMessage(editShareMessageText.trim() ? editShareMessageText : null);
+      setEditingShareMessage(false);
     }
   }
 
@@ -426,30 +475,73 @@ export function PostCard({
         />
       )}
       {post.sharedBy && (
-        <div className={`flex flex-wrap items-center gap-x-1.5 gap-y-1 px-1 pb-1 text-xs text-b2b-ink/50 ${popped ? "hidden" : ""}`}>
-          <span>🔁</span>
-          <Link href={`/profile/${post.sharedBy.id}`} className="font-medium hover:underline">
-            {post.sharedBy.id === currentUserId ? "You" : post.sharedBy.name}
-          </Link>
-          <span>shared</span>
-          {post.author.id === currentUserId ? (
-            <span>your post</span>
+        <div className={`px-1 pb-1 ${popped ? "hidden" : ""}`}>
+          <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-b2b-ink/50">
+            <span>🔁</span>
+            <Link href={`/profile/${post.sharedBy.id}`} className="font-medium hover:underline">
+              {post.sharedBy.id === currentUserId ? "You" : post.sharedBy.name}
+            </Link>
+            <span>shared</span>
+            {post.author.id === currentUserId ? (
+              <span>your post</span>
+            ) : (
+              <>
+                <Link href={`/profile/${post.author.id}`} className="font-medium hover:underline">
+                  {possessive(post.author.name)}
+                </Link>
+                <span>post</span>
+              </>
+            )}
+            {post.sharedBy.id === currentUserId && (
+              <>
+                <button
+                  type="button"
+                  onClick={startEditShareMessage}
+                  className="ml-1 text-b2b-pink hover:underline"
+                >
+                  {shareMessage ? "Edit message" : "Add a message"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConfirmUnshareOpen(true)}
+                  className="text-b2b-ink/40 hover:text-red-600 hover:underline"
+                >
+                  Unshare
+                </button>
+              </>
+            )}
+          </div>
+
+          {editingShareMessage ? (
+            <div className="mt-1.5 flex flex-col gap-2">
+              <textarea
+                rows={2}
+                value={editShareMessageText}
+                onChange={(e) => setEditShareMessageText(e.target.value)}
+                placeholder="Say something about this..."
+                className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm focus:border-b2b-pink focus:outline-none"
+                autoFocus
+              />
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={submitEditShareMessage}
+                  disabled={shareMessageSaving}
+                  className="rounded bg-b2b-pink px-3 py-1 text-sm text-white hover:bg-b2b-pink-dark disabled:opacity-50"
+                >
+                  {shareMessageSaving ? "Saving..." : "Save"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEditingShareMessage(false)}
+                  className="text-sm text-b2b-ink/50 hover:underline"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
           ) : (
-            <>
-              <Link href={`/profile/${post.author.id}`} className="font-medium hover:underline">
-                {possessive(post.author.name)}
-              </Link>
-              <span>post</span>
-            </>
-          )}
-          {post.sharedBy.id === currentUserId && (
-            <button
-              type="button"
-              onClick={() => setConfirmUnshareOpen(true)}
-              className="ml-1 text-b2b-ink/40 hover:text-red-600 hover:underline"
-            >
-              Unshare
-            </button>
+            shareMessage && <p className="mt-1 whitespace-pre-wrap text-sm text-b2b-ink">{shareMessage}</p>
           )}
         </div>
       )}
@@ -654,7 +746,7 @@ export function PostCard({
         {(post.canShare || shared) && (
           <button
             type="button"
-            onClick={toggleShare}
+            onClick={shared ? unshareNow : openShareComposer}
             disabled={shareBusy}
             className={`font-medium ${shared ? "text-b2b-pink" : "text-gray-600"} hover:underline disabled:opacity-50`}
           >
@@ -701,6 +793,45 @@ export function PostCard({
         onCancel={() => setConfirmUnshareOpen(false)}
         confirming={unsharing}
       />
+
+      {composingShare && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          onClick={() => setComposingShare(false)}
+        >
+          <div
+            className="w-full max-w-sm rounded-xl bg-b2b-card p-5 shadow-lg"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="text-base font-semibold text-b2b-ink">Share this post</p>
+            <textarea
+              rows={3}
+              value={shareMessageDraft}
+              onChange={(e) => setShareMessageDraft(e.target.value)}
+              placeholder="Say something about this (optional)..."
+              className="mt-3 w-full rounded border border-gray-300 px-2 py-1.5 text-sm focus:border-b2b-pink focus:outline-none"
+              autoFocus
+            />
+            <div className="mt-4 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setComposingShare(false)}
+                className="rounded px-3 py-1.5 text-sm font-medium text-b2b-ink/60 hover:bg-b2b-bg"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={submitShare}
+                disabled={shareBusy}
+                className="rounded bg-b2b-pink px-3 py-1.5 text-sm font-medium text-white hover:bg-b2b-pink-dark disabled:opacity-50"
+              >
+                {shareBusy ? "Sharing..." : "Share"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       </div>
     </>
   );
