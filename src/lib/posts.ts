@@ -66,6 +66,10 @@ export function toPostCardData(post: PostWithCardData, currentUserId: string): P
           id: post.user.id,
           name: post.user.name,
           photo: post.user.photo,
+          levels: parseLevels(post.user.levels),
+          affiliateGym: post.user.affiliateGym,
+          isSingle: post.user.isSingle,
+          showSingleBadge: post.user.showSingleBadge,
           sharedAt: post.createdAt,
           message: post.contentText,
         }
