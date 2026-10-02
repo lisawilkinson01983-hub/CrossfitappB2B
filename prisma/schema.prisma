@@ -102,6 +102,12 @@ enum NotificationType {
   POST_SHARE
   // Someone reacted to this user's current status (see StatusReaction).
   STATUS_REACTION
+  // Someone marked themselves as participating in this user's private event
+  // — eventId below has the event. Sent to the organizer only (see
+  // /api/events/[id]/participate); public events don't send this, since
+  // there's no single organizer watching every join the way there is for a
+  // small private one.
+  EVENT_PARTICIPANT_JOINED
 }
 
 enum EventStatus {

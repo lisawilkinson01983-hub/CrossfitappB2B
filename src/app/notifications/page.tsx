@@ -68,7 +68,10 @@ export default async function NotificationsPage() {
                         ? "/gyms/review"
                         : n.type === "REPORT_SUBMITTED"
                           ? "/reports/review"
-                        : n.type === "TEAMMATE_REQUEST_MATCH" || n.type === "TEAMMATE_SEARCH_MATCH" || n.type === "EVENT_INVITE"
+                        : n.type === "TEAMMATE_REQUEST_MATCH" ||
+                            n.type === "TEAMMATE_SEARCH_MATCH" ||
+                            n.type === "EVENT_INVITE" ||
+                            n.type === "EVENT_PARTICIPANT_JOINED"
                           ? `/events/${n.event?.id ?? ""}`
                           : n.post
                             ? `/feed?post=${n.post.id}${n.comment ? `&comment=${n.comment.id}` : ""}`
@@ -110,7 +113,9 @@ export default async function NotificationsPage() {
                                         ? "shared your post"
                                         : n.type === "STATUS_REACTION"
                                           ? "reacted to your status"
-                                          : "mentioned you"}
+                                          : n.type === "EVENT_PARTICIPANT_JOINED"
+                                            ? `is participating in "${n.event?.name ?? "your event"}"`
+                                            : "mentioned you"}
                   </p>
                   <span className="whitespace-nowrap text-xs text-b2b-ink/40">
                     {n.createdAt.toLocaleDateString()}

@@ -74,9 +74,11 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
   ];
   const kindLabel = eventKindLabel(event);
   const eventPlatform = detectEventPlatform(event.websiteUrl);
-  // A private social meetup has no "team" to find, and "athletes" reads oddly
-  // for people just showing up to hang out — so both get dropped/renamed here.
-  const isPrivateSocial = event.isPrivate && event.eventKind === "SOCIAL";
+  // A private non-competition event (social, or anything else that isn't a
+  // competition — e.g. a karaoke night filed under "Other") has no "team" to
+  // find, and "athletes" reads oddly for people just showing up — so both
+  // get dropped/renamed here.
+  const isPrivateSocial = event.isPrivate && !isCompetitionEvent(event);
 
   return (
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">

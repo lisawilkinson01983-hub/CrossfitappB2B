@@ -46,6 +46,24 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       data: { userId, type: "UPDATE", linkedEventId: eventId },
     });
 
+    // A private event's organizer doesn't see it in any public listing, so
+    // they wouldn't otherwise notice new joiners the way an admin-reviewed
+    // public event's organizer might stumble across its participants page.
+    if (event.isPrivate) {
+      const organizerIds = new Set([event.createdById, event.submittedById].filter((id): id is string => !!id));
+      organizerIds.delete(userId);
+      if (organizerIds.size > 0) {
+        await prisma.notification.createMany({
+          data: [...organizerIds].map((organizerId) => ({
+            userId: organizerId,
+            actorId: userId,
+            type: "EVENT_PARTICIPANT_JOINED" as const,
+            eventId,
+          })),
+        });
+      }
+    }
+
     // Teammates tagged in the "I'm participating" prompt (competitions only
     // — see EventEngagementButtons) get announced on the event's Notice
     // Board, tagged so anyone can tap through to their profile.

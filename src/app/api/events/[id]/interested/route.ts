@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { assertEventVisible } from "@/lib/eventVisibility";
-import { parseTeammateRequests, parseLevels } from "@/lib/labels";
+import { parseTeammateRequests, parseLevels, isCompetitionEvent } from "@/lib/labels";
 import { teammateCriteriaMatch } from "@/lib/teammateMatch";
 
 /**
@@ -87,10 +87,11 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
       await prisma.post.deleteMany({ where: { userId, linkedEventId: eventId } });
     }
 
-    // A private social meetup has no "team" to look for — skip the
-    // auto-posted notice-board message that exists purely for teammate
-    // matching on competitions (see isCompetitionEvent/eventKindLabel).
-    const isPrivateSocial = event.isPrivate && event.eventKind === "SOCIAL";
+    // A private non-competition event (social, or anything else that isn't a
+    // competition) has no "team" to look for — skip the auto-posted
+    // notice-board message that exists purely for teammate matching on
+    // competitions.
+    const isPrivateSocial = event.isPrivate && !isCompetitionEvent(event);
     if (isPrivateSocial) {
       await prisma.eventInterest.create({ data: { userId, eventId } });
     } else {

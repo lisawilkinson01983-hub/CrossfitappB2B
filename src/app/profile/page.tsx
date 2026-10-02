@@ -13,6 +13,7 @@ import { IncomingFollowRequests } from "@/components/IncomingFollowRequests";
 import { GymUpdateNudge } from "@/components/GymUpdateNudge";
 import { OTHER_GYM } from "@/lib/gyms";
 import { formatEventDate } from "@/lib/eventDate";
+import { isCompetitionEvent } from "@/lib/labels";
 import type { Prisma } from "@prisma/client";
 
 type EventRowData = {
@@ -87,11 +88,11 @@ export default async function ProfilePage() {
     ]);
   console.log(`/profile: data fetch took ${Date.now() - fetchStart}ms`);
 
-  // A private social meetup isn't a competition — split it out into its own
-  // "Attending" section rather than "Competing in" (see the matching split
-  // on the event page/participants page).
-  const competingIn = participatingIn.filter((e) => !(e.isPrivate && e.eventKind === "SOCIAL"));
-  const attending = participatingIn.filter((e) => e.isPrivate && e.eventKind === "SOCIAL");
+  // A private non-competition event isn't a competition — split it out into
+  // its own "Attending" section rather than "Competing in" (see the matching
+  // split on the event page/participants page).
+  const competingIn = participatingIn.filter((e) => !(e.isPrivate && !isCompetitionEvent(e)));
+  const attending = participatingIn.filter((e) => e.isPrivate && !isCompetitionEvent(e));
 
   let suggestedGym: string | undefined;
   if (user.affiliateGym === OTHER_GYM && user.affiliateGymOther) {

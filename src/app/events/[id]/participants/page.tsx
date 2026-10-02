@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { NavBar } from "@/components/NavBar";
 import { SectionCard } from "@/components/SectionCard";
 import { Avatar } from "@/components/Avatar";
-import { showsSingleBadge } from "@/lib/labels";
+import { showsSingleBadge, isCompetitionEvent } from "@/lib/labels";
 import { assertEventVisible } from "@/lib/eventVisibility";
 
 export default async function EventParticipantsPage({ params }: { params: Promise<{ id: string }> }) {
@@ -29,9 +29,9 @@ export default async function EventParticipantsPage({ params }: { params: Promis
   if (!event) notFound();
   if (!(await assertEventVisible(event, session.user.id))) notFound();
 
-  // A private social meetup's participants are just people going, not
-  // competing — "athletes" reads oddly there, so it's "attendees" instead.
-  const isPrivateSocial = event.isPrivate && event.eventKind === "SOCIAL";
+  // A private non-competition event's participants are just people going,
+  // not competing — "athletes" reads oddly there, so it's "attendees" instead.
+  const isPrivateSocial = event.isPrivate && !isCompetitionEvent(event);
   const noun = isPrivateSocial ? "attendee" : "athlete";
 
   return (
