@@ -110,9 +110,21 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
   }
 
   const { id } = await params;
-  const existing = await prisma.gym.findUnique({ where: { id }, select: { id: true } });
+  const existing = await prisma.gym.findUnique({ where: { id }, select: { id: true, name: true } });
   if (!existing) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  // One of the app's fixed curated gyms (see AFFILIATE_GYMS) gets its row
+  // silently recreated by ensureGymPage the next time the Discover
+  // affiliates list loads — deleting it here would look like it worked and
+  // then quietly reappear. To actually remove one for good, take it out of
+  // AFFILIATE_GYMS in code first.
+  if ((AFFILIATE_GYMS as readonly string[]).includes(existing.name)) {
+    return NextResponse.json(
+      { error: "This is one of the app's fixed affiliates — it needs to be removed from the code before it can be deleted" },
+      { status: 400 }
+    );
   }
 
   await prisma.gym.delete({ where: { id } });

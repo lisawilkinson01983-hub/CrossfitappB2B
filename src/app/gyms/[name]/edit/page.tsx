@@ -20,6 +20,8 @@ export default async function EditGymPage({ params }: { params: Promise<{ name: 
   const gym = await prisma.gym.findUnique({ where: { name: decodeURIComponent(name) } });
   if (!gym) notFound();
 
+  const isFixedGym = (AFFILIATE_GYMS as readonly string[]).includes(gym.name);
+
   return (
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
       <NavBar />
@@ -33,7 +35,7 @@ export default async function EditGymPage({ params }: { params: Promise<{ name: 
           <GymSubmitForm
             mode="edit"
             gymId={gym.id}
-            nameLocked={(AFFILIATE_GYMS as readonly string[]).includes(gym.name)}
+            nameLocked={isFixedGym}
             initial={{
               name: gym.name,
               address: gym.address ?? "",
@@ -45,11 +47,13 @@ export default async function EditGymPage({ params }: { params: Promise<{ name: 
         </SectionCard>
       </div>
 
-      <div className="mt-4">
-        <SectionCard title="Danger Zone">
-          <DeleteGymButton gymId={gym.id} gymName={gym.name} />
-        </SectionCard>
-      </div>
+      {!isFixedGym && (
+        <div className="mt-4">
+          <SectionCard title="Danger Zone">
+            <DeleteGymButton gymId={gym.id} gymName={gym.name} />
+          </SectionCard>
+        </div>
+      )}
     </main>
   );
 }

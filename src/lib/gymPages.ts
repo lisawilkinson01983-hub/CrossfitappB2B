@@ -19,13 +19,6 @@ const KNOWN_GYM_INFO: Partial<
     website: "https://www.thepaleogym.co.uk/",
     photo: "/gym-logos/crossfit-uckfield.jpg",
   },
-  "CrossFit Crowborough": {
-    description:
-      "CrossFit Crowborough runs group classes that combine gymnastics, weightlifting and conditioning, with coaches teaching the foundational movements and scaling each workout to the athlete's fitness level. The box also supports members competing in the CrossFit Open and in-house competitions, alongside a supportive, all-levels community.",
-    address: "Unit 5, Beacon Business Park, Crowborough, East Sussex, TN6 2GD",
-    website: "https://www.crossfitcrowborough.com",
-    photo: "/gym-logos/crossfit-crowborough.png",
-  },
   "CrossFit Hailsham (FFH)": {
     description:
       "CrossFit FFH (Fortior Fit Hailsham) scales every workout to the athlete, whether they're lifting for the first time, managing an injury, or training at a high level. Alongside CrossFit classes, they offer sports massage, personal training and nutritional guidance, with a community that spans teachers, tradespeople, parents, students and retirees training side by side.",
