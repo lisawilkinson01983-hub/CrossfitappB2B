@@ -18,6 +18,13 @@ export type GenderOption = (typeof GENDERS)[number];
 export const LOOKING_FOR_OPTIONS = ["TEAM_MATES", "FRIENDS", "DEEPER_CONNECTION"] as const;
 export type LookingForOption = (typeof LOOKING_FOR_OPTIONS)[number];
 
+export const USER_STATUSES = ["FIGHTING_FIT", "ADAPTING", "INJURED"] as const;
+export type UserStatusOption = (typeof USER_STATUSES)[number];
+
+export const statusSchema = z.object({
+  status: z.enum(USER_STATUSES).nullable(),
+});
+
 export const WORKOUT_UNITS = ["TIME", "REPS", "WEIGHT", "ROUNDS_REPS"] as const;
 export type WorkoutUnitOption = (typeof WORKOUT_UNITS)[number];
 

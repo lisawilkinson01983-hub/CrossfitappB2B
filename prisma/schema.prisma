@@ -32,6 +32,15 @@ enum LookingFor {
   DEEPER_CONNECTION
 }
 
+// A short self-reported "how I'm doing" status shown in the feed's status
+// bar (see StatusReaction, User.status) — persists until the person changes
+// or clears it, not a 24h story.
+enum UserStatus {
+  INJURED
+  FIGHTING_FIT
+  ADAPTING
+}
+
 enum WorkoutUnit {
   TIME
   REPS
@@ -89,6 +98,10 @@ enum NotificationType {
   // Someone started following this user (immediately, for a public profile —
   // a private profile's pending request is a separate flow, not notified here).
   FOLLOW
+  // Someone shared this user's post to their own feed (see Post.sharedFromId).
+  POST_SHARE
+  // Someone reacted to this user's current status (see StatusReaction).
+  STATUS_REACTION
 }
 
 enum EventStatus {
@@ -280,6 +293,17 @@ model User {
   // exists; stored now so the setting has somewhere to live.
   isPrivate Boolean @default(false)
 
+  // Current "how I'm doing" status shown at the top of the feed — null means
+  // no status set. statusUpdatedAt orders the feed's status bar by recency
+  // and doubles as "when the current status started", so reactions reset
+  // (see /api/status) whenever it changes.
+  status          UserStatus?
+  statusUpdatedAt DateTime?
+
+  // Opt-out for other people sharing this user's posts to their own feed
+  // (see Post.sharedFromId / /api/posts/[id]/share) — defaulted on.
+  allowPostShares Boolean @default(true)
+
   // Benchmark movement PBs (kg). Stored as individual nullable columns rather
   // than a JSON blob since SQLite has no native JSON column type. A user can
   // record any of these, but only up to 8 are shown on their profile — see
@@ -356,6 +380,9 @@ model User {
 
   mutesMade     Mute[] @relation("MutesMade")
   mutesReceived Mute[] @relation("MutesReceived")
+
+  statusReactionsReceived StatusReaction[] @relation("StatusReactionsReceived")
+  statusReactionsGiven    StatusReaction[] @relation("StatusReactionsGiven")
 
   notificationsReceived Notification[] @relation("NotificationRecipient")
   notificationsSent     Notification[] @relation("NotificationActor")
@@ -464,12 +491,23 @@ model Post {
   linkedEventId String?
   linkedEvent   Event?  @relation(fields: [linkedEventId], references: [id], onDelete: Cascade)
 
+  // Set when this post is a share/reshare of another post to the sharer's
+  // own feed (see /api/posts/[id]/share) — a share row carries none of its
+  // own content (contentText/media/etc. stay null); PostCard reads the
+  // original's content through this relation instead. Always points at a
+  // true original, never at another share, so resharing a share re-points
+  // here at that share's own sharedFromId rather than chaining.
+  sharedFromId String?
+  sharedFrom   Post?   @relation("PostShares", fields: [sharedFromId], references: [id], onDelete: Cascade)
+  shares       Post[]  @relation("PostShares")
+
   createdAt DateTime @default(now())
 
   likes         Like[]
   comments      Comment[]
   notifications Notification[]
 
+  @@unique([userId, sharedFromId])
   @@index([userId])
   @@index([createdAt])
 }
@@ -539,6 +577,27 @@ model CommentLike {
 
   @@unique([userId, commentId])
   @@index([commentId])
+}
+
+// Someone reacting to another user's current status (see User.status) —
+// scoped to whatever status is active right now: /api/status clears every
+// row here for a user the moment they change or clear their own status, so
+// a reaction always reflects the status it was given on.
+model StatusReaction {
+  id String @id @default(cuid())
+
+  // Whose status this reaction is on.
+  userId String
+  user   User   @relation("StatusReactionsReceived", fields: [userId], references: [id], onDelete: Cascade)
+
+  // Who reacted.
+  reactorId String
+  reactor   User   @relation("StatusReactionsGiven", fields: [reactorId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, reactorId])
+  @@index([userId])
 }
 
 model Follow {

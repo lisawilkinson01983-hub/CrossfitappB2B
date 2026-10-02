@@ -40,7 +40,19 @@ export type PostMediaItem = {
 };
 
 export type PostCardData = {
+  // Always the ORIGINAL post's id when this is a share — likes/comments/
+  // edit/delete all act on it, exactly as if it weren't shared at all.
   id: string;
+  // This feed entry's own row id — the share row's id when it's a share,
+  // otherwise the same as `id`. Only used as the list key and to unshare.
+  feedItemId: string;
+  // Set when this entry is someone's reshare of the original post below.
+  sharedBy: { id: string; name: string; photo: string | null; sharedAt: Date } | null;
+  shareCount: number;
+  sharedByMe: boolean;
+  // False once the original author has turned off post sharing — hides the
+  // Share button for anyone who hasn't already shared it.
+  canShare: boolean;
   type: "WORKOUT" | "PR" | "UPDATE" | "TEAMMATE_REQUEST";
   contentText: string | null;
   teammateRequests: TeammateRequest[];
@@ -104,6 +116,11 @@ export function PostCard({
   const [likeCount, setLikeCount] = useState(post.likeCount);
   const [likeBusy, setLikeBusy] = useState(false);
 
+  const [shared, setShared] = useState(post.sharedByMe);
+  const [shareCount, setShareCount] = useState(post.shareCount);
+  const [shareBusy, setShareBusy] = useState(false);
+  const [unsharing, setUnsharing] = useState(false);
+
   const [showComments, setShowComments] = useState(false);
   const [flashCommentId, setFlashCommentId] = useState<string | null>(null);
   const [popped, setPopped] = useState(false);
@@ -120,6 +137,7 @@ export function PostCard({
 
   const [deleting, setDeleting] = useState(false);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [confirmUnshareOpen, setConfirmUnshareOpen] = useState(false);
   const [editingPost, setEditingPost] = useState(false);
   const [editPostText, setEditPostText] = useState(post.contentText ?? "");
   const [contentText, setContentText] = useState(post.contentText);
@@ -159,6 +177,27 @@ export function PostCard({
       setLiked(body.liked);
       setLikeCount(body.count);
     }
+  }
+
+  async function toggleShare() {
+    if (shareBusy) return;
+    setShareBusy(true);
+    const res = await fetch(`/api/posts/${post.id}/share`, { method: "POST" });
+    setShareBusy(false);
+    if (res.ok) {
+      const body = await res.json();
+      setShared(body.shared);
+      setShareCount(body.count);
+      router.refresh();
+    }
+  }
+
+  async function confirmUnshare() {
+    setUnsharing(true);
+    const res = await fetch(`/api/posts/${post.feedItemId}`, { method: "DELETE" });
+    setUnsharing(false);
+    setConfirmUnshareOpen(false);
+    if (res.ok) router.refresh();
   }
 
   async function toggleCommentLike(commentId: string) {
@@ -381,9 +420,27 @@ export function PostCard({
           onClick={() => setPopped(false)}
         />
       )}
+      {post.sharedBy && (
+        <div className={`flex items-center gap-2 px-1 pb-1 text-xs text-b2b-ink/50 ${popped ? "hidden" : ""}`}>
+          <span>🔁</span>
+          <Link href={`/profile/${post.sharedBy.id}`} className="font-medium hover:underline">
+            {post.sharedBy.id === currentUserId ? "You" : post.sharedBy.name}
+          </Link>
+          <span>shared this</span>
+          {post.sharedBy.id === currentUserId && (
+            <button
+              type="button"
+              onClick={() => setConfirmUnshareOpen(true)}
+              className="ml-1 text-b2b-ink/40 hover:text-red-600 hover:underline"
+            >
+              Unshare
+            </button>
+          )}
+        </div>
+      )}
       <div
         ref={containerRef}
-        id={`post-${post.id}`}
+        id={`post-${post.feedItemId}`}
         className={`rounded-xl border bg-b2b-card p-4 ${
           isPb
             ? "border-yellow-400 shadow-[0_0_0_1px_rgba(240,192,32,0.35),0_8px_20px_-12px_rgba(240,192,32,0.6)]"
@@ -579,6 +636,16 @@ export function PostCard({
         >
           {comments.length} {comments.length === 1 ? "comment" : "comments"}
         </button>
+        {(post.canShare || shared) && (
+          <button
+            type="button"
+            onClick={toggleShare}
+            disabled={shareBusy}
+            className={`font-medium ${shared ? "text-b2b-pink" : "text-gray-600"} hover:underline disabled:opacity-50`}
+          >
+            {shared ? "🔁 Shared" : "🔁 Share"} {shareCount > 0 && `(${shareCount})`}
+          </button>
+        )}
       </div>
 
       {showComments && (
@@ -609,6 +676,15 @@ export function PostCard({
         onConfirm={confirmDelete}
         onCancel={() => setConfirmDeleteOpen(false)}
         confirming={deleting}
+      />
+      <ConfirmDialog
+        open={confirmUnshareOpen}
+        title="Remove this from your feed?"
+        message="This only removes your share — the original post is unaffected."
+        confirmLabel="Unshare"
+        onConfirm={confirmUnshare}
+        onCancel={() => setConfirmUnshareOpen(false)}
+        confirming={unsharing}
       />
       </div>
     </>

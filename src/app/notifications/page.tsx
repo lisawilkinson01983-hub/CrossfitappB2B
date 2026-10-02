@@ -106,7 +106,11 @@ export default async function NotificationsPage() {
                                     ? `invited you to "${n.event?.name ?? "an event"}"`
                                     : n.type === "FOLLOW"
                                       ? "started following you"
-                                      : "mentioned you"}
+                                      : n.type === "POST_SHARE"
+                                        ? "shared your post"
+                                        : n.type === "STATUS_REACTION"
+                                          ? "reacted to your status"
+                                          : "mentioned you"}
                   </p>
                   <span className="whitespace-nowrap text-xs text-b2b-ink/40">
                     {n.createdAt.toLocaleDateString()}

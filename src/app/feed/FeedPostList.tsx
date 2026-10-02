@@ -8,6 +8,7 @@ function reviveDates(post: PostCardData): PostCardData {
   return {
     ...post,
     createdAt: new Date(post.createdAt),
+    sharedBy: post.sharedBy ? { ...post.sharedBy, sharedAt: new Date(post.sharedBy.sharedAt) } : null,
     linkedEvent: post.linkedEvent
       ? {
           ...post.linkedEvent,
@@ -65,7 +66,7 @@ export function FeedPostList({
     <div className="mt-6 flex flex-col gap-4">
       {posts.map((post) => (
         <PostCard
-          key={post.id}
+          key={post.feedItemId}
           currentUserId={currentUserId}
           post={post}
           highlightPostId={highlightPostId}
