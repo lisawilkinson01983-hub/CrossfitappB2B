@@ -74,6 +74,9 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
   ];
   const kindLabel = eventKindLabel(event);
   const eventPlatform = detectEventPlatform(event.websiteUrl);
+  // A private social meetup has no "team" to find, and "athletes" reads oddly
+  // for people just showing up to hang out — so both get dropped/renamed here.
+  const isPrivateSocial = event.isPrivate && event.eventKind === "SOCIAL";
 
   return (
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
@@ -142,12 +145,14 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
                 engagement toggle since they matter more than the stats
                 below. */}
             <div className="flex w-full flex-col gap-2">
-              <Link
-                href={`/events/${event.id}/find-teammate`}
-                className="rounded-xl bg-b2b-pink px-4 py-3 text-center text-sm font-bold text-white hover:bg-b2b-pink-dark"
-              >
-                Find a teammate
-              </Link>
+              {!isPrivateSocial && (
+                <Link
+                  href={`/events/${event.id}/find-teammate`}
+                  className="rounded-xl bg-b2b-pink px-4 py-3 text-center text-sm font-bold text-white hover:bg-b2b-pink-dark"
+                >
+                  Find a teammate
+                </Link>
+              )}
               <Link
                 href={`/events/${event.id}/notices`}
                 className="rounded-xl bg-b2b-pink px-4 py-3 text-center text-sm font-bold text-white hover:bg-b2b-pink-dark"
@@ -169,7 +174,7 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
                   <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
                   <path d="M16 3.13a4 4 0 0 1 0 7.75" />
                 </svg>
-                {event.participants.length} athletes
+                {event.participants.length} {isPrivateSocial ? "attendees" : "athletes"}
               </Link>
               <Link
                 href={`/events/${event.id}/interested`}

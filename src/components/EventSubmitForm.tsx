@@ -333,7 +333,7 @@ export function EventSubmitForm({
 
               <div className="relative">
                 <label htmlFor="invite-search" className="block text-sm font-medium">
-                  Invite individual athletes
+                  Invite individual {isSocial ? "attendees" : "athletes"}
                 </label>
                 <input
                   id="invite-search"

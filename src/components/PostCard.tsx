@@ -96,6 +96,11 @@ export type PostCardData = {
 const textareaClass =
   "flex-1 resize-none rounded border border-gray-300 px-2 py-1.5 text-sm focus:border-b2b-pink focus:outline-none";
 
+/** "Stacey Heywood" -> "Stacey Heywood's", "James" -> "James'" — used in the "X shared Y's post" banner. */
+function possessive(name: string): string {
+  return name.endsWith("s") ? `${name}'` : `${name}'s`;
+}
+
 export function PostCard({
   post,
   currentUserId,
@@ -421,12 +426,22 @@ export function PostCard({
         />
       )}
       {post.sharedBy && (
-        <div className={`flex items-center gap-2 px-1 pb-1 text-xs text-b2b-ink/50 ${popped ? "hidden" : ""}`}>
+        <div className={`flex flex-wrap items-center gap-x-1.5 gap-y-1 px-1 pb-1 text-xs text-b2b-ink/50 ${popped ? "hidden" : ""}`}>
           <span>🔁</span>
           <Link href={`/profile/${post.sharedBy.id}`} className="font-medium hover:underline">
             {post.sharedBy.id === currentUserId ? "You" : post.sharedBy.name}
           </Link>
-          <span>shared this</span>
+          <span>shared</span>
+          {post.author.id === currentUserId ? (
+            <span>your post</span>
+          ) : (
+            <>
+              <Link href={`/profile/${post.author.id}`} className="font-medium hover:underline">
+                {possessive(post.author.name)}
+              </Link>
+              <span>post</span>
+            </>
+          )}
           {post.sharedBy.id === currentUserId && (
             <button
               type="button"
