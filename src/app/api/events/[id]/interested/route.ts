@@ -87,11 +87,19 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
       await prisma.post.deleteMany({ where: { userId, linkedEventId: eventId } });
     }
 
-    const notice = await prisma.eventNotice.create({
-      data: { eventId, userId, text: `I'm looking for a team for ${event.name}!` },
-    });
-    await prisma.eventInterest.create({ data: { userId, eventId, noticeId: notice.id } });
-    await notifyMatchingTeammateRequests(eventId, userId);
+    // A private social meetup has no "team" to look for — skip the
+    // auto-posted notice-board message that exists purely for teammate
+    // matching on competitions (see isCompetitionEvent/eventKindLabel).
+    const isPrivateSocial = event.isPrivate && event.eventKind === "SOCIAL";
+    if (isPrivateSocial) {
+      await prisma.eventInterest.create({ data: { userId, eventId } });
+    } else {
+      const notice = await prisma.eventNotice.create({
+        data: { eventId, userId, text: `I'm looking for a team for ${event.name}!` },
+      });
+      await prisma.eventInterest.create({ data: { userId, eventId, noticeId: notice.id } });
+      await notifyMatchingTeammateRequests(eventId, userId);
+    }
   }
 
   const [participantRow, interestRow] = await Promise.all([

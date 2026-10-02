@@ -73,6 +73,11 @@ export function EventNoticeCard({
   const [replyingToId, setReplyingToId] = useState<string | null>(null);
   const [replyText, setReplyText] = useState("");
   const [replyBusy, setReplyBusy] = useState(false);
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+  const [editCommentText, setEditCommentText] = useState("");
+  const [commentSaving, setCommentSaving] = useState(false);
+  const [deletingCommentId, setDeletingCommentId] = useState<string | null>(null);
+  const [commentDeleting, setCommentDeleting] = useState(false);
 
   // Grows each box to fit its content instead of leaving it a fixed number
   // of rows with its own internal scrollbar — keyed to each box's own text
@@ -81,9 +86,11 @@ export function EventNoticeCard({
   const editNoticeTextareaRef = useRef<HTMLTextAreaElement>(null);
   const commentTextareaRef = useRef<HTMLTextAreaElement>(null);
   const replyTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const editCommentTextareaRef = useRef<HTMLTextAreaElement>(null);
   useEffect(() => autoGrowTextarea(editNoticeTextareaRef.current), [editNoticeText]);
   useEffect(() => autoGrowTextarea(commentTextareaRef.current), [commentText]);
   useEffect(() => autoGrowTextarea(replyTextareaRef.current), [replyText]);
+  useEffect(() => autoGrowTextarea(editCommentTextareaRef.current), [editCommentText]);
 
   async function confirmDelete() {
     setDeleting(true);
@@ -162,6 +169,50 @@ export function EventNoticeCard({
     }
   }
 
+  function startEditComment(id: string, text: string) {
+    setEditingCommentId(id);
+    setEditCommentText(text);
+  }
+
+  async function submitEditComment(id: string) {
+    if (!editCommentText.trim() || commentSaving) return;
+    setCommentSaving(true);
+    const res = await fetch(`/api/event-notice-comments/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text: editCommentText }),
+    });
+    setCommentSaving(false);
+    if (res.ok) {
+      setComments((prev) => prev.map((c) => (c.id === id ? { ...c, text: editCommentText } : c)));
+      setEditingCommentId(null);
+    }
+  }
+
+  async function confirmDeleteComment() {
+    if (!deletingCommentId) return;
+    setCommentDeleting(true);
+    const res = await fetch(`/api/event-notice-comments/${deletingCommentId}`, { method: "DELETE" });
+    setCommentDeleting(false);
+    if (res.ok) {
+      // A deleted comment cascades to its own replies server-side — mirror
+      // that here so stray replies don't linger in the list underneath it.
+      const deletedIds = new Set([deletingCommentId]);
+      let changed = true;
+      while (changed) {
+        changed = false;
+        for (const c of comments) {
+          if (c.parentId && deletedIds.has(c.parentId) && !deletedIds.has(c.id)) {
+            deletedIds.add(c.id);
+            changed = true;
+          }
+        }
+      }
+      setComments((prev) => prev.filter((c) => !deletedIds.has(c.id)));
+    }
+    setDeletingCommentId(null);
+  }
+
   const repliesByParent = new Map<string, EventNoticeCommentData[]>();
   for (const c of comments) {
     if (!c.parentId) continue;
@@ -173,24 +224,70 @@ export function EventNoticeCard({
 
   function renderComment(comment: EventNoticeCommentData, depth: number) {
     const isReplying = replyingToId === comment.id;
+    const isEditing = editingCommentId === comment.id;
     const replies = repliesByParent.get(comment.id) ?? [];
 
     return (
       <div key={comment.id} className="flex flex-col gap-1" style={{ marginLeft: depth * 20 }}>
-        <div className="text-sm">
-          <p>
-            <span className="font-semibold">{comment.author.name}</span>{" "}
-            <span className="text-gray-800">{comment.text}</span>
-          </p>
-          <div className="mt-0.5 flex items-center gap-3 text-xs text-b2b-ink/50">
-            <button type="button" onClick={() => startReply(comment.id)} className="hover:underline">
-              Reply
+        {isEditing ? (
+          <div className="flex gap-2">
+            <textarea
+              ref={editCommentTextareaRef}
+              rows={1}
+              value={editCommentText}
+              onChange={(e) => setEditCommentText(e.target.value)}
+              className={textareaClass}
+              autoFocus
+            />
+            <button
+              type="button"
+              onClick={() => submitEditComment(comment.id)}
+              disabled={commentSaving || !editCommentText.trim()}
+              className="h-fit rounded bg-b2b-pink px-3 py-1 text-sm text-white hover:bg-b2b-pink-dark disabled:opacity-50"
+            >
+              Save
             </button>
-            {!comment.isMine && (
-              <ReportButton targetType="EVENT_NOTICE_COMMENT" targetId={comment.id} className="hover:underline" />
-            )}
+            <button
+              type="button"
+              onClick={() => setEditingCommentId(null)}
+              className="h-fit text-sm text-b2b-ink/50 hover:underline"
+            >
+              Cancel
+            </button>
           </div>
-        </div>
+        ) : (
+          <div className="text-sm">
+            <p>
+              <span className="font-semibold">{comment.author.name}</span>{" "}
+              <span className="text-gray-800">{comment.text}</span>
+            </p>
+            <div className="mt-0.5 flex items-center gap-3 text-xs text-b2b-ink/50">
+              <button type="button" onClick={() => startReply(comment.id)} className="hover:underline">
+                Reply
+              </button>
+              {comment.isMine ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => startEditComment(comment.id, comment.text)}
+                    className="text-b2b-pink hover:underline"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDeletingCommentId(comment.id)}
+                    className="text-red-600 hover:underline"
+                  >
+                    Delete
+                  </button>
+                </>
+              ) : (
+                <ReportButton targetType="EVENT_NOTICE_COMMENT" targetId={comment.id} className="hover:underline" />
+              )}
+            </div>
+          </div>
+        )}
 
         {isReplying && (
           <form
@@ -368,6 +465,13 @@ export function EventNoticeCard({
         onConfirm={confirmDelete}
         onCancel={() => setConfirmOpen(false)}
         confirming={deleting}
+      />
+      <ConfirmDialog
+        open={deletingCommentId !== null}
+        message="This comment will be deleted for good, along with any replies to it."
+        onConfirm={confirmDeleteComment}
+        onCancel={() => setDeletingCommentId(null)}
+        confirming={commentDeleting}
       />
     </div>
   );
