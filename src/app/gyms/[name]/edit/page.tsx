@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { NavBar } from "@/components/NavBar";
 import { SectionCard } from "@/components/SectionCard";
 import { GymSubmitForm } from "@/components/GymSubmitForm";
+import { DeleteGymButton } from "@/components/DeleteGymButton";
 import { AFFILIATE_GYMS } from "@/lib/gyms";
 
 export default async function EditGymPage({ params }: { params: Promise<{ name: string }> }) {
@@ -41,6 +42,12 @@ export default async function EditGymPage({ params }: { params: Promise<{ name: 
               photo: gym.photo,
             }}
           />
+        </SectionCard>
+      </div>
+
+      <div className="mt-4">
+        <SectionCard title="Danger Zone">
+          <DeleteGymButton gymId={gym.id} gymName={gym.name} />
         </SectionCard>
       </div>
     </main>

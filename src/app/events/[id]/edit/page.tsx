@@ -7,6 +7,7 @@ import { NavBar } from "@/components/NavBar";
 import { SectionCard } from "@/components/SectionCard";
 import { EventSubmitForm } from "@/components/EventSubmitForm";
 import { EventWorkoutsCarousel } from "@/components/EventWorkoutsCarousel";
+import { DeleteEventButton } from "@/components/DeleteEventButton";
 import { parseJsonArray } from "@/lib/labels";
 import type { EventDivisionOption, EventGenderCategoryOption, EventTeamFormatOption } from "@/lib/validation";
 
@@ -82,6 +83,14 @@ export default async function EditEventPage({ params }: { params: Promise<{ id: 
           />
         </SectionCard>
       </div>
+
+      {me?.isAdmin && (
+        <div className="mt-4">
+          <SectionCard title="Danger Zone">
+            <DeleteEventButton eventId={event.id} eventName={event.name} />
+          </SectionCard>
+        </div>
+      )}
     </main>
   );
 }

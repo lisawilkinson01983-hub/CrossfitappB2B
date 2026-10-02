@@ -90,3 +90,32 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
   return NextResponse.json({ ok: true });
 }
+
+/**
+ * Admin-only — permanently removes the affiliate. The only row-level FK into
+ * Gym is Notification.gym (cascades); User.affiliateGym is a loose string
+ * match, not a foreign key (see prisma/schema.prisma), so any member still
+ * affiliated with this gym just keeps that name with no matching page —
+ * same as being affiliated with a gym that was never added.
+ */
+export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+  }
+
+  const me = await prisma.user.findUnique({ where: { id: session.user.id }, select: { isAdmin: true } });
+  if (!me?.isAdmin) {
+    return NextResponse.json({ error: "Not authorized" }, { status: 403 });
+  }
+
+  const { id } = await params;
+  const existing = await prisma.gym.findUnique({ where: { id }, select: { id: true } });
+  if (!existing) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  await prisma.gym.delete({ where: { id } });
+
+  return NextResponse.json({ ok: true });
+}
