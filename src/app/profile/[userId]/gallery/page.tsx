@@ -1,0 +1,59 @@
+import Link from "next/link";
+import { redirect, notFound } from "next/navigation";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+import { NavBar } from "@/components/NavBar";
+import { GalleryLightbox } from "@/components/GalleryLightbox";
+import { AddMediaButton } from "@/components/AddMediaButton";
+import { getGalleryItems } from "@/lib/gallery";
+
+export default async function UserGalleryPage({ params }: { params: Promise<{ userId: string }> }) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) redirect("/login");
+
+  const { userId } = await params;
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user) notFound();
+
+  // Same gate as the profile page itself: a private account's gallery is
+  // only visible once we're an accepted follower (or it's our own page).
+  if (userId !== session.user.id && user.isPrivate) {
+    const follow = await prisma.follow.findUnique({
+      where: { followerId_followingId: { followerId: session.user.id, followingId: userId } },
+    });
+    if (!follow) redirect(`/profile/${userId}`);
+  }
+
+  const isOwner = userId === session.user.id;
+  const items = await getGalleryItems(userId);
+
+  return (
+    <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
+      <NavBar />
+
+      <Link href={isOwner ? "/profile" : `/profile/${userId}`} className="mt-6 inline-block text-sm text-b2b-pink underline">
+        ← Back to profile
+      </Link>
+
+      <h1 className="mt-2 text-2xl font-bold">{isOwner ? "Your" : `${user.name}'s`} gallery</h1>
+
+      <div className="mt-6">
+        {isOwner && <AddMediaButton />}
+        {items.length === 0 ? (
+          <p className="mt-4 text-b2b-ink/40">
+            No photos or videos yet — share one from the feed or log a workout with a photo.
+          </p>
+        ) : (
+          <div className="mt-4">
+            <GalleryLightbox
+              items={items.map(({ key, type, url, thumbnail, source }) => ({ key, type, url, thumbnail, source }))}
+              canEdit={isOwner}
+              layout="grid"
+            />
+          </div>
+        )}
+      </div>
+    </main>
+  );
+}

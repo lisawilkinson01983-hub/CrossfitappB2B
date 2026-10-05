@@ -4,11 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
-
-export type MediaSource =
-  | { kind: "postMedia"; postId: string; mediaId: string }
-  | { kind: "postLegacy"; postId: string }
-  | { kind: "workout"; workoutId: string };
+import type { MediaSource } from "@/lib/gallery";
 
 type MediaItem = { key: string; type: "photo" | "video"; url: string; thumbnail?: string | null; source: MediaSource };
 
@@ -23,7 +19,16 @@ function deleteUrl(source: MediaSource): string {
   }
 }
 
-export function GalleryLightbox({ items: initialItems, canEdit = false }: { items: MediaItem[]; canEdit?: boolean }) {
+export function GalleryLightbox({
+  items: initialItems,
+  canEdit = false,
+  layout = "strip",
+}: {
+  items: MediaItem[];
+  canEdit?: boolean;
+  /** "strip": fixed-width tiles in a horizontal scroller (the profile preview). "grid": fills a responsive grid (the full gallery page). */
+  layout?: "strip" | "grid";
+}) {
   const router = useRouter();
   const [items, setItems] = useState(initialItems);
   const [openIndex, setOpenIndex] = useState<number | null>(null);
@@ -72,13 +77,21 @@ export function GalleryLightbox({ items: initialItems, canEdit = false }: { item
 
   return (
     <>
-      <div className="flex gap-3 overflow-x-auto pb-1">
+      <div
+        className={
+          layout === "grid"
+            ? "grid grid-cols-3 gap-2 sm:grid-cols-4"
+            : "flex gap-3 overflow-x-auto pb-1"
+        }
+      >
         {items.map((item, i) => (
-          <div key={item.key} className="relative flex-shrink-0">
+          <div key={item.key} className={`relative ${layout === "strip" ? "flex-shrink-0" : ""}`}>
             <button
               type="button"
               onClick={() => setOpenIndex(i)}
-              className="relative aspect-square w-24 overflow-hidden rounded-lg bg-b2b-bg"
+              className={`relative aspect-square overflow-hidden rounded-lg bg-b2b-bg ${
+                layout === "strip" ? "w-24" : "w-full"
+              }`}
             >
               {item.type === "video" ? (
                 <>
@@ -94,7 +107,13 @@ export function GalleryLightbox({ items: initialItems, canEdit = false }: { item
                   </span>
                 </>
               ) : (
-                <Image src={item.url} alt="Uploaded photo" fill sizes="96px" className="object-cover" />
+                <Image
+                  src={item.url}
+                  alt="Uploaded photo"
+                  fill
+                  sizes={layout === "strip" ? "96px" : "(min-width: 640px) 25vw, 33vw"}
+                  className="object-cover"
+                />
               )}
             </button>
             {canEdit && (
