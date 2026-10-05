@@ -74,7 +74,10 @@ export default async function ConversationPage({
         <div className="min-w-0">
           <h1 className="truncate text-xl font-bold">{displayName}</h1>
           {conversation.isGroup && (
-            <p className="text-xs text-b2b-ink/50">{others.length + 1} people</p>
+            <p className="truncate text-xs text-b2b-ink/50">
+              {others.length + 1} people · You,{" "}
+              {others.map((u) => (u.deletedAt ? "Deleted User" : u.name)).join(", ")}
+            </p>
           )}
         </div>
       </div>

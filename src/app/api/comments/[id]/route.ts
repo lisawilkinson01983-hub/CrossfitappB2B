@@ -27,3 +27,22 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
   return NextResponse.json({ ok: true });
 }
+
+/** Author-only delete of a post comment/reply (text or GIF) — cascades to its own replies, likes, and reactions. */
+export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+  }
+
+  const { id } = await params;
+
+  const comment = await prisma.comment.findUnique({ where: { id } });
+  if (!comment || comment.userId !== session.user.id) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  await prisma.comment.delete({ where: { id } });
+
+  return NextResponse.json({ ok: true });
+}

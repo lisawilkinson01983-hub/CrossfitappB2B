@@ -162,6 +162,8 @@ export function PostCard({
   const [replyText, setReplyText] = useState("");
   const [replyBusy, setReplyBusy] = useState(false);
   const [commentGifPickerOpen, setCommentGifPickerOpen] = useState(false);
+  const [commentDeleteTargetId, setCommentDeleteTargetId] = useState<string | null>(null);
+  const [commentDeleting, setCommentDeleting] = useState(false);
   const [replyGifPickerOpen, setReplyGifPickerOpen] = useState(false);
 
   const [deleting, setDeleting] = useState(false);
@@ -348,6 +350,20 @@ export function PostCard({
     }
   }
 
+  async function confirmCommentDelete() {
+    if (!commentDeleteTargetId) return;
+    setCommentDeleting(true);
+    const res = await fetch(`/api/comments/${commentDeleteTargetId}`, { method: "DELETE" });
+    setCommentDeleting(false);
+    if (res.ok) {
+      // Deleting cascades to its own replies server-side — drop both locally.
+      setComments((prev) =>
+        prev.filter((c) => c.id !== commentDeleteTargetId && c.parentId !== commentDeleteTargetId)
+      );
+    }
+    setCommentDeleteTargetId(null);
+  }
+
   async function sendCommentGif(gifUrl: string) {
     setCommentGifPickerOpen(false);
     const res = await fetch(`/api/posts/${post.id}/comments`, {
@@ -495,15 +511,24 @@ export function PostCard({
                 Reply
               </button>
               {comment.author.id === currentUserId ? (
-                !comment.gifUrl && (
+                <>
+                  {!comment.gifUrl && (
+                    <button
+                      type="button"
+                      onClick={() => startEditComment(comment.id, comment.text)}
+                      className="text-b2b-pink hover:underline"
+                    >
+                      Edit
+                    </button>
+                  )}
                   <button
                     type="button"
-                    onClick={() => startEditComment(comment.id, comment.text)}
-                    className="text-b2b-pink hover:underline"
+                    onClick={() => setCommentDeleteTargetId(comment.id)}
+                    className="hover:underline"
                   >
-                    Edit
+                    Delete
                   </button>
-                )
+                </>
               ) : (
                 <ReportButton targetType="COMMENT" targetId={comment.id} className="hover:underline" />
               )}
@@ -921,6 +946,13 @@ export function PostCard({
         onConfirm={confirmDelete}
         onCancel={() => setConfirmDeleteOpen(false)}
         confirming={deleting}
+      />
+      <ConfirmDialog
+        open={commentDeleteTargetId !== null}
+        message="This will permanently remove the comment, along with any replies to it."
+        onConfirm={confirmCommentDelete}
+        onCancel={() => setCommentDeleteTargetId(null)}
+        confirming={commentDeleting}
       />
       <ConfirmDialog
         open={confirmUnshareOpen}
