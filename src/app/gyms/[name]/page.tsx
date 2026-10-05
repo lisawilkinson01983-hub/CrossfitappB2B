@@ -7,6 +7,8 @@ import { NavBar } from "@/components/NavBar";
 import { SectionCard } from "@/components/SectionCard";
 import { Avatar } from "@/components/Avatar";
 import { GymBookingButtons } from "@/components/GymBookingButtons";
+import { FollowButton, type FollowStatus } from "@/components/FollowButton";
+import { MessageButton } from "@/components/MessageButton";
 import { bookingMailto, findVerifiedGymOwner } from "@/lib/gymPages";
 
 export default async function GymPage({ params }: { params: Promise<{ name: string }> }) {
@@ -19,7 +21,7 @@ export default async function GymPage({ params }: { params: Promise<{ name: stri
     prisma.user.findUnique({ where: { id: session.user.id }, select: { isAdmin: true } }),
     prisma.gym.findUnique({
       where: { name: decodeURIComponent(name) },
-      include: { claimedBy: { select: { photo: true } } },
+      include: { claimedBy: { select: { id: true, photo: true } } },
     }),
   ]);
   if (!gym) notFound();
@@ -28,6 +30,24 @@ export default async function GymPage({ params }: { params: Promise<{ name: stri
   // actually go, and not to the affiliate viewing their own gym's page.
   const owner = gym.bookingEmail ? null : await findVerifiedGymOwner(gym.name);
   const canBook = (gym.bookingEmail != null || owner != null) && owner?.id !== session.user.id;
+  const isOwnGym = gym.claimedBy?.id === session.user.id;
+
+  // The affiliate's own profile is where Follow/Message actually live (see
+  // /profile/[userId]) — fetched here too so this, the main place people
+  // land on a claimed gym, can offer them directly rather than only via a
+  // separate click-through to the profile.
+  let followStatus: FollowStatus = "none";
+  if (gym.claimedBy && !isOwnGym) {
+    const [existingFollow, pendingRequest] = await Promise.all([
+      prisma.follow.findUnique({
+        where: { followerId_followingId: { followerId: session.user.id, followingId: gym.claimedBy.id } },
+      }),
+      prisma.followRequest.findUnique({
+        where: { requesterId_targetId: { requesterId: session.user.id, targetId: gym.claimedBy.id } },
+      }),
+    ]);
+    followStatus = existingFollow ? "following" : pendingRequest?.status === "PENDING" ? "pending" : "none";
+  }
 
   return (
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
@@ -55,6 +75,19 @@ export default async function GymPage({ params }: { params: Promise<{ name: stri
               verified={Boolean(gym.claimedBy)}
             />
             <h1 className="text-2xl font-bold">{gym.name}</h1>
+
+            {gym.claimedBy && !isOwnGym && (
+              <div className="flex items-center gap-2">
+                <MessageButton targetUserId={gym.claimedBy.id} />
+                <FollowButton targetUserId={gym.claimedBy.id} initialStatus={followStatus} />
+              </div>
+            )}
+
+            {gym.claimedBy && (
+              <Link href={`/profile/${gym.claimedBy.id}`} className="text-sm text-b2b-pink underline">
+                {isOwnGym ? "View your profile" : "View full profile"}
+              </Link>
+            )}
 
             <Link
               href={`/discover?gym=${encodeURIComponent(gym.name)}`}

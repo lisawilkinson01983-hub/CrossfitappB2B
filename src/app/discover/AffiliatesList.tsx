@@ -244,7 +244,10 @@ export async function AffiliatesList({
                 key={gym.id}
                 className="flex items-center gap-3 rounded-xl border border-b2b-purple/10 bg-b2b-card p-4 hover:border-b2b-pink"
               >
-                <Link href={`/gyms/${encodeURIComponent(gym.name)}`} className="flex flex-1 items-center gap-3">
+                <Link
+                  href={gym.claimedBy ? `/profile/${gym.claimedBy.id}` : `/gyms/${encodeURIComponent(gym.name)}`}
+                  className="flex flex-1 items-center gap-3"
+                >
                   <Avatar
                     fallback="gym"
                     photo={gym.claimedBy?.photo ?? gym.photo}
