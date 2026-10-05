@@ -34,23 +34,23 @@ async function verify(token: string | undefined): Promise<{ title: string; messa
     return { title: "Missing link", message: "This verification link is missing its token." };
   }
 
-  const user = await prisma.user.findUnique({ where: { emailVerificationToken: token } });
-  if (!user) {
+  const account = await prisma.account.findUnique({ where: { emailVerificationToken: token } });
+  if (!account) {
     return {
       title: "Link no longer valid",
       message: "This verification link has already been used, or doesn't match any account.",
     };
   }
 
-  if (user.emailVerificationTokenExpiresAt && user.emailVerificationTokenExpiresAt < new Date()) {
+  if (account.emailVerificationTokenExpiresAt && account.emailVerificationTokenExpiresAt < new Date()) {
     return {
       title: "Link expired",
       message: "This verification link has expired. You can request a new one from Settings.",
     };
   }
 
-  await prisma.user.update({
-    where: { id: user.id },
+  await prisma.account.update({
+    where: { id: account.id },
     data: { emailVerifiedAt: new Date(), emailVerificationToken: null, emailVerificationTokenExpiresAt: null },
   });
 

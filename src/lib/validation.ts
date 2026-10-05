@@ -144,6 +144,11 @@ export const signupSchema = z.object({
   inviteCode: z.string().trim().optional(),
 });
 
+export const addProfileSchema = z.object({
+  name: z.string().trim().min(1, "Name is required"),
+  accountType: z.enum(["ATHLETE", "AFFILIATE"]),
+});
+
 export const forgotPasswordSchema = z.object({
   email: z.string().trim().email("Enter a valid email address"),
 });

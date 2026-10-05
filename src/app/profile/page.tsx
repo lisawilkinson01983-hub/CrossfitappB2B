@@ -53,7 +53,10 @@ export default async function ProfilePage() {
   // reported lag now that images are confirmed small.
   const fetchStart = Date.now();
 
-  const user = await prisma.user.findUnique({ where: { id: session.user.id } });
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    include: { account: { select: { email: true } } },
+  });
   if (!user) redirect("/login");
 
   const now = new Date();
@@ -110,6 +113,7 @@ export default async function ProfilePage() {
       <div className="mt-6 flex flex-col gap-6">
         <ProfileDetails
           user={user}
+          accountEmail={user.account?.email ?? ""}
           showEmail
           isOwner
           followerCount={followerCount}

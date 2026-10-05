@@ -13,8 +13,11 @@ export async function getSiteAccountId(): Promise<string | null> {
   const email = configuredSiteAccountEmail();
   if (!email) return null;
 
-  const account = await prisma.user.findUnique({ where: { email }, select: { id: true } });
-  return account?.id ?? null;
+  const account = await prisma.account.findUnique({
+    where: { email },
+    include: { profiles: { select: { id: true }, orderBy: { createdAt: "asc" }, take: 1 } },
+  });
+  return account?.profiles[0]?.id ?? null;
 }
 
 function configuredSiteAccountEmail(): string | undefined {

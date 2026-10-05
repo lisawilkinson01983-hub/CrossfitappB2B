@@ -21,14 +21,14 @@ export async function POST(req: Request) {
   }
 
   const email = parsed.data.email.toLowerCase();
-  const user = await prisma.user.findUnique({ where: { email } });
+  const account = await prisma.account.findUnique({ where: { email } });
 
   // Always respond the same way whether or not the email has an account, so
   // this endpoint can't be used to check who's registered.
-  if (user) {
+  if (account) {
     const token = generateToken();
-    await prisma.user.update({
-      where: { id: user.id },
+    await prisma.account.update({
+      where: { id: account.id },
       data: {
         passwordResetToken: token,
         passwordResetTokenExpiresAt: new Date(Date.now() + 60 * 60 * 1000),
@@ -37,7 +37,7 @@ export async function POST(req: Request) {
 
     const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
     await sendEmail({
-      to: user.email,
+      to: account.email,
       subject: "Reset your Box 2 Box password",
       text: `Someone requested a password reset for this account. If that was you, visit this link to set a new password:\n\n${baseUrl}/reset-password?token=${token}\n\nThis link expires in 1 hour. If you didn't request this, you can ignore this email.`,
     });

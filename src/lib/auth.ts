@@ -26,40 +26,59 @@ export const authOptions: NextAuthOptions = {
         const emailLimit = checkRateLimit(email, "login-email", { limit: 8, windowMs: 15 * 60 * 1000 });
         if (!ipLimit.ok || !emailLimit.ok) throw new Error("TOO_MANY_ATTEMPTS");
 
-        const user = await prisma.user.findUnique({ where: { email } });
-        if (!user) return null;
+        const account = await prisma.account.findUnique({ where: { email } });
+        if (!account) return null;
 
-        const valid = await bcrypt.compare(credentials.password, user.passwordHash);
+        const valid = await bcrypt.compare(credentials.password, account.passwordHash);
         if (!valid) return null;
 
         // Checked after the password so this message never confirms which
         // emails have accounts. Shown on the login form (see LoginForm).
-        if (user.suspendedAt) throw new Error("ACCOUNT_SUSPENDED");
+        if (account.suspendedAt) throw new Error("ACCOUNT_SUSPENDED");
+
+        // One login can hold more than one profile (e.g. an athlete profile
+        // and the affiliate profile for a gym someone runs — see
+        // /settings/profiles). Sign-in always lands on the oldest one; the
+        // profile switcher in NavBar handles the rest for this session.
+        const profile = await prisma.user.findFirst({
+          where: { accountId: account.id },
+          orderBy: { createdAt: "asc" },
+          select: { id: true, name: true },
+        });
+        if (!profile) return null;
 
         // Feeds the "days active" signal on the pilot-testing leaderboard
         // (see /leaderboard) — best-effort, never blocks login.
-        await prisma.loginEvent.create({ data: { userId: user.id } }).catch(() => {});
+        await prisma.loginEvent.create({ data: { userId: profile.id } }).catch(() => {});
 
-        return { id: user.id, name: user.name, email: user.email };
+        return { id: profile.id, name: profile.name, email: account.email };
       },
     }),
   ],
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger, session }) {
       if (user) token.id = user.id;
+      // Fired by the profile switcher (see /api/account/switch-profile's
+      // client call to useSession().update()) — the route itself already
+      // verified the target profile belongs to the same Account before
+      // asking for this, so it's trusted here.
+      if (trigger === "update" && session?.switchToProfileId) {
+        token.id = session.switchToProfileId;
+      }
       return token;
     },
     async session({ session, token }) {
       // JWT sessions live in the cookie, so suspending an account wouldn't
-      // otherwise end one that's already signed in. Looking the user up here
-      // means every getServerSession() call sees the suspension straight away
-      // — a signed-in-but-suspended user gets no user id, and every page and
-      // API route already treats that as signed out.
-      const account = await prisma.user.findUnique({
+      // otherwise end one that's already signed in. Looking the profile (and
+      // its account) up here means every getServerSession() call sees a
+      // suspension straight away — a signed-in-but-suspended user gets no
+      // user id, and every page and API route already treats that as signed
+      // out.
+      const profile = await prisma.user.findUnique({
         where: { id: token.id as string },
-        select: { suspendedAt: true, deletedAt: true },
+        select: { account: { select: { suspendedAt: true, deletedAt: true } } },
       });
-      if (!account || account.suspendedAt || account.deletedAt) {
+      if (!profile?.account || profile.account.suspendedAt || profile.account.deletedAt) {
         return { ...session, user: undefined } as unknown as typeof session;
       }
       if (session.user) session.user.id = token.id as string;

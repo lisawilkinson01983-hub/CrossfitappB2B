@@ -17,7 +17,7 @@ export default async function GymReviewPage() {
   const pending = await prisma.gym.findMany({
     where: { status: "PENDING" },
     orderBy: { createdAt: "asc" },
-    include: { submittedBy: { select: { id: true, name: true, email: true } } },
+    include: { submittedBy: { select: { id: true, name: true, account: { select: { email: true } } } } },
   });
 
   return (
@@ -44,7 +44,13 @@ export default async function GymReviewPage() {
                     description: gym.description,
                     website: gym.website,
                     photo: gym.photo,
-                    submittedBy: gym.submittedBy,
+                    submittedBy: gym.submittedBy
+                      ? {
+                          id: gym.submittedBy.id,
+                          name: gym.submittedBy.name,
+                          email: gym.submittedBy.account?.email ?? "",
+                        }
+                      : null,
                   }}
                 />
               ))}

@@ -17,23 +17,23 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
   }
 
-  const user = await prisma.user.findUnique({ where: { id: session.user.id } });
-  if (!user) {
+  const user = await prisma.user.findUnique({ where: { id: session.user.id }, include: { account: true } });
+  if (!user?.account) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  const validPassword = await bcrypt.compare(parsed.data.currentPassword, user.passwordHash);
+  const validPassword = await bcrypt.compare(parsed.data.currentPassword, user.account.passwordHash);
   if (!validPassword) {
     return NextResponse.json({ error: "Current password is incorrect" }, { status: 400 });
   }
 
   const newEmail = parsed.data.newEmail.toLowerCase();
-  const existing = await prisma.user.findUnique({ where: { email: newEmail } });
-  if (existing && existing.id !== user.id) {
+  const existing = await prisma.account.findUnique({ where: { email: newEmail } });
+  if (existing && existing.id !== user.account.id) {
     return NextResponse.json({ error: "That email is already in use" }, { status: 409 });
   }
 
-  await prisma.user.update({ where: { id: user.id }, data: { email: newEmail } });
+  await prisma.account.update({ where: { id: user.account.id }, data: { email: newEmail } });
 
   return NextResponse.json({ ok: true });
 }

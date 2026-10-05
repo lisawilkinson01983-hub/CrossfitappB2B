@@ -53,11 +53,19 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     return NextResponse.json({ error: "You can't suspend your own account" }, { status: 400 });
   }
 
+  // Suspending blocks sign-in at the Account level (see src/lib/auth.ts's
+  // session callback) — every profile under that account, not just the
+  // reported one.
+  const reportedProfile =
+    action === "suspend"
+      ? await prisma.user.findUnique({ where: { id: report.reportedUserId }, select: { accountId: true } })
+      : null;
+
   await removeReportTarget(report.targetType, report.targetId);
 
   await prisma.$transaction([
-    ...(action === "suspend"
-      ? [prisma.user.update({ where: { id: report.reportedUserId }, data: { suspendedAt: now } })]
+    ...(action === "suspend" && reportedProfile?.accountId
+      ? [prisma.account.update({ where: { id: reportedProfile.accountId }, data: { suspendedAt: now } })]
       : []),
     prisma.report.updateMany({
       where: {

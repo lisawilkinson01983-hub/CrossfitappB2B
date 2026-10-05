@@ -35,7 +35,7 @@ export async function buildLeaderboard({
 
   const users = await prisma.user.findMany({
     where: { deletedAt: null, ...(testGroup ? { testGroup } : {}) },
-    select: { id: true, name: true, email: true, testGroup: true },
+    select: { id: true, name: true, testGroup: true, account: { select: { email: true } } },
   });
   const userIds = users.map((u) => u.id);
   if (userIds.length === 0) return [];
@@ -94,7 +94,7 @@ export async function buildLeaderboard({
     return {
       id: u.id,
       name: u.name,
-      email: u.email,
+      email: u.account?.email ?? "",
       testGroup: u.testGroup,
       posts,
       workouts,

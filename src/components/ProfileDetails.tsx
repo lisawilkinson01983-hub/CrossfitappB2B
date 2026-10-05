@@ -29,6 +29,7 @@ function Badge({ label, className }: { label: string; className: string }) {
 
 export async function ProfileDetails({
   user,
+  accountEmail,
   showEmail,
   followerCount,
   followingCount,
@@ -37,6 +38,7 @@ export async function ProfileDetails({
   isOwner = false,
 }: {
   user: User;
+  accountEmail: string;
   showEmail: boolean;
   followerCount: number;
   followingCount: number;
@@ -65,7 +67,7 @@ export async function ProfileDetails({
   // The brand account (see src/lib/siteAccount.ts) had to fill in area/gym/
   // ability/CrossFitting-since to get through profile setup like any other
   // account, but none of that means anything on its own profile page.
-  const isSiteAccount = isSiteAccountEmail(user.email);
+  const isSiteAccount = isSiteAccountEmail(accountEmail);
   const showRelationshipStatus = user.isSingle != null && user.showRelationshipStatus;
   const showSingleBadge = showsSingleBadge(user);
 
@@ -151,7 +153,7 @@ export async function ProfileDetails({
                 <span className="ml-2 align-middle text-sm font-normal text-b2b-ink/50">🔒 Private</span>
               )}
             </p>
-            {showEmail && <p className="text-sm text-b2b-ink/50">{user.email}</p>}
+            {showEmail && <p className="text-sm text-b2b-ink/50">{accountEmail}</p>}
           </div>
 
           {actions && <div className="flex items-center gap-2">{actions}</div>}

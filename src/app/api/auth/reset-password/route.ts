@@ -19,14 +19,14 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
   }
 
-  const user = await prisma.user.findUnique({ where: { passwordResetToken: parsed.data.token } });
-  if (!user || !user.passwordResetTokenExpiresAt || user.passwordResetTokenExpiresAt < new Date()) {
+  const account = await prisma.account.findUnique({ where: { passwordResetToken: parsed.data.token } });
+  if (!account || !account.passwordResetTokenExpiresAt || account.passwordResetTokenExpiresAt < new Date()) {
     return NextResponse.json({ error: "This reset link is invalid or has expired." }, { status: 400 });
   }
 
   const passwordHash = await bcrypt.hash(parsed.data.password, 10);
-  await prisma.user.update({
-    where: { id: user.id },
+  await prisma.account.update({
+    where: { id: account.id },
     data: { passwordHash, passwordResetToken: null, passwordResetTokenExpiresAt: null },
   });
 

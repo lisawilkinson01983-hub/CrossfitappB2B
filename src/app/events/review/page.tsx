@@ -18,7 +18,7 @@ export default async function EventReviewPage() {
   const pending = await prisma.event.findMany({
     where: { status: "PENDING" },
     orderBy: { createdAt: "asc" },
-    include: { submittedBy: { select: { id: true, name: true, email: true } } },
+    include: { submittedBy: { select: { id: true, name: true, account: { select: { email: true } } } } },
   });
 
   return (
@@ -51,7 +51,13 @@ export default async function EventReviewPage() {
                     division: parseJsonArray(event.division),
                     teamFormat: parseJsonArray(event.teamFormat),
                     genderCategory: parseJsonArray(event.genderCategory),
-                    submittedBy: event.submittedBy,
+                    submittedBy: event.submittedBy
+                      ? {
+                          id: event.submittedBy.id,
+                          name: event.submittedBy.name,
+                          email: event.submittedBy.account?.email ?? "",
+                        }
+                      : null,
                   }}
                 />
               ))}

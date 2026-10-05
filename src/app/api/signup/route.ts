@@ -26,7 +26,7 @@ export async function POST(req: Request) {
 
   const email = parsed.data.email.toLowerCase();
 
-  const existing = await prisma.user.findUnique({ where: { email } });
+  const existing = await prisma.account.findUnique({ where: { email } });
   if (existing) {
     return NextResponse.json(
       { error: "An account with this email already exists" },
@@ -60,15 +60,21 @@ export async function POST(req: Request) {
     );
   }
 
+  const account = await prisma.account.create({
+    data: {
+      email,
+      passwordHash,
+      emailVerificationToken,
+      emailVerificationTokenExpiresAt: new Date(now.getTime() + 24 * 60 * 60 * 1000),
+    },
+  });
+
   const user = await prisma.user.create({
     data: {
       name: parsed.data.name,
-      email,
-      passwordHash,
+      accountId: account.id,
       termsAcceptedAt: now,
       ageConfirmedAt: now,
-      emailVerificationToken,
-      emailVerificationTokenExpiresAt: new Date(now.getTime() + 24 * 60 * 60 * 1000),
       inviteCode,
       invitedById: referrer?.id,
     },

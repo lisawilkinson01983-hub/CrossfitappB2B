@@ -12,19 +12,21 @@ export default async function SettingsPage() {
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { isAdmin: true, accountType: true, _count: { select: { referrals: true } } },
+    select: { isAdmin: true, accountType: true, accountId: true, _count: { select: { referrals: true } } },
   });
   if (!user) redirect("/login");
 
-  const [blockCount, muteCount, submissionCount, openReportCount, pendingVerificationCount] = await Promise.all([
-    prisma.block.count({ where: { blockerId: session.user.id } }),
-    prisma.mute.count({ where: { userId: session.user.id } }),
-    prisma.event.count({ where: { submittedById: session.user.id } }),
-    user.isAdmin ? prisma.report.count({ where: { status: "OPEN" } }) : 0,
-    user.isAdmin
-      ? prisma.user.count({ where: { accountType: "AFFILIATE", verificationRequestedAt: { not: null }, verifiedAt: null } })
-      : 0,
-  ]);
+  const [blockCount, muteCount, submissionCount, openReportCount, pendingVerificationCount, profileCount] =
+    await Promise.all([
+      prisma.block.count({ where: { blockerId: session.user.id } }),
+      prisma.mute.count({ where: { userId: session.user.id } }),
+      prisma.event.count({ where: { submittedById: session.user.id } }),
+      user.isAdmin ? prisma.report.count({ where: { status: "OPEN" } }) : 0,
+      user.isAdmin
+        ? prisma.user.count({ where: { accountType: "AFFILIATE", verificationRequestedAt: { not: null }, verifiedAt: null } })
+        : 0,
+      user.accountId ? prisma.user.count({ where: { accountId: user.accountId } }) : 1,
+    ]);
 
   return (
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
@@ -35,6 +37,11 @@ export default async function SettingsPage() {
         <SectionCard>
           <div className="flex flex-col gap-2">
             <SettingsMenuLink href="/settings/account" label="Account" description="Email, password, profile" />
+            <SettingsMenuLink
+              href="/settings/profiles"
+              label="Profiles"
+              description={`${profileCount} ${profileCount === 1 ? "profile" : "profiles"} on this login`}
+            />
             <SettingsMenuLink
               href="/settings/invite"
               label="Invite Friends"

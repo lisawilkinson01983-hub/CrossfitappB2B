@@ -152,11 +152,49 @@ enum EventKind {
   OTHER
 }
 
+// The real person's login — separate from any one profile, so one email and
+// password can hold more than one profile (e.g. an athlete profile and the
+// affiliate profile for the gym they run), switching between them without
+// signing out (see /api/account/switch-profile). Every User row (profile)
+// belongs to exactly one Account; an Account can have more than one User.
+model Account {
+  id           String @id @default(cuid())
+  email        String @unique
+  passwordHash String
+
+  // Set by an admin acting on a report — blocks sign-in for every profile
+  // under this account, not just the one that was reported (see the session
+  // callback in src/lib/auth.ts).
+  suspendedAt DateTime?
+  // Set once every profile under this account has gone through
+  // /api/account/delete. Blocks sign-in exactly like a suspension.
+  deletedAt DateTime?
+
+  // Email verification — informational, never blocks sign-in. Null
+  // emailVerifiedAt means unverified.
+  emailVerifiedAt                 DateTime?
+  emailVerificationToken          String?   @unique
+  emailVerificationTokenExpiresAt DateTime?
+
+  // Forgot-password flow (see /forgot-password, /reset-password).
+  // Single-use: cleared once the password is reset.
+  passwordResetToken          String?   @unique
+  passwordResetTokenExpiresAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  profiles User[]
+}
+
 model User {
   id           String   @id @default(cuid())
   name         String
-  email        String   @unique
-  passwordHash String
+
+  // The login this profile belongs to — see Account above. Nullable only
+  // until scripts/backfill-accounts.js has run once against rows that
+  // predate the Account split; every profile has one from then on.
+  accountId String?
+  account   Account? @relation(fields: [accountId], references: [id], onDelete: Cascade)
 
   photo  String? // served path, e.g. "/media/xyz.jpg" (see src/lib/uploads.ts)
   bio    String?
@@ -177,37 +215,28 @@ model User {
   // "which gym this account runs" for an AFFILIATE account.
   accountType AccountType @default(ATHLETE)
 
-  // Set by an admin acting on a report (see /reports/review). A suspended
-  // account can't sign in, and any existing session stops working on its
-  // next request (see the session callback in src/lib/auth.ts). Null means
-  // the account is in good standing.
-  suspendedAt DateTime?
-
-  // Set once the account owner deletes their account (see
-  // /api/account/delete). The row is kept (rather than hard-deleted) and its
-  // personal fields wiped, so messages/posts/reports that reference it keep
-  // working and just show "Deleted User" — but sign-in is blocked exactly
-  // like a suspension, since the email on the row no longer matches what
-  // they signed up with anyway.
-  deletedAt DateTime?
-
   // Consent captured at signup (see SignupForm) — timestamps double as an
   // audit trail of when each was agreed to, not just whether. Existing
   // accounts from before this shipped are grandfathered by
-  // scripts/backfill-legal-consent.js.
+  // scripts/backfill-legal-consent.js. Re-stamped (not re-asked) when a
+  // second profile is added to an already-consented Account.
   termsAcceptedAt DateTime?
   ageConfirmedAt  DateTime?
 
-  // Email verification — informational (a banner prompts an unverified user
-  // to confirm), never blocks sign-in. Null emailVerifiedAt means unverified.
+  // --- Superseded by Account (see above) — login/identity now lives there,
+  // shared across every profile under one Account. These stay only so
+  // scripts/backfill-accounts.js has something to migrate from on a row that
+  // predates the Account split; nothing else reads or writes them.
+  email                           String?   @unique
+  passwordHash                    String?
+  suspendedAt                     DateTime?
+  deletedAt                       DateTime?
   emailVerifiedAt                 DateTime?
   emailVerificationToken          String?   @unique
   emailVerificationTokenExpiresAt DateTime?
-
-  // Forgot-password flow (see /forgot-password, /reset-password). Single-use:
-  // cleared once the password is reset.
-  passwordResetToken          String?   @unique
-  passwordResetTokenExpiresAt DateTime?
+  passwordResetToken              String?   @unique
+  passwordResetTokenExpiresAt     DateTime?
+  // --- end superseded ---
 
   // A short shareable code every account gets at signup (see
   // src/lib/inviteCode.ts) — shown in Settings so someone can invite others

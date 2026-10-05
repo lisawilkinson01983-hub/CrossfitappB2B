@@ -26,7 +26,10 @@ export default async function UserProfilePage({
   const { userId } = await params;
   if (userId === session.user.id) redirect("/profile");
 
-  const user = await prisma.user.findUnique({ where: { id: userId } });
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: { account: { select: { email: true } } },
+  });
   if (!user) notFound();
 
   const [followerCount, followingCount, existingFollow, pendingRequest, recentWorkouts, me, blockRow, muteRow] =
@@ -106,6 +109,7 @@ export default async function UserProfilePage({
           <>
             <ProfileDetails
               user={user}
+              accountEmail={user.account?.email ?? ""}
               showEmail={false}
               followerCount={followerCount}
               followingCount={followingCount}

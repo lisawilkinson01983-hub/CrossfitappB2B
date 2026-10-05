@@ -20,7 +20,9 @@ export default async function ReportReviewPage() {
     orderBy: { createdAt: "asc" },
     include: {
       reporter: { select: { id: true, name: true } },
-      reportedUser: { select: { id: true, name: true, email: true, suspendedAt: true } },
+      reportedUser: {
+        select: { id: true, name: true, account: { select: { email: true, suspendedAt: true } } },
+      },
     },
   });
 
@@ -47,7 +49,12 @@ export default async function ReportReviewPage() {
         href: target?.href ?? null,
         createdAt: first.createdAt,
         reporter: first.reporter,
-        reportedUser: first.reportedUser,
+        reportedUser: {
+          id: first.reportedUser.id,
+          name: first.reportedUser.name,
+          email: first.reportedUser.account?.email ?? "",
+          suspendedAt: first.reportedUser.account?.suspendedAt ?? null,
+        },
         otherReportCount: rest.length,
       };
     })

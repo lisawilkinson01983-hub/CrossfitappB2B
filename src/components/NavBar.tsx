@@ -13,7 +13,7 @@ import { VerifyEmailBanner } from "./VerifyEmailBanner";
 export async function NavBar({ isProfileEditPage = false }: { isProfileEditPage?: boolean } = {}) {
   const session = await getServerSession(authOptions);
 
-  const [unreadMessages, unreadNotifications, account] = session?.user?.id
+  const [unreadMessages, unreadNotifications, profile] = session?.user?.id
     ? await Promise.all([
         prisma.message.count({
           where: {
@@ -28,12 +28,12 @@ export async function NavBar({ isProfileEditPage = false }: { isProfileEditPage?
         prisma.user.findUnique({
           where: { id: session.user.id },
           select: {
-            emailVerifiedAt: true,
             accountType: true,
             area: true,
             affiliateGym: true,
             levels: true,
             lookingFor: true,
+            account: { select: { emailVerifiedAt: true } },
           },
         }),
       ])
@@ -42,14 +42,14 @@ export async function NavBar({ isProfileEditPage = false }: { isProfileEditPage?
   // Setup isn't done — every other authenticated page bounces back to
   // /profile/edit until it is; that page itself renders a stripped-down nav
   // instead, so there's nothing that looks like a way to wander off.
-  const setupComplete = !account || isProfileSetupComplete(account);
+  const setupComplete = !profile || isProfileSetupComplete(profile);
   if (!setupComplete && !isProfileEditPage) {
     redirect("/profile/edit");
   }
 
   return (
     <>
-      {session?.user?.id && !account?.emailVerifiedAt && <VerifyEmailBanner />}
+      {session?.user?.id && !profile?.account?.emailVerifiedAt && <VerifyEmailBanner />}
       <nav className="flex items-center justify-between gap-3 border-b border-b2b-purple/10 pb-4">
         <Logo size="sm" href="/feed" wordmark={false} />
         {setupComplete ? (

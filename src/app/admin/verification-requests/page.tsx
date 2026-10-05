@@ -17,7 +17,13 @@ export default async function VerificationRequestsPage() {
   const pending = await prisma.user.findMany({
     where: { accountType: "AFFILIATE", verificationRequestedAt: { not: null }, verifiedAt: null },
     orderBy: { verificationRequestedAt: "asc" },
-    select: { id: true, name: true, email: true, affiliateGym: true, verificationRequestedAt: true },
+    select: {
+      id: true,
+      name: true,
+      affiliateGym: true,
+      verificationRequestedAt: true,
+      account: { select: { email: true } },
+    },
   });
 
   return (
@@ -42,7 +48,7 @@ export default async function VerificationRequestsPage() {
                   request={{
                     id: request.id,
                     name: request.name,
-                    email: request.email,
+                    email: request.account?.email ?? "",
                     affiliateGym: request.affiliateGym,
                     verificationRequestedAt: request.verificationRequestedAt!,
                   }}
