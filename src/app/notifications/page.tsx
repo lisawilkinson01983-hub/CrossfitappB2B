@@ -69,6 +69,8 @@ export default async function NotificationsPage() {
                         ? "/gyms/review"
                         : n.type === "REPORT_SUBMITTED"
                           ? "/reports/review"
+                        : n.type === "AFFILIATE_VERIFICATION_REQUESTED"
+                          ? "/admin/verification-requests"
                         : n.type === "TEAMMATE_REQUEST_MATCH" ||
                             n.type === "TEAMMATE_SEARCH_MATCH" ||
                             n.type === "EVENT_INVITE" ||
@@ -102,6 +104,8 @@ export default async function NotificationsPage() {
                                 ? `submitted "${n.gym?.name ?? "an affiliate"}" for review`
                                 : n.type === "REPORT_SUBMITTED"
                                 ? "reported something for review"
+                                : n.type === "AFFILIATE_VERIFICATION_REQUESTED"
+                                ? "requested verification as an affiliate owner"
                                 : n.type === "TEAMMATE_REQUEST_MATCH"
                                 ? `posted a teammate request matching your search for "${n.event?.name ?? "an event"}"`
                                 : n.type === "TEAMMATE_SEARCH_MATCH"

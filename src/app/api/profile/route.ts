@@ -110,6 +110,16 @@ export async function PATCH(req: Request) {
     }
   } else if (data.verificationRequested && !current?.verifiedAt && !current?.verificationRequestedAt) {
     verificationFields = { verificationRequestedAt: new Date(), verifiedAt: current?.verifiedAt ?? null };
+    const admins = await prisma.user.findMany({ where: { isAdmin: true }, select: { id: true } });
+    if (admins.length > 0) {
+      await prisma.notification.createMany({
+        data: admins.map((admin) => ({
+          userId: admin.id,
+          actorId: session.user.id,
+          type: "AFFILIATE_VERIFICATION_REQUESTED" as const,
+        })),
+      });
+    }
   } else if (!data.verificationRequested && current?.verificationRequestedAt && !current?.verifiedAt) {
     verificationFields = { verificationRequestedAt: null, verifiedAt: null };
   }

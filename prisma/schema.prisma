@@ -89,6 +89,10 @@ enum NotificationType {
   TEAMMATE_SEARCH_MATCH
   // Someone reported a user or piece of content — sent to every admin.
   REPORT_SUBMITTED
+  // An AFFILIATE account requested verification as the owner/manager of its
+  // gym (see User.verificationRequestedAt) — sent to every admin, same as
+  // GYM_SUBMITTED/EVENT_SUBMITTED/REPORT_SUBMITTED above.
+  AFFILIATE_VERIFICATION_REQUESTED
   // A broadcast notice from Box 2 Box itself, sent to an admin-chosen
   // audience — see /admin/notices. The actor is the site account (see
   // src/lib/siteAccount.ts), and noticeId below has the actual content.
