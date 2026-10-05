@@ -1,14 +1,12 @@
-// A handful of curated affiliate gyms, seeded with known public details (see
-// gymPages.ts's KNOWN_GYM_INFO) and protected from renaming — see
-// ensureGymPage and the name-lock in GymSubmitForm/the gym PATCH route.
-// Any *approved* Gym row is selectable as a profile's affiliateGym, not just
-// these — this list is no longer the source of truth for that dropdown.
-export const AFFILIATE_GYMS = [
-  "CrossFit Uckfield",
-  "CrossFit Hailsham (FFH)",
-  "CrossFit Burgess Hill (BYS)",
-  "CrossFit Haywards Heath",
-] as const;
+import affiliateGyms from "./affiliateGyms.json";
+
+// The curated affiliate gyms, seeded with known public details from
+// affiliateGyms.json (see gymPages.ts's ensureGymPage and
+// scripts/backfill-gym-pages.js) and protected from renaming — see the
+// name-lock in GymSubmitForm/the gym PATCH route. Any *approved* Gym row is
+// selectable as a profile's affiliateGym, not just these — this list is no
+// longer the source of truth for that dropdown.
+export const AFFILIATE_GYMS: readonly string[] = affiliateGyms.map((gym) => gym.name);
 
 // For people who haven't joined a gym yet (e.g. still finding out more).
 export const UNAFFILIATED = "Unaffiliated";

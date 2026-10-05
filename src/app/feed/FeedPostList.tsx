@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { PostCard, type PostCardData } from "@/components/PostCard";
 
-/** The API route returns dates as JSON strings — PostCard needs real Date objects (see formatEventDate/toLocaleString). */
+/** The API route returns dates as JSON strings — PostCard needs real Date objects (see formatEventDate/formatDateTime). */
 function reviveDates(post: PostCardData): PostCardData {
   return {
     ...post,

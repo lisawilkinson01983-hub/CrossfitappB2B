@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { REPORT_REASON_LABELS, REPORT_TARGET_LABELS } from "@/lib/labels";
 import type { ReportReasonOption, ReportTargetTypeOption } from "@/lib/validation";
+import { formatDateTime } from "@/lib/dates";
 
 export type ReportModerationData = {
   id: string;
@@ -95,7 +96,7 @@ export function ReportModerationCard({ report }: { report: ReportModerationData 
       )}
 
       <p className="mt-2 text-xs text-b2b-ink/40">
-        Reported by {report.reporter.name} · {report.createdAt.toLocaleString()}
+        Reported by {report.reporter.name} · {formatDateTime(report.createdAt)}
         {report.otherReportCount > 0 &&
           ` · ${report.otherReportCount} other ${report.otherReportCount === 1 ? "report" : "reports"} on this`}
         {report.href && (

@@ -8,6 +8,7 @@ import { Avatar } from "@/components/Avatar";
 import { GroupIcon } from "@/components/GroupIcon";
 import { showsSingleBadge } from "@/lib/labels";
 import { conversationDisplayName } from "@/lib/conversations";
+import { formatDate } from "@/lib/dates";
 import { stripMentionMarkup } from "@/lib/mentions";
 
 export default async function MessagesPage() {
@@ -110,7 +111,7 @@ export default async function MessagesPage() {
               </div>
               <div className="flex shrink-0 flex-col items-end gap-1.5">
                 <span className="text-xs text-b2b-ink/40">
-                  {row.sortAt.toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                  {formatDate(row.sortAt, { month: "short", day: "numeric" })}
                 </span>
                 {row.unreadCount > 0 && (
                   <span className="flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-b2b-pink px-1.5 text-xs font-medium text-white">

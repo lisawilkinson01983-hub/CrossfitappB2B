@@ -7,6 +7,7 @@ import { NavBar } from "@/components/NavBar";
 import { SectionCard } from "@/components/SectionCard";
 import { UNAFFILIATED } from "@/lib/gyms";
 import { ComposeNoticeForm } from "./ComposeNoticeForm";
+import { formatDate } from "@/lib/dates";
 
 export default async function AdminNoticesPage() {
   const session = await getServerSession(authOptions);
@@ -57,7 +58,7 @@ export default async function AdminNoticesPage() {
                   <div className="flex items-center justify-between">
                     <p className="font-semibold">{n.title}</p>
                     <span className="whitespace-nowrap text-xs text-b2b-ink/40">
-                      {n.createdAt.toLocaleDateString()}
+                      {formatDate(n.createdAt)}
                     </span>
                   </div>
                   <p className="mt-1 text-sm text-b2b-ink/70">{n.body}</p>

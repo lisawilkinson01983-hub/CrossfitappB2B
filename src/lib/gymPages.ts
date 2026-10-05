@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { AFFILIATE_GYMS } from "@/lib/gyms";
+import affiliateGyms from "@/lib/affiliateGyms.json";
 
 // Public details for the fixed listed gyms, gathered from their own site and
 // the official CrossFit affiliate directory — used to seed a new gym page
@@ -7,40 +8,13 @@ import { AFFILIATE_GYMS } from "@/lib/gyms";
 // admin has already edited (see ensureGymPage below), so this is only ever
 // a starting point, not a source of truth kept in sync over time.
 //
-// Logos live under public/gym-logos/ (checked into git, not the uploads
-// volume) since they're fixed app content rather than user uploads.
+// Shared with scripts/backfill-gym-pages.js via affiliateGyms.json. Logos
+// live under public/gym-logos/ (checked into git, not the uploads volume)
+// since they're fixed app content rather than user uploads; a gym without
+// one falls back to the generic gym icon (see Avatar's `fallback`).
 const KNOWN_GYM_INFO: Partial<
   Record<string, { description: string; address: string; website: string; photo?: string }>
-> = {
-  "CrossFit Uckfield": {
-    description:
-      "CrossFit Uckfield operates out of The Paleo Gym, running one classic CrossFit class a day with a constantly varied programme that mixes cardio, gymnastics and weightlifting, coached throughout the session. Alongside general CrossFit classes, they run a Junior Hero Academy for kids and CrossFit Teens, Third Age CrossFit for older athletes, and Quiet Classes for anyone who prefers a smaller, lower-sensory environment, plus modified sessions for anyone recovering from injury or illness and personalised nutrition support.",
-    address: "Crockstead Farm, Eastbourne Road, Halland, East Sussex, BN8 6PT",
-    website: "https://www.thepaleogym.co.uk/",
-    photo: "/gym-logos/crossfit-uckfield.jpg",
-  },
-  "CrossFit Hailsham (FFH)": {
-    description:
-      "CrossFit FFH (Fortior Fit Hailsham) scales every workout to the athlete, whether they're lifting for the first time, managing an injury, or training at a high level. Alongside CrossFit classes, they offer sports massage, personal training and nutritional guidance, with a community that spans teachers, tradespeople, parents, students and retirees training side by side.",
-    address: "16 Diplocks Way, Hailsham, East Sussex, BN27 3JY",
-    website: "https://www.fortiorfithailsham.com/",
-    photo: "/gym-logos/crossfit-hailsham-ffh.png",
-  },
-  "CrossFit Burgess Hill (BYS)": {
-    description:
-      "BYS CrossFit combines mobility and high-intensity training across cardio, gymnastics, powerlifting and Olympic lifting, with dedicated barbell classes focused on the clean & jerk and snatch and gymnastics classes covering everything from pull-ups to handstand walking. It's run as a supportive, inclusive community for all fitness levels.",
-    address: "Unit 6 Sovereign Business Park, Albert Drive, Burgess Hill, RH15 9TY",
-    website: "https://www.bysfitness.co.uk/byscrossfit",
-    photo: "/gym-logos/crossfit-burgess-hill-bys.png",
-  },
-  "CrossFit Haywards Heath": {
-    description:
-      "CrossFit Haywards Heath runs functional fitness classes with a different constantly-varied workout each day, suitable for all ages and abilities. Alongside general CrossFit classes, they offer dedicated Olympic Weightlifting and Powerlifting sessions focused on building confidence and refining technique, plus a supportive class for mums getting back into fitness that welcomes children along too.",
-    address: "Holmsted Farm Business Units, Staplefield Road, Haywards Heath, RH17 5JF",
-    website: "https://www.crossfithaywardsheath.co.uk/",
-    photo: "/gym-logos/crossfit-haywards-heath.jpg",
-  },
-};
+> = Object.fromEntries(affiliateGyms.map(({ name, ...info }) => [name, info]));
 
 /**
  * Gym pages are database-only (no in-app creation form) to avoid

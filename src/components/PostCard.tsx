@@ -21,6 +21,7 @@ import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { ReportButton } from "@/components/ReportButton";
 import { WorkoutDescriptionToggle } from "@/components/WorkoutDescriptionToggle";
 import { formatEventDate } from "@/lib/eventDate";
+import { formatDateTime } from "@/lib/dates";
 
 export type CommentData = {
   id: string;
@@ -519,7 +520,7 @@ export function PostCard({
             </div>
             <p className="truncate text-xs text-b2b-ink/40">
               {headerUser.affiliateGym && `${headerUser.affiliateGym} · `}
-              {(post.sharedBy ? post.sharedBy.sharedAt : post.createdAt).toLocaleString()}
+              {formatDateTime(post.sharedBy ? post.sharedBy.sharedAt : post.createdAt)}
             </p>
           </div>
         </Link>
@@ -613,7 +614,7 @@ export function PostCard({
               />
               <div className="min-w-0 flex-1">
                 <span className="break-words text-sm font-semibold hover:underline">{post.author.name}</span>
-                <p className="truncate text-xs text-b2b-ink/40">{post.createdAt.toLocaleString()}</p>
+                <p className="truncate text-xs text-b2b-ink/40">{formatDateTime(post.createdAt)}</p>
               </div>
             </Link>
             {post.isOwner ? (

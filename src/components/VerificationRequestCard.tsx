@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { formatDate } from "@/lib/dates";
 
 export type VerificationRequestData = {
   id: string;
@@ -43,7 +44,7 @@ export function VerificationRequestCard({ request }: { request: VerificationRequ
         </p>
       )}
       <p className="mt-1 text-xs text-b2b-ink/40">
-        Requested {new Date(request.verificationRequestedAt).toLocaleDateString()}
+        Requested {formatDate(request.verificationRequestedAt)}
       </p>
 
       {error && <p className="mt-2 text-sm text-red-600">{error}</p>}

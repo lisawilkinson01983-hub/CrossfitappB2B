@@ -261,7 +261,7 @@ export function MentionTextarea({
               onClick={() => pickSuggestion(item)}
               className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-b2b-bg"
             >
-              <Avatar photo={item.photo} name={item.name} size={24} />
+              <Avatar photo={item.photo} name={item.name} size={24} fallback={item.kind === "gym" ? "gym" : "initial"} />
               <span className="flex-1 truncate">{item.name}</span>
               {item.kind === "gym" && (
                 <span className="shrink-0 rounded-full bg-b2b-purple/10 px-2 py-0.5 text-xs text-b2b-purple">
