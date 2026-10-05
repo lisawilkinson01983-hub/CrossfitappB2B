@@ -120,12 +120,29 @@ export async function AffiliatesList({
   });
   const countByName = new Map(athleteCounts.map((c) => [c.affiliateGym as string, c._count]));
 
+  // Only worth cluttering the browse list with a gym once someone's actually
+  // representing it — either claimed (a verified owner, see Gym.claimedById)
+  // or at least one AFFILIATE profile has picked it, even unverified. A
+  // seeded or submitted gym nobody's touched yet stays out of this list, but
+  // is still selectable in the signup/profile affiliateGym dropdown and
+  // reachable via an athlete's own "affiliate tag" link to /gyms/[name].
+  // Admins see everything regardless, so a not-yet-represented gym can still
+  // be found and edited.
+  const affiliateProfiles = await prisma.user.findMany({
+    where: { accountType: "AFFILIATE", affiliateGym: { in: gyms.map((g) => g.name) }, deletedAt: null },
+    select: { affiliateGym: true },
+  });
+  const gymNamesWithAffiliate = new Set(affiliateProfiles.map((p) => p.affiliateGym as string));
+  const isRepresented = (gym: (typeof gyms)[number]) =>
+    gym.claimedById !== null || gymNamesWithAffiliate.has(gym.name);
+  const representedGyms = currentUser?.isAdmin ? gyms : gyms.filter(isRepresented);
+
   const myCoords = currentUser
     ? await ensureUserAreaCoords({ id: currentUserId, ...currentUser }, { background: true })
     : null;
 
   const gymsWithDistance = await Promise.all(
-    gyms.map(async (gym) => {
+    representedGyms.map(async (gym) => {
       const coords = myCoords ? await ensureGymCoords(gym) : null;
       const miles = coords && myCoords ? distanceMiles(myCoords, coords) : null;
       return { gym, miles };
