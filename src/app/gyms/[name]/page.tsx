@@ -19,7 +19,7 @@ export default async function GymPage({ params }: { params: Promise<{ name: stri
     prisma.user.findUnique({ where: { id: session.user.id }, select: { isAdmin: true } }),
     prisma.gym.findUnique({
       where: { name: decodeURIComponent(name) },
-      include: { claimedBy: { select: { id: true, name: true, photo: true } } },
+      include: { claimedBy: { select: { photo: true } } },
     }),
   ]);
   if (!gym) notFound();
@@ -28,7 +28,6 @@ export default async function GymPage({ params }: { params: Promise<{ name: stri
   // actually go, and not to the affiliate viewing their own gym's page.
   const owner = gym.bookingEmail ? null : await findVerifiedGymOwner(gym.name);
   const canBook = (gym.bookingEmail != null || owner != null) && owner?.id !== session.user.id;
-  const isOwnGym = gym.claimedBy?.id === session.user.id;
 
   return (
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
@@ -57,21 +56,23 @@ export default async function GymPage({ params }: { params: Promise<{ name: stri
             />
             <h1 className="text-2xl font-bold">{gym.name}</h1>
 
-            {gym.claimedBy && !isOwnGym && (
-              <Link
-                href={`/profile/${gym.claimedBy.id}`}
-                className="text-sm text-b2b-purple underline"
-              >
-                Run by {gym.claimedBy.name} on Box 2 Box
-              </Link>
-            )}
-
             <Link
               href={`/discover?gym=${encodeURIComponent(gym.name)}`}
               className="rounded bg-b2b-pink px-4 py-2 text-sm font-medium text-white hover:bg-b2b-pink-dark"
             >
               Browse athletes at {gym.name}
             </Link>
+
+            {gym.website && (
+              <a
+                href={gym.website}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="rounded bg-b2b-purple px-4 py-2 text-sm font-medium text-white hover:bg-b2b-purple-dark"
+              >
+                🌐 Visit website
+              </a>
+            )}
 
             {canBook &&
               (gym.bookingEmail ? (
@@ -96,29 +97,12 @@ export default async function GymPage({ params }: { params: Promise<{ name: stri
 
           {gym.description && <p className="mt-6 whitespace-pre-wrap text-b2b-ink/80">{gym.description}</p>}
 
-          <dl className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
-            {gym.address && (
-              <div>
-                <dt className="text-xs font-medium uppercase tracking-wide text-b2b-ink/40">Address</dt>
-                <dd className="mt-0.5 text-b2b-ink">{gym.address}</dd>
-              </div>
-            )}
-            {gym.website && (
-              <div>
-                <dt className="text-xs font-medium uppercase tracking-wide text-b2b-ink/40">Website</dt>
-                <dd className="mt-0.5">
-                  <a
-                    href={gym.website}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-b2b-pink underline"
-                  >
-                    {gym.website}
-                  </a>
-                </dd>
-              </div>
-            )}
-          </dl>
+          {gym.address && (
+            <dl className="mt-6">
+              <dt className="text-xs font-medium uppercase tracking-wide text-b2b-ink/40">Address</dt>
+              <dd className="mt-0.5 text-b2b-ink">{gym.address}</dd>
+            </dl>
+          )}
         </SectionCard>
       </div>
     </main>

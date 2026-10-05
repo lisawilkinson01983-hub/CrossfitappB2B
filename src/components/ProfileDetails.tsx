@@ -183,7 +183,7 @@ export async function ProfileDetails({
               href={user.website}
               target="_blank"
               rel="noopener noreferrer"
-              className="rounded border border-b2b-purple/20 px-4 py-1.5 text-sm font-medium text-b2b-purple hover:border-b2b-purple"
+              className="rounded bg-b2b-purple px-4 py-2 text-sm font-medium text-white hover:bg-b2b-purple-dark"
             >
               🌐 Visit website
             </a>
