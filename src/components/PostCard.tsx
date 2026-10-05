@@ -56,6 +56,7 @@ export type PostCardData = {
     affiliateGym: string | null;
     isSingle: boolean | null;
     showSingleBadge: boolean;
+    verified: boolean;
     sharedAt: Date;
     message: string | null;
   } | null;
@@ -83,6 +84,7 @@ export type PostCardData = {
     affiliateGym: string | null;
     isSingle: boolean | null;
     showSingleBadge: boolean;
+    verified: boolean;
   };
   linkedWorkout: {
     wodName: string;
@@ -507,6 +509,7 @@ export function PostCard({
             name={headerUser.name}
             size={40}
             showSingleBadge={showsSingleBadge(headerUser)}
+            verified={headerUser.verified}
           />
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
@@ -611,6 +614,7 @@ export function PostCard({
                 name={post.author.name}
                 size={28}
                 showSingleBadge={showsSingleBadge(post.author)}
+                verified={post.author.verified}
               />
               <div className="min-w-0 flex-1">
                 <span className="break-words text-sm font-semibold hover:underline">{post.author.name}</span>

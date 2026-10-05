@@ -21,6 +21,8 @@ const postContentInclude = {
       isSingle: true,
       showSingleBadge: true,
       allowPostShares: true,
+      accountType: true,
+      verifiedAt: true,
     },
   },
   linkedWorkout: { select: { wodName: true, score: true, unit: true, intensity: true, description: true } },
@@ -51,6 +53,10 @@ export const postCardInclude = {
 export type PostWithCardData = Prisma.PostGetPayload<{ include: typeof postCardInclude }>;
 type PostContentData = Prisma.PostGetPayload<{ include: typeof postContentInclude }>;
 
+function isVerifiedAffiliate(user: { accountType: string; verifiedAt: Date | null }): boolean {
+  return user.accountType === "AFFILIATE" && user.verifiedAt != null;
+}
+
 export function toPostCardData(post: PostWithCardData, currentUserId: string): PostCardData {
   // A share row carries none of its own content — the original (sharedFrom)
   // is what actually renders, including its own likes/comments/share count,
@@ -70,6 +76,7 @@ export function toPostCardData(post: PostWithCardData, currentUserId: string): P
           affiliateGym: post.user.affiliateGym,
           isSingle: post.user.isSingle,
           showSingleBadge: post.user.showSingleBadge,
+          verified: isVerifiedAffiliate(post.user),
           sharedAt: post.createdAt,
           message: post.contentText,
         }
@@ -83,7 +90,16 @@ export function toPostCardData(post: PostWithCardData, currentUserId: string): P
     media: original.media,
     createdAt: original.createdAt,
     isOwner: original.userId === currentUserId,
-    author: { ...original.user, levels: parseLevels(original.user.levels) },
+    author: {
+      id: original.user.id,
+      name: original.user.name,
+      photo: original.user.photo,
+      levels: parseLevels(original.user.levels),
+      affiliateGym: original.user.affiliateGym,
+      isSingle: original.user.isSingle,
+      showSingleBadge: original.user.showSingleBadge,
+      verified: isVerifiedAffiliate(original.user),
+    },
     linkedWorkout: original.linkedWorkout,
     linkedEvent: original.linkedEvent,
     likeCount: original.likes.length,

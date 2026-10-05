@@ -10,11 +10,13 @@ export function ExpandableAvatar({
   name,
   size,
   showSingleBadge,
+  verified,
 }: {
   photo: string | null;
   name: string;
   size: number;
   showSingleBadge?: boolean;
+  verified?: boolean;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -28,7 +30,7 @@ export function ExpandableAvatar({
   }, [open]);
 
   if (!photo) {
-    return <Avatar photo={photo} name={name} size={size} showSingleBadge={showSingleBadge} />;
+    return <Avatar photo={photo} name={name} size={size} showSingleBadge={showSingleBadge} verified={verified} />;
   }
 
   return (
@@ -39,7 +41,7 @@ export function ExpandableAvatar({
         aria-label={`View ${name}'s photo`}
         className="cursor-pointer rounded-full"
       >
-        <Avatar photo={photo} name={name} size={size} showSingleBadge={showSingleBadge} />
+        <Avatar photo={photo} name={name} size={size} showSingleBadge={showSingleBadge} verified={verified} />
       </button>
 
       {open && (

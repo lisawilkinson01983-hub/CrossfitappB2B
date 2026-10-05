@@ -149,16 +149,17 @@ export async function ProfileDetails({
     <div className="flex flex-col gap-6">
       <SectionCard>
         <div className="flex flex-col items-center gap-3 text-center">
-          <ExpandableAvatar photo={user.photo} name={user.name} size={112} showSingleBadge={showSingleBadge} />
+          <ExpandableAvatar
+            photo={user.photo}
+            name={user.name}
+            size={112}
+            showSingleBadge={showSingleBadge}
+            verified={isAffiliate && user.verifiedAt != null}
+          />
 
           <div>
             <p className="text-xl font-semibold">
               {user.name}
-              {isAffiliate && user.verifiedAt && (
-                <span className="ml-2 align-middle text-sm font-normal text-b2b-pink" title="Verified affiliate">
-                  ✓ Verified
-                </span>
-              )}
               {user.isPrivate && (
                 <span className="ml-2 align-middle text-sm font-normal text-b2b-ink/50">🔒 Private</span>
               )}

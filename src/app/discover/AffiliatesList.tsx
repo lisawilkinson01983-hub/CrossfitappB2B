@@ -245,7 +245,13 @@ export async function AffiliatesList({
                 className="flex items-center gap-3 rounded-xl border border-b2b-purple/10 bg-b2b-card p-4 hover:border-b2b-pink"
               >
                 <Link href={`/gyms/${encodeURIComponent(gym.name)}`} className="flex flex-1 items-center gap-3">
-                  <Avatar fallback="gym" photo={gym.claimedBy?.photo ?? gym.photo} name={gym.name} size={48} />
+                  <Avatar
+                    fallback="gym"
+                    photo={gym.claimedBy?.photo ?? gym.photo}
+                    name={gym.name}
+                    size={48}
+                    verified={Boolean(gym.claimedBy)}
+                  />
                   <div className="flex-1">
                     <p className="font-medium">{gym.name}</p>
                     {gym.address && (
