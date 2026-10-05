@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Avatar } from "@/components/Avatar";
 import { MENTION_PATTERN } from "@/lib/mentions";
+import { autoGrowTextarea } from "@/lib/autoGrowTextarea";
 
 type UserSuggestion = { kind: "user"; id: string; name: string; photo: string | null };
 type GymSuggestion = { kind: "gym"; id: string; name: string; photo: string | null };
@@ -140,6 +141,13 @@ export function MentionTextarea({
     setSpans(next.spans);
     lastEmittedRaw.current = value;
   }, [value]);
+
+  // Grows the box to fit what's typed instead of leaving it a fixed number
+  // of rows with its own internal scrollbar — covers both typing and a
+  // value set from outside (e.g. loading existing text into an edit box).
+  useEffect(() => {
+    autoGrowTextarea(textareaRef.current);
+  }, [display]);
 
   function emit(newDisplay: string, newSpans: MentionSpan[]) {
     setDisplay(newDisplay);

@@ -5,6 +5,8 @@ import { prisma } from "@/lib/prisma";
 import { eventNoticeSchema } from "@/lib/validation";
 import { parseTeammateRequests } from "@/lib/labels";
 import { teammateCriteriaMatch } from "@/lib/teammateMatch";
+import { PhotoUploadError, savePhotoUpload } from "@/lib/uploads";
+import { parseFormData } from "@/lib/http";
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
@@ -19,13 +21,50 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  const body = await req.json().catch(() => null);
-  const parsed = eventNoticeSchema.safeParse(body);
+  const formData = await parseFormData(req);
+  if (!formData) {
+    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+  }
+
+  // teammateRequests is an array of objects, so it travels as a JSON string
+  // field rather than natively through FormData.
+  const rawTeammateRequests = formData.get("teammateRequests");
+  let teammateRequests: unknown;
+  if (typeof rawTeammateRequests === "string" && rawTeammateRequests) {
+    try {
+      teammateRequests = JSON.parse(rawTeammateRequests);
+    } catch {
+      return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+    }
+  }
+
+  const parsed = eventNoticeSchema.safeParse({
+    text: formData.get("text"),
+    teammateRequests,
+    postToFeed: formData.get("postToFeed") === "on" || formData.get("postToFeed") === "true",
+  });
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
   }
 
   const hasTeammateRequests = !!parsed.data.teammateRequests && parsed.data.teammateRequests.length > 0;
+
+  const photoFile = formData.get("photo");
+  let photoPath: string | null = null;
+  if (photoFile instanceof File && photoFile.size > 0) {
+    try {
+      photoPath = await savePhotoUpload(photoFile, session.user.id);
+    } catch (err) {
+      if (err instanceof PhotoUploadError) {
+        return NextResponse.json({ error: err.message }, { status: 400 });
+      }
+      throw err;
+    }
+  }
+
+  if (!parsed.data.text && !hasTeammateRequests && !photoPath) {
+    return NextResponse.json({ error: "Add at least one athlete request, a photo, or write a notice" }, { status: 400 });
+  }
 
   const notice = await prisma.eventNotice.create({
     data: {
@@ -33,6 +72,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       userId: session.user.id,
       text: parsed.data.text ?? null,
       teammateRequests: hasTeammateRequests ? JSON.stringify(parsed.data.teammateRequests) : null,
+      photo: photoPath,
     },
     include: { user: { select: { id: true, name: true, photo: true } } },
   });
@@ -81,6 +121,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     notice: {
       id: notice.id,
       text: notice.text,
+      photo: notice.photo,
       teammateRequests: parseTeammateRequests(notice.teammateRequests),
       createdAt: notice.createdAt,
       author: notice.user,

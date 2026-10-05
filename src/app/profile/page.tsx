@@ -13,7 +13,36 @@ import { IncomingFollowRequests } from "@/components/IncomingFollowRequests";
 import { GymUpdateNudge } from "@/components/GymUpdateNudge";
 import { OTHER_GYM } from "@/lib/gyms";
 import { formatEventDate } from "@/lib/eventDate";
+import { isCompetitionEvent } from "@/lib/labels";
 import type { Prisma } from "@prisma/client";
+
+type EventRowData = {
+  id: string;
+  photo: string | null;
+  name: string;
+  date: Date;
+  endDate: Date | null;
+  isOnline: boolean;
+  location: string | null;
+};
+
+function EventRow({ event }: { event: EventRowData }) {
+  return (
+    <div className="flex items-center gap-3 rounded-lg border border-b2b-purple/10 bg-b2b-bg p-3">
+      <Avatar photo={event.photo} name={event.name} size={40} />
+      <div>
+        <p className="font-medium">
+          <Link href={`/events/${event.id}`} className="hover:underline">
+            {event.name}
+          </Link>
+        </p>
+        <p className="text-sm text-b2b-ink/50">
+          {formatEventDate(event)} · {event.isOnline ? "Online" : event.location}
+        </p>
+      </div>
+    </div>
+  );
+}
 
 export default async function ProfilePage() {
   const session = await getServerSession(authOptions);
@@ -35,7 +64,7 @@ export default async function ProfilePage() {
     { endDate: { gte: now } },
   ];
 
-  const [recentWorkouts, followerCount, followingCount, incomingRequests, competingIn, interestedIn] =
+  const [recentWorkouts, followerCount, followingCount, incomingRequests, participatingIn, interestedIn] =
     await Promise.all([
       prisma.workout.findMany({
         where: { userId: user.id },
@@ -58,6 +87,12 @@ export default async function ProfilePage() {
       }),
     ]);
   console.log(`/profile: data fetch took ${Date.now() - fetchStart}ms`);
+
+  // A private non-competition event isn't a competition — split it out into
+  // its own "Attending" section rather than "Competing in" (see the matching
+  // split on the event page/participants page).
+  const competingIn = participatingIn.filter((e) => !(e.isPrivate && !isCompetitionEvent(e)));
+  const attending = participatingIn.filter((e) => e.isPrivate && !isCompetitionEvent(e));
 
   let suggestedGym: string | undefined;
   if (user.affiliateGym === OTHER_GYM && user.affiliateGymOther) {
@@ -102,7 +137,7 @@ export default async function ProfilePage() {
           </SectionCard>
         )}
 
-        {competingIn.length === 0 && interestedIn.length === 0 && (
+        {competingIn.length === 0 && attending.length === 0 && interestedIn.length === 0 && (
           <SectionCard
             title="Events"
             action={
@@ -126,22 +161,24 @@ export default async function ProfilePage() {
           >
             <div className="flex flex-col gap-3">
               {competingIn.map((event) => (
-                <div
-                  key={event.id}
-                  className="flex items-center gap-3 rounded-lg border border-b2b-purple/10 bg-b2b-bg p-3"
-                >
-                  <Avatar photo={event.photo} name={event.name} size={40} />
-                  <div>
-                    <p className="font-medium">
-                      <Link href={`/events/${event.id}`} className="hover:underline">
-                        {event.name}
-                      </Link>
-                    </p>
-                    <p className="text-sm text-b2b-ink/50">
-                      {formatEventDate(event)} · {event.isOnline ? "Online" : event.location}
-                    </p>
-                  </div>
-                </div>
+                <EventRow key={event.id} event={event} />
+              ))}
+            </div>
+          </SectionCard>
+        )}
+
+        {attending.length > 0 && (
+          <SectionCard
+            title="Attending"
+            action={
+              <Link href="/discover?view=events" className="text-sm text-b2b-pink underline">
+                Browse events
+              </Link>
+            }
+          >
+            <div className="flex flex-col gap-3">
+              {attending.map((event) => (
+                <EventRow key={event.id} event={event} />
               ))}
             </div>
           </SectionCard>
@@ -158,22 +195,7 @@ export default async function ProfilePage() {
           >
             <div className="flex flex-col gap-3">
               {interestedIn.map((event) => (
-                <div
-                  key={event.id}
-                  className="flex items-center gap-3 rounded-lg border border-b2b-purple/10 bg-b2b-bg p-3"
-                >
-                  <Avatar photo={event.photo} name={event.name} size={40} />
-                  <div>
-                    <p className="font-medium">
-                      <Link href={`/events/${event.id}`} className="hover:underline">
-                        {event.name}
-                      </Link>
-                    </p>
-                    <p className="text-sm text-b2b-ink/50">
-                      {formatEventDate(event)} · {event.isOnline ? "Online" : event.location}
-                    </p>
-                  </div>
-                </div>
+                <EventRow key={event.id} event={event} />
               ))}
             </div>
           </SectionCard>

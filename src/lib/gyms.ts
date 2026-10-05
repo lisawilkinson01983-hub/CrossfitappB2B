@@ -5,7 +5,6 @@
 // these — this list is no longer the source of truth for that dropdown.
 export const AFFILIATE_GYMS = [
   "CrossFit Uckfield",
-  "CrossFit Crowborough",
   "CrossFit Hailsham (FFH)",
   "CrossFit Burgess Hill (BYS)",
   "CrossFit Haywards Heath",

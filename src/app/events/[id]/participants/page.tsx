@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { NavBar } from "@/components/NavBar";
 import { SectionCard } from "@/components/SectionCard";
 import { Avatar } from "@/components/Avatar";
-import { showsSingleBadge } from "@/lib/labels";
+import { showsSingleBadge, isCompetitionEvent } from "@/lib/labels";
 import { assertEventVisible } from "@/lib/eventVisibility";
 
 export default async function EventParticipantsPage({ params }: { params: Promise<{ id: string }> }) {
@@ -29,6 +29,11 @@ export default async function EventParticipantsPage({ params }: { params: Promis
   if (!event) notFound();
   if (!(await assertEventVisible(event, session.user.id))) notFound();
 
+  // A private non-competition event's participants are just people going,
+  // not competing — "athletes" reads oddly there, so it's "attendees" instead.
+  const isPrivateSocial = event.isPrivate && !isCompetitionEvent(event);
+  const noun = isPrivateSocial ? "attendee" : "athlete";
+
   return (
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
       <NavBar />
@@ -39,7 +44,7 @@ export default async function EventParticipantsPage({ params }: { params: Promis
 
       <div className="mt-4">
         <SectionCard
-          title={`${event.participants.length} ${event.participants.length === 1 ? "athlete" : "athletes"} participating`}
+          title={`${event.participants.length} ${event.participants.length === 1 ? noun : `${noun}s`} participating`}
         >
           {event.participants.length === 0 ? (
             <p className="text-b2b-ink/40">No one's joined yet — be the first!</p>

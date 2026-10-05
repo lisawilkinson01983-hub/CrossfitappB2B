@@ -25,13 +25,13 @@ export async function PATCH(req: Request) {
     name: formData.get("name"),
     accountType: formData.get("accountType"),
     bio: formData.get("bio"),
-    age: formData.get("age"),
+    dateOfBirth: formData.get("dateOfBirth"),
     gender: formData.get("gender"),
     area: formData.get("area"),
     country: formData.get("country"),
     affiliateGym: formData.get("affiliateGym"),
     affiliateGymOther: formData.get("affiliateGymOther"),
-    level: formData.get("level"),
+    levels: formData.getAll("levels"),
     crossfitSinceYear: formData.get("crossfitSinceYear"),
     crossfitSinceMonth: formData.get("crossfitSinceMonth"),
     lookingFor: formData.getAll("lookingFor"),
@@ -64,7 +64,7 @@ export async function PATCH(req: Request) {
   const photo = formData.get("photo");
   if (photo instanceof File && photo.size > 0) {
     try {
-      photoPath = await savePhotoUpload(photo, session.user.id);
+      photoPath = await savePhotoUpload(photo, session.user.id, { square: true });
     } catch (err) {
       if (err instanceof PhotoUploadError) {
         return NextResponse.json({ error: err.message }, { status: 400 });
@@ -85,7 +85,7 @@ export async function PATCH(req: Request) {
       areaLat: true,
       areaLng: true,
       affiliateGym: true,
-      level: true,
+      levels: true,
       lookingFor: true,
       verificationRequestedAt: true,
       verifiedAt: true,
@@ -126,14 +126,14 @@ export async function PATCH(req: Request) {
       name: data.name,
       accountType: data.accountType,
       bio: data.bio ?? null,
-      age: data.age ?? null,
+      dateOfBirth: data.dateOfBirth ?? null,
       gender: data.gender ?? null,
       area: data.area,
       country: data.country ?? null,
       ...areaCoords,
       affiliateGym: data.affiliateGym,
       affiliateGymOther: data.affiliateGym === OTHER_GYM ? data.affiliateGymOther : null,
-      level: data.level ?? null,
+      levels: JSON.stringify(data.levels ?? []),
       ...verificationFields,
       crossfitSinceYear: data.crossfitSinceYear ?? null,
       crossfitSinceMonth: data.crossfitSinceMonth ?? null,

@@ -39,9 +39,25 @@ export function EventNoticesPanel({ eventId }: { eventId: string }) {
   const [rows, setRows] = useState<TeammateRow[]>([{ id: 0, quantity: "1", gender: "ANY", division: "ANY" }]);
   const [detail, setDetail] = useState("");
   const [postToFeed, setPostToFeed] = useState(false);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const photoInputRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [posted, setPosted] = useState(false);
+
+  function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0] ?? null;
+    setPhotoFile(file);
+    setPhotoPreview(file ? URL.createObjectURL(file) : null);
+    e.target.value = "";
+  }
+
+  function clearPhoto() {
+    if (photoPreview) URL.revokeObjectURL(photoPreview);
+    setPhotoFile(null);
+    setPhotoPreview(null);
+  }
 
   function addRow() {
     setRows((prev) => [...prev, { id: nextRowId.current++, quantity: "1", gender: "ANY", division: "ANY" }]);
@@ -69,19 +85,22 @@ export function EventNoticesPanel({ eventId }: { eventId: string }) {
     setError(null);
     setSubmitting(true);
 
-    const res = await fetch(`/api/events/${eventId}/notices`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        teammateRequests: rows.map((row) => ({
+    const formData = new FormData();
+    formData.set(
+      "teammateRequests",
+      JSON.stringify(
+        rows.map((row) => ({
           quantity: clampQuantity(row.quantity),
           gender: row.gender,
           division: row.division,
-        })),
-        text: detail,
-        postToFeed,
-      }),
-    });
+        }))
+      )
+    );
+    formData.set("text", detail);
+    if (postToFeed) formData.set("postToFeed", "on");
+    if (photoFile) formData.set("photo", photoFile);
+
+    const res = await fetch(`/api/events/${eventId}/notices`, { method: "POST", body: formData });
     setSubmitting(false);
     if (!res.ok) {
       const resBody = await res.json().catch(() => ({}));
@@ -92,6 +111,7 @@ export function EventNoticesPanel({ eventId }: { eventId: string }) {
     setRows([{ id: nextRowId.current++, quantity: "1", gender: "ANY", division: "ANY" }]);
     setDetail("");
     setPostToFeed(false);
+    clearPhoto();
     setPosted(true);
     router.refresh();
   }
@@ -209,6 +229,42 @@ export function EventNoticesPanel({ eventId }: { eventId: string }) {
               value={detail}
               onChange={(e) => setDetail(e.target.value)}
               className="mt-1 w-full rounded border border-gray-300 px-3 py-2 focus:border-b2b-pink focus:outline-none"
+            />
+          </div>
+
+          <div>
+            <span className="block text-xs font-medium text-b2b-ink/60">Attach a photo (optional)</span>
+            <p className="mt-0.5 text-xs text-b2b-ink/50">
+              E.g. a poster of the released competition workouts.
+            </p>
+            {photoPreview ? (
+              <div className="relative mt-2 inline-block">
+                {/* eslint-disable-next-line @next/next/no-img-element -- a transient local object URL, not a served photo */}
+                <img src={photoPreview} alt="Attachment preview" className="h-24 rounded object-cover" />
+                <button
+                  type="button"
+                  onClick={clearPhoto}
+                  aria-label="Remove photo"
+                  className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-b2b-ink/70 text-sm text-white hover:bg-b2b-ink"
+                >
+                  ×
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => photoInputRef.current?.click()}
+                className="mt-2 rounded border border-gray-300 px-3 py-1.5 text-sm hover:bg-b2b-bg"
+              >
+                📷 Add photo
+              </button>
+            )}
+            <input
+              ref={photoInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              onChange={handlePhotoChange}
+              className="hidden"
             />
           </div>
 

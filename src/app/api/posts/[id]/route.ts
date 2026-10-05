@@ -23,7 +23,17 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
   }
 
-  if (!parsed.data.contentText && !post.photo && !post.video && !post.linkedWorkoutId && !post.linkedEventId) {
+  // A share row's "content" is the original post it points to — a bare
+  // reshare with no caption is still meaningful, so it's exempt from the
+  // empty-post check below.
+  if (
+    !post.sharedFromId &&
+    !parsed.data.contentText &&
+    !post.photo &&
+    !post.video &&
+    !post.linkedWorkoutId &&
+    !post.linkedEventId
+  ) {
     return NextResponse.json({ error: "Post can't be empty" }, { status: 400 });
   }
 

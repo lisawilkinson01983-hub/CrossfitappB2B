@@ -32,6 +32,15 @@ enum LookingFor {
   DEEPER_CONNECTION
 }
 
+// A short self-reported "how I'm doing" status shown in the feed's status
+// bar (see StatusReaction, User.status) — persists until the person changes
+// or clears it, not a 24h story.
+enum UserStatus {
+  INJURED
+  FIGHTING_FIT
+  ADAPTING
+}
+
 enum WorkoutUnit {
   TIME
   REPS
@@ -86,6 +95,19 @@ enum NotificationType {
   SYSTEM_ANNOUNCEMENT
   // Invited to a private event (see EventInvite) — eventId below has the event.
   EVENT_INVITE
+  // Someone started following this user (immediately, for a public profile —
+  // a private profile's pending request is a separate flow, not notified here).
+  FOLLOW
+  // Someone shared this user's post to their own feed (see Post.sharedFromId).
+  POST_SHARE
+  // Someone reacted to this user's current status (see StatusReaction).
+  STATUS_REACTION
+  // Someone marked themselves as participating in this user's private event
+  // — eventId below has the event. Sent to the organizer only (see
+  // /api/events/[id]/participate); public events don't send this, since
+  // there's no single organizer watching every join the way there is for a
+  // small private one.
+  EVENT_PARTICIPANT_JOINED
 }
 
 enum EventStatus {
@@ -138,8 +160,11 @@ model User {
 
   photo  String? // served path, e.g. "/media/xyz.jpg" (see src/lib/uploads.ts)
   bio    String?
-  age    Int?
-  gender Gender?
+  // Stored as a date of birth (not a static age) so a displayed age stays
+  // correct after a birthday without anyone having to go edit it — see
+  // src/lib/age.ts for deriving the actual age from this.
+  dateOfBirth DateTime?
+  gender      Gender?
 
   // Grants access to /events/review (approve/reject user-submitted events).
   // No broader role system — this is the only admin-gated capability so far.
@@ -232,7 +257,14 @@ model User {
   // for reference so it can be added to the official list later. Never
   // searched/filtered on.
   affiliateGymOther String?
-  level             Level?
+  // Deprecated — superseded by `levels` below (an athlete can now hold up to
+  // 2 ability levels, e.g. Scaled and Intermediate, to find teams across
+  // both). Kept rather than dropped so scripts/backfill-levels.js has
+  // something to migrate from; never read or written to elsewhere.
+  level Level?
+  // JSON-encoded array of Level values (see src/lib/validation.ts's LEVELS),
+  // max 2 — same JSON-string-array pattern as lookingFor below.
+  levels String?
 
   // An AFFILIATE account can ask, from the bottom of the profile-setup form,
   // to be confirmed as the legitimate owner/manager of the gym named in
@@ -266,6 +298,17 @@ model User {
   // Governs whether new followers require approval once a follow system
   // exists; stored now so the setting has somewhere to live.
   isPrivate Boolean @default(false)
+
+  // Current "how I'm doing" status shown at the top of the feed — null means
+  // no status set. statusUpdatedAt orders the feed's status bar by recency
+  // and doubles as "when the current status started", so reactions reset
+  // (see /api/status) whenever it changes.
+  status          UserStatus?
+  statusUpdatedAt DateTime?
+
+  // Opt-out for other people sharing this user's posts to their own feed
+  // (see Post.sharedFromId / /api/posts/[id]/share) — defaulted on.
+  allowPostShares Boolean @default(true)
 
   // Benchmark movement PBs (kg). Stored as individual nullable columns rather
   // than a JSON blob since SQLite has no native JSON column type. A user can
@@ -336,12 +379,16 @@ model User {
   eventTeammateAlerts  EventTeammateAlert[]
   eventInvitesReceived EventInvite[] @relation("EventInvitesReceived")
   eventInvitesSent     EventInvite[] @relation("EventInvitesSent")
+  eventWorkoutPhotos   EventWorkoutPhoto[]
 
   blocksMade     Block[] @relation("BlocksMade")
   blocksReceived Block[] @relation("BlocksReceived")
 
   mutesMade     Mute[] @relation("MutesMade")
   mutesReceived Mute[] @relation("MutesReceived")
+
+  statusReactionsReceived StatusReaction[] @relation("StatusReactionsReceived")
+  statusReactionsGiven    StatusReaction[] @relation("StatusReactionsGiven")
 
   notificationsReceived Notification[] @relation("NotificationRecipient")
   notificationsSent     Notification[] @relation("NotificationActor")
@@ -450,12 +497,23 @@ model Post {
   linkedEventId String?
   linkedEvent   Event?  @relation(fields: [linkedEventId], references: [id], onDelete: Cascade)
 
+  // Set when this post is a share/reshare of another post to the sharer's
+  // own feed (see /api/posts/[id]/share) — a share row carries none of its
+  // own content (contentText/media/etc. stay null); PostCard reads the
+  // original's content through this relation instead. Always points at a
+  // true original, never at another share, so resharing a share re-points
+  // here at that share's own sharedFromId rather than chaining.
+  sharedFromId String?
+  sharedFrom   Post?   @relation("PostShares", fields: [sharedFromId], references: [id], onDelete: Cascade)
+  shares       Post[]  @relation("PostShares")
+
   createdAt DateTime @default(now())
 
   likes         Like[]
   comments      Comment[]
   notifications Notification[]
 
+  @@unique([userId, sharedFromId])
   @@index([userId])
   @@index([createdAt])
 }
@@ -525,6 +583,27 @@ model CommentLike {
 
   @@unique([userId, commentId])
   @@index([commentId])
+}
+
+// Someone reacting to another user's current status (see User.status) —
+// scoped to whatever status is active right now: /api/status clears every
+// row here for a user the moment they change or clear their own status, so
+// a reaction always reflects the status it was given on.
+model StatusReaction {
+  id String @id @default(cuid())
+
+  // Whose status this reaction is on.
+  userId String
+  user   User   @relation("StatusReactionsReceived", fields: [userId], references: [id], onDelete: Cascade)
+
+  // Who reacted.
+  reactorId String
+  reactor   User   @relation("StatusReactionsGiven", fields: [reactorId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, reactorId])
+  @@index([userId])
 }
 
 model Follow {
@@ -709,6 +788,7 @@ model Event {
   notifications  Notification[]
   teammateAlerts EventTeammateAlert[]
   invites        EventInvite[]
+  workoutPhotos  EventWorkoutPhoto[]
 
   @@index([date])
 }
@@ -796,6 +876,11 @@ model EventNotice {
   // teammateRequests.
   text String?
 
+  // An optional attached image — e.g. the organizer sharing a poster of the
+  // released competition workouts. Served path (see src/lib/uploads.ts),
+  // same as every other photo field.
+  photo String?
+
   // JSON-encoded array of teammate requests posted together for this event,
   // e.g. [{"quantity":1,"gender":"MALE","division":"RX"},{"quantity":1,"gender":"FEMALE","division":"RX"}]
   // — multiple athletes needed for the same event stay one feed post rather
@@ -811,6 +896,25 @@ model EventNotice {
 
   likes    EventNoticeLike[]
   comments EventNoticeComment[]
+
+  @@index([eventId])
+}
+
+// A photo in an event's "Workouts" carousel (see its own page section) —
+// e.g. a poster of the released competition workouts. Deliberately separate
+// from EventNotice: this is the event's own curated gallery, not a chat
+// message, so it's added/removed by the organizer rather than appearing in
+// the Notice Board feed.
+model EventWorkoutPhoto {
+  id      String @id @default(cuid())
+  eventId String
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  userId  String
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  photo String // served path (see src/lib/uploads.ts)
+
+  createdAt DateTime @default(now())
 
   @@index([eventId])
 }

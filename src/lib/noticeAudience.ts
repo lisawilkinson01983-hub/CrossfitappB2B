@@ -2,6 +2,7 @@ import type { Prisma } from "@prisma/client";
 import type { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { distanceMiles, ensureUserAreaCoords, geocode } from "@/lib/geocode";
+import { ageRangeToDateOfBirthRange } from "@/lib/age";
 import type { noticeAudienceSchema } from "@/lib/validation";
 
 type Audience = z.infer<typeof noticeAudienceSchema>;
@@ -21,11 +22,14 @@ export async function resolveAudienceUserIds(audience: Audience, excludeUserId: 
     suspendedAt: null,
     ...(excludeUserId ? { id: { not: excludeUserId } } : {}),
     ...(audience.gender ? { gender: audience.gender } : {}),
-    ...(audience.level ? { level: audience.level } : {}),
+    // levels is a JSON-encoded array (see prisma/schema.prisma) — none of
+    // SCALED/INTERMEDIATE/RX is a substring of another, so a plain "contains"
+    // on the raw string safely means "has this level among theirs".
+    ...(audience.level ? { levels: { contains: audience.level } } : {}),
     ...(audience.affiliateGym ? { affiliateGym: audience.affiliateGym } : {}),
     ...(audience.country ? { country: audience.country } : {}),
     ...(audience.minAge !== undefined || audience.maxAge !== undefined
-      ? { age: { gte: audience.minAge, lte: audience.maxAge } }
+      ? { dateOfBirth: ageRangeToDateOfBirthRange(audience.minAge, audience.maxAge) }
       : {}),
   };
 

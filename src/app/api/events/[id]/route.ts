@@ -89,3 +89,26 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
   return NextResponse.json({ ok: true });
 }
+
+/** Admin-only — permanently removes the event. Cascades to its participants, interests, pins, notices, workout photos, invites, and teammate alerts (see prisma/schema.prisma). */
+export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+  }
+
+  const me = await prisma.user.findUnique({ where: { id: session.user.id }, select: { isAdmin: true } });
+  if (!me?.isAdmin) {
+    return NextResponse.json({ error: "Not authorized" }, { status: 403 });
+  }
+
+  const { id } = await params;
+  const existing = await prisma.event.findUnique({ where: { id }, select: { id: true } });
+  if (!existing) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  await prisma.event.delete({ where: { id } });
+
+  return NextResponse.json({ ok: true });
+}

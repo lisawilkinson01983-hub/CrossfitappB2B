@@ -38,14 +38,14 @@ export default async function EventNoticesPage({ params }: { params: Promise<{ i
 
   const participantIds = new Set(event.participants.map((p) => p.userId));
 
-  // The composer/filter for "looking for teammates" searches lives on the
-  // main event page, but every notice — search or free text — also shows up
-  // here on the shared notice board, with the same likes/comments/replies
-  // as the main feed.
+  // Every notice — a teammate search posted from the separate "Find a
+  // teammate" page, or free text from the composer below — shows up
+  // together here on the shared notice board.
   const chatEntries: EventNoticeEntry[] = event.notices.map((notice) => ({
     notice: {
       id: notice.id,
       text: notice.text,
+      photo: notice.photo,
       teammateRequests: parseTeammateRequests(notice.teammateRequests),
       createdAt: notice.createdAt,
       author: notice.user,

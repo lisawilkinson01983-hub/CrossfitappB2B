@@ -41,7 +41,29 @@ export type PostMediaItem = {
 };
 
 export type PostCardData = {
+  // Always the ORIGINAL post's id when this is a share — likes/comments/
+  // edit/delete all act on it, exactly as if it weren't shared at all.
   id: string;
+  // This feed entry's own row id — the share row's id when it's a share,
+  // otherwise the same as `id`. Only used as the list key and to unshare.
+  feedItemId: string;
+  // Set when this entry is someone's reshare of the original post below.
+  sharedBy: {
+    id: string;
+    name: string;
+    photo: string | null;
+    levels: LevelOption[];
+    affiliateGym: string | null;
+    isSingle: boolean | null;
+    showSingleBadge: boolean;
+    sharedAt: Date;
+    message: string | null;
+  } | null;
+  shareCount: number;
+  sharedByMe: boolean;
+  // False once the original author has turned off post sharing — hides the
+  // Share button for anyone who hasn't already shared it.
+  canShare: boolean;
   type: "WORKOUT" | "PR" | "UPDATE" | "TEAMMATE_REQUEST";
   contentText: string | null;
   teammateRequests: TeammateRequest[];
@@ -57,7 +79,7 @@ export type PostCardData = {
     id: string;
     name: string;
     photo: string | null;
-    level: LevelOption | null;
+    levels: LevelOption[];
     affiliateGym: string | null;
     isSingle: boolean | null;
     showSingleBadge: boolean;
@@ -100,10 +122,24 @@ export function PostCard({
   const router = useRouter();
   const isPb = post.type === "PR";
   const containerRef = useRef<HTMLDivElement>(null);
+  // The card's main header shows whoever shared it (like an ordinary post
+  // from them), falling back to the original author when it isn't a share.
+  const headerUser = post.sharedBy ?? post.author;
 
   const [liked, setLiked] = useState(post.likedByMe);
   const [likeCount, setLikeCount] = useState(post.likeCount);
   const [likeBusy, setLikeBusy] = useState(false);
+
+  const [shared, setShared] = useState(post.sharedByMe);
+  const [shareCount, setShareCount] = useState(post.shareCount);
+  const [shareBusy, setShareBusy] = useState(false);
+  const [unsharing, setUnsharing] = useState(false);
+  const [composingShare, setComposingShare] = useState(false);
+  const [shareMessageDraft, setShareMessageDraft] = useState("");
+  const [shareMessage, setShareMessage] = useState(post.sharedBy?.message ?? null);
+  const [editingShareMessage, setEditingShareMessage] = useState(false);
+  const [editShareMessageText, setEditShareMessageText] = useState("");
+  const [shareMessageSaving, setShareMessageSaving] = useState(false);
 
   const [showComments, setShowComments] = useState(false);
   const [flashCommentId, setFlashCommentId] = useState<string | null>(null);
@@ -121,6 +157,7 @@ export function PostCard({
 
   const [deleting, setDeleting] = useState(false);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [confirmUnshareOpen, setConfirmUnshareOpen] = useState(false);
   const [editingPost, setEditingPost] = useState(false);
   const [editPostText, setEditPostText] = useState(post.contentText ?? "");
   const [contentText, setContentText] = useState(post.contentText);
@@ -160,6 +197,70 @@ export function PostCard({
       setLiked(body.liked);
       setLikeCount(body.count);
     }
+  }
+
+  function openShareComposer() {
+    setShareMessageDraft("");
+    setComposingShare(true);
+  }
+
+  async function submitShare() {
+    if (shareBusy) return;
+    setShareBusy(true);
+    const res = await fetch(`/api/posts/${post.id}/share`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: shareMessageDraft }),
+    });
+    setShareBusy(false);
+    if (res.ok) {
+      const body = await res.json();
+      setShared(body.shared);
+      setShareCount(body.count);
+      setShareMessage(shareMessageDraft.trim() || null);
+      setComposingShare(false);
+      router.refresh();
+    }
+  }
+
+  async function unshareNow() {
+    if (shareBusy) return;
+    setShareBusy(true);
+    const res = await fetch(`/api/posts/${post.id}/share`, { method: "POST" });
+    setShareBusy(false);
+    if (res.ok) {
+      const body = await res.json();
+      setShared(body.shared);
+      setShareCount(body.count);
+      router.refresh();
+    }
+  }
+
+  function startEditShareMessage() {
+    setEditShareMessageText(shareMessage ?? "");
+    setEditingShareMessage(true);
+  }
+
+  async function submitEditShareMessage() {
+    setShareMessageSaving(true);
+    const res = await fetch(`/api/posts/${post.feedItemId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ contentText: editShareMessageText }),
+    });
+    setShareMessageSaving(false);
+    if (res.ok) {
+      setShareMessage(editShareMessageText.trim() ? editShareMessageText : null);
+      setEditingShareMessage(false);
+    }
+  }
+
+  async function confirmUnshare() {
+    setUnsharing(true);
+    const res = await fetch(`/api/posts/${post.feedItemId}`, { method: "DELETE" });
+    setUnsharing(false);
+    setConfirmUnshareOpen(false);
+    if (res.ok) router.refresh();
   }
 
   async function toggleCommentLike(commentId: string) {
@@ -384,7 +485,7 @@ export function PostCard({
       )}
       <div
         ref={containerRef}
-        id={`post-${post.id}`}
+        id={`post-${post.feedItemId}`}
         className={`rounded-xl border bg-b2b-card p-4 ${
           isPb
             ? "border-yellow-400 shadow-[0_0_0_1px_rgba(240,192,32,0.35),0_8px_20px_-12px_rgba(240,192,32,0.6)]"
@@ -395,33 +496,50 @@ export function PostCard({
             : ""
         }`}
       >
+      {/* A shared post looks like an ordinary post from whoever shared it —
+          their photo/name up top, their message as the body — with the
+          original embedded below in its own mini card, same as Facebook's
+          share style rather than Twitter's retweet-banner style. */}
       <div className="flex items-start justify-between gap-3">
-        <Link href={`/profile/${post.author.id}`} className="flex min-w-0 flex-1 items-center gap-3">
+        <Link href={`/profile/${headerUser.id}`} className="flex min-w-0 flex-1 items-center gap-3">
           <Avatar
-            photo={post.author.photo}
-            name={post.author.name}
+            photo={headerUser.photo}
+            name={headerUser.name}
             size={40}
-            showSingleBadge={showsSingleBadge(post.author)}
+            showSingleBadge={showsSingleBadge(headerUser)}
           />
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-              <span className="break-words font-semibold hover:underline">{post.author.name}</span>
-              {post.author.level && (
-                <span
-                  className={`shrink-0 rounded-full px-2 py-0.5 text-xs ${LEVEL_BADGE_CLASSES[post.author.level]}`}
-                >
-                  {LEVEL_LABELS[post.author.level]}
+              <span className="break-words font-semibold hover:underline">{headerUser.name}</span>
+              {headerUser.levels.map((level) => (
+                <span key={level} className={`shrink-0 rounded-full px-2 py-0.5 text-xs ${LEVEL_BADGE_CLASSES[level]}`}>
+                  {LEVEL_LABELS[level]}
                 </span>
-              )}
-              {isPb && <span className="shrink-0 text-sm font-semibold text-yellow-600">★ PB</span>}
+              ))}
+              {!post.sharedBy && isPb && <span className="shrink-0 text-sm font-semibold text-yellow-600">★ PB</span>}
             </div>
             <p className="truncate text-xs text-b2b-ink/40">
-              {post.author.affiliateGym && `${post.author.affiliateGym} · `}
-              {formatDateTime(post.createdAt)}
+              {headerUser.affiliateGym && `${headerUser.affiliateGym} · `}
+              {formatDateTime(post.sharedBy ? post.sharedBy.sharedAt : post.createdAt)}
             </p>
           </div>
         </Link>
-        {post.isOwner && (
+        {post.sharedBy ? (
+          post.sharedBy.id === currentUserId && (
+            <div className="flex shrink-0 items-center gap-3">
+              <button type="button" onClick={startEditShareMessage} className="text-xs text-b2b-pink hover:underline">
+                Edit
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfirmUnshareOpen(true)}
+                className="text-xs text-red-600 hover:underline"
+              >
+                Unshare
+              </button>
+            </div>
+          )
+        ) : post.isOwner ? (
           <div className="flex shrink-0 items-center gap-3">
             <button
               type="button"
@@ -442,8 +560,7 @@ export function PostCard({
               Delete
             </button>
           </div>
-        )}
-        {!post.isOwner && (
+        ) : (
           <ReportButton
             targetType="POST"
             targetId={post.id}
@@ -452,119 +569,199 @@ export function PostCard({
         )}
       </div>
 
-      {post.linkedWorkout && (
-        <div className="mt-3">
-          <p className="text-sm text-gray-600">
-            {post.linkedWorkout.wodName} · {post.linkedWorkout.score} (
-            {WORKOUT_UNIT_LABELS[post.linkedWorkout.unit]}) ·{" "}
-            {WORKOUT_INTENSITY_LABELS[post.linkedWorkout.intensity]}
-          </p>
-          {post.linkedWorkout.description && (
-            <WorkoutDescriptionToggle description={post.linkedWorkout.description} />
-          )}
-        </div>
-      )}
-
-      {post.linkedEvent && post.type !== "TEAMMATE_REQUEST" && (
-        <p className="mt-3 text-sm text-b2b-ink">
-          🏆 Competing in{" "}
-          <Link href={`/events/${post.linkedEvent.id}`} className="font-semibold hover:underline">
-            {post.linkedEvent.name}
-          </Link>
-          <span className="text-b2b-ink/50">
-            {" "}
-            · {formatEventDate(post.linkedEvent)} ·{" "}
-            {post.linkedEvent.isOnline ? "Online" : post.linkedEvent.location}
-          </span>
-        </p>
-      )}
-
-      {post.type === "TEAMMATE_REQUEST" && post.teammateRequests.length > 0 && (
-        <div className="mt-3 flex flex-col items-start gap-1">
-          {post.teammateRequests.map((req, i) => (
-            <p
-              key={i}
-              className="inline-block rounded-lg bg-b2b-purple/10 px-3 py-1.5 text-sm font-semibold text-b2b-purple"
-            >
-              🔍 {formatTeammateRequest(req.quantity, req.gender, req.division)}
-            </p>
-          ))}
-          {post.linkedEvent && (
-            <p className="mt-1 text-xs text-b2b-ink/50">
-              Posted from{" "}
-              <Link href={`/events/${post.linkedEvent.id}/notices`} className="font-semibold text-b2b-pink hover:underline">
-                {post.linkedEvent.name}
-              </Link>
-            </p>
-          )}
-        </div>
-      )}
-
-      {editingPost ? (
-        <div className="mt-2 flex flex-col gap-2">
-          {postError && <p className="text-sm text-red-600">{postError}</p>}
-          <MentionTextarea
-            rows={3}
-            value={editPostText}
-            onChange={setEditPostText}
-            className="w-full rounded border border-gray-300 px-2 py-1 text-sm focus:border-b2b-pink focus:outline-none"
-          />
-          <div className="flex gap-3">
-            <button
-              type="button"
-              onClick={submitEditPost}
-              disabled={postSaving}
-              className="rounded bg-b2b-pink px-3 py-1 text-sm text-white hover:bg-b2b-pink-dark disabled:opacity-50"
-            >
-              {postSaving ? "Saving..." : "Save"}
-            </button>
-            <button
-              type="button"
-              onClick={() => setEditingPost(false)}
-              className="text-sm text-b2b-ink/50 hover:underline"
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
-      ) : (
-        contentText && (
-          <p className="mt-2 whitespace-pre-wrap text-b2b-ink">
-            <MentionText text={contentText} />
-          </p>
-        )
-      )}
-
-      {post.media.length > 0 ? (
-        <PostMediaCarousel items={post.media} />
-      ) : (
-        <>
-          {post.photo && (
-            <ExpandableImage
-              src={post.photo}
-              alt="Post photo"
-              className="mt-3 max-h-96 w-full rounded object-cover"
+      {post.sharedBy &&
+        (editingShareMessage ? (
+          <div className="mt-2 flex flex-col gap-2">
+            <textarea
+              rows={2}
+              value={editShareMessageText}
+              onChange={(e) => setEditShareMessageText(e.target.value)}
+              placeholder="Say something about this..."
+              className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm focus:border-b2b-pink focus:outline-none"
+              autoFocus
             />
-          )}
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={submitEditShareMessage}
+                disabled={shareMessageSaving}
+                className="rounded bg-b2b-pink px-3 py-1 text-sm text-white hover:bg-b2b-pink-dark disabled:opacity-50"
+              >
+                {shareMessageSaving ? "Saving..." : "Save"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setEditingShareMessage(false)}
+                className="text-sm text-b2b-ink/50 hover:underline"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        ) : (
+          shareMessage && <p className="mt-2 whitespace-pre-wrap text-b2b-ink">{shareMessage}</p>
+        ))}
 
-          {post.video && (
-            <video
-              controls
-              poster={post.videoThumbnail ?? undefined}
-              preload="metadata"
-              // No w-full/bg-black: forcing full width let the browser
-              // letterbox a vertical phone video inside a wide box, showing
-              // as black bars either side. Capping only the height and
-              // letting width follow the video's own aspect ratio (mx-auto
-              // to center what's left over) makes the box match the video
-              // itself, so there's nothing left to paint black.
-              className="mx-auto mt-3 block max-h-[32rem] w-auto max-w-full rounded"
-            >
-              <source src={post.video} />
-            </video>
-          )}
-        </>
-      )}
+      <div className={post.sharedBy ? "mt-3 rounded-lg border border-b2b-purple/10 bg-b2b-bg p-3" : ""}>
+        {post.sharedBy && (
+          <div className="mb-2 flex items-start justify-between gap-2">
+            <Link href={`/profile/${post.author.id}`} className="flex min-w-0 flex-1 items-center gap-2">
+              <Avatar
+                photo={post.author.photo}
+                name={post.author.name}
+                size={28}
+                showSingleBadge={showsSingleBadge(post.author)}
+              />
+              <div className="min-w-0 flex-1">
+                <span className="break-words text-sm font-semibold hover:underline">{post.author.name}</span>
+                <p className="truncate text-xs text-b2b-ink/40">{formatDateTime(post.createdAt)}</p>
+              </div>
+            </Link>
+            {post.isOwner ? (
+              <div className="flex shrink-0 items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditPostText(contentText ?? "");
+                    setPostError(null);
+                    setEditingPost(true);
+                  }}
+                  className="text-xs text-b2b-pink hover:underline"
+                >
+                  Edit
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConfirmDeleteOpen(true)}
+                  className="text-xs text-red-600 hover:underline"
+                >
+                  Delete
+                </button>
+              </div>
+            ) : (
+              <ReportButton
+                targetType="POST"
+                targetId={post.id}
+                className="shrink-0 text-xs text-b2b-ink/50 hover:underline"
+              />
+            )}
+          </div>
+        )}
+
+        {post.linkedWorkout && (
+          <div className={post.sharedBy ? "" : "mt-3"}>
+            <p className="text-sm text-gray-600">
+              {post.linkedWorkout.wodName} · {post.linkedWorkout.score} (
+              {WORKOUT_UNIT_LABELS[post.linkedWorkout.unit]}) ·{" "}
+              {WORKOUT_INTENSITY_LABELS[post.linkedWorkout.intensity]}
+            </p>
+            {post.linkedWorkout.description && (
+              <WorkoutDescriptionToggle description={post.linkedWorkout.description} />
+            )}
+          </div>
+        )}
+
+        {post.linkedEvent && post.type !== "TEAMMATE_REQUEST" && (
+          <p className={`text-sm text-b2b-ink ${post.sharedBy ? "" : "mt-3"}`}>
+            🏆 Competing in{" "}
+            <Link href={`/events/${post.linkedEvent.id}`} className="font-semibold hover:underline">
+              {post.linkedEvent.name}
+            </Link>
+            <span className="text-b2b-ink/50">
+              {" "}
+              · {formatEventDate(post.linkedEvent)} ·{" "}
+              {post.linkedEvent.isOnline ? "Online" : post.linkedEvent.location}
+            </span>
+          </p>
+        )}
+
+        {post.type === "TEAMMATE_REQUEST" && post.teammateRequests.length > 0 && (
+          <div className={`flex flex-col items-start gap-1 ${post.sharedBy ? "" : "mt-3"}`}>
+            {post.teammateRequests.map((req, i) => (
+              <p
+                key={i}
+                className="inline-block rounded-lg bg-b2b-purple/10 px-3 py-1.5 text-sm font-semibold text-b2b-purple"
+              >
+                🔍 {formatTeammateRequest(req.quantity, req.gender, req.division)}
+              </p>
+            ))}
+            {post.linkedEvent && (
+              <p className="mt-1 text-xs text-b2b-ink/50">
+                Posted from{" "}
+                <Link href={`/events/${post.linkedEvent.id}/notices`} className="font-semibold text-b2b-pink hover:underline">
+                  {post.linkedEvent.name}
+                </Link>
+              </p>
+            )}
+          </div>
+        )}
+
+        {editingPost ? (
+          <div className="mt-2 flex flex-col gap-2">
+            {postError && <p className="text-sm text-red-600">{postError}</p>}
+            <MentionTextarea
+              rows={3}
+              value={editPostText}
+              onChange={setEditPostText}
+              className="w-full rounded border border-gray-300 px-2 py-1 text-sm focus:border-b2b-pink focus:outline-none"
+            />
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={submitEditPost}
+                disabled={postSaving}
+                className="rounded bg-b2b-pink px-3 py-1 text-sm text-white hover:bg-b2b-pink-dark disabled:opacity-50"
+              >
+                {postSaving ? "Saving..." : "Save"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setEditingPost(false)}
+                className="text-sm text-b2b-ink/50 hover:underline"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        ) : (
+          contentText && (
+            <p className={`whitespace-pre-wrap text-b2b-ink ${post.sharedBy ? "" : "mt-2"}`}>
+              <MentionText text={contentText} />
+            </p>
+          )
+        )}
+
+        {post.media.length > 0 ? (
+          <PostMediaCarousel items={post.media} />
+        ) : (
+          <>
+            {post.photo && (
+              <ExpandableImage
+                src={post.photo}
+                alt="Post photo"
+                className={`w-full rounded object-cover ${post.sharedBy ? "mt-2 max-h-72" : "mt-3 max-h-96"}`}
+              />
+            )}
+
+            {post.video && (
+              <video
+                controls
+                poster={post.videoThumbnail ?? undefined}
+                preload="metadata"
+                // No w-full/bg-black: forcing full width let the browser
+                // letterbox a vertical phone video inside a wide box, showing
+                // as black bars either side. Capping only the height and
+                // letting width follow the video's own aspect ratio (mx-auto
+                // to center what's left over) makes the box match the video
+                // itself, so there's nothing left to paint black.
+                className="mx-auto mt-2 block max-h-[32rem] w-auto max-w-full rounded"
+              >
+                <source src={post.video} />
+              </video>
+            )}
+          </>
+        )}
+      </div>
 
       <div className="mt-3 flex items-center gap-4 border-t border-gray-100 pt-3 text-sm">
         <button
@@ -582,6 +779,16 @@ export function PostCard({
         >
           {comments.length} {comments.length === 1 ? "comment" : "comments"}
         </button>
+        {(post.canShare || shared) && (
+          <button
+            type="button"
+            onClick={shared ? unshareNow : openShareComposer}
+            disabled={shareBusy}
+            className={`font-medium ${shared ? "text-b2b-pink" : "text-gray-600"} hover:underline disabled:opacity-50`}
+          >
+            {shared ? "🔁 Shared" : "🔁 Share"} {shareCount > 0 && `(${shareCount})`}
+          </button>
+        )}
       </div>
 
       {showComments && (
@@ -613,6 +820,54 @@ export function PostCard({
         onCancel={() => setConfirmDeleteOpen(false)}
         confirming={deleting}
       />
+      <ConfirmDialog
+        open={confirmUnshareOpen}
+        title="Remove this from your feed?"
+        message="This only removes your share — the original post is unaffected."
+        confirmLabel="Unshare"
+        onConfirm={confirmUnshare}
+        onCancel={() => setConfirmUnshareOpen(false)}
+        confirming={unsharing}
+      />
+
+      {composingShare && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          onClick={() => setComposingShare(false)}
+        >
+          <div
+            className="w-full max-w-sm rounded-xl bg-b2b-card p-5 shadow-lg"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="text-base font-semibold text-b2b-ink">Share this post</p>
+            <textarea
+              rows={3}
+              value={shareMessageDraft}
+              onChange={(e) => setShareMessageDraft(e.target.value)}
+              placeholder="Say something about this (optional)..."
+              className="mt-3 w-full rounded border border-gray-300 px-2 py-1.5 text-sm focus:border-b2b-pink focus:outline-none"
+              autoFocus
+            />
+            <div className="mt-4 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setComposingShare(false)}
+                className="rounded px-3 py-1.5 text-sm font-medium text-b2b-ink/60 hover:bg-b2b-bg"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={submitShare}
+                disabled={shareBusy}
+                className="rounded bg-b2b-pink px-3 py-1.5 text-sm font-medium text-white hover:bg-b2b-pink-dark disabled:opacity-50"
+              >
+                {shareBusy ? "Sharing..." : "Share"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       </div>
     </>
   );

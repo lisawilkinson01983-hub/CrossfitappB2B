@@ -9,6 +9,7 @@ import { GroupIcon } from "@/components/GroupIcon";
 import { showsSingleBadge } from "@/lib/labels";
 import { conversationDisplayName } from "@/lib/conversations";
 import { formatDate } from "@/lib/dates";
+import { stripMentionMarkup } from "@/lib/mentions";
 
 export default async function MessagesPage() {
   const session = await getServerSession(authOptions);
@@ -103,8 +104,8 @@ export default async function MessagesPage() {
                 <p className="truncate text-sm text-b2b-ink/50">
                   {row.lastMessage
                     ? row.isGroup
-                      ? `${row.lastMessage.sender.id === session.user.id ? "You" : row.lastMessage.sender.name}: ${row.lastMessage.text}`
-                      : row.lastMessage.text
+                      ? `${row.lastMessage.sender.id === session.user.id ? "You" : row.lastMessage.sender.name}: ${stripMentionMarkup(row.lastMessage.text)}`
+                      : stripMentionMarkup(row.lastMessage.text)
                     : "No messages yet"}
                 </p>
               </div>

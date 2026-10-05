@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { parseDisplayedPbs, parseLookingFor } from "@/lib/labels";
+import { parseDisplayedPbs, parseLookingFor, parseLevels } from "@/lib/labels";
 import { PB_FIELDS } from "@/lib/validation";
 import { OTHER_GYM, UNAFFILIATED } from "@/lib/gyms";
 import { isProfileSetupComplete } from "@/lib/profileSetup";
@@ -11,6 +11,10 @@ import { NavBar } from "@/components/NavBar";
 import { SectionCard } from "@/components/SectionCard";
 import { SectionOnboarding } from "@/components/SectionOnboarding";
 import { EditProfileForm } from "./EditProfileForm";
+
+function toDateInputValue(date: Date | null): string {
+  return date ? date.toISOString().slice(0, 10) : "";
+}
 
 export default async function EditProfilePage() {
   const session = await getServerSession(authOptions);
@@ -77,7 +81,7 @@ export default async function EditProfilePage() {
               verificationRequested: user.verificationRequestedAt != null && user.verifiedAt == null,
               isVerified: user.verifiedAt != null,
               bio: user.bio ?? "",
-              age: user.age ?? "",
+              dateOfBirth: toDateInputValue(user.dateOfBirth),
               gender: user.gender ?? "",
               area: user.area ?? "",
               // Cast: country is a plain String column (see prisma/schema.prisma), not
@@ -87,7 +91,7 @@ export default async function EditProfilePage() {
               country: (user.country as Country | null) ?? "",
               affiliateGym: initialAffiliateGym,
               affiliateGymOther: initialAffiliateGymOther,
-              level: user.level ?? "",
+              levels: parseLevels(user.levels),
               crossfitSinceYear: user.crossfitSinceYear ?? "",
               crossfitSinceMonth: user.crossfitSinceMonth ?? "",
               lookingFor: parseLookingFor(user.lookingFor),

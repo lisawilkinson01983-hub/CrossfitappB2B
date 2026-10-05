@@ -6,7 +6,6 @@ import { BlockMuteControls } from "@/components/BlockMuteControls";
 import { GENDERS, LEVELS, LOOKING_FOR_OPTIONS, type LookingForOption } from "@/lib/validation";
 import {
   GENDER_LABELS,
-  LEVEL_BADGE_CLASSES,
   LEVEL_LABELS,
   LOOKING_FOR_LABELS,
   parseLookingFor,
@@ -72,7 +71,10 @@ export async function AthletesSearch({
     ...(q ? { name: { contains: q } } : {}),
     ...(gym ? { affiliateGym: gym } : {}),
     ...(gender ? { gender } : {}),
-    ...(level ? { level } : {}),
+    // levels is a JSON-encoded array (see prisma/schema.prisma) — none of
+    // SCALED/INTERMEDIATE/RX is a substring of another, so "contains" safely
+    // means "has this level among theirs".
+    ...(level ? { levels: { contains: level } } : {}),
   };
 
   let candidates = await prisma.user.findMany({
@@ -81,12 +83,10 @@ export async function AthletesSearch({
       id: true,
       name: true,
       photo: true,
-      level: true,
       area: true,
       areaLat: true,
       areaLng: true,
       affiliateGym: true,
-      isPrivate: true,
       lookingFor: true,
       isSingle: true,
       showSingleBadge: true,
@@ -269,7 +269,7 @@ export async function AthletesSearch({
         <p className="text-b2b-ink/50">No athletes match those filters.</p>
       ) : (
         <div className="flex flex-col gap-3">
-          {results.map(({ user, miles }) => {
+          {results.map(({ user }) => {
             const status: FollowStatus = myFollowingIds.has(user.id)
               ? "following"
               : myPendingIds.has(user.id)
@@ -284,21 +284,8 @@ export async function AthletesSearch({
                 <Link href={`/profile/${user.id}`} className="flex flex-1 items-center gap-3">
                   <Avatar photo={user.photo} name={user.name} size={48} showSingleBadge={showsSingleBadge(user)} />
                   <div>
-                    <p className="font-medium">
-                      {user.name}
-                      {user.isPrivate && <span className="ml-1 text-sm">🔒</span>}
-                      {user.level && (
-                        <span
-                          className={`ml-2 rounded-full px-2 py-0.5 text-xs ${LEVEL_BADGE_CLASSES[user.level]}`}
-                        >
-                          {LEVEL_LABELS[user.level]}
-                        </span>
-                      )}
-                    </p>
-                    <p className="text-sm text-b2b-ink/50">
-                      {[user.area, user.affiliateGym].filter(Boolean).join(" · ")}
-                      {miles !== null && <> · {miles < 1 ? "<1" : Math.round(miles)} miles away</>}
-                    </p>
+                    <p className="font-medium">{user.name}</p>
+                    {user.affiliateGym && <p className="text-sm text-b2b-ink/50">{user.affiliateGym}</p>}
                   </div>
                 </Link>
                 <div className="flex flex-col items-end gap-1">

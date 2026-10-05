@@ -24,22 +24,33 @@ export default async function MyEventsPage({
   const userId = session.user.id;
 
   const sp = await searchParams;
-  const tab = sp.tab === "past" ? "past" : "upcoming";
+  const tab = sp.tab === "socials" ? "socials" : sp.tab === "past" ? "past" : "comps";
   const q = typeof sp.q === "string" ? sp.q.trim() : "";
 
   const now = new Date();
   // An event's "effective end" is endDate if it has one, otherwise date —
   // so a multi-day event still counts as upcoming until its last day, not
-  // just its start day.
+  // just its start day. Both kinds land in "Past events" once expired —
+  // only the two upcoming tabs split on competition vs. not.
   const effectiveEndFilter: Prisma.EventWhereInput["OR"] =
     tab === "past"
       ? [{ endDate: null, date: { lt: now } }, { endDate: { lt: now } }]
       : [{ endDate: null, date: { gte: now } }, { endDate: { gte: now } }];
 
+  // Null eventKind predates this field and is treated as a competition
+  // everywhere else (see isCompetitionEvent) — kept consistent here.
+  const eventKindFilter: Prisma.EventWhereInput | null =
+    tab === "comps"
+      ? { OR: [{ eventKind: "COMPETITION" }, { eventKind: null }] }
+      : tab === "socials"
+        ? { eventKind: { in: ["SOCIAL", "OTHER"] } }
+        : null;
+
   const where: Prisma.EventWhereInput = {
     AND: [
       { OR: [{ participants: { some: { userId } } }, { interests: { some: { userId } } }] },
       { OR: effectiveEndFilter },
+      ...(eventKindFilter ? [eventKindFilter] : []),
       ...(q ? [{ OR: [{ name: { contains: q } }, { location: { contains: q } }] }] : []),
     ],
   };
@@ -109,10 +120,16 @@ export default async function MyEventsPage({
 
       <div className="mt-4 flex gap-4 border-b border-gray-200 text-sm font-medium">
         <Link
-          href="/events/mine?tab=upcoming"
-          className={`pb-2 ${tab === "upcoming" ? "border-b-2 border-b2b-purple text-b2b-purple" : "text-gray-500"}`}
+          href="/events/mine?tab=comps"
+          className={`pb-2 ${tab === "comps" ? "border-b-2 border-b2b-purple text-b2b-purple" : "text-gray-500"}`}
         >
-          Upcoming events
+          Upcoming comps
+        </Link>
+        <Link
+          href="/events/mine?tab=socials"
+          className={`pb-2 ${tab === "socials" ? "border-b-2 border-b2b-purple text-b2b-purple" : "text-gray-500"}`}
+        >
+          Socials
         </Link>
         <Link
           href="/events/mine?tab=past"
@@ -162,7 +179,9 @@ export default async function MyEventsPage({
               ? "No events match that search."
               : tab === "past"
                 ? "No past events yet."
-                : "You're not participating in or interested in any upcoming events yet."}
+                : tab === "socials"
+                  ? "You're not participating in or interested in any upcoming socials yet."
+                  : "You're not participating in or interested in any upcoming comps yet."}
           </p>
         ) : (
           <div className="flex flex-col gap-3">
@@ -172,10 +191,18 @@ export default async function MyEventsPage({
               return (
                 <div
                   key={event.id}
-                  className={`rounded-xl border bg-b2b-card p-4 ${
+                  className={`relative rounded-xl border bg-b2b-card p-4 ${
                     pinned ? "border-b2b-pink/40" : "border-b2b-purple/10"
                   } ${tab === "past" ? "opacity-75" : ""}`}
                 >
+                  {tab === "comps" && event.isPrivate && (
+                    <span
+                      title="Private competition"
+                      className="absolute -left-1.5 -top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-b2b-card text-sm shadow"
+                    >
+                      🔒
+                    </span>
+                  )}
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-3">
                       <Avatar photo={event.photo} name={event.name} size={48} />

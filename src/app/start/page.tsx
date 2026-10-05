@@ -5,7 +5,7 @@ export default function StartPage() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-b2b-bg px-4 text-center text-b2b-ink">
       <Logo size="lg" />
-      <p className="mt-4 text-lg text-b2b-ink/60">Connecting CrossFit Athletes</p>
+      <p className="mt-4 text-lg text-b2b-ink/60">Connecting the Functional Fitness Community</p>
 
       <div className="mt-10 flex w-full max-w-xs flex-col gap-3">
         <Link

@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { NavBar } from "@/components/NavBar";
 import { SectionCard } from "@/components/SectionCard";
 import { SectionOnboarding } from "@/components/SectionOnboarding";
+import { StatusBar } from "@/components/StatusBar";
 import { FEED_PAGE_SIZE, postCardInclude, toPostCardData } from "@/lib/posts";
 import { PostComposer } from "./PostComposer";
 import { FeedPostList } from "./FeedPostList";
@@ -27,11 +28,35 @@ export default async function FeedPage({
   const fetchStart = Date.now();
 
   const [currentUser, blocked, muted] = await Promise.all([
-    prisma.user.findUnique({ where: { id: session.user.id }, select: { hasSeenFeedTour: true, accountType: true } }),
+    prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { hasSeenFeedTour: true, accountType: true, status: true },
+    }),
     prisma.block.findMany({ where: { blockerId: session.user.id }, select: { blockedId: true } }),
     prisma.mute.findMany({ where: { userId: session.user.id }, select: { mutedUserId: true } }),
   ]);
   const hiddenUserIds = [...blocked.map((b) => b.blockedId), ...muted.map((m) => m.mutedUserId)];
+
+  const statusUsers = await prisma.user.findMany({
+    where: { status: { not: null }, id: { notIn: [...hiddenUserIds, session.user.id] } },
+    orderBy: { statusUpdatedAt: "desc" },
+    take: 30,
+    select: {
+      id: true,
+      name: true,
+      photo: true,
+      status: true,
+      statusReactionsReceived: { select: { reactorId: true } },
+    },
+  });
+  const statusBarEntries = statusUsers.map((u) => ({
+    id: u.id,
+    name: u.name,
+    photo: u.photo,
+    status: u.status!,
+    reactionCount: u.statusReactionsReceived.length,
+    reactedByMe: u.statusReactionsReceived.some((r) => r.reactorId === session.user.id),
+  }));
 
   const posts = await prisma.post.findMany({
     where: { userId: { notIn: hiddenUserIds }, sharedToFeed: true },
@@ -73,6 +98,10 @@ export default async function FeedPage({
       )}
       <NavBar />
       <h1 className="mt-6 text-2xl font-bold">Feed</h1>
+
+      <div className="mt-4">
+        <StatusBar myStatus={currentUser?.status ?? null} others={statusBarEntries} />
+      </div>
 
       <div className="mt-4">
         <SectionCard

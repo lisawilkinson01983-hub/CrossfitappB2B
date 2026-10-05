@@ -72,7 +72,7 @@ export async function POST(req: Request) {
         passwordHash: unusablePasswordHash,
         photo: null,
         bio: null,
-        age: null,
+        dateOfBirth: null,
         gender: null,
         area: null,
         areaLat: null,

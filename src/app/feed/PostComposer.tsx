@@ -2,7 +2,7 @@
 
 import { useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { MAX_VIDEO_SECONDS } from "@/lib/media";
+import { MAX_VIDEO_SECONDS, MAX_PHOTO_BYTES, MAX_PHOTO_MB } from "@/lib/media";
 import { readVideoInfo } from "@/lib/readVideoInfo";
 import { MentionTextarea } from "@/components/MentionTextarea";
 
@@ -49,6 +49,13 @@ export function PostComposer() {
           next.push({ kind, file });
         }
       } else {
+        // Checked here, not just server-side, so one oversized photo in a
+        // multi-photo batch is skipped with a clear reason rather than
+        // silently failing the whole post after upload.
+        if (file.size > MAX_PHOTO_BYTES) {
+          setError(`${file.name} is over ${MAX_PHOTO_MB}MB — try a smaller photo`);
+          continue;
+        }
         next.push({ kind, file });
       }
     }

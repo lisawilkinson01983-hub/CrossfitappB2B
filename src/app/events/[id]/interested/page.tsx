@@ -7,7 +7,7 @@ import { NavBar } from "@/components/NavBar";
 import { SectionCard } from "@/components/SectionCard";
 import { Avatar } from "@/components/Avatar";
 import { MessageButton } from "@/components/MessageButton";
-import { GENDER_LABELS, LEVEL_BADGE_CLASSES, LEVEL_LABELS, showsSingleBadge } from "@/lib/labels";
+import { GENDER_LABELS, LEVEL_BADGE_CLASSES, LEVEL_LABELS, parseLevels, showsSingleBadge } from "@/lib/labels";
 import { GENDERS, LEVELS } from "@/lib/validation";
 import { assertEventVisible } from "@/lib/eventVisibility";
 
@@ -52,7 +52,10 @@ export default async function EventInterestedPage({
           userId: { not: session.user.id },
           user: {
             ...(q ? { name: { contains: q } } : {}),
-            ...(level ? { level } : {}),
+            // levels is a JSON-encoded array (see prisma/schema.prisma) —
+            // none of SCALED/INTERMEDIATE/RX is a substring of another, so
+            // "contains" safely means "has this level among theirs".
+            ...(level ? { levels: { contains: level } } : {}),
             ...(gender ? { gender } : {}),
           },
         },
@@ -63,7 +66,7 @@ export default async function EventInterestedPage({
               id: true,
               name: true,
               photo: true,
-              level: true,
+              levels: true,
               affiliateGym: true,
               isSingle: true,
               showSingleBadge: true,
@@ -177,13 +180,11 @@ export default async function EventInterestedPage({
                     <div className="min-w-0">
                       <p className="truncate text-sm font-medium">
                         {interest.user.name}
-                        {interest.user.level && (
-                          <span
-                            className={`ml-2 rounded-full px-2 py-0.5 text-xs ${LEVEL_BADGE_CLASSES[interest.user.level]}`}
-                          >
-                            {LEVEL_LABELS[interest.user.level]}
+                        {parseLevels(interest.user.levels).map((level) => (
+                          <span key={level} className={`ml-2 rounded-full px-2 py-0.5 text-xs ${LEVEL_BADGE_CLASSES[level]}`}>
+                            {LEVEL_LABELS[level]}
                           </span>
-                        )}
+                        ))}
                       </p>
                       {interest.user.affiliateGym && (
                         <p className="truncate text-xs text-b2b-ink/40">{interest.user.affiliateGym}</p>

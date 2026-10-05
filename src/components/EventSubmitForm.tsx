@@ -157,6 +157,10 @@ export function EventSubmitForm({
   const showDuplicateWarning = duplicates.length > 0 && dismissedKey !== duplicateKey;
 
   const isSocial = eventKind === "SOCIAL";
+  // Broader than isSocial above — covers "Other" too (e.g. a karaoke night),
+  // since the invite picker's wording is about competing vs. just showing
+  // up, not specifically about the Social category.
+  const isNonCompetition = eventKind !== "" && eventKind !== "COMPETITION";
 
   // A social event has no ability/team/gender structure and often no
   // website of its own — clear them on the way in so switching to
@@ -334,7 +338,7 @@ export function EventSubmitForm({
 
               <div className="relative">
                 <label htmlFor="invite-search" className="block text-sm font-medium">
-                  Invite individual athletes
+                  Invite individual {isNonCompetition ? "attendees" : "athletes"}
                 </label>
                 <input
                   id="invite-search"

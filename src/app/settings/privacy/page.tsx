@@ -6,13 +6,14 @@ import { prisma } from "@/lib/prisma";
 import { NavBar } from "@/components/NavBar";
 import { SectionCard } from "@/components/SectionCard";
 import { BlockMuteControls } from "@/components/BlockMuteControls";
+import { AllowPostSharesToggle } from "@/components/AllowPostSharesToggle";
 
 export default async function PrivacySettingsPage() {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) redirect("/login");
 
   const [user, blocks, mutes] = await Promise.all([
-    prisma.user.findUnique({ where: { id: session.user.id }, select: { isPrivate: true } }),
+    prisma.user.findUnique({ where: { id: session.user.id }, select: { isPrivate: true, allowPostShares: true } }),
     prisma.block.findMany({
       where: { blockerId: session.user.id },
       include: { blocked: { select: { id: true, name: true } } },
@@ -43,6 +44,8 @@ export default async function PrivacySettingsPage() {
           </p>
 
           <div className="mt-4 flex flex-col gap-4">
+            <AllowPostSharesToggle initialAllowed={user.allowPostShares} />
+
             <div className="rounded-lg border border-b2b-purple/10 bg-b2b-bg p-4">
               <h3 className="text-xs font-semibold uppercase tracking-wide text-b2b-ink/50">
                 Blocked users ({blocks.length})

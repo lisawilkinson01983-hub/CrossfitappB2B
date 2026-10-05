@@ -1,9 +1,13 @@
 import { z } from "zod";
 import { OTHER_GYM } from "./gyms";
 import { COUNTRIES } from "./countries";
+import { isValidDateOfBirth } from "./age";
 
 export const LEVELS = ["SCALED", "INTERMEDIATE", "RX"] as const;
 export type LevelOption = (typeof LEVELS)[number];
+// An athlete competing across two abilities (e.g. Scaled and Intermediate)
+// can pick both, so teammate searches/matching find them under either.
+export const MAX_LEVELS = 2;
 
 export const ACCOUNT_TYPES = ["ATHLETE", "AFFILIATE"] as const;
 export type AccountTypeOption = (typeof ACCOUNT_TYPES)[number];
@@ -13,6 +17,13 @@ export type GenderOption = (typeof GENDERS)[number];
 
 export const LOOKING_FOR_OPTIONS = ["TEAM_MATES", "FRIENDS", "DEEPER_CONNECTION"] as const;
 export type LookingForOption = (typeof LOOKING_FOR_OPTIONS)[number];
+
+export const USER_STATUSES = ["FIGHTING_FIT", "ADAPTING", "INJURED"] as const;
+export type UserStatusOption = (typeof USER_STATUSES)[number];
+
+export const statusSchema = z.object({
+  status: z.enum(USER_STATUSES).nullable(),
+});
 
 export const WORKOUT_UNITS = ["TIME", "REPS", "WEIGHT", "ROUNDS_REPS"] as const;
 export type WorkoutUnitOption = (typeof WORKOUT_UNITS)[number];
@@ -167,7 +178,13 @@ export const profileSchema = z
     // looking-for entirely — see the superRefine below and EditProfileForm.
     accountType: z.enum(ACCOUNT_TYPES).default("ATHLETE"),
     bio: z.preprocess(emptyToUndefined, z.string().trim().max(2000).optional()),
-    age: z.preprocess(emptyToUndefined, z.coerce.number().int().min(13).max(120).optional()),
+    dateOfBirth: z.preprocess(
+      emptyToUndefined,
+      z.coerce
+        .date({ errorMap: () => ({ message: "Enter a valid date of birth" }) })
+        .refine(isValidDateOfBirth, { message: "You must be between 13 and 120 years old" })
+        .optional()
+    ),
     gender: z.preprocess(emptyToUndefined, z.enum(GENDERS).optional()),
     area: z.string().trim().min(1, "Area is required"),
     country: z.preprocess(emptyToUndefined, z.enum(COUNTRIES).optional()),
@@ -176,7 +193,7 @@ export const profileSchema = z
     // route validates the submitted value against the actual Gym table.
     affiliateGym: z.string().trim().min(1, "Select a gym"),
     affiliateGymOther: z.preprocess(emptyToUndefined, z.string().trim().max(200).optional()),
-    level: z.preprocess(emptyToUndefined, z.enum(LEVELS).optional()),
+    levels: z.array(z.enum(LEVELS)).max(MAX_LEVELS, `Select up to ${MAX_LEVELS} levels`).default([]),
     crossfitSinceYear: z.preprocess(
       emptyToUndefined,
       z.coerce.number().int().min(1970).max(new Date().getFullYear()).optional()
@@ -205,8 +222,8 @@ export const profileSchema = z
     if (data.affiliateGym === OTHER_GYM && !data.affiliateGymOther) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Enter your gym name", path: ["affiliateGymOther"] });
     }
-    if (data.accountType === "ATHLETE" && !data.level) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Select a level", path: ["level"] });
+    if (data.accountType === "ATHLETE" && data.levels.length === 0) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Select a level", path: ["levels"] });
     }
     if (data.accountType === "ATHLETE" && data.lookingFor.length === 0) {
       ctx.addIssue({
@@ -269,17 +286,15 @@ export type TeammateRequest = z.infer<typeof teammateRequestSchema>;
 // or more structured "looking for teammates" requests for the same event —
 // posted together as a single notice so they share one feed card. Never
 // both empty.
-export const eventNoticeSchema = z
-  .object({
-    text: z.preprocess(emptyToUndefined, z.string().trim().max(1000).optional()),
-    teammateRequests: z.array(teammateRequestSchema).max(20).optional(),
-    // Also cross-post this search to the main feed (see linkedEventId on Post).
-    postToFeed: z.boolean().optional(),
-  })
-  .refine((data) => (data.teammateRequests && data.teammateRequests.length > 0) || !!data.text, {
-    message: "Add at least one athlete request — or write a notice",
-    path: ["text"],
-  });
+// "At least one of text/teammateRequests/a photo" is checked in the route
+// instead of a .refine here, since a photo arrives as a FormData File
+// alongside this schema's fields rather than through it.
+export const eventNoticeSchema = z.object({
+  text: z.preprocess(emptyToUndefined, z.string().trim().max(1000).optional()),
+  teammateRequests: z.array(teammateRequestSchema).max(20).optional(),
+  // Also cross-post this search to the main feed (see linkedEventId on Post).
+  postToFeed: z.boolean().optional(),
+});
 
 // Editing an existing notice only ever changes its text — a free-text
 // notice's message, or a teammate request's optional extra detail. The

@@ -9,6 +9,7 @@ import {
   LEVELS,
   LOOKING_FOR_OPTIONS,
   MAX_DISPLAYED_PBS,
+  MAX_LEVELS,
   PB_CATEGORIES,
   PB_FIELDS,
   type AccountTypeOption,
@@ -20,19 +21,21 @@ import {
 import { GENDER_LABELS, LEVEL_LABELS, LOOKING_FOR_LABELS, PB_LABELS } from "@/lib/labels";
 import { OTHER_GYM } from "@/lib/gyms";
 import { COUNTRIES, type Country } from "@/lib/countries";
+import { AvatarCropper } from "@/components/AvatarCropper";
+import { calculateAge } from "@/lib/age";
 
 type Initial = {
   name: string;
   photo: string | null;
   accountType: AccountTypeOption;
   bio: string;
-  age: number | "";
+  dateOfBirth: string;
   gender: GenderOption | "";
   area: string;
   country: Country | "";
   affiliateGym: string;
   affiliateGymOther: string;
-  level: LevelOption | "";
+  levels: LevelOption[];
   crossfitSinceYear: number | "";
   crossfitSinceMonth: number | "";
   lookingFor: LookingForOption[];
@@ -70,14 +73,14 @@ export function EditProfileForm({
   const isAthlete = accountType === "ATHLETE";
   const [verificationRequested, setVerificationRequested] = useState(initial.verificationRequested);
   const [bio, setBio] = useState(initial.bio);
-  const [age, setAge] = useState(String(initial.age));
+  const [dateOfBirth, setDateOfBirth] = useState(initial.dateOfBirth);
   const [gender, setGender] = useState(initial.gender);
   const [area, setArea] = useState(initial.area);
   const [country, setCountry] = useState(initial.country);
   const [affiliateGym, setAffiliateGym] = useState(initial.affiliateGym);
   const [affiliateGymOther, setAffiliateGymOther] = useState(initial.affiliateGymOther);
   const isOtherGym = affiliateGym === OTHER_GYM;
-  const [level, setLevel] = useState(initial.level);
+  const [levels, setLevels] = useState<LevelOption[]>(initial.levels);
   const [crossfitSinceYear, setCrossfitSinceYear] = useState(String(initial.crossfitSinceYear));
   const [crossfitSinceMonth, setCrossfitSinceMonth] = useState(String(initial.crossfitSinceMonth));
   const [lookingFor, setLookingFor] = useState<LookingForOption[]>(initial.lookingFor);
@@ -108,6 +111,10 @@ export function EditProfileForm({
   }
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(initial.photo);
+  // Set while a just-picked photo is awaiting reposition/zoom in the
+  // cropper — separate from photoPreview, which only ever holds the final,
+  // already-cropped result.
+  const [cropSource, setCropSource] = useState<string | null>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
 
   const [error, setError] = useState<string | null>(null);
@@ -119,16 +126,41 @@ export function EditProfileForm({
     );
   }
 
+  function toggleLevel(option: LevelOption) {
+    setLevels((prev) =>
+      prev.includes(option) ? prev.filter((v) => v !== option) : prev.length >= MAX_LEVELS ? prev : [...prev, option]
+    );
+  }
+
   function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0] ?? null;
+    if (file) setCropSource(URL.createObjectURL(file));
+    // Reset so picking the same file again (e.g. after cancelling the
+    // cropper) still fires this handler.
+    e.target.value = "";
+  }
+
+  function handleCropCancel() {
+    if (cropSource) URL.revokeObjectURL(cropSource);
+    setCropSource(null);
+  }
+
+  function handleCropped(blob: Blob) {
+    if (cropSource) URL.revokeObjectURL(cropSource);
+    setCropSource(null);
+    const file = new File([blob], "avatar.jpg", { type: "image/jpeg" });
     setPhotoFile(file);
-    if (file) setPhotoPreview(URL.createObjectURL(file));
+    setPhotoPreview(URL.createObjectURL(blob));
   }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
 
+    if (isAthlete && levels.length === 0) {
+      setError("Select a level");
+      return;
+    }
     if (isAthlete && lookingFor.length === 0) {
       setError("Choose at least one thing you're looking for");
       return;
@@ -147,9 +179,9 @@ export function EditProfileForm({
     formData.set("crossfitSinceYear", crossfitSinceYear);
     formData.set("crossfitSinceMonth", crossfitSinceMonth);
     if (isAthlete) {
-      formData.set("age", age);
+      formData.set("dateOfBirth", dateOfBirth);
       formData.set("gender", gender);
-      formData.set("level", level);
+      levels.forEach((v) => formData.append("levels", v));
       lookingFor.forEach((v) => formData.append("lookingFor", v));
       if (showLookingFor) formData.set("showLookingFor", "on");
       formData.set("isSingle", isSingle);
@@ -180,6 +212,10 @@ export function EditProfileForm({
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+      {cropSource && (
+        <AvatarCropper imageSrc={cropSource} onCancel={handleCropCancel} onCropped={handleCropped} />
+      )}
+
       {error && <p className="rounded bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
 
       <fieldset>
@@ -279,18 +315,22 @@ export function EditProfileForm({
       {isAthlete && (
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label htmlFor="age" className="block text-sm font-medium">
-              Age
+            <label htmlFor="dateOfBirth" className="block text-sm font-medium">
+              Date of birth
             </label>
             <input
-              id="age"
-              type="number"
-              min={13}
-              max={120}
-              value={age}
-              onChange={(e) => setAge(e.target.value)}
+              id="dateOfBirth"
+              type="date"
+              value={dateOfBirth}
+              onChange={(e) => setDateOfBirth(e.target.value)}
               className="mt-1 w-full rounded border border-gray-300 px-3 py-2 focus:border-b2b-pink focus:outline-none"
             />
+            {dateOfBirth && !Number.isNaN(new Date(dateOfBirth).getTime()) && (
+              <p className="mt-1 text-xs text-b2b-ink/40">
+                That makes you {calculateAge(new Date(dateOfBirth))} — kept up to date automatically, no need to
+                update it yourself each year.
+              </p>
+            )}
             <label className="mt-2 flex items-center gap-2 text-sm">
               <input type="checkbox" checked={showAge} onChange={(e) => setShowAge(e.target.checked)} />
               Display my age on my profile
@@ -385,27 +425,26 @@ export function EditProfileForm({
       </div>
 
       {isAthlete && (
-        <div>
-          <label htmlFor="level" className="block text-sm font-medium">
-            Level
-          </label>
-          <select
-            id="level"
-            required
-            value={level}
-            onChange={(e) => setLevel(e.target.value as LevelOption)}
-            className="mt-1 w-full rounded border border-gray-300 bg-b2b-card px-3 py-2 focus:border-b2b-pink focus:outline-none"
-          >
-            <option value="" disabled>
-              Select a level
-            </option>
+        <fieldset>
+          <legend className="text-sm font-medium">Level</legend>
+          <p className="mt-0.5 text-xs text-b2b-ink/50">
+            Select up to {MAX_LEVELS} — competing across two abilities (e.g. Scaled and Intermediate) means teams
+            searching for either can find you.
+          </p>
+          <div className="mt-2 flex flex-col gap-2">
             {LEVELS.map((l) => (
-              <option key={l} value={l}>
+              <label key={l} className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={levels.includes(l)}
+                  disabled={!levels.includes(l) && levels.length >= MAX_LEVELS}
+                  onChange={() => toggleLevel(l)}
+                />
                 {LEVEL_LABELS[l]}
-              </option>
+              </label>
             ))}
-          </select>
-        </div>
+          </div>
+        </fieldset>
       )}
 
       <div>
