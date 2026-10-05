@@ -15,18 +15,45 @@ export type AffiliateSearchParams = {
 
 // Gyms in the fixed list may not have been geocoded yet — do it lazily on
 // first read and cache the result on the row. User-submitted gyms are
-// geocoded from their submitted address the same way. Kicked off in the
+// geocoded from their submitted address the same way. Queued in the
 // background rather than awaited: this list renders on every Discover
 // visit, and waiting on a live external geocode call for every not-yet-
 // cached gym turned a single page view into several seconds of waiting.
 function ensureGymCoords(gym: { name: string; address: string | null; lat: number | null; lng: number | null }) {
   if (gym.lat !== null && gym.lng !== null) return Promise.resolve({ lat: gym.lat, lng: gym.lng });
-  if (!gym.address) return Promise.resolve(null);
-
-  void geocodeAddress(gym.address)
-    .then((coords) => (coords ? prisma.gym.update({ where: { name: gym.name }, data: { lat: coords.lat, lng: coords.lng } }) : null))
-    .catch(() => {});
+  if (gym.address) queueGymGeocode(gym.name, gym.address);
   return Promise.resolve(null);
+}
+
+// One lookup at a time, about a second apart, per Nominatim's usage policy
+// (max 1 request/second) — a batch of newly added gyms would otherwise fire
+// dozens of requests at once on the first Affiliates visit and get the app
+// rate-limited. A gym already queued isn't queued twice.
+const geocodeQueue = new Map<string, string>();
+let geocodeQueueRunning = false;
+
+function queueGymGeocode(name: string, address: string) {
+  if (geocodeQueue.has(name)) return;
+  geocodeQueue.set(name, address);
+  if (!geocodeQueueRunning) void runGeocodeQueue();
+}
+
+async function runGeocodeQueue() {
+  geocodeQueueRunning = true;
+  try {
+    for (const [name, address] of geocodeQueue) {
+      try {
+        const coords = await geocodeAddress(address);
+        if (coords) await prisma.gym.update({ where: { name }, data: { lat: coords.lat, lng: coords.lng } });
+      } catch {
+        // Best-effort: a failed lookup is retried on a later visit.
+      }
+      geocodeQueue.delete(name);
+      await new Promise((resolve) => setTimeout(resolve, 1100));
+    }
+  } finally {
+    geocodeQueueRunning = false;
+  }
 }
 
 // Nominatim often finds nothing for a full UK street address that leads
@@ -38,7 +65,9 @@ async function geocodeAddress(address: string) {
   const coords = await geocode(address);
   if (coords) return coords;
   const postcode = address.match(UK_POSTCODE);
-  return postcode ? geocode(`${postcode[1]} ${postcode[2]}, UK`) : null;
+  if (!postcode) return null;
+  await new Promise((resolve) => setTimeout(resolve, 1100));
+  return geocode(`${postcode[1]} ${postcode[2]}, UK`);
 }
 
 /**
@@ -60,7 +89,16 @@ export async function AffiliatesList({
   const distance = DISTANCE_RANGES.find((d) => String(d) === sp.distance);
   const activeFilterCount = distance ? 1 : 0;
 
-  await Promise.all(AFFILIATE_GYMS.map((name) => ensureGymPage(name)));
+  // Only create the curated gyms that are missing a row — upserting all of
+  // them on every Discover visit got heavy as the list grew. Filling in
+  // details on existing rows is left to the deploy-time backfill
+  // (scripts/backfill-gym-pages.js) and ensureGymPage on profile save.
+  const existingGymNames = new Set(
+    (await prisma.gym.findMany({ where: { name: { in: [...AFFILIATE_GYMS] } }, select: { name: true } })).map(
+      (g) => g.name
+    )
+  );
+  await Promise.all(AFFILIATE_GYMS.filter((name) => !existingGymNames.has(name)).map((name) => ensureGymPage(name)));
 
   const [gyms, currentUser, pendingCount] = await Promise.all([
     prisma.gym.findMany({ where: { status: "APPROVED" }, orderBy: { name: "asc" } }),
