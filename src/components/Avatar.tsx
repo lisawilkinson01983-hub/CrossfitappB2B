@@ -5,11 +5,15 @@ export function Avatar({
   name,
   size,
   showSingleBadge,
+  fallback = "initial",
 }: {
   photo: string | null;
   name: string;
   size: number;
   showSingleBadge?: boolean;
+  // What to show with no photo: the name's first letter (people), or a
+  // generic gym icon (affiliates, whose names nearly all start with "C").
+  fallback?: "initial" | "gym";
 }) {
   return (
     <div className="relative flex-shrink-0" style={{ width: size, height: size }}>
@@ -21,6 +25,8 @@ export function Avatar({
           height={size}
           className="h-full w-full rounded-full object-cover"
         />
+      ) : fallback === "gym" ? (
+        <GymIcon />
       ) : (
         <div
           className="flex h-full w-full items-center justify-center rounded-full bg-b2b-purple/10 font-semibold text-b2b-purple"
@@ -39,5 +45,20 @@ export function Avatar({
         </span>
       )}
     </div>
+  );
+}
+
+// A roll-up-door unit: the classic CrossFit box, in the brand's charcoal and gold.
+function GymIcon() {
+  return (
+    <svg viewBox="0 0 100 100" className="h-full w-full" role="img" aria-label="Gym">
+      <circle cx="50" cy="50" r="50" fill="#232223" />
+      <g fill="none" stroke="#e0a83a" strokeLinejoin="round">
+        <path d="M24 72V40l26-14 26 14v32" strokeWidth="5" />
+        <path d="M34 72V50h32v22" strokeWidth="4.5" />
+        <path d="M34 57h32M34 64h32" strokeWidth="3" opacity=".75" />
+        <path d="M19 72h62" strokeWidth="5" strokeLinecap="round" />
+      </g>
+    </svg>
   );
 }

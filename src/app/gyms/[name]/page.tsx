@@ -50,7 +50,7 @@ export default async function GymPage({ params }: { params: Promise<{ name: stri
       <div className="mt-4 flex flex-col gap-6">
         <SectionCard>
           <div className="flex flex-col items-center gap-3 text-center">
-            <Avatar photo={gym.photo} name={gym.name} size={112} />
+            <Avatar fallback="gym" photo={gym.photo} name={gym.name} size={112} />
             <h1 className="text-2xl font-bold">{gym.name}</h1>
 
             <Link
