@@ -23,10 +23,22 @@ function ensureGymCoords(gym: { name: string; address: string | null; lat: numbe
   if (gym.lat !== null && gym.lng !== null) return Promise.resolve({ lat: gym.lat, lng: gym.lng });
   if (!gym.address) return Promise.resolve(null);
 
-  void geocode(gym.address)
+  void geocodeAddress(gym.address)
     .then((coords) => (coords ? prisma.gym.update({ where: { name: gym.name }, data: { lat: coords.lat, lng: coords.lng } }) : null))
     .catch(() => {});
   return Promise.resolve(null);
+}
+
+// Nominatim often finds nothing for a full UK street address that leads
+// with a unit or building name ("Unit 19, Gaza Trading Estate, …"), so fall
+// back to just its postcode, which it reliably knows.
+const UK_POSTCODE = /\b([A-Z]{1,2}\d[A-Z\d]?)\s*(\d[A-Z]{2})\b/i;
+
+async function geocodeAddress(address: string) {
+  const coords = await geocode(address);
+  if (coords) return coords;
+  const postcode = address.match(UK_POSTCODE);
+  return postcode ? geocode(`${postcode[1]} ${postcode[2]}, UK`) : null;
 }
 
 /**
@@ -174,7 +186,7 @@ export async function AffiliatesList({
                 className="flex items-center gap-3 rounded-xl border border-b2b-purple/10 bg-b2b-card p-4 hover:border-b2b-pink"
               >
                 <Link href={`/gyms/${encodeURIComponent(gym.name)}`} className="flex flex-1 items-center gap-3">
-                  <Avatar photo={gym.photo} name={gym.name} size={48} />
+                  <Avatar fallback="gym" photo={gym.photo} name={gym.name} size={48} />
                   <div className="flex-1">
                     <p className="font-medium">{gym.name}</p>
                     {gym.address && (

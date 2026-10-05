@@ -11,6 +11,7 @@ import { ExpandableImage } from "@/components/ExpandableImage";
 import { formatTeammateRequest } from "@/lib/labels";
 import { autoGrowTextarea } from "@/lib/autoGrowTextarea";
 import type { TeammateRequest } from "@/lib/validation";
+import { formatDateTime } from "@/lib/dates";
 
 export type EventNoticeCommentData = {
   id: string;
@@ -335,7 +336,7 @@ export function EventNoticeCard({
                 </span>
               )}
             </div>
-            <p className="text-xs text-b2b-ink/40">{new Date(notice.createdAt).toLocaleString()}</p>
+            <p className="text-xs text-b2b-ink/40">{formatDateTime(notice.createdAt)}</p>
           </div>
         </Link>
         {isOwn && (

@@ -7,6 +7,7 @@ import { NavBar } from "@/components/NavBar";
 import { SectionCard } from "@/components/SectionCard";
 import { Avatar } from "@/components/Avatar";
 import { showsSingleBadge } from "@/lib/labels";
+import { formatDate } from "@/lib/dates";
 
 export default async function NotificationsPage() {
   const session = await getServerSession(authOptions);
@@ -51,7 +52,7 @@ export default async function NotificationsPage() {
                       <div className="flex items-center justify-between gap-2">
                         <p className="text-sm font-semibold">{n.actor.name}</p>
                         <span className="whitespace-nowrap text-xs text-b2b-ink/40">
-                          {n.createdAt.toLocaleDateString()}
+                          {formatDate(n.createdAt)}
                         </span>
                       </div>
                       <p className="mt-0.5 text-sm font-semibold">{n.notice?.title}</p>
@@ -118,7 +119,7 @@ export default async function NotificationsPage() {
                                             : "mentioned you"}
                   </p>
                   <span className="whitespace-nowrap text-xs text-b2b-ink/40">
-                    {n.createdAt.toLocaleDateString()}
+                    {formatDate(n.createdAt)}
                   </span>
                 </Link>
                 )
