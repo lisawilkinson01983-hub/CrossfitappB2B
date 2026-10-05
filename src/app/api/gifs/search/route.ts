@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { searchGifs, isGifSearchConfigured } from "@/lib/tenor";
+import { searchGifs, isGifSearchConfigured } from "@/lib/giphy";
 import { checkRateLimit } from "@/lib/rateLimit";
 
 export async function GET(req: Request) {
