@@ -24,10 +24,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
   }
 
-  const current = await prisma.user.findUnique({ where: { id: session.user.id }, select: { accountId: true } });
-  if (!current?.accountId) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
-  }
+  const accountId = session.user.accountId;
 
   const now = new Date();
   const inviteCode = await generateUniqueInviteCode();
@@ -41,7 +38,7 @@ export async function POST(req: Request) {
     data: {
       name,
       accountType: parsed.data.accountType,
-      accountId: current.accountId,
+      accountId,
       termsAcceptedAt: now,
       ageConfirmedAt: now,
       inviteCode,

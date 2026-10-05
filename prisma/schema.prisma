@@ -188,6 +188,26 @@ model Account {
   createdAt DateTime @default(now())
 
   profiles User[]
+  // Profiles owned by a *different* Account that this one has been granted a
+  // toggle onto (see ProfileAccess) — e.g. letting more than one admin login
+  // switch to the shared Box 2 Box brand profile without sharing its
+  // password. Separate from `profiles` above, which is actual ownership.
+  sharedProfileAccess ProfileAccess[]
+}
+
+/// Grants one Account a toggle (via /settings/profiles) onto a User profile
+/// it doesn't own — e.g. several admins sharing the Box 2 Box brand profile.
+/// The profile stays owned by its original Account; this only adds another
+/// login that can switch onto it. See /api/account/switch-profile.
+model ProfileAccess {
+  id        String   @id @default(cuid())
+  accountId String
+  account   Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  profileId String
+  profile   User     @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([accountId, profileId])
 }
 
 model User {
@@ -408,6 +428,8 @@ model User {
   submittedEvents      Event[] @relation("EventSubmissions")
   submittedGyms        Gym[]   @relation("GymSubmissions")
   claimedGym           Gym?    @relation("GymClaim")
+  // Other Accounts granted a toggle onto this profile — see ProfileAccess.
+  sharedWithAccounts   ProfileAccess[]
   eventParticipations  EventParticipant[]
   eventInterests       EventInterest[]
   eventPins            EventPin[]

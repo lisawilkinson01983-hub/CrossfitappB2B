@@ -20,17 +20,17 @@ export async function POST() {
     return NextResponse.json({ error: "Please wait a while before requesting another email." }, { status: 429 });
   }
 
-  const user = await prisma.user.findUnique({ where: { id: session.user.id }, include: { account: true } });
-  if (!user?.account) {
+  const account = await prisma.account.findUnique({ where: { id: session.user.accountId } });
+  if (!account) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
-  if (user.account.emailVerifiedAt) {
+  if (account.emailVerifiedAt) {
     return NextResponse.json({ ok: true, alreadyVerified: true });
   }
 
   const token = generateToken();
   await prisma.account.update({
-    where: { id: user.account.id },
+    where: { id: account.id },
     data: {
       emailVerificationToken: token,
       emailVerificationTokenExpiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
@@ -39,7 +39,7 @@ export async function POST() {
 
   const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
   const sent = await sendEmail({
-    to: user.account.email,
+    to: account.email,
     subject: "Verify your Box 2 Box email",
     text: `Confirm your email address by visiting this link:\n\n${baseUrl}/verify-email?token=${token}\n\nThis link expires in 24 hours.`,
   });

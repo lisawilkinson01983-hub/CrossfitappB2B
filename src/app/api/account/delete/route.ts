@@ -25,17 +25,17 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Enter your password to confirm" }, { status: 400 });
   }
 
-  const user = await prisma.user.findUnique({ where: { id: session.user.id }, include: { account: true } });
-  if (!user?.account) {
+  const accountId = session.user.accountId;
+  const account = await prisma.account.findUnique({ where: { id: accountId } });
+  if (!account) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  const valid = await bcrypt.compare(password, user.account.passwordHash);
+  const valid = await bcrypt.compare(password, account.passwordHash);
   if (!valid) {
     return NextResponse.json({ error: "Incorrect password" }, { status: 400 });
   }
 
-  const accountId = user.account.id;
   const profiles = await prisma.user.findMany({ where: { accountId }, select: { id: true } });
   const userIds = profiles.map((p) => p.id);
   const unusablePasswordHash = await bcrypt.hash(crypto.randomBytes(32).toString("hex"), 10);
@@ -73,6 +73,12 @@ export async function POST(req: Request) {
     // Gym.claimedById) — onDelete: SetNull only fires on an actual row
     // delete, and these rows are anonymized in place, not deleted.
     prisma.gym.updateMany({ where: { claimedById: { in: userIds } }, data: { claimedById: null } }),
+
+    // Drop any shared-profile toggle (see ProfileAccess) in either
+    // direction: grants this account received onto someone else's profile,
+    // and grants it gave others onto one of its own (now-anonymized)
+    // profiles — onDelete: Cascade only fires on an actual row delete.
+    prisma.profileAccess.deleteMany({ where: { OR: [{ accountId }, { profileId: { in: userIds } }] } }),
 
     // Anonymize the login itself, so it can never sign in again.
     prisma.account.update({

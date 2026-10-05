@@ -17,18 +17,18 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
   }
 
-  const user = await prisma.user.findUnique({ where: { id: session.user.id }, include: { account: true } });
-  if (!user?.account) {
+  const account = await prisma.account.findUnique({ where: { id: session.user.accountId } });
+  if (!account) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  const validPassword = await bcrypt.compare(parsed.data.currentPassword, user.account.passwordHash);
+  const validPassword = await bcrypt.compare(parsed.data.currentPassword, account.passwordHash);
   if (!validPassword) {
     return NextResponse.json({ error: "Current password is incorrect" }, { status: 400 });
   }
 
   const passwordHash = await bcrypt.hash(parsed.data.newPassword, 10);
-  await prisma.account.update({ where: { id: user.account.id }, data: { passwordHash } });
+  await prisma.account.update({ where: { id: account.id }, data: { passwordHash } });
 
   return NextResponse.json({ ok: true });
 }

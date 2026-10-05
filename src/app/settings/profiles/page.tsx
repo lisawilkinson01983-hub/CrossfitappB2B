@@ -12,17 +12,28 @@ export default async function ProfilesSettingsPage() {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) redirect("/login");
 
-  const current = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { accountId: true },
-  });
-  if (!current?.accountId) redirect("/login");
+  const accountId = session.user.accountId;
 
-  const profiles = await prisma.user.findMany({
-    where: { accountId: current.accountId },
-    orderBy: { createdAt: "asc" },
-    select: { id: true, name: true, photo: true, accountType: true },
-  });
+  const [owned, shared] = await Promise.all([
+    prisma.user.findMany({
+      where: { accountId },
+      orderBy: { createdAt: "asc" },
+      select: { id: true, name: true, photo: true, accountType: true },
+    }),
+    // Profiles owned by a different Account but shared with this one — e.g.
+    // the Box 2 Box brand profile shared across more than one admin login
+    // (see ProfileAccess).
+    prisma.profileAccess.findMany({
+      where: { accountId },
+      orderBy: { createdAt: "asc" },
+      select: { profile: { select: { id: true, name: true, photo: true, accountType: true } } },
+    }),
+  ]);
+
+  const profiles = [
+    ...owned.map((p) => ({ ...p, shared: false })),
+    ...shared.map(({ profile }) => ({ ...profile, shared: true })),
+  ];
 
   return (
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">

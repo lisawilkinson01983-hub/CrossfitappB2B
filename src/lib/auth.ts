@@ -51,17 +51,26 @@ export const authOptions: NextAuthOptions = {
         // (see /leaderboard) — best-effort, never blocks login.
         await prisma.loginEvent.create({ data: { userId: profile.id } }).catch(() => {});
 
-        return { id: profile.id, name: profile.name, email: account.email };
+        return { id: profile.id, name: profile.name, email: account.email, accountId: account.id };
       },
     }),
   ],
   callbacks: {
     async jwt({ token, user, trigger, session }) {
-      if (user) token.id = user.id;
+      if (user) {
+        token.id = user.id;
+        // The Account that actually signed in — kept stable for the life of
+        // the token (see below), even once `token.id` moves onto a shared
+        // profile owned by someone else's Account (see ProfileAccess).
+        token.accountId = user.accountId;
+      }
       // Fired by the profile switcher (see /api/account/switch-profile's
       // client call to useSession().update()) — the route itself already
-      // verified the target profile belongs to the same Account before
-      // asking for this, so it's trusted here.
+      // verified the target profile is either owned by this Account or
+      // shared with it via ProfileAccess, so it's trusted here. Only
+      // token.id moves; token.accountId never changes after sign-in, so
+      // account-level actions (change email/password, list/add profiles)
+      // keep acting on the real login even while viewing a shared profile.
       if (trigger === "update" && session?.switchToProfileId) {
         token.id = session.switchToProfileId;
       }
@@ -81,7 +90,10 @@ export const authOptions: NextAuthOptions = {
       if (!profile?.account || profile.account.suspendedAt || profile.account.deletedAt) {
         return { ...session, user: undefined } as unknown as typeof session;
       }
-      if (session.user) session.user.id = token.id as string;
+      if (session.user) {
+        session.user.id = token.id as string;
+        session.user.accountId = token.accountId as string;
+      }
       return session;
     },
   },

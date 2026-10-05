@@ -36,6 +36,7 @@ export default async function AdminSettingsPage() {
               count={pendingVerificationCount}
             />
             <AdminLink href="/admin/notices" label="Send a notice" />
+            <AdminLink href="/admin/brand-access" label="Box 2 Box profile access" />
             {/* A plain <a>, not AdminLink/next/link — it's a file download, not a page. */}
             <a
               href="/api/admin/backup"

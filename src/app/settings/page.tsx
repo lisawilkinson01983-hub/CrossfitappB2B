@@ -12,11 +12,11 @@ export default async function SettingsPage() {
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { isAdmin: true, accountType: true, accountId: true, _count: { select: { referrals: true } } },
+    select: { isAdmin: true, accountType: true, _count: { select: { referrals: true } } },
   });
   if (!user) redirect("/login");
 
-  const [blockCount, muteCount, submissionCount, openReportCount, pendingVerificationCount, profileCount] =
+  const [blockCount, muteCount, submissionCount, openReportCount, pendingVerificationCount, ownedCount, sharedCount] =
     await Promise.all([
       prisma.block.count({ where: { blockerId: session.user.id } }),
       prisma.mute.count({ where: { userId: session.user.id } }),
@@ -25,8 +25,10 @@ export default async function SettingsPage() {
       user.isAdmin
         ? prisma.user.count({ where: { accountType: "AFFILIATE", verificationRequestedAt: { not: null }, verifiedAt: null } })
         : 0,
-      user.accountId ? prisma.user.count({ where: { accountId: user.accountId } }) : 1,
+      prisma.user.count({ where: { accountId: session.user.accountId } }),
+      prisma.profileAccess.count({ where: { accountId: session.user.accountId } }),
     ]);
+  const profileCount = ownedCount + sharedCount;
 
   return (
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">

@@ -10,6 +10,7 @@ type Profile = {
   name: string;
   photo: string | null;
   accountType: "ATHLETE" | "AFFILIATE";
+  shared: boolean;
 };
 
 export function ProfileSwitcherList({
@@ -62,6 +63,7 @@ export function ProfileSwitcherList({
                 <p className="truncate font-medium text-b2b-ink">{profile.name}</p>
                 <p className="text-xs text-b2b-ink/50">
                   {profile.accountType === "AFFILIATE" ? "Affiliate" : "Athlete"}
+                  {profile.shared && " · Shared with you"}
                 </p>
               </div>
             </div>
