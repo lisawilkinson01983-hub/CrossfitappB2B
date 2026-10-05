@@ -85,14 +85,22 @@ export const authOptions: NextAuthOptions = {
       // out.
       const profile = await prisma.user.findUnique({
         where: { id: token.id as string },
-        select: { account: { select: { suspendedAt: true, deletedAt: true } } },
+        select: { accountId: true, account: { select: { suspendedAt: true, deletedAt: true } } },
       });
       if (!profile?.account || profile.account.suspendedAt || profile.account.deletedAt) {
         return { ...session, user: undefined } as unknown as typeof session;
       }
       if (session.user) {
         session.user.id = token.id as string;
-        session.user.accountId = token.accountId as string;
+        // Falls back to this profile's own accountId for a token signed
+        // before accountId existed on it (or otherwise missing it) — never
+        // leaves this undefined. Every route that scopes a query by
+        // session.user.accountId uses Prisma's `where`, and Prisma silently
+        // treats an undefined filter value as "no filter" (matches every
+        // row) rather than "match nothing" — so an unhealed stale token
+        // would leak every account's data, not just deny access to this
+        // one's. Self-heals on the very next request without a re-login.
+        session.user.accountId = (token.accountId as string | undefined) ?? profile.accountId!;
       }
       return session;
     },
