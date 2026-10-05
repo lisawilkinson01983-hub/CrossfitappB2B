@@ -34,6 +34,11 @@ function checkSitePassword(req: NextRequest): NextResponse | null {
   return null;
 }
 
+// Served with their own long-lived Cache-Control (uploaded media is
+// immutable, content-addressed by filename) or just fine to cache as static
+// app chrome — never worth forcing a refetch on every request.
+const CACHEABLE_PREFIXES = ["/media/", "/icon.png", "/apple-icon.png", "/manifest.webmanifest"];
+
 export async function middleware(req: NextRequest) {
   const gateResponse = checkSitePassword(req);
   if (gateResponse) return gateResponse;
@@ -48,7 +53,20 @@ export async function middleware(req: NextRequest) {
     }
   }
 
-  return NextResponse.next();
+  const response = NextResponse.next();
+
+  // Every actual page here is dynamic, per-user data (Discover, feed,
+  // profiles…) — never worth a browser caching a stale copy. Mobile Safari/
+  // Chrome are far more willing than desktop to reuse a cached response
+  // instead of revalidating, especially behind the Basic Auth site gate
+  // above and when installed as a home-screen app (see manifest.ts), which
+  // is the likely cause of a page looking out of date on mobile but not
+  // desktop.
+  if (!CACHEABLE_PREFIXES.some((prefix) => req.nextUrl.pathname.startsWith(prefix))) {
+    response.headers.set("Cache-Control", "no-store, must-revalidate");
+  }
+
+  return response;
 }
 
 export const config = {
