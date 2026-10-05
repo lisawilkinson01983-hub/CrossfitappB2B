@@ -45,8 +45,11 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "That login isn't an admin account" }, { status: 400 });
   }
 
-  if (target.id === session.user.accountId) {
-    return NextResponse.json({ error: "That's your own login" }, { status: 400 });
+  // Pointless (not "you can't grant yourself access") — the only account this
+  // can never apply to is whichever one already owns the profile outright.
+  const siteProfile = await prisma.user.findUnique({ where: { id: profileId }, select: { accountId: true } });
+  if (target.id === siteProfile?.accountId) {
+    return NextResponse.json({ error: "That login already owns this profile" }, { status: 400 });
   }
 
   await prisma.profileAccess.upsert({

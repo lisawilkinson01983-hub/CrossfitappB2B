@@ -17,13 +17,18 @@ export default async function BrandAccessPage() {
   if (!me?.isAdmin) notFound();
 
   const profileId = await getSiteAccountId();
-  const grants = profileId
-    ? await prisma.profileAccess.findMany({
-        where: { profileId },
-        orderBy: { createdAt: "asc" },
-        include: { account: { select: { id: true, email: true } } },
-      })
-    : [];
+  const [grants, siteProfile] = await Promise.all([
+    profileId
+      ? prisma.profileAccess.findMany({
+          where: { profileId },
+          orderBy: { createdAt: "asc" },
+          include: { account: { select: { id: true, email: true } } },
+        })
+      : Promise.resolve([]),
+    profileId
+      ? prisma.user.findUnique({ where: { id: profileId }, select: { name: true, account: { select: { email: true } } } })
+      : Promise.resolve(null),
+  ]);
 
   return (
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
@@ -46,8 +51,16 @@ export default async function BrandAccessPage() {
         </p>
       )}
 
-      {profileId && (
+      {profileId && siteProfile && (
         <>
+          <p className="mt-4 rounded bg-b2b-purple/5 px-3 py-2 text-sm">
+            This resolves to the profile <span className="font-medium">&ldquo;{siteProfile.name}&rdquo;</span>,
+            owned by the login <span className="font-medium">{siteProfile.account?.email}</span>. If that
+            email isn&apos;t the dedicated Box 2 Box account you expect, fix <code>ADMIN_USER_EMAIL</code> in
+            Railway before granting anyone access here — otherwise you&apos;d be sharing a real person&apos;s
+            own account instead.
+          </p>
+
           <div className="mt-6">
             <SectionCard title="Grant access">
               <p className="mb-3 text-sm text-b2b-ink/50">
