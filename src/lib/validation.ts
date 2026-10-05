@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { OTHER_GYM } from "./gyms";
+import { OTHER_GYM, UNAFFILIATED } from "./gyms";
 import { COUNTRIES } from "./countries";
 import { isValidDateOfBirth } from "./age";
 
@@ -144,10 +144,23 @@ export const signupSchema = z.object({
   inviteCode: z.string().trim().optional(),
 });
 
-export const addProfileSchema = z.object({
-  name: z.string().trim().min(1, "Name is required"),
-  accountType: z.enum(["ATHLETE", "AFFILIATE"]),
-});
+/** Treat empty-string form fields as "not provided" instead of failing validation. */
+const emptyToUndefined = (value: unknown) =>
+  value === "" || value === null || value === undefined ? undefined : value;
+
+export const addProfileSchema = z
+  .object({
+    // Required for an ATHLETE profile; an AFFILIATE profile's name is
+    // derived later from whichever gym it picks (see /api/profile), so this
+    // flow doesn't ask for one.
+    name: z.preprocess(emptyToUndefined, z.string().trim().min(1, "Name is required").optional()),
+    accountType: z.enum(["ATHLETE", "AFFILIATE"]),
+  })
+  .superRefine((data, ctx) => {
+    if (data.accountType === "ATHLETE" && !data.name) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Name is required", path: ["name"] });
+    }
+  });
 
 export const forgotPasswordSchema = z.object({
   email: z.string().trim().email("Enter a valid email address"),
@@ -157,10 +170,6 @@ export const resetPasswordSchema = z.object({
   token: z.string().min(1, "Missing reset token"),
   password: z.string().min(8, "Password must be at least 8 characters"),
 });
-
-/** Treat empty-string form fields as "not provided" instead of failing validation. */
-const emptyToUndefined = (value: unknown) =>
-  value === "" || value === null || value === undefined ? undefined : value;
 
 /** Form checkboxes send "on" when checked and nothing at all when unchecked. */
 export const checkboxToBoolean = z.preprocess((v) => v === "on" || v === true, z.boolean());
@@ -178,7 +187,10 @@ const optionalPositiveKg = z.preprocess(emptyToUndefined, z.coerce.number().posi
 
 export const profileSchema = z
   .object({
-    name: z.string().trim().min(1, "Name is required"),
+    // Required for an ATHLETE (see the superRefine below) — an AFFILIATE
+    // profile's name is instead derived server-side from affiliateGym (see
+    // /api/profile), so EditProfileForm doesn't even ask for one.
+    name: z.preprocess(emptyToUndefined, z.string().trim().min(1, "Name is required").optional()),
     // AFFILIATE accounts (a gym, not an athlete) skip level/PBs/relationship/
     // looking-for entirely — see the superRefine below and EditProfileForm.
     accountType: z.enum(ACCOUNT_TYPES).default("ATHLETE"),
@@ -198,6 +210,9 @@ export const profileSchema = z
     // route validates the submitted value against the actual Gym table.
     affiliateGym: z.string().trim().min(1, "Select a gym"),
     affiliateGymOther: z.preprocess(emptyToUndefined, z.string().trim().max(200).optional()),
+    // Only meaningful for an AFFILIATE account — shown as a button on their
+    // profile page (see ProfileDetails).
+    website: z.preprocess(emptyToUndefined, z.string().trim().url("Enter a valid website URL").optional()),
     levels: z.array(z.enum(LEVELS)).max(MAX_LEVELS, `Select up to ${MAX_LEVELS} levels`).default([]),
     crossfitSinceYear: z.preprocess(
       emptyToUndefined,
@@ -226,6 +241,12 @@ export const profileSchema = z
   .superRefine((data, ctx) => {
     if (data.affiliateGym === OTHER_GYM && !data.affiliateGymOther) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Enter your gym name", path: ["affiliateGymOther"] });
+    }
+    if (data.accountType === "ATHLETE" && !data.name) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Name is required", path: ["name"] });
+    }
+    if (data.accountType === "AFFILIATE" && data.affiliateGym === UNAFFILIATED) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Select which gym you run", path: ["affiliateGym"] });
     }
     if (data.accountType === "ATHLETE" && data.levels.length === 0) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Select a level", path: ["levels"] });

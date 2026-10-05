@@ -32,9 +32,14 @@ export async function POST(req: Request) {
   const now = new Date();
   const inviteCode = await generateUniqueInviteCode();
 
+  // An AFFILIATE profile's real name is derived from whichever gym it picks
+  // (see /api/profile) the moment setup finishes — this placeholder only
+  // exists for the brief window until then.
+  const name = parsed.data.accountType === "AFFILIATE" ? "New affiliate profile" : parsed.data.name!;
+
   const profile = await prisma.user.create({
     data: {
-      name: parsed.data.name,
+      name,
       accountType: parsed.data.accountType,
       accountId: current.accountId,
       termsAcceptedAt: now,

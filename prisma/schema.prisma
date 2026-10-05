@@ -286,6 +286,10 @@ model User {
   // for reference so it can be added to the official list later. Never
   // searched/filtered on.
   affiliateGymOther String?
+  // Only asked of an AFFILIATE account (see EditProfileForm) — shown as a
+  // button on their own profile page (see ProfileDetails), separate from the
+  // admin-curated Gym.website on the static directory entry.
+  website String?
   // Deprecated — superseded by `levels` below (an athlete can now hold up to
   // 2 ability levels, e.g. Scaled and Intermediate, to find teams across
   // both). Kept rather than dropped so scripts/backfill-levels.js has

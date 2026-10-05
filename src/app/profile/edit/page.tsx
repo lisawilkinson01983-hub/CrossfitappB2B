@@ -78,6 +78,7 @@ export default async function EditProfilePage() {
               name: user.name,
               photo: user.photo,
               accountType: user.accountType,
+              website: user.website ?? "",
               verificationRequested: user.verificationRequestedAt != null && user.verifiedAt == null,
               isVerified: user.verifiedAt != null,
               bio: user.bio ?? "",

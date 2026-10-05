@@ -7,13 +7,7 @@ import { NavBar } from "@/components/NavBar";
 import { SectionCard } from "@/components/SectionCard";
 import { Avatar } from "@/components/Avatar";
 import { GymBookingButtons } from "@/components/GymBookingButtons";
-import { findVerifiedGymOwner } from "@/lib/gymPages";
-
-function bookingMailto(email: string, type: "Intro Session" | "Drop-in", gymName: string) {
-  const subject = encodeURIComponent(`${type} booking — ${gymName}`);
-  const body = encodeURIComponent(`Hi, I'd like to book a${type === "Intro Session" ? "n" : ""} ${type} at ${gymName}.`);
-  return `mailto:${email}?subject=${subject}&body=${body}`;
-}
+import { bookingMailto, findVerifiedGymOwner } from "@/lib/gymPages";
 
 export default async function GymPage({ params }: { params: Promise<{ name: string }> }) {
   const session = await getServerSession(authOptions);

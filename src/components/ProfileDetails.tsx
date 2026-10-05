@@ -19,9 +19,11 @@ import { SectionCard } from "@/components/SectionCard";
 import { ExpandableAvatar } from "@/components/ExpandableAvatar";
 import { PbCardBody } from "@/components/PbCardBody";
 import { ProfilePosts } from "@/components/ProfilePosts";
+import { GymBookingButtons } from "@/components/GymBookingButtons";
 import { prisma } from "@/lib/prisma";
 import { isSiteAccountEmail } from "@/lib/siteAccount";
 import { calculateAge } from "@/lib/age";
+import { bookingMailto } from "@/lib/gymPages";
 
 function Badge({ label, className }: { label: string; className: string }) {
   return <span className={`rounded-full px-3 py-1 text-xs font-medium ${className}`}>{label}</span>;
@@ -82,6 +84,12 @@ export async function ProfileDetails({
     ? await prisma.gym.findUnique({ where: { name: user.affiliateGym! } })
     : null;
   const gymHref = gymPage ? `/gyms/${encodeURIComponent(gymPage.name)}` : undefined;
+
+  // Only this profile's own verified gym (see Gym.claimedById) — a mere name
+  // match isn't enough, same safety reasoning as the gym page itself (see
+  // findVerifiedGymOwner). Never on your own profile: you can't book at your
+  // own gym.
+  const isVerifiedOwnerHere = isAffiliate && !isOwner && gymPage?.claimedById === user.id;
 
   const badges: ReactNode[] = [];
   if (!isSiteAccount) {
@@ -166,6 +174,37 @@ export async function ProfileDetails({
               {followingCount} following
             </Link>
           </div>
+
+          {isAffiliate && user.website && (
+            <a
+              href={user.website}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="rounded border border-b2b-purple/20 px-4 py-1.5 text-sm font-medium text-b2b-purple hover:border-b2b-purple"
+            >
+              🌐 Visit website
+            </a>
+          )}
+
+          {isVerifiedOwnerHere &&
+            (gymPage!.bookingEmail ? (
+              <div className="flex flex-wrap justify-center gap-2">
+                <a
+                  href={bookingMailto(gymPage!.bookingEmail, "Intro Session", gymPage!.name)}
+                  className="rounded bg-b2b-purple px-4 py-2 text-sm font-medium text-white hover:bg-b2b-purple-dark"
+                >
+                  Book an Intro Session
+                </a>
+                <a
+                  href={bookingMailto(gymPage!.bookingEmail, "Drop-in", gymPage!.name)}
+                  className="rounded bg-b2b-purple px-4 py-2 text-sm font-medium text-white hover:bg-b2b-purple-dark"
+                >
+                  Book a Drop-in
+                </a>
+              </div>
+            ) : (
+              <GymBookingButtons gymId={gymPage!.id} />
+            ))}
 
           {belowActions}
 

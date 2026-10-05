@@ -31,6 +31,7 @@ export async function PATCH(req: Request) {
     country: formData.get("country"),
     affiliateGym: formData.get("affiliateGym"),
     affiliateGymOther: formData.get("affiliateGymOther"),
+    website: formData.get("website"),
     levels: formData.getAll("levels"),
     crossfitSinceYear: formData.get("crossfitSinceYear"),
     crossfitSinceMonth: formData.get("crossfitSinceMonth"),
@@ -112,6 +113,16 @@ export async function PATCH(req: Request) {
   } else if (!data.verificationRequested && current?.verificationRequestedAt && !current?.verifiedAt) {
     verificationFields = { verificationRequestedAt: null, verifiedAt: null };
   }
+  // An affiliate's profile is the gym, so its name is always just the gym's
+  // name rather than something typed separately (see EditProfileForm, which
+  // doesn't even show a Name field for an AFFILIATE account).
+  const name =
+    data.accountType === "AFFILIATE"
+      ? data.affiliateGym === OTHER_GYM
+        ? data.affiliateGymOther!
+        : data.affiliateGym
+      : data.name!;
+
   const areaChanged = data.area !== current?.area;
   const missingCoords = current?.areaLat == null || current?.areaLng == null;
   let areaCoords: { areaLat: number | null; areaLng: number | null } | undefined;
@@ -123,7 +134,7 @@ export async function PATCH(req: Request) {
   await prisma.user.update({
     where: { id: session.user.id },
     data: {
-      name: data.name,
+      name,
       accountType: data.accountType,
       bio: data.bio ?? null,
       dateOfBirth: data.dateOfBirth ?? null,
@@ -133,6 +144,7 @@ export async function PATCH(req: Request) {
       ...areaCoords,
       affiliateGym: data.affiliateGym,
       affiliateGymOther: data.affiliateGym === OTHER_GYM ? data.affiliateGymOther : null,
+      website: data.accountType === "AFFILIATE" ? (data.website ?? null) : null,
       levels: JSON.stringify(data.levels ?? []),
       ...verificationFields,
       crossfitSinceYear: data.crossfitSinceYear ?? null,

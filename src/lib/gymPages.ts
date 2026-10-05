@@ -61,3 +61,10 @@ export async function findVerifiedGymOwner(gymName: string) {
   const gym = await prisma.gym.findUnique({ where: { name: gymName }, select: { claimedBy: { select: { id: true } } } });
   return gym?.claimedBy ?? null;
 }
+
+/** A gym's "Book an Intro Session"/"Book a Drop-in" mailto link, shared by the gym page and the owner's own profile page. */
+export function bookingMailto(email: string, type: "Intro Session" | "Drop-in", gymName: string) {
+  const subject = encodeURIComponent(`${type} booking — ${gymName}`);
+  const body = encodeURIComponent(`Hi, I'd like to book a${type === "Intro Session" ? "n" : ""} ${type} at ${gymName}.`);
+  return `mailto:${email}?subject=${subject}&body=${body}`;
+}

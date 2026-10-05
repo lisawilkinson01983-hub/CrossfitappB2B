@@ -28,6 +28,7 @@ type Initial = {
   name: string;
   photo: string | null;
   accountType: AccountTypeOption;
+  website: string;
   bio: string;
   dateOfBirth: string;
   gender: GenderOption | "";
@@ -71,6 +72,7 @@ export function EditProfileForm({
   const [name, setName] = useState(initial.name);
   const [accountType, setAccountType] = useState<AccountTypeOption>(initial.accountType);
   const isAthlete = accountType === "ATHLETE";
+  const [website, setWebsite] = useState(initial.website);
   const [verificationRequested, setVerificationRequested] = useState(initial.verificationRequested);
   const [bio, setBio] = useState(initial.bio);
   const [dateOfBirth, setDateOfBirth] = useState(initial.dateOfBirth);
@@ -169,7 +171,7 @@ export function EditProfileForm({
     setSubmitting(true);
 
     const formData = new FormData();
-    formData.set("name", name);
+    if (isAthlete) formData.set("name", name);
     formData.set("accountType", accountType);
     formData.set("bio", bio);
     formData.set("area", area);
@@ -190,8 +192,9 @@ export function EditProfileForm({
       if (showAge) formData.set("showAge", "on");
       PB_FIELDS.forEach((field) => formData.set(field, pbs[field]));
       displayedPbs.forEach((field) => formData.append("displayedPbs", field));
-    } else if (verificationRequested) {
-      formData.set("verificationRequested", "on");
+    } else {
+      formData.set("website", website);
+      if (verificationRequested) formData.set("verificationRequested", "on");
     }
     if (isPrivate) formData.set("isPrivate", "on");
     if (photoFile) formData.set("photo", photoFile);
@@ -285,19 +288,25 @@ export function EditProfileForm({
         </div>
       </div>
 
-      <div>
-        <label htmlFor="name" className="block text-sm font-medium">
-          Name
-        </label>
-        <input
-          id="name"
-          type="text"
-          required
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          className="mt-1 w-full rounded border border-gray-300 px-3 py-2 focus:border-b2b-pink focus:outline-none"
-        />
-      </div>
+      {isAthlete ? (
+        <div>
+          <label htmlFor="name" className="block text-sm font-medium">
+            Name
+          </label>
+          <input
+            id="name"
+            type="text"
+            required
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className="mt-1 w-full rounded border border-gray-300 px-3 py-2 focus:border-b2b-pink focus:outline-none"
+          />
+        </div>
+      ) : (
+        <p className="text-xs text-b2b-ink/50">
+          Your profile's name is whichever gym you select below — no need to type it separately.
+        </p>
+      )}
 
       <div>
         <label htmlFor="bio" className="block text-sm font-medium">
@@ -423,6 +432,23 @@ export function EditProfileForm({
           />
         )}
       </div>
+
+      {!isAthlete && (
+        <div>
+          <label htmlFor="website" className="block text-sm font-medium">
+            Website <span className="font-normal text-b2b-ink/50">(optional)</span>
+          </label>
+          <input
+            id="website"
+            type="url"
+            placeholder="https://yourgym.com"
+            value={website}
+            onChange={(e) => setWebsite(e.target.value)}
+            className="mt-1 w-full rounded border border-gray-300 px-3 py-2 focus:border-b2b-pink focus:outline-none"
+          />
+          <p className="mt-1 text-xs text-b2b-ink/50">Shown as a button on your profile.</p>
+        </div>
+      )}
 
       {isAthlete && (
         <fieldset>

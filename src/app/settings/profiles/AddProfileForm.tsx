@@ -67,14 +67,20 @@ export function AddProfileForm() {
         separate from your other profile(s). You'll finish setting it up right after.
       </p>
       {error && <p className="rounded bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
-      <input
-        type="text"
-        placeholder="Name for this profile"
-        required
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-        className="w-full rounded border border-gray-300 px-3 py-2 focus:border-b2b-pink focus:outline-none"
-      />
+      {accountType === "ATHLETE" ? (
+        <input
+          type="text"
+          placeholder="Name for this profile"
+          required
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          className="w-full rounded border border-gray-300 px-3 py-2 focus:border-b2b-pink focus:outline-none"
+        />
+      ) : (
+        <p className="text-xs text-b2b-ink/50">
+          You'll pick which gym you run (and that becomes the profile's name) on the next screen.
+        </p>
+      )}
       <div className="flex gap-4">
         <label className="flex items-center gap-2 text-sm">
           <input
