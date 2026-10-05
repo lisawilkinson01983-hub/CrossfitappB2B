@@ -126,7 +126,9 @@ export async function ProfileDetails({
 
   const metaParts: ReactNode[] = [];
   if (user.area && !isSiteAccount) metaParts.push(<span key="area">{user.area}</span>);
-  if (affiliateGymDisplay && !isSiteAccount) {
+  // Skipped for an AFFILIATE profile — its name already is the gym, so a
+  // link back to the gym's own page here would be pointlessly circular.
+  if (affiliateGymDisplay && !isSiteAccount && !isAffiliate) {
     metaParts.push(
       gymHref ? (
         <Link key="gym" href={gymHref} className="text-b2b-pink underline">
