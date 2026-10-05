@@ -23,7 +23,10 @@ export default async function GymPage({ params }: { params: Promise<{ name: stri
 
   const [me, gym] = await Promise.all([
     prisma.user.findUnique({ where: { id: session.user.id }, select: { isAdmin: true } }),
-    prisma.gym.findUnique({ where: { name: decodeURIComponent(name) } }),
+    prisma.gym.findUnique({
+      where: { name: decodeURIComponent(name) },
+      include: { claimedBy: { select: { id: true, name: true, photo: true } } },
+    }),
   ]);
   if (!gym) notFound();
 
@@ -31,6 +34,7 @@ export default async function GymPage({ params }: { params: Promise<{ name: stri
   // actually go, and not to the affiliate viewing their own gym's page.
   const owner = gym.bookingEmail ? null : await findVerifiedGymOwner(gym.name);
   const canBook = (gym.bookingEmail != null || owner != null) && owner?.id !== session.user.id;
+  const isOwnGym = gym.claimedBy?.id === session.user.id;
 
   return (
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
@@ -50,8 +54,17 @@ export default async function GymPage({ params }: { params: Promise<{ name: stri
       <div className="mt-4 flex flex-col gap-6">
         <SectionCard>
           <div className="flex flex-col items-center gap-3 text-center">
-            <Avatar fallback="gym" photo={gym.photo} name={gym.name} size={112} />
+            <Avatar fallback="gym" photo={gym.claimedBy?.photo ?? gym.photo} name={gym.name} size={112} />
             <h1 className="text-2xl font-bold">{gym.name}</h1>
+
+            {gym.claimedBy && !isOwnGym && (
+              <Link
+                href={`/profile/${gym.claimedBy.id}`}
+                className="text-sm text-b2b-purple underline"
+              >
+                Run by {gym.claimedBy.name} on Box 2 Box
+              </Link>
+            )}
 
             <Link
               href={`/discover?gym=${encodeURIComponent(gym.name)}`}

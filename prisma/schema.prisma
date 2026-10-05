@@ -399,6 +399,7 @@ model User {
   createdEvents        Event[]
   submittedEvents      Event[] @relation("EventSubmissions")
   submittedGyms        Gym[]   @relation("GymSubmissions")
+  claimedGym           Gym?    @relation("GymClaim")
   eventParticipations  EventParticipant[]
   eventInterests       EventInterest[]
   eventPins            EventPin[]
@@ -1220,6 +1221,18 @@ model Gym {
 
   submittedById String?
   submittedBy   User?   @relation("GymSubmissions", fields: [submittedById], references: [id], onDelete: SetNull)
+
+  // The AFFILIATE profile that's been verified (see User.verifiedAt) as
+  // actually running this gym — set automatically the moment an admin
+  // approves their verification request, if its affiliateGym matches this
+  // row's name (see /api/admin/verification-requests/[id]). Once set,
+  // Discover and this gym's own page show that profile's live photo and
+  // link to it, instead of only the static seed/admin-entered details, so
+  // there's one representation of the gym rather than a static page and a
+  // real profile competing. Cleared (not left dangling) if that profile's
+  // account is ever deleted — see /api/account/delete.
+  claimedById String? @unique
+  claimedBy   User?   @relation("GymClaim", fields: [claimedById], references: [id], onDelete: SetNull)
 
   // "manual" for a curated listing, "user_submission" for one submitted in-app.
   source String @default("manual")

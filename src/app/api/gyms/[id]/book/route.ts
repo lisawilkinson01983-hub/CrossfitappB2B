@@ -84,11 +84,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  const me = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { accountType: true, affiliateGym: true, verifiedAt: true },
-  });
-  if (me?.accountType !== "AFFILIATE" || me.affiliateGym !== gym.name || !me.verifiedAt) {
+  if (gym.claimedById !== session.user.id) {
     return NextResponse.json({ error: "Not authorized" }, { status: 403 });
   }
 

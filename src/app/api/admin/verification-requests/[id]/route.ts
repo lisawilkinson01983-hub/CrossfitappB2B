@@ -36,5 +36,22 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         : { verificationRequestedAt: null },
   });
 
+  // Now that they're a confirmed owner, let their own profile stand in for
+  // the gym's directory entry (see Gym.claimedById) instead of just the
+  // static seed/admin-entered page. Releases any gym they'd previously
+  // claimed first, in case they've since switched which gym they run; only
+  // claims the new one if nobody else already has, which would mean two
+  // affiliates claiming the same gym and needs a human to sort out (e.g. via
+  // Prisma Studio) rather than silently picking one.
+  if (action === "approve" && target.affiliateGym) {
+    await prisma.$transaction([
+      prisma.gym.updateMany({ where: { claimedById: target.id }, data: { claimedById: null } }),
+      prisma.gym.updateMany({
+        where: { name: target.affiliateGym, status: "APPROVED", claimedById: null },
+        data: { claimedById: target.id },
+      }),
+    ]);
+  }
+
   return NextResponse.json({ ok: true });
 }

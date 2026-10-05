@@ -69,6 +69,11 @@ export async function POST(req: Request) {
     prisma.mute.deleteMany({ where: { OR: [{ userId: { in: userIds } }, { mutedUserId: { in: userIds } }] } }),
     prisma.notification.deleteMany({ where: { OR: [{ userId: { in: userIds } }, { actorId: { in: userIds } }] } }),
 
+    // Release any gym directory entry a profile here had claimed (see
+    // Gym.claimedById) — onDelete: SetNull only fires on an actual row
+    // delete, and these rows are anonymized in place, not deleted.
+    prisma.gym.updateMany({ where: { claimedById: { in: userIds } }, data: { claimedById: null } }),
+
     // Anonymize the login itself, so it can never sign in again.
     prisma.account.update({
       where: { id: accountId },

@@ -63,7 +63,11 @@ export async function AffiliatesList({
   await Promise.all(AFFILIATE_GYMS.map((name) => ensureGymPage(name)));
 
   const [gyms, currentUser, pendingCount] = await Promise.all([
-    prisma.gym.findMany({ where: { status: "APPROVED" }, orderBy: { name: "asc" } }),
+    prisma.gym.findMany({
+      where: { status: "APPROVED" },
+      orderBy: { name: "asc" },
+      include: { claimedBy: { select: { id: true, photo: true } } },
+    }),
     prisma.user.findUnique({
       where: { id: currentUserId },
       select: { area: true, areaLat: true, areaLng: true, isAdmin: true },
@@ -186,7 +190,7 @@ export async function AffiliatesList({
                 className="flex items-center gap-3 rounded-xl border border-b2b-purple/10 bg-b2b-card p-4 hover:border-b2b-pink"
               >
                 <Link href={`/gyms/${encodeURIComponent(gym.name)}`} className="flex flex-1 items-center gap-3">
-                  <Avatar fallback="gym" photo={gym.photo} name={gym.name} size={48} />
+                  <Avatar fallback="gym" photo={gym.claimedBy?.photo ?? gym.photo} name={gym.name} size={48} />
                   <div className="flex-1">
                     <p className="font-medium">{gym.name}</p>
                     {gym.address && (
