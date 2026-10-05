@@ -7,6 +7,7 @@ import { SectionCard } from "@/components/SectionCard";
 import { DISTANCE_RANGES, distanceMiles, ensureUserAreaCoords, geocode } from "@/lib/geocode";
 import { SearchSuggestInput } from "@/components/SearchSuggestInput";
 import { SearchFilters } from "@/components/SearchFilters";
+import { FollowButton, type FollowStatus } from "@/components/FollowButton";
 
 export type AffiliateSearchParams = {
   q?: string;
@@ -137,6 +138,25 @@ export async function AffiliatesList({
     gym.claimedById !== null || gymNamesWithAffiliate.has(gym.name);
   const representedGyms = currentUser?.isAdmin ? gyms : gyms.filter(isRepresented);
 
+  // So a claimed affiliate's card can offer Follow right there, same as an
+  // athlete's card in Discover's Athletes tab — nobody should have to click
+  // through to the profile just to follow them.
+  const claimedIds = representedGyms
+    .map((gym) => gym.claimedBy?.id)
+    .filter((id): id is string => Boolean(id) && id !== currentUserId);
+  const [myFollows, myPendingRequests] = await Promise.all([
+    prisma.follow.findMany({
+      where: { followerId: currentUserId, followingId: { in: claimedIds } },
+      select: { followingId: true },
+    }),
+    prisma.followRequest.findMany({
+      where: { requesterId: currentUserId, targetId: { in: claimedIds }, status: "PENDING" },
+      select: { targetId: true },
+    }),
+  ]);
+  const myFollowingIds = new Set(myFollows.map((f) => f.followingId));
+  const myPendingIds = new Set(myPendingRequests.map((r) => r.targetId));
+
   const myCoords = currentUser
     ? await ensureUserAreaCoords({ id: currentUserId, ...currentUser }, { background: true })
     : null;
@@ -238,6 +258,13 @@ export async function AffiliatesList({
         <div className="flex flex-col gap-3">
           {visibleGyms.map(({ gym, miles }) => {
             const athleteCount = countByName.get(gym.name) ?? 0;
+            const followStatus: FollowStatus = gym.claimedBy
+              ? myFollowingIds.has(gym.claimedBy.id)
+                ? "following"
+                : myPendingIds.has(gym.claimedBy.id)
+                  ? "pending"
+                  : "none"
+              : "none";
 
             return (
               <div
@@ -268,14 +295,19 @@ export async function AffiliatesList({
                     </p>
                   </div>
                 </Link>
-                {currentUser?.isAdmin && (
-                  <Link
-                    href={`/gyms/${encodeURIComponent(gym.name)}/edit`}
-                    className="shrink-0 text-xs text-b2b-purple underline"
-                  >
-                    Edit
-                  </Link>
-                )}
+                <div className="flex shrink-0 flex-col items-end gap-1">
+                  {gym.claimedBy && gym.claimedBy.id !== currentUserId && (
+                    <FollowButton targetUserId={gym.claimedBy.id} initialStatus={followStatus} />
+                  )}
+                  {currentUser?.isAdmin && (
+                    <Link
+                      href={`/gyms/${encodeURIComponent(gym.name)}/edit`}
+                      className="text-xs text-b2b-purple underline"
+                    >
+                      Edit
+                    </Link>
+                  )}
+                </div>
               </div>
             );
           })}
