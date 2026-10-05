@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { messageSchema } from "@/lib/validation";
+import { summarizeReactions } from "@/lib/reactions";
 
 async function loadOwnMessage(conversationId: string, messageId: string, userId: string) {
   const message = await prisma.message.findUnique({ where: { id: messageId } });
@@ -36,10 +37,15 @@ export async function PATCH(
   const updated = await prisma.message.update({
     where: { id: messageId },
     data: { text: parsed.data.text, editedAt: new Date() },
-    include: { sender: { select: { id: true, name: true } } },
+    include: {
+      sender: { select: { id: true, name: true } },
+      reactions: { select: { emoji: true, userId: true } },
+    },
   });
 
-  return NextResponse.json({ message: updated });
+  return NextResponse.json({
+    message: { ...updated, reactions: summarizeReactions(updated.reactions, session.user.id) },
+  });
 }
 
 export async function DELETE(
@@ -59,11 +65,17 @@ export async function DELETE(
 
   // Soft-deleted, same as Comment/EventNoticeComment — the placeholder text
   // keeps the thread's order and read state intact for everyone else in it.
+  // gifUrl is cleared too, so nothing of the original content still renders.
   const updated = await prisma.message.update({
     where: { id: messageId },
-    data: { text: "[deleted]", deletedAt: new Date() },
-    include: { sender: { select: { id: true, name: true } } },
+    data: { text: "[deleted]", gifUrl: null, deletedAt: new Date() },
+    include: {
+      sender: { select: { id: true, name: true } },
+      reactions: { select: { emoji: true, userId: true } },
+    },
   });
 
-  return NextResponse.json({ message: updated });
+  return NextResponse.json({
+    message: { ...updated, reactions: summarizeReactions(updated.reactions, session.user.id) },
+  });
 }

@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { messageSchema } from "@/lib/validation";
 import { checkRateLimit } from "@/lib/rateLimit";
+import { summarizeReactions } from "@/lib/reactions";
 
 async function loadAuthorizedConversation(conversationId: string, userId: string) {
   const conversation = await prisma.conversation.findUnique({
@@ -37,10 +38,18 @@ export async function GET(_req: Request, { params }: { params: Promise<{ convers
   const messages = await prisma.message.findMany({
     where: { conversationId },
     orderBy: { createdAt: "asc" },
-    include: { sender: { select: { id: true, name: true } } },
+    include: {
+      sender: { select: { id: true, name: true } },
+      reactions: { select: { emoji: true, userId: true } },
+    },
   });
 
-  return NextResponse.json({ messages });
+  return NextResponse.json({
+    messages: messages.map((m) => ({
+      ...m,
+      reactions: summarizeReactions(m.reactions, session.user.id),
+    })),
+  });
 }
 
 export async function POST(req: Request, { params }: { params: Promise<{ conversationId: string }> }) {
@@ -67,9 +76,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ convers
   }
 
   const message = await prisma.message.create({
-    data: { conversationId, senderId: session.user.id, text: parsed.data.text },
+    data: { conversationId, senderId: session.user.id, text: parsed.data.text, gifUrl: parsed.data.gifUrl ?? null },
     include: { sender: { select: { id: true, name: true } } },
   });
 
-  return NextResponse.json({ message });
+  return NextResponse.json({ message: { ...message, reactions: [] } });
 }

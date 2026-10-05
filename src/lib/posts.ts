@@ -1,5 +1,6 @@
 import type { Prisma } from "@prisma/client";
 import { parseTeammateRequests, parseLevels } from "@/lib/labels";
+import { summarizeReactions } from "@/lib/reactions";
 import type { PostCardData } from "@/components/PostCard";
 
 // How many posts the feed loads at a time — both the initial server render
@@ -37,6 +38,7 @@ const postContentInclude = {
     include: {
       user: { select: { id: true, name: true } },
       likes: { select: { userId: true } },
+      reactions: { select: { emoji: true, userId: true } },
     },
   },
   // Who has shared this post — see Post.sharedFromId. Only ever populated on
@@ -107,11 +109,13 @@ export function toPostCardData(post: PostWithCardData, currentUserId: string): P
     comments: original.comments.map((comment) => ({
       id: comment.id,
       text: comment.text,
+      gifUrl: comment.gifUrl,
       createdAt: comment.createdAt,
       author: comment.user,
       parentId: comment.parentId,
       likeCount: comment.likes.length,
       likedByMe: comment.likes.some((like) => like.userId === currentUserId),
+      reactions: summarizeReactions(comment.reactions, currentUserId),
     })),
     shareCount: original.shares.length,
     sharedByMe: original.shares.some((share) => share.userId === currentUserId),

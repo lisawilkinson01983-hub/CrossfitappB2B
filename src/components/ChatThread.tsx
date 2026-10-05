@@ -3,16 +3,21 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { ReportButton } from "@/components/ReportButton";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { ReactionBar } from "@/components/ReactionBar";
+import { GifPicker } from "@/components/GifPicker";
 import { formatTime } from "@/lib/dates";
 import { MentionText } from "@/components/MentionText";
+import type { ReactionSummary } from "@/lib/reactions";
 
 type MessageItem = {
   id: string;
   text: string;
+  gifUrl: string | null;
   createdAt: string;
   editedAt: string | null;
   deletedAt: string | null;
   sender: { id: string; name: string };
+  reactions: ReactionSummary[];
 };
 
 const POLL_INTERVAL_MS = 4000;
@@ -38,6 +43,7 @@ export function ChatThread({
   const [editSaving, setEditSaving] = useState(false);
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [gifPickerOpen, setGifPickerOpen] = useState(false);
 
   useEffect(() => {
     const interval = setInterval(async () => {
@@ -69,6 +75,44 @@ export function ChatThread({
       setMessages((prev) => [...prev, body.message]);
       setText("");
     }
+  }
+
+  async function sendGif(gifUrl: string) {
+    setGifPickerOpen(false);
+    const res = await fetch(`/api/messages/${conversationId}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ gifUrl }),
+    });
+    if (res.ok) {
+      const body = await res.json();
+      setMessages((prev) => [...prev, body.message]);
+    }
+  }
+
+  async function toggleReaction(messageId: string, emoji: string) {
+    const res = await fetch(`/api/messages/${conversationId}/${messageId}/react`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ emoji }),
+    });
+    if (!res.ok) return;
+    const body: { emoji: string; reacted: boolean; reactions: { emoji: string; count: number }[] } =
+      await res.json();
+    setMessages((prev) =>
+      prev.map((m) => {
+        if (m.id !== messageId) return m;
+        const prevByEmoji = new Map(m.reactions.map((r) => [r.emoji, r.reactedByMe]));
+        return {
+          ...m,
+          reactions: body.reactions.map((r) => ({
+            emoji: r.emoji,
+            count: r.count,
+            reactedByMe: r.emoji === body.emoji ? body.reacted : (prevByEmoji.get(r.emoji) ?? false),
+          })),
+        };
+      })
+    );
   }
 
   function startEdit(message: MessageItem) {
@@ -122,11 +166,13 @@ export function ChatThread({
                   <span className="mb-0.5 px-1 text-xs font-medium text-b2b-ink/50">{message.sender.name}</span>
                 )}
                 <div
-                  className={`rounded-2xl px-4 py-2.5 text-sm shadow-sm ${
-                    isMine
-                      ? "rounded-br-md bg-b2b-pink text-white"
-                      : "rounded-bl-md bg-b2b-card text-b2b-ink"
-                  }`}
+                  className={
+                    message.gifUrl && !isDeleted && !isEditing
+                      ? "overflow-hidden rounded-2xl shadow-sm"
+                      : `rounded-2xl px-4 py-2.5 text-sm shadow-sm ${
+                          isMine ? "rounded-br-md bg-b2b-pink text-white" : "rounded-bl-md bg-b2b-card text-b2b-ink"
+                        }`
+                  }
                 >
                   {isEditing ? (
                     <div className="flex flex-col gap-2">
@@ -151,19 +197,29 @@ export function ChatThread({
                         </button>
                       </div>
                     </div>
+                  ) : isDeleted ? (
+                    <p className="whitespace-pre-wrap italic opacity-70">This message was deleted</p>
+                  ) : message.gifUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element -- external, unsized GIF from Tenor
+                    <img src={message.gifUrl} alt="" className="block max-h-64 w-full object-cover" />
                   ) : (
-                    <p className={`whitespace-pre-wrap ${isDeleted ? "italic opacity-70" : ""}`}>
-                      {isDeleted ? (
-                        "This message was deleted"
-                      ) : (
-                        <MentionText
-                          text={message.text}
-                          linkClassName={isMine ? "font-medium underline" : "font-medium text-b2b-pink hover:underline"}
-                        />
-                      )}
+                    <p className="whitespace-pre-wrap">
+                      <MentionText
+                        text={message.text}
+                        linkClassName={isMine ? "font-medium underline" : "font-medium text-b2b-pink hover:underline"}
+                      />
                     </p>
                   )}
                 </div>
+                {!isDeleted && (
+                  <div className="mt-1 px-1">
+                    <ReactionBar
+                      reactions={message.reactions}
+                      onToggle={(emoji) => toggleReaction(message.id, emoji)}
+                      align={isMine ? "end" : "start"}
+                    />
+                  </div>
+                )}
                 <div className="mt-1 flex flex-wrap items-center gap-2 px-1 text-xs text-b2b-ink/40">
                   <span>
                     {formatTime(message.createdAt)}
@@ -171,9 +227,11 @@ export function ChatThread({
                   {!isDeleted && message.editedAt && <span>(edited)</span>}
                   {!isEditing && !isDeleted && isMine && (
                     <>
-                      <button type="button" onClick={() => startEdit(message)} className="hover:underline">
-                        Edit
-                      </button>
+                      {!message.gifUrl && (
+                        <button type="button" onClick={() => startEdit(message)} className="hover:underline">
+                          Edit
+                        </button>
+                      )}
                       <button
                         type="button"
                         onClick={() => setDeleteTargetId(message.id)}
@@ -194,7 +252,16 @@ export function ChatThread({
         <div ref={bottomRef} />
       </div>
 
-      <form onSubmit={handleSubmit} className="mt-2 flex items-center gap-2">
+      <form onSubmit={handleSubmit} className="relative mt-2 flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => setGifPickerOpen((v) => !v)}
+          aria-label="Send a GIF"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-b2b-purple/15 bg-b2b-card text-xs font-semibold text-b2b-ink/60 hover:bg-b2b-purple/5"
+        >
+          GIF
+        </button>
+        {gifPickerOpen && <GifPicker onSelect={sendGif} onClose={() => setGifPickerOpen(false)} />}
         <input
           type="text"
           placeholder="Type a message..."

@@ -37,7 +37,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   }
 
   const comment = await prisma.comment.create({
-    data: { userId: session.user.id, postId, text: parsed.data.text, parentId },
+    data: { userId: session.user.id, postId, text: parsed.data.text, gifUrl: parsed.data.gifUrl ?? null, parentId },
     include: { user: { select: { id: true, name: true } } },
   });
 
@@ -81,11 +81,13 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     comment: {
       id: comment.id,
       text: comment.text,
+      gifUrl: comment.gifUrl,
       createdAt: comment.createdAt,
       author: comment.user,
       parentId: comment.parentId,
       likeCount: 0,
       likedByMe: false,
+      reactions: [],
     },
   });
 }

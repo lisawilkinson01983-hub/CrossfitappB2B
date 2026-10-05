@@ -9,6 +9,7 @@ import { GroupIcon } from "@/components/GroupIcon";
 import { ChatThread } from "@/components/ChatThread";
 import { showsSingleBadge } from "@/lib/labels";
 import { conversationDisplayName } from "@/lib/conversations";
+import { summarizeReactions } from "@/lib/reactions";
 
 export default async function ConversationPage({
   params,
@@ -47,7 +48,10 @@ export default async function ConversationPage({
   const messages = await prisma.message.findMany({
     where: { conversationId },
     orderBy: { createdAt: "asc" },
-    include: { sender: { select: { id: true, name: true } } },
+    include: {
+      sender: { select: { id: true, name: true } },
+      reactions: { select: { emoji: true, userId: true } },
+    },
   });
 
   return (
@@ -83,10 +87,12 @@ export default async function ConversationPage({
           initialMessages={messages.map((m) => ({
             id: m.id,
             text: m.text,
+            gifUrl: m.gifUrl,
             createdAt: m.createdAt.toISOString(),
             editedAt: m.editedAt ? m.editedAt.toISOString() : null,
             deletedAt: m.deletedAt ? m.deletedAt.toISOString() : null,
             sender: m.sender,
+            reactions: summarizeReactions(m.reactions, session.user.id),
           }))}
         />
       </div>

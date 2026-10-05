@@ -2,6 +2,7 @@ import { z } from "zod";
 import { OTHER_GYM, UNAFFILIATED } from "./gyms";
 import { COUNTRIES } from "./countries";
 import { isValidDateOfBirth } from "./age";
+import { REACTION_EMOJIS } from "./reactions";
 
 export const LEVELS = ["SCALED", "INTERMEDIATE", "RX"] as const;
 export type LevelOption = (typeof LEVELS)[number];
@@ -297,8 +298,20 @@ export const postSchema = z.object({
     .transform((v) => v === undefined || v === "true"),
 });
 
-export const commentSchema = z.object({
-  text: z.string().trim().min(1, "Comment can't be empty").max(1000),
+export const commentSchema = z
+  .object({
+    text: z.string().trim().max(1000).optional().default(""),
+    // The GIF's own direct media URL from the search picker (see
+    // src/lib/tenor.ts) — not re-uploaded, just linked.
+    gifUrl: z.preprocess(emptyToUndefined, z.string().trim().url().max(500).optional()),
+  })
+  .refine((data) => data.text.length > 0 || data.gifUrl, {
+    message: "Comment can't be empty",
+    path: ["text"],
+  });
+
+export const reactionSchema = z.object({
+  emoji: z.enum(REACTION_EMOJIS),
 });
 
 export const teammateRequestSchema = z.object({
@@ -468,9 +481,17 @@ export const eventParticipateSchema = z.object({
   teammateIds: z.array(z.string()).max(20).optional().default([]),
 });
 
-export const messageSchema = z.object({
-  text: z.string().trim().min(1, "Message can't be empty").max(2000),
-});
+export const messageSchema = z
+  .object({
+    text: z.string().trim().max(2000).optional().default(""),
+    // The GIF's own direct media URL from the search picker (see
+    // src/lib/tenor.ts) — not re-uploaded, just linked.
+    gifUrl: z.preprocess(emptyToUndefined, z.string().trim().url().max(500).optional()),
+  })
+  .refine((data) => data.text.length > 0 || data.gifUrl, {
+    message: "Message can't be empty",
+    path: ["text"],
+  });
 
 // Empty string clears bookingEmail back to null (routes bookings to in-app
 // messages instead) — see /api/gyms/[id]/book's PATCH.

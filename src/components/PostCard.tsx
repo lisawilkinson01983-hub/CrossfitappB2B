@@ -20,17 +20,22 @@ import { MentionTextarea } from "@/components/MentionTextarea";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { ReportButton } from "@/components/ReportButton";
 import { WorkoutDescriptionToggle } from "@/components/WorkoutDescriptionToggle";
+import { ReactionBar } from "@/components/ReactionBar";
+import { GifPicker } from "@/components/GifPicker";
 import { formatEventDate } from "@/lib/eventDate";
 import { formatDateTime } from "@/lib/dates";
+import type { ReactionSummary } from "@/lib/reactions";
 
 export type CommentData = {
   id: string;
   text: string;
+  gifUrl: string | null;
   createdAt: Date;
   author: { id: string; name: string };
   parentId: string | null;
   likeCount: number;
   likedByMe: boolean;
+  reactions: ReactionSummary[];
 };
 
 export type PostMediaItem = {
@@ -156,6 +161,8 @@ export function PostCard({
   const [replyingToId, setReplyingToId] = useState<string | null>(null);
   const [replyText, setReplyText] = useState("");
   const [replyBusy, setReplyBusy] = useState(false);
+  const [commentGifPickerOpen, setCommentGifPickerOpen] = useState(false);
+  const [replyGifPickerOpen, setReplyGifPickerOpen] = useState(false);
 
   const [deleting, setDeleting] = useState(false);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
@@ -341,6 +348,58 @@ export function PostCard({
     }
   }
 
+  async function sendCommentGif(gifUrl: string) {
+    setCommentGifPickerOpen(false);
+    const res = await fetch(`/api/posts/${post.id}/comments`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ gifUrl }),
+    });
+    if (res.ok) {
+      const body = await res.json();
+      setComments((prev) => [...prev, body.comment]);
+    }
+  }
+
+  async function sendReplyGif(parentId: string, gifUrl: string) {
+    setReplyGifPickerOpen(false);
+    const res = await fetch(`/api/posts/${post.id}/comments`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ gifUrl, parentId }),
+    });
+    if (res.ok) {
+      const body = await res.json();
+      setComments((prev) => [...prev, body.comment]);
+      setReplyingToId(null);
+    }
+  }
+
+  async function toggleCommentReaction(commentId: string, emoji: string) {
+    const res = await fetch(`/api/comments/${commentId}/react`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ emoji }),
+    });
+    if (!res.ok) return;
+    const body: { emoji: string; reacted: boolean; reactions: { emoji: string; count: number }[] } =
+      await res.json();
+    setComments((prev) =>
+      prev.map((c) => {
+        if (c.id !== commentId) return c;
+        const prevByEmoji = new Map(c.reactions.map((r) => [r.emoji, r.reactedByMe]));
+        return {
+          ...c,
+          reactions: body.reactions.map((r) => ({
+            emoji: r.emoji,
+            count: r.count,
+            reactedByMe: r.emoji === body.emoji ? body.reacted : (prevByEmoji.get(r.emoji) ?? false),
+          })),
+        };
+      })
+    );
+  }
+
   async function confirmDelete() {
     setDeleting(true);
     const res = await fetch(`/api/posts/${post.id}`, { method: "DELETE" });
@@ -418,8 +477,12 @@ export function PostCard({
           <div className="text-sm">
             <p>
               <span className="font-semibold">{comment.author.name}</span>{" "}
-              <MentionText text={comment.text} className="text-gray-800" />
+              {!comment.gifUrl && <MentionText text={comment.text} className="text-gray-800" />}
             </p>
+            {comment.gifUrl && (
+              // eslint-disable-next-line @next/next/no-img-element -- external, unsized GIF from Tenor
+              <img src={comment.gifUrl} alt="" className="mt-1 max-h-48 rounded-lg object-cover" />
+            )}
             <div className="mt-0.5 flex items-center gap-3 text-xs text-b2b-ink/50">
               <button
                 type="button"
@@ -432,16 +495,21 @@ export function PostCard({
                 Reply
               </button>
               {comment.author.id === currentUserId ? (
-                <button
-                  type="button"
-                  onClick={() => startEditComment(comment.id, comment.text)}
-                  className="text-b2b-pink hover:underline"
-                >
-                  Edit
-                </button>
+                !comment.gifUrl && (
+                  <button
+                    type="button"
+                    onClick={() => startEditComment(comment.id, comment.text)}
+                    className="text-b2b-pink hover:underline"
+                  >
+                    Edit
+                  </button>
+                )
               ) : (
                 <ReportButton targetType="COMMENT" targetId={comment.id} className="hover:underline" />
               )}
+            </div>
+            <div className="mt-1">
+              <ReactionBar reactions={comment.reactions} onToggle={(emoji) => toggleCommentReaction(comment.id, emoji)} />
             </div>
           </div>
         )}
@@ -452,8 +520,21 @@ export function PostCard({
               e.preventDefault();
               submitReply(comment.id);
             }}
-            className="mt-1 flex gap-2"
+            className="relative mt-1 flex gap-2"
           >
+            <button
+              type="button"
+              onClick={() => setReplyGifPickerOpen((v) => !v)}
+              className="h-fit shrink-0 rounded border border-b2b-purple/15 bg-b2b-card px-2 py-1.5 text-xs font-semibold text-b2b-ink/60 hover:bg-b2b-purple/5"
+            >
+              GIF
+            </button>
+            {replyGifPickerOpen && (
+              <GifPicker
+                onSelect={(url) => sendReplyGif(comment.id, url)}
+                onClose={() => setReplyGifPickerOpen(false)}
+              />
+            )}
             <MentionTextarea
               rows={1}
               value={replyText}
@@ -798,7 +879,17 @@ export function PostCard({
       {showComments && (
         <div className="mt-3 flex flex-col gap-3 border-t border-gray-100 pt-3">
           {topLevelComments.map((c) => renderComment(c, 0))}
-          <form onSubmit={submitComment} className="mt-1 flex gap-2">
+          <form onSubmit={submitComment} className="relative mt-1 flex gap-2">
+            <button
+              type="button"
+              onClick={() => setCommentGifPickerOpen((v) => !v)}
+              className="h-fit shrink-0 rounded border border-b2b-purple/15 bg-b2b-card px-2 py-1.5 text-xs font-semibold text-b2b-ink/60 hover:bg-b2b-purple/5"
+            >
+              GIF
+            </button>
+            {commentGifPickerOpen && (
+              <GifPicker onSelect={sendCommentGif} onClose={() => setCommentGifPickerOpen(false)} />
+            )}
             <MentionTextarea
               rows={1}
               value={commentText}
