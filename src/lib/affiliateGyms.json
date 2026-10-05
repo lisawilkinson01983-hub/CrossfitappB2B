@@ -123,5 +123,353 @@
     "description": "CrossFit 1066 is based in the Old Observer Building in Hastings town centre, entered from Gotham Alley, running classes for everyone seven days a week. Its timetable mixes the workout of the day with conditioning, gymnastics and Olympic weightlifting classes, plus open lifting sessions.",
     "address": "Observer Building, Gotham Alley, Claremont, Hastings, East Sussex, TN34 1HA",
     "website": "https://www.crossfit1066.co.uk/"
+  },
+  {
+    "name": "Sea City CrossFit",
+    "description": "Sea City CrossFit is a CrossFit gym in Portslade, Brighton and Hove, running fully coached group classes that are scalable for all fitness levels and follow a structured, progressive programme. Classes are kept small, with up to eight people, and cover gymnastics, Olympic lifting, strength and endurance. Personal training is also available, including Olympic weightlifting technique and gymnastics sessions.",
+    "address": "Unit 3, 25 Carlton Terrace, Portslade, Brighton, BN41 1XF",
+    "website": "https://www.seacitycrossfit.co.uk/"
+  },
+  {
+    "name": "CrossFit Connect",
+    "description": "CrossFit Connect is a family-run CrossFit gym overlooking Hove seafront, providing functional fitness since 2010 from a 5,200 sq ft facility. Alongside traditional CrossFit classes, it runs Olympic weightlifting and gymnastics sessions. Children and teenagers are catered for through Connect Play for ages 5 to 10 and the Connect Academy programmes for ages 10 to 16.",
+    "address": "Unit 5, Quayside, Basin Road South, Hove, BN41 1WF",
+    "website": "https://www.crossfitconnect.co.uk/"
+  },
+  {
+    "name": "CrossFit Hove",
+    "description": "CrossFit Hove is a CrossFit gym in central Hove offering hour-long coached group classes. Each class includes a warm-up, strength development and a different workout of the day, with an emphasis on personalised coaching. New members start with one-to-one introductory sessions that teach correct movement technique and tailor a short workout to their current fitness level.",
+    "address": "Unit 9, Rear of 64-78 Davigdor Road, Hove, BN3 1RF",
+    "website": "https://www.crossfithove.com/"
+  },
+  {
+    "name": "CrossFit Reigate",
+    "description": "CrossFit Reigate is a community-focused CrossFit gym based at East Lodge Farm in Merstham, set in the Surrey Hills near Redhill. Members learn functional fitness using the CrossFit methodology in coached group classes. The gym also lists HYROX training and runs sessions suitable for a range of ages and abilities.",
+    "address": "Unit 1, East Lodge Farm, Rocky Lane, Merstham, Redhill, RH1 3DS",
+    "website": "https://www.crossfitreigate.co.uk/"
+  },
+  {
+    "name": "XLAB CrossFit Worthing",
+    "description": "XLAB CrossFit Worthing is a 6,000 sq ft CrossFit facility in the Guildbourne Centre in Worthing town centre. It runs coach-led group classes mixing weightlifting, bodyweight movements, cardio and mobility, plus beginners' sessions and a Kickstart programme for newcomers. The site is shared with FitLab Worthing, a HYROX Training Club with a full set of HYROX stations including a sled track.",
+    "address": "Unit 17, Guildbourne Centre, Worthing, BN11 1LZ",
+    "website": "https://www.xlabcrossfit.com/"
+  },
+  {
+    "name": "CrossFit Devils Path",
+    "description": "CrossFit Devils Path is a CrossFit gym in Purley with a facility of over 4,000 sq ft at the Royal Oak Centre on Brighton Road. Classes include CrossFit, Olympic lifting, gymnastics, CrossFit Kids and yoga. The gym is also home to Surrey Weightlifting Club.",
+    "address": "Units 2-5, Royal Oak Centre, Brighton Road, Purley, CR8 2PG",
+    "website": "https://www.crossfitdevilspath.co.uk/"
+  },
+  {
+    "name": "WhiteHart CrossFit",
+    "description": "WhiteHart CrossFit is a coaching-led CrossFit gym near Pulborough station in West Sussex, equipped with Concept2 and Wolverson kit. Its classes use constantly varied functional movements to build strength, endurance and confidence, and are suitable for complete beginners and experienced athletes alike. The gym also runs teens classes for ages 13 and over, coached by qualified CrossFit Teens coaches.",
+    "address": "Unit 10, Station Approach, Pulborough, RH20 1AQ",
+    "website": "https://www.whitehartfitness.com/"
+  },
+  {
+    "name": "Kayi CrossFit Keston",
+    "description": "Kayi CrossFit Keston is a CrossFit gym at Vale Farm in Keston, near Bromley, teaching functional fitness using the CrossFit methodology. It runs six one-hour coached classes a day on weekdays and four at weekends, with workouts scaled for everyone from beginners to experienced athletes. The gym aims to help members improve their health, confidence and strength within a welcoming community.",
+    "address": "Vale Farm, Leaves Green Road, Keston, BR2 6DQ",
+    "website": "https://kayicrossfit.com/"
+  },
+  {
+    "name": "CrossFit Tigerlily",
+    "description": "CrossFit Tigerlily is a CrossFit gym on Brookside Business Park in Rustington, near Littlehampton, offering coach-led fitness classes from Monday to Saturday. Sessions combine strength training, cardio, gymnastics and mobility work for well-rounded fitness, with certified coaches helping members master technique and progress safely. Newcomers can try a first class free.",
+    "address": "Unit 9, Brookside Business Park, Brookside Avenue, Rustington, Littlehampton, BN16 3LP",
+    "website": "https://www.crossfittigerlily.com/"
+  },
+  {
+    "name": "CrossFit Orpington",
+    "description": "CrossFit Orpington runs coached CrossFit classes for all levels, six days a week from early-morning to evening sessions, based at the Bromley Valley Gymnastics Centre with free on-site parking. Alongside daily CrossFit, it offers Hyrox-focused Sweat classes on Saturdays, small-group training for more personalised coaching, a Kids programme for ages 5–9 and a Teens programme for ages 10–14.",
+    "address": "Bromley Valley Gymnastics Centre, 117 Chipperfield Road, Orpington, BR5 2QR",
+    "website": "https://crossfitorpington.co.uk/"
+  },
+  {
+    "name": "CrossFit Great Stour",
+    "description": "CrossFit Great Stour has run CrossFit classes in Ashford since 2014 from a two-floor facility with a rig, barbells, kettlebells and ergs for Olympic lifting, gymnastics and mobility work. Classes are kept small and fully coached, with beginners' courses for newcomers, and separate CFGS Minis, Kids and Teens classes using the Brand X methodology.",
+    "address": "Unit 3, Stag Park, Leacon Road, Ashford, Kent, TN23 4TW",
+    "website": "https://crossfitgreatstour.co.uk/"
+  },
+  {
+    "name": "CrossFit Guildford",
+    "description": "CrossFit Guildford runs small CrossFit classes led by qualified coaches, covering high-intensity training, strength and conditioning, and kids' sessions at Pews Corner on the Old Portsmouth Road. It shares its premises with Guildford Weightlifting, offering individual Olympic weightlifting programmes coached by British Weightlifting coaches, with support for lifters entering competitions.",
+    "address": "Unit 2 Pews Corner, Old Portsmouth Road, Guildford, Surrey, GU3 1LP",
+    "website": "https://www.crossfitguildford.co.uk/"
+  },
+  {
+    "name": "NWK CrossFit Maidstone",
+    "description": "NWK CrossFit Maidstone is the Maidstone site of NWK, which also runs a gym in Gravesend, based in the Baltic Wharf Retail Centre. It offers coached one-hour CrossFit classes in which members complete scaled versions of the same workout, alongside gymnastics, bootcamp and barbell sessions, with a beginners' course for newcomers and group classes for all levels.",
+    "address": "Unit G9, Baltic Wharf Retail Centre, St Peter's Street, Maidstone, Kent, ME16 0ST",
+    "website": "https://nwkfit.com/"
+  },
+  {
+    "name": "CrossFit Against The Fire",
+    "description": "CrossFit Against The Fire, trading as ATF Fitness, is a family-run, coach-led CrossFit gym on the Europa Trading Estate in Erith with parking for members. Its 60-minute CrossFit classes, capped at small numbers, combine a warm-up, strength or skill work, accessory work and a high-intensity workout, with additional gymnastics, weightlifting, cardio and open gym sessions. It also hosts the Fire Throwdown competition.",
+    "address": "Unit N7, Europa Trading Estate, Erith, DA8 1QL",
+    "website": "https://www.againstthefire.co.uk/"
+  },
+  {
+    "name": "Southtons Fitness",
+    "description": "Southtons Fitness is a CrossFit-affiliated gym on Emir Business Park in Ashford, offering constantly varied functional fitness classes under certified coaches. Its programmes include Build, focused on physique and strength, Train, aimed at endurance and overall fitness, and Teams for group-based training, alongside one-to-one personal training. Classes run from early morning to evening on weekdays, with weekend morning sessions.",
+    "address": "Unit 9, Emir Business Park, Wotton Road, Ashford, Kent, TN23 6JY",
+    "website": "https://www.southtonsfitness.co.uk/"
+  },
+  {
+    "name": "CrossFit Sidcup",
+    "description": "CrossFit Sidcup is a community-based CrossFit gym based at Sidcup Rugby Club, opened in May 2023. It offers CrossFit classes for all fitness levels alongside nutrition programmes, plus Youth CrossFit classes for children aged 3 to 15. Free trial sessions are available and classes are booked through the Wodify app.",
+    "address": "Sidcup Rugby Club, 49 Sydney Road, Sidcup, Kent, DA14 6RA",
+    "website": "https://crossfitsidcup.co.uk/"
+  },
+  {
+    "name": "Aphobos CrossFit",
+    "description": "Aphobos CrossFit is a Bromley gym offering CrossFit, Olympic weightlifting, gymnastics and mobility classes for all abilities, with several CrossFit classes each weekday and fewer at weekends. Newcomers start with the Aphobos Academy fundamentals course, and the gym also runs a Kids and Teens strength and conditioning class and nutrition services. The site has on-site parking.",
+    "address": "54 Stanley Road, Bromley, Kent, BR2 9JH",
+    "website": "https://www.aphoboscrossfit.com/"
+  },
+  {
+    "name": "Ascension Training – CrossFit Epsom",
+    "description": "Ascension Training, home of CrossFit Epsom, offers group CrossFit classes with structured programming covering weightlifting, gymnastics and conditioning, alongside Olympic weightlifting, Hyrox and Engine Club conditioning sessions. It also runs a Fit 4 Life / adaptive programme for people with long-term health conditions or aged over 60, kids and teens sessions, personal training, and on-site nutrition coaching and physiotherapy.",
+    "address": "Unit 2, Eclipse Estate, 30 West Hill, Epsom, Surrey, KT19 8JD",
+    "website": "https://www.ascensiontrainingcollective.co.uk/"
+  },
+  {
+    "name": "CrossFit Chichester",
+    "description": "CrossFit Chichester is a family-run CrossFit box on Summersdale Retail Park at Lavant, offering CrossFit and Hyrox classes, strength training for beginners and programmes for over-50s. It also provides personal training, a Rebuild programme focused on mobility and injury prevention, physiotherapy-led rehabilitation, transformation programmes, and a CrossFit Kids class for children aged five and over.",
+    "address": "Unit 3, Summersdale Retail Park, Lavant Road, Chichester, PO19 5RD",
+    "website": "https://www.crossfitchichester.com/"
+  },
+  {
+    "name": "CrossFit BattleBox",
+    "description": "CrossFit BattleBox is a large CrossFit and HYROX gym in South Woodford on the London/Essex border. Its timetable includes daily WOD classes, Olympic Weightlifting, Bootcamp and METCON/HYROX sessions, with around 11 dedicated HYROX classes each week built around the race format. It also runs Legends classes for over-60s and CrossFit Teens sessions for ages 11 to 17.",
+    "address": "Unit 3B, 4 Raven Road, South Woodford, London E18 1HB",
+    "website": "https://crossfitbattlebox.com/"
+  },
+  {
+    "name": "CrossFit Weyside",
+    "description": "CrossFit Weyside is a Guildford gym offering CrossFit and weightlifting classes alongside one-to-one personal coaching. Its CrossFit classes mix strength, conditioning, Olympic weightlifting, gymnastics and mobility. The gym also runs Mums & Dads classes on weekday mornings with free childcare in an on-site crèche.",
+    "address": "The Riverside, Guildford GU1 4EH",
+    "website": "https://www.crossfitweyside.co.uk/"
+  },
+  {
+    "name": "White Cliffs CrossFit",
+    "description": "White Cliffs CrossFit is a fully coached gym on the Shorncliffe Industrial Estate in Folkestone, Kent. It runs CrossFit classes combining strength training, cardio and functional movements, as well as small group personal training and dedicated HYROX training. Members also have open gym access, and the facility has showers and on-site parking.",
+    "address": "Unit 1, 12 Ross Way, Shorncliffe Industrial Estate, Folkestone, Kent CT20 3UJ",
+    "website": "https://whitecliffscrossfit.com/"
+  },
+  {
+    "name": "CrossFit Medway",
+    "description": "CrossFit Medway is a coached gym on Gillingham Business Park in Kent, running more than 200 sessions a month. Its programme covers CrossFit, HYROX, gymnastics and weightlifting classes. New members start with a consultation and assessment before joining the group classes, and there are regular coach check-ins.",
+    "address": "Unit 4, Crusader Close, Gillingham Business Park, Gillingham, Kent ME8 0PR",
+    "website": "https://www.crossfit-medway.co.uk/"
+  },
+  {
+    "name": "CrossFit Thurrock",
+    "description": "CrossFit Thurrock is a CrossFit gym on the Globe Industrial Estate in Grays, offering group workouts, nutrition guidance, personal training, injury rehabilitation and education. Its programme includes fully coached CrossFit classes, Olympic Weightlifting sessions and gymnastics sessions on rings, bars and calisthenics. New members start with a Foundations programme, and there is a kids' programme for ages 5 to 7.",
+    "address": "Warehouse 8, Globe Industrial Estate, Grays, Essex RM17 6ST",
+    "website": "https://crossfitthurrock.com/"
+  },
+  {
+    "name": "NewWave CrossFit",
+    "description": "NewWave CrossFit is a CrossFit and personal training facility at Bramley Hedge Farm in Cobham, Surrey, where people of all ages and abilities train together. Its classes cover CrossFit, HYROX, weightlifting, gymnastics and conditioning, along with Fit For Life sessions for over-65s focused on strength, mobility and balance. Memberships include open gym access and the full set of programming tracks.",
+    "address": "Unit 9D, Bramley Hedge Farm, Redhill Road, Cobham, Surrey KT11 1EQ",
+    "website": "https://newwavecrossfit.com/"
+  },
+  {
+    "name": "Motion CrossFit GU1",
+    "description": "Motion CrossFit GU1 is the Guildford gym of Motion Training, located at Woodbridge Meadows just north of the town centre with on-site parking. Its timetable runs seven days a week with up to seven classes a day, covering CrossFit, conditioning, gymnastics, weightlifting, strength, Buggy Fit and open gym. New members start with a free trial and a short Fundamentals course.",
+    "address": "9A Woodbridge Meadows, Guildford, Surrey GU1 1BA",
+    "website": "https://motiontraining.co.uk/guildford/"
+  },
+  {
+    "name": "CrossFit Aldgate",
+    "description": "CrossFit Aldgate is a CrossFit gym on Alie Street in the City of London fringe near Aldgate, run by Movement Labs, which also operates a site in Farringdon. Its 45-minute classes are coached from start to finish, reservation-only and limited in size. Alongside CrossFit group classes, it offers mobility, Olympic weightlifting and strongman sessions.",
+    "address": "78 Alie Street, London E1 8PZ",
+    "website": "https://crossfitaldgate.com/"
+  },
+  {
+    "name": "CrossFit GMT",
+    "description": "CrossFit GMT is a gym in East Greenwich, a short walk from the Cutty Sark, offering group classes for all fitness levels. Its 60-minute CrossFit classes use functional movements to build strength, cardiovascular fitness and technique. It also runs Olympic weightlifting classes focused on the clean and jerk and snatch, along with conditioning, yoga and Pilates sessions and personal training.",
+    "address": "55 Banning Street, London SE10 0YH",
+    "website": "https://crossfitgmt.co.uk/"
+  },
+  {
+    "name": "Quayside CrossFit",
+    "description": "Quayside CrossFit is a CrossFit gym at Standard Quay in Faversham, Kent, open since May 2019 and catering to both newcomers and experienced athletes. It offers coached high-intensity functional fitness classes based on constantly varied CrossFit workouts, along with open gym sessions and personal training options.",
+    "address": "Workshop 2, Abbey Road, Standard Quay, Faversham, Kent ME13 7BS",
+    "website": "https://www.quaysidecrossfit.com/"
+  },
+  {
+    "name": "CrossFit Raeda",
+    "description": "CrossFit Raeda is based in a converted barn unit at Esgors Farm in Thornwood, near Epping. It runs CrossFit, functional fitness and dedicated HYROX classes, alongside open gym sessions and a weightlifting club. The gym also offers off-peak daytime classes and a Continuum programme of sessions designed for over-60s.",
+    "address": "Unit 3 The Barns, Esgors Farm, High Road, Thornwood, Epping, Essex CM16 6LY",
+    "website": "https://www.crossfitraeda.co.uk/"
+  },
+  {
+    "name": "NWK CrossFit",
+    "description": "NWK CrossFit is a functional fitness gym at Brewhouse Yard in Gravesend, teaching constantly varied CrossFit workouts under the guidance of certified coaches. New members can start with an introductory course of six hour-long sessions, and the gym also runs one-to-one personal training programmes for those wanting extra support or with specific requirements.",
+    "address": "Brewhouse Yard, via Queen Street, Gravesend, Kent DA12 2EJ",
+    "website": "https://nwkfit.com/"
+  },
+  {
+    "name": "CrossFit TwentyThree",
+    "description": "CrossFit TwentyThree is a purpose-built CrossFit gym in Forest Hill, south-east London, with a main CrossFit floor and a separate open gym area called The Workshop. It runs 60-minute CrossFit, HYROX, gymnastics and barbell classes plus a Super Saturday session, with constantly varied workouts scaled to different experience levels.",
+    "address": "74 Malham Road, Forest Hill, London SE23 1AG",
+    "website": "https://crossfittwentythree.com/"
+  },
+  {
+    "name": "CrossFit Bosham",
+    "description": "CrossFit Bosham is based on Southfields Industrial Park near Chichester and runs CrossFit and HYROX classes alongside speciality blocks of five to seven weeks focusing on gymnastics, Olympic lifting, engine or strength. It also offers a Masters programme for athletes aged 50 and over, Teens and Juniors classes, nutrition support and personal training sessions.",
+    "address": "Unit 5 Southfields Industrial Park, Delling Lane, Bosham, Chichester PO18 8NW",
+    "website": "https://crossfitbosham.co.uk/"
+  },
+  {
+    "name": "CrossFit Shapesmiths",
+    "description": "CrossFit Shapesmiths occupies a series of railway arches at Clapham Junction, serving Battersea, Wandsworth and Clapham from more than 14,000 sq ft of training space. It runs over 180 classes a week covering CrossFit, Olympic weightlifting, functional bodybuilding and endurance training, together with youth programmes and community events.",
+    "address": "Units 1–4 Arches, 1–7 Grant Road, London SW11 2NU",
+    "website": "https://www.shapesmiths.com/"
+  },
+  {
+    "name": "CrossFit One More Rep",
+    "description": "CrossFit One More Rep is a 4,000 sq ft CrossFit gym on Parr Street in north London, near Hoxton. It runs one-hour coached CrossFit classes with scaled versions of each workout, plus dedicated weightlifting classes focused on the clean, jerk and snatch, and gymnastics classes covering skills such as pull-ups, handstands and muscle-ups. HYROX and mobility sessions are also offered.",
+    "address": "22 Parr Street, London N1 7GW",
+    "website": "https://crossfitonemorerep.com/"
+  },
+  {
+    "name": "Esprit de Corps CrossFit",
+    "description": "Esprit de Corps CrossFit is a CrossFit gym on Mill Lane in Alton, Hampshire, a short walk from the railway station. It runs coached CrossFit classes combining strength, cardio and functional movements, with an open gym timetable and personal training. The gym also offers a teen programme for 11 to 15-year-olds and nutrition coaching.",
+    "address": "3 & 4 Coomber Buildings, Mill Lane, Alton, Hampshire GU34 2QJ",
+    "website": "https://edccrossfit.com/"
+  },
+  {
+    "name": "CrossFit Canning Town",
+    "description": "CrossFit Canning Town is a CrossFit gym in east London, close to Canning Town station with transport links to Canary Wharf and North Greenwich. It offers structured, coached CrossFit classes with varied workouts designed to build strength, fitness and confidence, catering for a range of fitness levels.",
+    "address": "5 Minnie Baldock Street, London E16 1YE",
+    "website": "https://www.crossfitcanningtown.com/"
+  },
+  {
+    "name": "E1 CrossFit",
+    "description": "E1 CrossFit is a CrossFit gym at the London Dock development in Wapping, east London, equipped with barbells, dumbbells, kettlebells, rowers and gymnastic rings. It runs small-group CrossFit classes and a wider programme of functional fitness, strength, gymnastics and conditioning sessions for all ages and abilities, as well as private training sessions.",
+    "address": "1 Merino Gardens, London E1W 2DF",
+    "website": "https://www.e1crossfit.co.uk/"
+  },
+  {
+    "name": "CrossFit Esher",
+    "description": "CrossFit Esher is a family-run, physio-led CrossFit affiliate based at the Rugby Grandstand in East Molesey, Surrey. It runs group CrossFit classes and HYROX training, alongside personal training and recovery services. The gym follows a 'Fitness For All' ethos aimed at families and the wider local community, and also hosts after-school children's sessions.",
+    "address": "Rugby Grandstand, East Molesey, Surrey, KT8 0BT",
+    "website": "https://www.crossfitesher.co.uk/"
+  },
+  {
+    "name": "CrossFit Central London",
+    "description": "CrossFit Central London is a long-established CrossFit gym in railway arches on Ewer Street, Bankside, a few minutes from Southwark, London Bridge and Waterloo. Its timetable covers CrossFit WODs, beginners' classes, dedicated Olympic Weightlifting and Gymnastics sessions, kettlebells and yoga. Classes are coached and structured to cater for all fitness levels.",
+    "address": "55-57 Ewer Street, London SE1 0NR",
+    "website": "https://www.crossfitcentrallondon.co.uk/"
+  },
+  {
+    "name": "CrossFit Dawn",
+    "description": "CrossFit Dawn is a CrossFit gym in Leytonstone, East London, running more than 50 coached sessions a week that combine strength training, cardio and functional movements. Alongside its CrossFit classes it offers dedicated HYROX training, personal training and a nutrition coaching programme. New members start with a free one-to-one consultation to discuss their goals and starting point.",
+    "address": "Unit 253 Joseph Ray Road, Leytonstone, London E11 4RA",
+    "website": "https://crossfitdawn.com/"
+  },
+  {
+    "name": "The Wick CrossFit",
+    "description": "The Wick CrossFit is an inclusive functional fitness community based in Hackney Wick, East London. It runs coached CrossFit classes throughout the week, with separate Gymnastics and Olympic Lifting sessions. Newcomers start with Foundations classes for beginners, held several times a week, before joining the main timetable.",
+    "address": "17 Rothbury Road, Hackney Wick, London E9 5HA",
+    "website": "https://thewickcrossfit.com/"
+  },
+  {
+    "name": "CrossFit Farringdon",
+    "description": "CrossFit Farringdon is a coached training gym on Cowcross Street, a minute from Farringdon station and close to Barbican, St Paul's and Chancery Lane. It runs reservation-only, 45-minute small-group CrossFit sessions throughout the day, with every session led by a coach and adapted to each member's ability. It is operated by Movement Labs alongside a sister gym in Aldgate.",
+    "address": "9-13 Cowcross Street, London EC1M 6DR",
+    "website": "https://crossfitfarringdon.com/"
+  },
+  {
+    "name": "CrossFit 1864",
+    "description": "CrossFit 1864 is a coach-led strength and fitness gym in Poplar, East London, around 15 minutes' walk from Canary Wharf. It runs 60-minute small-group classes capped at 10, alongside powerlifting, gymnastics, Olympic lifting and personal training. Newcomers follow a structured Beginners Programme, and the gym also runs kids' fitness classes for ages 5 to 15.",
+    "address": "Unit B05, Poplar Business Park, 10 Preston's Road, London E14 9RL",
+    "website": "https://www.crossfit1864.com/"
+  },
+  {
+    "name": "CrossFit Islington",
+    "description": "CrossFit Islington is a functional fitness gym on Tollington Park, near Finsbury Park in North London. It runs coached CrossFit classes and programmes for a range of goals and fitness levels, with options for both beginners and experienced athletes. It also offers personal training in one-to-one or small-group formats and organises social events for its members.",
+    "address": "6B Tollington Park, London N4 3QX",
+    "website": "https://crossfitislington.co.uk/"
+  },
+  {
+    "name": "Funk Training Club",
+    "description": "Funk Training Club is a CrossFit and functional fitness gym on Sandycombe Road in Kew, Richmond, focused on coaching and community. Its timetable includes CrossFit, Stronger (strength), Engine (conditioning), Team Training and 75-minute Weightlifting classes covering the snatch and clean and jerk. Members can also use open gym time and competition programming, and the venue has wheelchair-accessible facilities.",
+    "address": "11E Sandycombe Road, Kew, Richmond, London TW9 2EP",
+    "website": "https://www.funktrainingclub.com/"
+  },
+  {
+    "name": "CrossFit Walthamstow",
+    "description": "CrossFit Walthamstow is a training facility off Blackhorse Lane in Walthamstow, East London. It runs a range of coached classes, from CrossFit and Conditioning to specialty Olympic Weightlifting and Gymnastics sessions, with open gym time also available. First-timers can book a free trial, including a CrossFit Foundations session for those new to the method.",
+    "address": "17A Forest Trading Estate, Walthamstow, London E17 6AL",
+    "website": "https://www.crossfitwalthamstow.com/"
+  },
+  {
+    "name": "CrossFit Sunbury",
+    "description": "CrossFit Sunbury is a community-focused CrossFit gym at the Summit Centre in Sunbury-on-Thames, open seven days a week. It runs daily CrossFit classes through the mornings and evenings, supplemented by masterclasses with specialist coaches in Olympic lifting and gymnastics. The gym also organises events outside the gym with an extra focus on running and swimming.",
+    "address": "Unit 1B, The Summit Centre, Hanworth Road, Sunbury-on-Thames TW16 5DB",
+    "website": "https://crossfitsunbury.com/"
+  },
+  {
+    "name": "CrossFit Vauxhall",
+    "description": "CrossFit Vauxhall is a CrossFit gym based in railway arches on Miles Street, close to Vauxhall station in south London. It combines structured group classes with personal training and physio support, and its timetable covers WODs, Olympic weightlifting, kettlebells, yoga and dedicated beginners' sessions. The gym is open seven days a week.",
+    "address": "Railway Arches 15-16, Miles Street, London SW8 1RZ",
+    "website": "https://crossfitvauxhall.co.uk"
+  },
+  {
+    "name": "New Horizon CrossFit",
+    "description": "New Horizon CrossFit is a CrossFit gym at The Cowshed on Woodhall Farm, just off the A1000 at Mill Green near Hatfield. It runs coached CrossFit classes for all experience levels alongside endurance, weightlifting and mobility sessions, with weightlifting platforms and cardio equipment on site. Members can also book personal training, follow personalised programmes and use open gym seven days a week.",
+    "address": "Unit 2, The CowShed, Woodhall Farm, Hatfield AL9 5NU",
+    "website": "https://newhorizoncrossfit.co.uk/"
+  },
+  {
+    "name": "CrossFit 249",
+    "description": "CrossFit 249 is a community-focused CrossFit gym at the Smeed Dean Centre in Sittingbourne, Kent, welcoming people of all fitness levels. Its coached classes use scalable, constantly varied workouts that combine strength, cardio and functional movements. Alongside group classes, the gym provides personal coaching, nutrition guidance and accountability support to help members work towards their own goals.",
+    "address": "C3 Smeed Dean Centre, Castle Road, Sittingbourne, Kent ME10 3RS",
+    "website": "https://www.crossfit249.uk/"
+  },
+  {
+    "name": "CrossFit Holloway",
+    "description": "CrossFit Holloway is a CrossFit gym in a railway arch on Holloway Road in north London, near Holloway Road station. It runs coach-led group classes through the day, from early morning to evening sessions, typically pairing a barbell strength or Olympic weightlifting component with a high-intensity conditioning workout, scaled to suit members of different abilities.",
+    "address": "Arch 3, 303 Holloway Road, London N7 8HS",
+    "website": "https://www.crossfitholloway.co.uk/"
+  },
+  {
+    "name": "BALDR CrossFit",
+    "description": "BALDR CrossFit is a CrossFit gym in Deptford, south-east London, around ten minutes' walk from Deptford and New Cross stations, with over 2,400 sq ft of training space. It aims to provide an inclusive space for people of all abilities, offering CrossFit, endurance, weightlifting and gymnastics classes, as well as small-group and one-to-one personal training.",
+    "address": "Unit 2, 82-84 Childers Street, London SE8 5FS",
+    "website": "https://www.baldrcrossfit.com/"
+  },
+  {
+    "name": "TIO CrossFit",
+    "description": "TIO CrossFit is an outdoor CrossFit gym based at Rosslyn Park rugby club in Roehampton, south-west London, operating since 2018. Its fully coached CrossFit classes are scalable for all levels, and it also runs TIOROX hybrid-race conditioning sessions, Base strength classes with weekly progression, and Barbell classes focused on the snatch and clean and jerk. New members complete a Foundations course first.",
+    "address": "Rosslyn Park Rugby Club, Priory Lane, London SW15 5JH",
+    "website": "https://www.tiocrossfit.com/"
+  },
+  {
+    "name": "Motion CrossFit Surbiton",
+    "description": "Motion CrossFit Surbiton is a CrossFit gym on Ewell Road in Surbiton, opened in 2018 and run by Motion Training, which also operates a gym in Guildford. Its timetable includes CrossFit, strength, conditioning, gymnastics and weightlifting classes on weekdays and weekends, plus a beginners' course and open gym. The site has its own private car park.",
+    "address": "Unit B, 5 Ewell Road, Surbiton KT6 6AB",
+    "website": "https://motiontraining.co.uk/surbiton/"
+  },
+  {
+    "name": "CrossFit Harrow",
+    "description": "CrossFit Harrow is a CrossFit gym on the Phoenix Industrial Centre in Harrow, north-west London, running small group classes for all fitness levels. Each group session includes a warm-up, a skill or strength component and a workout of the day scaled to the individual. The gym also offers personal training, small-group personal training and nutrition coaching.",
+    "address": "Unit E3, Phoenix Industrial Centre, Rosslyn Crescent, Harrow HA1 2SP",
+    "website": "https://crossfitharrow.com/"
+  },
+  {
+    "name": "CrossFit Tooting",
+    "description": "CrossFit Tooting is a CrossFit gym on Langroyd Road, a few minutes from Tooting Bec Underground station in south London. Its daily CrossFit classes cover Olympic lifting, gymnastics and strength and conditioning for all levels, alongside HYROX, Tri Fit hybrid strength classes and MakeMomStrong postnatal sessions. Personal training and in-house physiotherapy are also available.",
+    "address": "22A Langroyd Road, London SW17 7PL",
+    "website": "https://www.crossfittooting.co.uk/"
+  },
+  {
+    "name": "CrossFit Streatham",
+    "description": "CrossFit Streatham is a CrossFit gym just off Streatham High Road, overlooking Streatham Green and close to local train and bus routes in south London. It runs coach-led group classes including CrossFit, HYROX and MakeMomStrong postnatal fitness, alongside personal training and wellness services such as massage. It is the sister gym of CrossFit Tooting.",
+    "address": "292 Streatham High Road, London SW16 6HG",
+    "website": "https://www.crossfitstreatham.com/"
   }
 ]
