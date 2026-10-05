@@ -33,19 +33,19 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "An affiliate with that name already exists" }, { status: 400 });
   }
 
+  // Optional — a gym with none shows the generic gym icon (see Avatar's
+  // `fallback="gym"`) until someone (the real owner, or an admin) adds one.
   const image = formData.get("image");
-  if (!(image instanceof File) || image.size === 0) {
-    return NextResponse.json({ error: "An affiliate image is required" }, { status: 400 });
-  }
-
-  let photoPath: string;
-  try {
-    photoPath = await savePhotoUpload(image, session.user.id);
-  } catch (err) {
-    if (err instanceof PhotoUploadError) {
-      return NextResponse.json({ error: err.message }, { status: 400 });
+  let photoPath: string | null = null;
+  if (image instanceof File && image.size > 0) {
+    try {
+      photoPath = await savePhotoUpload(image, session.user.id);
+    } catch (err) {
+      if (err instanceof PhotoUploadError) {
+        return NextResponse.json({ error: err.message }, { status: 400 });
+      }
+      throw err;
     }
-    throw err;
   }
 
   const data = parsed.data;

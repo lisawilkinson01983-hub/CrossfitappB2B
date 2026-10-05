@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import { GymIcon } from "@/components/Avatar";
 
 type DuplicateMatch = { id: string; name: string; address: string | null };
 
@@ -90,12 +91,6 @@ export function GymSubmitForm({
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
-
-    if (mode === "create" && !image) {
-      setError("An affiliate image is required");
-      return;
-    }
-
     setSubmitting(true);
 
     const formData = new FormData();
@@ -263,7 +258,12 @@ export function GymSubmitForm({
       </div>
 
       <div>
-        <label className="block text-sm font-medium">Affiliate image</label>
+        <label className="block text-sm font-medium">
+          Affiliate image <span className="font-normal text-b2b-ink/50">(optional)</span>
+        </label>
+        <p className="mt-0.5 text-xs text-b2b-ink/40">
+          Without one, this affiliate shows the generic gym icon until someone adds a photo.
+        </p>
         <div className="mt-2 flex items-center gap-4">
           {imagePreview ? (
             <Image
@@ -275,7 +275,9 @@ export function GymSubmitForm({
               className="h-20 w-20 rounded-lg object-cover"
             />
           ) : (
-            <div className="h-20 w-20 rounded-lg bg-gray-200" />
+            <div className="h-20 w-20 overflow-hidden rounded-lg">
+              <GymIcon />
+            </div>
           )}
           <input
             ref={fileInputRef}

@@ -77,8 +77,10 @@ export function Avatar({
   );
 }
 
-// A roll-up-door unit: the classic CrossFit box, in the brand's charcoal and gold.
-function GymIcon() {
+// A roll-up-door unit: the classic CrossFit box, in the brand's charcoal and
+// gold. Exported so other gym-photo previews (e.g. GymSubmitForm) can show
+// the same fallback before an image exists, rather than inventing their own.
+export function GymIcon() {
   return (
     <svg viewBox="0 0 100 100" className="h-full w-full" role="img" aria-label="Gym">
       <circle cx="50" cy="50" r="50" fill="#232223" />
