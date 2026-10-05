@@ -1,12 +1,34 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 
-type MediaItem = { key: string; type: "photo" | "video"; url: string; thumbnail?: string | null };
+export type MediaSource =
+  | { kind: "postMedia"; postId: string; mediaId: string }
+  | { kind: "postLegacy"; postId: string }
+  | { kind: "workout"; workoutId: string };
 
-export function GalleryLightbox({ items }: { items: MediaItem[] }) {
+type MediaItem = { key: string; type: "photo" | "video"; url: string; thumbnail?: string | null; source: MediaSource };
+
+function deleteUrl(source: MediaSource): string {
+  switch (source.kind) {
+    case "postMedia":
+      return `/api/posts/${source.postId}/media?mediaId=${source.mediaId}`;
+    case "postLegacy":
+      return `/api/posts/${source.postId}/media`;
+    case "workout":
+      return `/api/workouts/${source.workoutId}/media`;
+  }
+}
+
+export function GalleryLightbox({ items: initialItems, canEdit = false }: { items: MediaItem[]; canEdit?: boolean }) {
+  const router = useRouter();
+  const [items, setItems] = useState(initialItems);
   const [openIndex, setOpenIndex] = useState<number | null>(null);
+  const [removeTargetKey, setRemoveTargetKey] = useState<string | null>(null);
+  const [removing, setRemoving] = useState(false);
   const scrollerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -26,46 +48,91 @@ export function GalleryLightbox({ items }: { items: MediaItem[] }) {
     return () => window.removeEventListener("keydown", onKey);
   }, [openIndex, items.length]);
 
+  async function confirmRemove() {
+    const target = items.find((i) => i.key === removeTargetKey);
+    if (!target) return;
+    setRemoving(true);
+    const res = await fetch(deleteUrl(target.source), { method: "DELETE" });
+    setRemoving(false);
+    setRemoveTargetKey(null);
+    if (!res.ok) return;
+
+    setItems((prev) => prev.filter((i) => i.key !== target.key));
+    setOpenIndex((prev) => {
+      if (prev === null) return prev;
+      const remaining = items.length - 1;
+      return remaining <= 0 ? null : Math.min(prev, remaining - 1);
+    });
+    router.refresh();
+  }
+
+  if (items.length === 0) {
+    return <p className="text-b2b-ink/40">No photos or videos left.</p>;
+  }
+
   return (
     <>
       <div className="flex gap-3 overflow-x-auto pb-1">
         {items.map((item, i) => (
-          <button
-            key={item.key}
-            type="button"
-            onClick={() => setOpenIndex(i)}
-            className="relative aspect-square w-24 flex-shrink-0 overflow-hidden rounded-lg bg-b2b-bg"
-          >
-            {item.type === "video" ? (
-              <>
-                <video
-                  src={item.url}
-                  muted
-                  poster={item.thumbnail ?? undefined}
-                  preload="metadata"
-                  className="h-full w-full object-cover"
-                />
-                <span className="absolute bottom-1 right-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-[10px] text-white">
-                  ▶
-                </span>
-              </>
-            ) : (
-              <Image src={item.url} alt="Uploaded photo" fill sizes="96px" className="object-cover" />
+          <div key={item.key} className="relative flex-shrink-0">
+            <button
+              type="button"
+              onClick={() => setOpenIndex(i)}
+              className="relative aspect-square w-24 overflow-hidden rounded-lg bg-b2b-bg"
+            >
+              {item.type === "video" ? (
+                <>
+                  <video
+                    src={item.url}
+                    muted
+                    poster={item.thumbnail ?? undefined}
+                    preload="metadata"
+                    className="h-full w-full object-cover"
+                  />
+                  <span className="absolute bottom-1 right-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-[10px] text-white">
+                    ▶
+                  </span>
+                </>
+              ) : (
+                <Image src={item.url} alt="Uploaded photo" fill sizes="96px" className="object-cover" />
+              )}
+            </button>
+            {canEdit && (
+              <button
+                type="button"
+                onClick={() => setRemoveTargetKey(item.key)}
+                aria-label="Remove from gallery"
+                className="absolute -right-1.5 -top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-black/70 text-sm text-white hover:bg-black/90"
+              >
+                ×
+              </button>
             )}
-          </button>
+          </div>
         ))}
       </div>
 
       {openIndex !== null && (
         <div className="fixed inset-0 z-50 flex flex-col bg-black/95">
-          <button
-            type="button"
-            onClick={() => setOpenIndex(null)}
-            aria-label="Close"
-            className="absolute right-4 top-4 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-xl text-white hover:bg-white/20"
-          >
-            ×
-          </button>
+          <div className="absolute right-4 top-4 z-10 flex gap-2">
+            {canEdit && (
+              <button
+                type="button"
+                onClick={() => setRemoveTargetKey(items[openIndex].key)}
+                aria-label="Remove from gallery"
+                className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20"
+              >
+                🗑
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => setOpenIndex(null)}
+              aria-label="Close"
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-xl text-white hover:bg-white/20"
+            >
+              ×
+            </button>
+          </div>
 
           <div ref={scrollerRef} className="flex h-full w-full snap-x snap-mandatory overflow-x-auto">
             {items.map((item) => (
@@ -101,6 +168,16 @@ export function GalleryLightbox({ items }: { items: MediaItem[] }) {
           )}
         </div>
       )}
+
+      <ConfirmDialog
+        open={removeTargetKey !== null}
+        title="Remove this from your gallery?"
+        message="This removes the photo/video itself — if it's part of a post or logged workout, that post or workout stays, just without this media."
+        confirmLabel="Remove"
+        onConfirm={confirmRemove}
+        onCancel={() => setRemoveTargetKey(null)}
+        confirming={removing}
+      />
     </>
   );
 }

@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { SectionCard } from "@/components/SectionCard";
-import { GalleryLightbox } from "@/components/GalleryLightbox";
+import { GalleryLightbox, type MediaSource } from "@/components/GalleryLightbox";
 import { AddMediaButton } from "@/components/AddMediaButton";
 
 const GALLERY_LIMIT = 9;
@@ -11,6 +11,7 @@ type MediaItem = {
   url: string;
   thumbnail: string | null;
   createdAt: Date;
+  source: MediaSource;
 };
 
 /** A limited, most-recent-first strip of a user's uploaded photos/videos, pulled from their posts and logged workouts. */
@@ -48,6 +49,7 @@ export async function Gallery({ userId, canAdd = false }: { userId: string; canA
             url: m.url,
             thumbnail: m.thumbnail,
             createdAt: p.createdAt,
+            source: { kind: "postMedia", postId: p.id, mediaId: m.id } as MediaSource,
           }))
         : [
             {
@@ -56,6 +58,7 @@ export async function Gallery({ userId, canAdd = false }: { userId: string; canA
               url: (p.video ?? p.photo)!,
               thumbnail: p.videoThumbnail,
               createdAt: p.createdAt,
+              source: { kind: "postLegacy", postId: p.id } as MediaSource,
             },
           ]
     ),
@@ -65,6 +68,7 @@ export async function Gallery({ userId, canAdd = false }: { userId: string; canA
       url: (w.video ?? w.photo)!,
       thumbnail: w.videoThumbnail,
       createdAt: w.createdAt,
+      source: { kind: "workout", workoutId: w.id } as MediaSource,
     })),
   ]
     .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
@@ -78,7 +82,10 @@ export async function Gallery({ userId, canAdd = false }: { userId: string; canA
           No photos or videos yet — share one from the feed or log a workout with a photo.
         </p>
       ) : (
-        <GalleryLightbox items={items.map(({ key, type, url, thumbnail }) => ({ key, type, url, thumbnail }))} />
+        <GalleryLightbox
+          items={items.map(({ key, type, url, thumbnail, source }) => ({ key, type, url, thumbnail, source }))}
+          canEdit={canAdd}
+        />
       )}
     </SectionCard>
   );

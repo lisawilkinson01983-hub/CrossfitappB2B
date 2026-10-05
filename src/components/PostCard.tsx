@@ -849,14 +849,21 @@ export function PostCard({
       </div>
 
       <div className="mt-3 flex items-center gap-4 border-t border-gray-100 pt-3 text-sm">
-        <button
-          type="button"
-          onClick={toggleLike}
-          disabled={likeBusy}
-          className={`font-medium ${liked ? "text-b2b-pink" : "text-gray-600"} hover:underline disabled:opacity-50`}
-        >
-          {liked ? "♥ Liked" : "♡ Like"} {likeCount > 0 && `(${likeCount})`}
-        </button>
+        <span className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={toggleLike}
+            disabled={likeBusy}
+            className={`font-medium ${liked ? "text-b2b-pink" : "text-gray-600"} hover:underline disabled:opacity-50`}
+          >
+            {liked ? "♥ Liked" : "♡ Like"}
+          </button>
+          {likeCount > 0 && (
+            <Link href={`/posts/${post.id}/likes`} className="font-medium text-gray-600 hover:underline">
+              ({likeCount})
+            </Link>
+          )}
+        </span>
         <button
           type="button"
           onClick={() => setShowComments((v) => !v)}
