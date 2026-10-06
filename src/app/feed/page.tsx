@@ -8,6 +8,7 @@ import { SectionCard } from "@/components/SectionCard";
 import { SectionOnboarding } from "@/components/SectionOnboarding";
 import { StatusBar } from "@/components/StatusBar";
 import { FEED_PAGE_SIZE, postCardInclude, toPostCardData } from "@/lib/posts";
+import { summarizeReactions } from "@/lib/reactions";
 import { PostComposer } from "./PostComposer";
 import { FeedPostList } from "./FeedPostList";
 
@@ -46,7 +47,7 @@ export default async function FeedPage({
       name: true,
       photo: true,
       status: true,
-      statusReactionsReceived: { select: { reactorId: true } },
+      statusReactionsReceived: { select: { emoji: true, reactorId: true } },
     },
   });
   const statusBarEntries = statusUsers.map((u) => ({
@@ -54,8 +55,10 @@ export default async function FeedPage({
     name: u.name,
     photo: u.photo,
     status: u.status!,
-    reactionCount: u.statusReactionsReceived.length,
-    reactedByMe: u.statusReactionsReceived.some((r) => r.reactorId === session.user.id),
+    reactions: summarizeReactions(
+      u.statusReactionsReceived.map((r) => ({ emoji: r.emoji, userId: r.reactorId })),
+      session.user.id
+    ),
   }));
 
   const posts = await prisma.post.findMany({

@@ -690,9 +690,14 @@ model StatusReaction {
   reactorId String
   reactor   User   @relation("StatusReactionsGiven", fields: [reactorId], references: [id], onDelete: Cascade)
 
+  // Which of the fixed REACTION_EMOJIS this is — same shape as
+  // CommentReaction/MessageReaction. One reactor can leave several different
+  // emoji on the same status, toggled individually.
+  emoji String @default("👍")
+
   createdAt DateTime @default(now())
 
-  @@unique([userId, reactorId])
+  @@unique([userId, reactorId, emoji])
   @@index([userId])
 }
 
