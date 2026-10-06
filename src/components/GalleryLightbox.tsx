@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { CommentsPopout } from "@/components/CommentsPopout";
 import type { MediaSource } from "@/lib/gallery";
 
 type MediaItem = { key: string; type: "photo" | "video"; url: string; thumbnail?: string | null; source: MediaSource };
@@ -16,6 +17,21 @@ function deleteUrl(source: MediaSource): string {
       return `/api/posts/${source.postId}/media`;
     case "workout":
       return `/api/workouts/${source.workoutId}/media`;
+  }
+}
+
+/** A photo/video's comments always belong to the post or workout it came from, not to the individual media tile — all media in one post share its one thread. */
+function commentsConfig(source: MediaSource): { listUrl: string; postUrl: string; deleteUrlFor: (id: string) => string } {
+  switch (source.kind) {
+    case "postMedia":
+    case "postLegacy": {
+      const url = `/api/posts/${source.postId}/comments`;
+      return { listUrl: url, postUrl: url, deleteUrlFor: (id) => `/api/comments/${id}` };
+    }
+    case "workout": {
+      const url = `/api/workouts/${source.workoutId}/comments`;
+      return { listUrl: url, postUrl: url, deleteUrlFor: (id) => `/api/workout-comments/${id}` };
+    }
   }
 }
 
@@ -34,6 +50,7 @@ export function GalleryLightbox({
   const [openIndex, setOpenIndex] = useState<number | null>(null);
   const [removeTargetKey, setRemoveTargetKey] = useState<string | null>(null);
   const [removing, setRemoving] = useState(false);
+  const [commentsOpen, setCommentsOpen] = useState(false);
   const scrollerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -41,6 +58,8 @@ export function GalleryLightbox({
     const el = scrollerRef.current.children[openIndex] as HTMLElement | undefined;
     el?.scrollIntoView({ behavior: "instant", inline: "center", block: "nearest" });
   }, [openIndex]);
+
+  useEffect(() => setCommentsOpen(false), [openIndex]);
 
   useEffect(() => {
     if (openIndex === null) return;
@@ -133,6 +152,14 @@ export function GalleryLightbox({
       {openIndex !== null && (
         <div className="fixed inset-0 z-50 flex flex-col bg-black/95">
           <div className="absolute right-4 top-4 z-10 flex gap-2">
+            <button
+              type="button"
+              onClick={() => setCommentsOpen(true)}
+              aria-label="View comments"
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20"
+            >
+              💬
+            </button>
             {canEdit && (
               <button
                 type="button"
@@ -185,6 +212,12 @@ export function GalleryLightbox({
               Swipe or scroll to view more
             </p>
           )}
+
+          <CommentsPopout
+            open={commentsOpen}
+            onClose={() => setCommentsOpen(false)}
+            {...commentsConfig(items[openIndex].source)}
+          />
         </div>
       )}
 

@@ -5,6 +5,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NavBar } from "@/components/NavBar";
 import { SectionCard } from "@/components/SectionCard";
+import { PbTile } from "@/components/PbTile";
 import { PB_CATEGORIES, type PbField } from "@/lib/validation";
 import { PB_LABELS, parseDisplayedPbs } from "@/lib/labels";
 
@@ -52,20 +53,14 @@ export default async function UserPbsPage({ params }: { params: Promise<{ userId
             <SectionCard key={category.label} title={category.label}>
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                 {category.entries.map(({ field, value }) => (
-                  <div
+                  <PbTile
                     key={field}
-                    className="rounded-lg border border-b2b-purple/10 bg-b2b-bg px-3 py-2"
-                  >
-                    <p className="text-xs text-b2b-ink/50">
-                      {PB_LABELS[field]}
-                      {displayedPbSet.has(field) && (
-                        <span className="ml-1 text-b2b-pink" title="Featured on profile">
-                          ★
-                        </span>
-                      )}
-                    </p>
-                    <p className="mt-0.5 text-lg font-semibold text-b2b-ink">{value}</p>
-                  </div>
+                    label={PB_LABELS[field]}
+                    value={value}
+                    featured={displayedPbSet.has(field)}
+                    profileUserId={userId}
+                    field={field}
+                  />
                 ))}
               </div>
             </SectionCard>

@@ -115,6 +115,11 @@ enum NotificationType {
   // Someone reacted to this user's comment with an emoji (see
   // CommentReaction) — separate from the simpler COMMENT_LIKE heart.
   COMMENT_REACTION
+  // Someone commented on this user's logged workout (see WorkoutComment) —
+  // reached from a gallery photo/video sourced from a workout.
+  WORKOUT_COMMENT
+  // Someone commented on one of this user's PBs (see PbComment).
+  PB_COMMENT
 }
 
 enum EventStatus {
@@ -455,6 +460,10 @@ model User {
   statusReactionsReceived StatusReaction[] @relation("StatusReactionsReceived")
   statusReactionsGiven    StatusReaction[] @relation("StatusReactionsGiven")
 
+  workoutComments    WorkoutComment[]
+  pbCommentsReceived PbComment[]      @relation("PbCommentsReceived")
+  pbCommentsWritten  PbComment[]      @relation("PbCommentsWritten")
+
   notificationsReceived Notification[] @relation("NotificationRecipient")
   notificationsSent     Notification[] @relation("NotificationActor")
 
@@ -515,7 +524,8 @@ model Workout {
 
   createdAt DateTime @default(now())
 
-  posts Post[]
+  posts    Post[]
+  comments WorkoutComment[]
 
   @@index([userId])
 }
@@ -699,6 +709,50 @@ model StatusReaction {
 
   @@unique([userId, reactorId, emoji])
   @@index([userId])
+}
+
+// A comment on a logged workout — reached from a gallery photo/video sourced
+// from a workout (see src/lib/gallery.ts's "workout" MediaSource). Flat, no
+// replies/GIFs/reactions — a lighter-weight surface than Comment, shown in a
+// popout rather than a full thread.
+model WorkoutComment {
+  id String @id @default(cuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  workoutId String
+  workout   Workout @relation(fields: [workoutId], references: [id], onDelete: Cascade)
+
+  text String
+
+  createdAt DateTime @default(now())
+
+  @@index([workoutId])
+}
+
+// A comment on one specific PB value on someone's profile (see
+// src/lib/validation.ts's PB_FIELDS) — shown in a popout when that PB tile is
+// tapped. Flat, no replies/GIFs/reactions, same shape as WorkoutComment.
+model PbComment {
+  id String @id @default(cuid())
+
+  // Whose PB this is about.
+  profileUserId String
+  profileUser   User   @relation("PbCommentsReceived", fields: [profileUserId], references: [id], onDelete: Cascade)
+
+  // Which PB_FIELDS entry, e.g. "backSquatKg".
+  field String
+
+  // Who wrote it.
+  userId String
+  user   User   @relation("PbCommentsWritten", fields: [userId], references: [id], onDelete: Cascade)
+
+  text String
+
+  createdAt DateTime @default(now())
+
+  @@index([profileUserId, field])
 }
 
 model Follow {

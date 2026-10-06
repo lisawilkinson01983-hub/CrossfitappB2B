@@ -5,6 +5,42 @@ import { prisma } from "@/lib/prisma";
 import { commentSchema } from "@/lib/validation";
 import { notifyMentions } from "@/lib/notify";
 
+/**
+ * Flat comment list for a post — used by the gallery popout (see
+ * CommentsPopout.tsx), which shows every comment on the underlying post
+ * chronologically rather than the full reply/reaction thread PostCard
+ * renders inline in the feed.
+ */
+export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+  }
+
+  const { id: postId } = await params;
+  const post = await prisma.post.findUnique({ where: { id: postId } });
+  if (!post) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  const comments = await prisma.comment.findMany({
+    where: { postId },
+    orderBy: { createdAt: "asc" },
+    include: { user: { select: { id: true, name: true } } },
+  });
+
+  return NextResponse.json({
+    comments: comments.map((c) => ({
+      id: c.id,
+      text: c.text,
+      gifUrl: c.gifUrl,
+      createdAt: c.createdAt,
+      author: c.user,
+      isMine: c.userId === session.user.id,
+    })),
+  });
+}
+
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {

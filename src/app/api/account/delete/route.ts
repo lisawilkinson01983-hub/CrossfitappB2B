@@ -50,6 +50,14 @@ export async function POST(req: Request) {
       where: { userId: { in: userIds }, text: { not: null } },
       data: { text: "[deleted]" },
     }),
+    // Same redact-don't-delete treatment for a comment this account left on
+    // someone else's workout or PB — their thread stays intact.
+    prisma.workoutComment.updateMany({ where: { userId: { in: userIds } }, data: { text: "[deleted]" } }),
+    prisma.pbComment.updateMany({ where: { userId: { in: userIds } }, data: { text: "[deleted]" } }),
+    // Comments left ON this account's own PBs have nothing left to attach to
+    // once its PB values are cleared below — unlike a workout/post, there's
+    // no row for them to cascade from, so they're removed explicitly.
+    prisma.pbComment.deleteMany({ where: { profileUserId: { in: userIds } } }),
 
     // Purely personal content and join records — safe to remove outright.
     prisma.commentLike.deleteMany({ where: { userId: { in: userIds } } }),

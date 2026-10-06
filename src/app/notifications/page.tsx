@@ -118,7 +118,11 @@ export default async function NotificationsPage() {
                                         ? "shared your post"
                                         : n.type === "STATUS_REACTION"
                                           ? "reacted to your status"
-                                          : n.type === "EVENT_PARTICIPANT_JOINED"
+                                          : n.type === "WORKOUT_COMMENT"
+                                            ? "commented on your workout"
+                                            : n.type === "PB_COMMENT"
+                                              ? "commented on your PB"
+                                              : n.type === "EVENT_PARTICIPANT_JOINED"
                                             ? `is participating in "${n.event?.name ?? "your event"}"`
                                             : "mentioned you"}
                   </p>
