@@ -4,8 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NavBar } from "@/components/NavBar";
-import { Avatar } from "@/components/Avatar";
-import { GroupIcon } from "@/components/GroupIcon";
+import { ConversationRow, type ConversationRowData } from "@/components/ConversationRow";
 import { showsSingleBadge } from "@/lib/labels";
 import { conversationDisplayName } from "@/lib/conversations";
 import { formatDate } from "@/lib/dates";
@@ -19,7 +18,6 @@ export default async function MessagesPage() {
     where: { participants: { some: { userId: session.user.id } } },
     include: {
       participants: {
-        where: { userId: { not: session.user.id } },
         include: {
           user: {
             select: { id: true, name: true, photo: true, isSingle: true, showSingleBadge: true, deletedAt: true },
@@ -42,26 +40,40 @@ export default async function MessagesPage() {
   });
   const unreadByConversation = new Map(unreadRows.map((r) => [r.conversationId, r._count.id]));
 
-  const rows = conversations
+  const rows: (ConversationRowData & { sortAt: Date })[] = conversations
     .map((conv) => {
+      const me = conv.participants.find((p) => p.userId === session.user.id);
       // A deleted account's messages are kept (not wiped — see
       // /api/account/delete) so the thread survives for anyone who reported
       // them, but there's no reason a "Deleted User" placeholder should keep
       // cluttering the inbox.
-      const others = conv.participants.map((p) => p.user).filter((u) => !u.deletedAt);
+      const others = conv.participants.filter((p) => p.userId !== session.user.id).map((p) => p.user).filter((u) => !u.deletedAt);
       const lastMessage = conv.messages[0] ?? null;
+      const sortAt = lastMessage?.createdAt ?? conv.createdAt;
+      // Swiped out of the inbox (see DELETE /api/conversations/[id]) — stays
+      // hidden only while nothing new has happened since, so an active
+      // thread quietly resurfaces instead of vanishing for good.
+      const hidden = Boolean(me?.hiddenAt) && me!.hiddenAt! >= sortAt;
+      const avatarUser = others[0] ?? null;
       return {
         id: conv.id,
         isGroup: conv.isGroup,
         displayName: conversationDisplayName(conv, others.map((u) => u.name)),
-        avatarUser: others[0] ?? null,
-        otherCount: others.length,
-        lastMessage,
-        sortAt: lastMessage?.createdAt ?? conv.createdAt,
+        photo: conv.isGroup ? conv.photo : (avatarUser?.photo ?? null),
+        showSingleBadge: avatarUser ? showsSingleBadge(avatarUser) : false,
+        lastMessagePreview: lastMessage
+          ? conv.isGroup
+            ? `${lastMessage.sender.id === session.user.id ? "You" : lastMessage.sender.name}: ${stripMentionMarkup(lastMessage.text)}`
+            : stripMentionMarkup(lastMessage.text)
+          : "No messages yet",
+        dateLabel: formatDate(sortAt, { month: "short", day: "numeric" }),
         unreadCount: unreadByConversation.get(conv.id) ?? 0,
+        sortAt,
+        otherCount: others.length,
+        hidden,
       };
     })
-    .filter((row) => row.isGroup || row.otherCount > 0)
+    .filter((row) => (row.isGroup || row.otherCount > 0) && !row.hidden)
     .sort((a, b) => b.sortAt.getTime() - a.sortAt.getTime());
 
   return (
@@ -82,46 +94,14 @@ export default async function MessagesPage() {
           No conversations yet — start one with the button above, or message someone from their profile.
         </p>
       ) : (
-        <div className="mt-6 flex flex-col gap-2">
-          {rows.map((row) => (
-            <Link
-              key={row.id}
-              href={`/messages/${row.id}`}
-              className="flex items-center gap-3 rounded-xl border border-b2b-purple/10 bg-b2b-card p-3 transition hover:border-b2b-pink/30"
-            >
-              {row.isGroup ? (
-                <GroupIcon size={48} />
-              ) : (
-                <Avatar
-                  photo={row.avatarUser?.photo ?? null}
-                  name={row.displayName}
-                  size={48}
-                  showSingleBadge={row.avatarUser ? showsSingleBadge(row.avatarUser) : false}
-                />
-              )}
-              <div className="min-w-0 flex-1">
-                <p className="font-semibold">{row.displayName}</p>
-                <p className="truncate text-sm text-b2b-ink/50">
-                  {row.lastMessage
-                    ? row.isGroup
-                      ? `${row.lastMessage.sender.id === session.user.id ? "You" : row.lastMessage.sender.name}: ${stripMentionMarkup(row.lastMessage.text)}`
-                      : stripMentionMarkup(row.lastMessage.text)
-                    : "No messages yet"}
-                </p>
-              </div>
-              <div className="flex shrink-0 flex-col items-end gap-1.5">
-                <span className="text-xs text-b2b-ink/40">
-                  {formatDate(row.sortAt, { month: "short", day: "numeric" })}
-                </span>
-                {row.unreadCount > 0 && (
-                  <span className="flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-b2b-pink px-1.5 text-xs font-medium text-white">
-                    {row.unreadCount}
-                  </span>
-                )}
-              </div>
-            </Link>
-          ))}
-        </div>
+        <>
+          <p className="mt-4 text-xs text-b2b-ink/40">Swipe a conversation left to remove it from your inbox.</p>
+          <div className="mt-2 flex flex-col gap-2">
+            {rows.map((row) => (
+              <ConversationRow key={row.id} row={row} />
+            ))}
+          </div>
+        </>
       )}
     </main>
   );

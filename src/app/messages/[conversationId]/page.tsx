@@ -5,8 +5,8 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NavBar } from "@/components/NavBar";
 import { Avatar } from "@/components/Avatar";
-import { GroupIcon } from "@/components/GroupIcon";
 import { ChatThread } from "@/components/ChatThread";
+import { GroupHeader } from "@/components/GroupHeader";
 import { showsSingleBadge } from "@/lib/labels";
 import { conversationDisplayName } from "@/lib/conversations";
 import { summarizeReactions } from "@/lib/reactions";
@@ -60,27 +60,29 @@ export default async function ConversationPage({
       <Link href="/messages" className="mt-6 inline-block text-sm text-b2b-pink underline">
         ← All messages
       </Link>
-      <div className="mt-3 flex items-center gap-3">
-        {conversation.isGroup ? (
-          <GroupIcon size={40} />
-        ) : (
+      {conversation.isGroup ? (
+        <div className="mt-3">
+          <GroupHeader
+            conversationId={conversationId}
+            displayName={displayName}
+            initialPhoto={conversation.photo}
+            members={conversation.participants.map((p) => ({ id: p.userId, name: p.user.name, deletedAt: p.user.deletedAt }))}
+            currentUserId={session.user.id}
+          />
+        </div>
+      ) : (
+        <div className="mt-3 flex items-center gap-3">
           <Avatar
             photo={others[0]?.photo ?? null}
             name={displayName}
             size={40}
             showSingleBadge={others[0] ? showsSingleBadge(others[0]) : false}
           />
-        )}
-        <div className="min-w-0">
-          <h1 className="truncate text-xl font-bold">{displayName}</h1>
-          {conversation.isGroup && (
-            <p className="truncate text-xs text-b2b-ink/50">
-              {others.length + 1} people · You,{" "}
-              {others.map((u) => (u.deletedAt ? "Deleted User" : u.name)).join(", ")}
-            </p>
-          )}
+          <div className="min-w-0">
+            <h1 className="truncate text-xl font-bold">{displayName}</h1>
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="mt-4">
         <ChatThread

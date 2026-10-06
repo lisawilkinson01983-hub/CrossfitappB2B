@@ -740,6 +740,11 @@ model Conversation {
   id      String  @id @default(cuid())
   isGroup Boolean @default(false)
   name    String?
+  // A group's photo (served path, e.g. "/media/xyz.jpg") — any participant
+  // may set/change it, same flat permission as removing a member. Never set
+  // for a 1:1 conversation (the GroupIcon/other participant's avatar covers
+  // that instead).
+  photo   String?
 
   // Legacy 1:1 columns from before groups existed — superseded by
   // ConversationParticipant below and no longer written to. Kept (nullable)
@@ -768,6 +773,14 @@ model ConversationParticipant {
   user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   joinedAt DateTime @default(now())
+
+  // Set when this participant swipes a conversation out of their own inbox
+  // (see DELETE /api/conversations/[id]) — hides it from their /messages
+  // list without affecting anyone else or deleting any data. Cleared
+  // implicitly: the inbox query only treats it as hidden while no message
+  // has arrived since, so the thread quietly resurfaces if the conversation
+  // picks back up.
+  hiddenAt DateTime?
 
   @@unique([conversationId, userId])
   @@index([userId])
