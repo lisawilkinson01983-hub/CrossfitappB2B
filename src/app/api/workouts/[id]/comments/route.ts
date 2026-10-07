@@ -43,6 +43,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       text: c.text,
       createdAt: c.createdAt,
       author: c.user,
+      parentId: c.parentId,
       isMine: c.userId === session.user.id,
     })),
   });
@@ -69,18 +70,39 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
   }
 
+  const parentId = typeof body?.parentId === "string" ? body.parentId : null;
+  let parentComment: { id: string; userId: string } | null = null;
+  if (parentId) {
+    parentComment = await prisma.workoutComment
+      .findUnique({ where: { id: parentId }, select: { id: true, userId: true, workoutId: true } })
+      .then((c) => (c && c.workoutId === workoutId ? c : null));
+    if (!parentComment) {
+      return NextResponse.json({ error: "Comment not found" }, { status: 404 });
+    }
+  }
+
   const comment = await prisma.workoutComment.create({
-    data: { userId: session.user.id, workoutId, text: parsed.data.text },
+    data: { userId: session.user.id, workoutId, text: parsed.data.text, parentId },
     include: { user: { select: { id: true, name: true } } },
   });
 
-  if (workout.userId !== session.user.id) {
+  // A reply notifies the parent comment's author; a top-level comment
+  // notifies the workout owner — not both, same split as post comments.
+  const recipientId = parentComment ? parentComment.userId : workout.userId;
+  if (recipientId !== session.user.id) {
     await prisma.notification.create({
-      data: { userId: workout.userId, actorId: session.user.id, type: "WORKOUT_COMMENT" },
+      data: { userId: recipientId, actorId: session.user.id, type: "WORKOUT_COMMENT" },
     });
   }
 
   return NextResponse.json({
-    comment: { id: comment.id, text: comment.text, createdAt: comment.createdAt, author: comment.user, isMine: true },
+    comment: {
+      id: comment.id,
+      text: comment.text,
+      createdAt: comment.createdAt,
+      author: comment.user,
+      parentId: comment.parentId,
+      isMine: true,
+    },
   });
 }

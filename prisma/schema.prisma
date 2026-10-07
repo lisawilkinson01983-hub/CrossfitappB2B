@@ -712,9 +712,9 @@ model StatusReaction {
 }
 
 // A comment on a logged workout — reached from a gallery photo/video sourced
-// from a workout (see src/lib/gallery.ts's "workout" MediaSource). Flat, no
-// replies/GIFs/reactions — a lighter-weight surface than Comment, shown in a
-// popout rather than a full thread.
+// from a workout (see src/lib/gallery.ts's "workout" MediaSource). Shown in a
+// popout rather than inline, but otherwise the same reply/edit/delete/report
+// feature set as Comment/EventNoticeComment — just no GIFs/reactions.
 model WorkoutComment {
   id String @id @default(cuid())
 
@@ -724,16 +724,23 @@ model WorkoutComment {
   workoutId String
   workout   Workout @relation(fields: [workoutId], references: [id], onDelete: Cascade)
 
+  // One level of self-reference, same as Comment — a reply to a reply is
+  // flattened under its top-level ancestor in the UI.
+  parentId String?
+  parent   WorkoutComment?  @relation("WorkoutCommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies  WorkoutComment[] @relation("WorkoutCommentReplies")
+
   text String
 
   createdAt DateTime @default(now())
 
   @@index([workoutId])
+  @@index([parentId])
 }
 
 // A comment on one specific PB value on someone's profile (see
 // src/lib/validation.ts's PB_FIELDS) — shown in a popout when that PB tile is
-// tapped. Flat, no replies/GIFs/reactions, same shape as WorkoutComment.
+// tapped. Same reply/edit/delete/report feature set as WorkoutComment.
 model PbComment {
   id String @id @default(cuid())
 
@@ -748,11 +755,18 @@ model PbComment {
   userId String
   user   User   @relation("PbCommentsWritten", fields: [userId], references: [id], onDelete: Cascade)
 
+  // One level of self-reference, same as Comment — a reply to a reply is
+  // flattened under its top-level ancestor in the UI.
+  parentId String?
+  parent   PbComment?  @relation("PbCommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies  PbComment[] @relation("PbCommentReplies")
+
   text String
 
   createdAt DateTime @default(now())
 
   @@index([profileUserId, field])
+  @@index([parentId])
 }
 
 model Follow {
@@ -1277,6 +1291,8 @@ enum ReportTargetType {
   MESSAGE
   EVENT_NOTICE
   EVENT_NOTICE_COMMENT
+  WORKOUT_COMMENT
+  PB_COMMENT
 }
 
 enum ReportReason {

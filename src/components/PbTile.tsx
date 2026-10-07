@@ -45,7 +45,9 @@ export function PbTile({
         title={label}
         listUrl={url}
         postUrl={url}
+        patchUrlFor={(id) => `/api/pb-comments/${id}`}
         deleteUrlFor={(id) => `/api/pb-comments/${id}`}
+        reportTargetType="PB_COMMENT"
       />
     </>
   );

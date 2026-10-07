@@ -54,6 +54,8 @@ export const REPORT_TARGET_TYPES = [
   "MESSAGE",
   "EVENT_NOTICE",
   "EVENT_NOTICE_COMMENT",
+  "WORKOUT_COMMENT",
+  "PB_COMMENT",
 ] as const;
 export type ReportTargetTypeOption = (typeof REPORT_TARGET_TYPES)[number];
 

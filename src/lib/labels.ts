@@ -36,6 +36,8 @@ export const REPORT_TARGET_LABELS: Record<ReportTargetTypeOption, string> = {
   MESSAGE: "message",
   EVENT_NOTICE: "notice",
   EVENT_NOTICE_COMMENT: "comment",
+  WORKOUT_COMMENT: "comment",
+  PB_COMMENT: "comment",
 };
 
 export const LEVEL_LABELS: Record<LevelOption, string> = {

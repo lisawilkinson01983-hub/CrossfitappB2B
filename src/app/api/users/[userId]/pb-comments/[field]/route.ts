@@ -47,6 +47,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ userId:
       text: c.text,
       createdAt: c.createdAt,
       author: c.user,
+      parentId: c.parentId,
       isMine: c.userId === session.user.id,
     })),
   });
@@ -75,18 +76,39 @@ export async function POST(req: Request, { params }: { params: Promise<{ userId:
     return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
   }
 
+  const parentId = typeof body?.parentId === "string" ? body.parentId : null;
+  let parentComment: { id: string; userId: string } | null = null;
+  if (parentId) {
+    parentComment = await prisma.pbComment
+      .findUnique({ where: { id: parentId }, select: { id: true, userId: true, profileUserId: true, field: true } })
+      .then((c) => (c && c.profileUserId === profileUserId && c.field === parsedField.data ? c : null));
+    if (!parentComment) {
+      return NextResponse.json({ error: "Comment not found" }, { status: 404 });
+    }
+  }
+
   const comment = await prisma.pbComment.create({
-    data: { userId: session.user.id, profileUserId, field: parsedField.data, text: parsed.data.text },
+    data: { userId: session.user.id, profileUserId, field: parsedField.data, text: parsed.data.text, parentId },
     include: { user: { select: { id: true, name: true } } },
   });
 
-  if (profileUserId !== session.user.id) {
+  // A reply notifies the parent comment's author; a top-level comment
+  // notifies the profile owner — not both, same split as post comments.
+  const recipientId = parentComment ? parentComment.userId : profileUserId;
+  if (recipientId !== session.user.id) {
     await prisma.notification.create({
-      data: { userId: profileUserId, actorId: session.user.id, type: "PB_COMMENT" },
+      data: { userId: recipientId, actorId: session.user.id, type: "PB_COMMENT" },
     });
   }
 
   return NextResponse.json({
-    comment: { id: comment.id, text: comment.text, createdAt: comment.createdAt, author: comment.user, isMine: true },
+    comment: {
+      id: comment.id,
+      text: comment.text,
+      createdAt: comment.createdAt,
+      author: comment.user,
+      parentId: comment.parentId,
+      isMine: true,
+    },
   });
 }

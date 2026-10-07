@@ -86,6 +86,21 @@ export async function resolveReportTarget(
         href: `/events/${comment.notice.eventId}/notices`,
       };
     }
+    case "WORKOUT_COMMENT": {
+      const comment = await prisma.workoutComment.findUnique({ where: { id: targetId } });
+      if (!comment) return null;
+      return { ownerId: comment.userId, contentSnapshot: comment.text, mediaSnapshot: null, href: null };
+    }
+    case "PB_COMMENT": {
+      const comment = await prisma.pbComment.findUnique({ where: { id: targetId } });
+      if (!comment) return null;
+      return {
+        ownerId: comment.userId,
+        contentSnapshot: comment.text,
+        mediaSnapshot: null,
+        href: `/profile/${comment.profileUserId}/pbs`,
+      };
+    }
   }
 }
 
@@ -111,6 +126,12 @@ export async function removeReportTarget(targetType: ReportTargetTypeOption, tar
       return;
     case "EVENT_NOTICE_COMMENT":
       await prisma.eventNoticeComment.deleteMany({ where: { id: targetId } });
+      return;
+    case "WORKOUT_COMMENT":
+      await prisma.workoutComment.deleteMany({ where: { id: targetId } });
+      return;
+    case "PB_COMMENT":
+      await prisma.pbComment.deleteMany({ where: { id: targetId } });
       return;
   }
 }

@@ -1,8 +1,11 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { ReportButton } from "@/components/ReportButton";
+import { autoGrowTextarea } from "@/lib/autoGrowTextarea";
 import { formatDateTime } from "@/lib/dates";
+import type { ReportTargetTypeOption } from "@/lib/validation";
 
 export type PopoutComment = {
   id: string;
@@ -10,37 +13,63 @@ export type PopoutComment = {
   gifUrl?: string | null;
   createdAt: string | Date;
   author: { id: string; name: string };
+  parentId: string | null;
   isMine: boolean;
 };
 
+const textareaClass =
+  "flex-1 resize-none rounded border border-gray-300 px-2 py-1.5 text-sm focus:border-b2b-pink focus:outline-none";
+
 /**
- * A flat comment thread shown in a popout rather than inline — used for
- * gallery photos/videos and PBs, both lighter-weight surfaces than a feed
- * post. No replies/reactions here, just add/delete, fetched lazily on open
- * so a profile full of photos/PBs never loads every comment up front.
+ * A comment thread shown in a popout rather than inline — used for gallery
+ * photos/videos and PBs, both lighter-weight surfaces than a feed post or
+ * event notice, but with the same reply/edit/delete/report feature set as
+ * Comment/EventNoticeComment. Fetched lazily on open so a profile full of
+ * photos/PBs never loads every comment up front.
  */
 export function CommentsPopout({
   open,
   onClose,
   listUrl,
   postUrl,
+  patchUrlFor,
   deleteUrlFor,
+  reportTargetType,
   title = "Comments",
 }: {
   open: boolean;
   onClose: () => void;
   listUrl: string;
   postUrl: string;
+  patchUrlFor: (id: string) => string;
   deleteUrlFor: (id: string) => string;
+  reportTargetType: ReportTargetTypeOption;
   title?: string;
 }) {
   const [comments, setComments] = useState<PopoutComment[] | null>(null);
   const [loadError, setLoadError] = useState(false);
+
   const [text, setText] = useState("");
   const [posting, setPosting] = useState(false);
   const [postError, setPostError] = useState<string | null>(null);
+
+  const [replyingToId, setReplyingToId] = useState<string | null>(null);
+  const [replyText, setReplyText] = useState("");
+  const [replyBusy, setReplyBusy] = useState(false);
+
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editText, setEditText] = useState("");
+  const [editSaving, setEditSaving] = useState(false);
+
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+
+  const commentTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const replyTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const editTextareaRef = useRef<HTMLTextAreaElement>(null);
+  useEffect(() => autoGrowTextarea(commentTextareaRef.current), [text]);
+  useEffect(() => autoGrowTextarea(replyTextareaRef.current), [replyText]);
+  useEffect(() => autoGrowTextarea(editTextareaRef.current), [editText]);
 
   useEffect(() => {
     if (!open) return;
@@ -48,6 +77,8 @@ export function CommentsPopout({
     setLoadError(false);
     setText("");
     setPostError(null);
+    setReplyingToId(null);
+    setEditingId(null);
     fetch(listUrl)
       .then((res) => (res.ok ? res.json() : Promise.reject()))
       .then((body) => setComments(body.comments))
@@ -75,18 +106,186 @@ export function CommentsPopout({
     setText("");
   }
 
+  function startReply(commentId: string) {
+    setReplyingToId((prev) => (prev === commentId ? null : commentId));
+    setReplyText("");
+  }
+
+  async function submitReply(parentId: string) {
+    if (!replyText.trim() || replyBusy) return;
+    setReplyBusy(true);
+    const res = await fetch(postUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text: replyText, parentId }),
+    });
+    setReplyBusy(false);
+    if (res.ok) {
+      const body = await res.json();
+      setComments((prev) => [...(prev ?? []), body.comment]);
+      setReplyText("");
+      setReplyingToId(null);
+    }
+  }
+
+  function startEdit(id: string, currentText: string) {
+    setEditingId(id);
+    setEditText(currentText);
+  }
+
+  async function submitEdit(id: string) {
+    if (!editText.trim() || editSaving) return;
+    setEditSaving(true);
+    const res = await fetch(patchUrlFor(id), {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text: editText }),
+    });
+    setEditSaving(false);
+    if (res.ok) {
+      setComments((prev) => (prev ?? []).map((c) => (c.id === id ? { ...c, text: editText } : c)));
+      setEditingId(null);
+    }
+  }
+
   async function confirmDelete() {
     if (!deleteTargetId) return;
     setDeleting(true);
     const res = await fetch(deleteUrlFor(deleteTargetId), { method: "DELETE" });
     setDeleting(false);
     if (res.ok) {
-      setComments((prev) => (prev ?? []).filter((c) => c.id !== deleteTargetId));
+      // A deleted comment cascades to its own replies server-side — mirror
+      // that here so stray replies don't linger in the list underneath it.
+      const deletedIds = new Set([deleteTargetId]);
+      let changed = true;
+      while (changed) {
+        changed = false;
+        for (const c of comments ?? []) {
+          if (c.parentId && deletedIds.has(c.parentId) && !deletedIds.has(c.id)) {
+            deletedIds.add(c.id);
+            changed = true;
+          }
+        }
+      }
+      setComments((prev) => (prev ?? []).filter((c) => !deletedIds.has(c.id)));
     }
     setDeleteTargetId(null);
   }
 
   if (!open) return null;
+
+  const repliesByParent = new Map<string, PopoutComment[]>();
+  for (const c of comments ?? []) {
+    if (!c.parentId) continue;
+    const list = repliesByParent.get(c.parentId) ?? [];
+    list.push(c);
+    repliesByParent.set(c.parentId, list);
+  }
+  const topLevelComments = (comments ?? []).filter((c) => !c.parentId);
+
+  function renderComment(comment: PopoutComment, depth: number) {
+    const isReplying = replyingToId === comment.id;
+    const isEditing = editingId === comment.id;
+    const replies = repliesByParent.get(comment.id) ?? [];
+
+    return (
+      <div key={comment.id} className="flex flex-col gap-1" style={{ marginLeft: depth * 16 }}>
+        {isEditing ? (
+          <div className="flex gap-2">
+            <textarea
+              ref={editTextareaRef}
+              rows={1}
+              value={editText}
+              onChange={(e) => setEditText(e.target.value)}
+              className={textareaClass}
+              autoFocus
+            />
+            <button
+              type="button"
+              onClick={() => submitEdit(comment.id)}
+              disabled={editSaving || !editText.trim()}
+              className="h-fit rounded bg-b2b-pink px-3 py-1 text-sm text-white hover:bg-b2b-pink-dark disabled:opacity-50"
+            >
+              Save
+            </button>
+            <button
+              type="button"
+              onClick={() => setEditingId(null)}
+              className="h-fit text-sm text-b2b-ink/50 hover:underline"
+            >
+              Cancel
+            </button>
+          </div>
+        ) : (
+          <div className="text-sm">
+            <p>
+              <span className="font-semibold">{comment.author.name}</span>{" "}
+              {comment.text && <span className="text-gray-800">{comment.text}</span>}
+            </p>
+            {comment.gifUrl && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={comment.gifUrl} alt="GIF" className="mt-1 max-h-40 rounded" />
+            )}
+            <div className="mt-0.5 flex items-center gap-3 text-xs text-b2b-ink/40">
+              <span>{formatDateTime(comment.createdAt)}</span>
+              <button type="button" onClick={() => startReply(comment.id)} className="hover:underline">
+                Reply
+              </button>
+              {comment.isMine ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => startEdit(comment.id, comment.text)}
+                    className="text-b2b-pink hover:underline"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDeleteTargetId(comment.id)}
+                    className="text-red-600 hover:underline"
+                  >
+                    Delete
+                  </button>
+                </>
+              ) : (
+                <ReportButton targetType={reportTargetType} targetId={comment.id} className="hover:underline" />
+              )}
+            </div>
+          </div>
+        )}
+
+        {isReplying && (
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              submitReply(comment.id);
+            }}
+            className="mt-1 flex gap-2"
+          >
+            <textarea
+              ref={replyTextareaRef}
+              rows={1}
+              value={replyText}
+              onChange={(e) => setReplyText(e.target.value)}
+              placeholder={`Reply to ${comment.author.name}...`}
+              className={textareaClass}
+              autoFocus
+            />
+            <button
+              type="submit"
+              disabled={replyBusy || !replyText.trim()}
+              className="h-fit rounded bg-b2b-pink px-3 py-1.5 text-sm text-white hover:bg-b2b-pink-dark disabled:opacity-50"
+            >
+              Reply
+            </button>
+          </form>
+        )}
+
+        {replies.map((reply) => renderComment(reply, depth + 1))}
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-0 sm:items-center sm:p-4" onClick={onClose}>
@@ -106,31 +305,10 @@ export function CommentsPopout({
             <p className="text-sm text-b2b-ink/40">Couldn't load comments. Please try again.</p>
           ) : comments === null ? (
             <p className="text-sm text-b2b-ink/40">Loading comments...</p>
-          ) : comments.length === 0 ? (
+          ) : topLevelComments.length === 0 ? (
             <p className="text-sm text-b2b-ink/40">No comments yet — be the first to say something.</p>
           ) : (
-            <div className="flex flex-col gap-3">
-              {comments.map((c) => (
-                <div key={c.id} className="text-sm">
-                  <p>
-                    <span className="font-semibold">{c.author.name}</span>{" "}
-                    {c.text && <span className="text-gray-800">{c.text}</span>}
-                  </p>
-                  {c.gifUrl && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={c.gifUrl} alt="GIF" className="mt-1 max-h-40 rounded" />
-                  )}
-                  <div className="mt-0.5 flex items-center gap-3 text-xs text-b2b-ink/40">
-                    <span>{formatDateTime(c.createdAt)}</span>
-                    {c.isMine && (
-                      <button type="button" onClick={() => setDeleteTargetId(c.id)} className="text-red-600 hover:underline">
-                        Delete
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
+            <div className="flex flex-col gap-3">{topLevelComments.map((c) => renderComment(c, 0))}</div>
           )}
         </div>
 
@@ -138,11 +316,12 @@ export function CommentsPopout({
           {postError && <p className="text-xs text-red-600">{postError}</p>}
           <div className="flex gap-2">
             <textarea
+              ref={commentTextareaRef}
               rows={1}
               value={text}
               onChange={(e) => setText(e.target.value)}
               placeholder="Add a comment..."
-              className="flex-1 resize-none rounded border border-gray-300 px-2 py-1.5 text-sm focus:border-b2b-pink focus:outline-none"
+              className={textareaClass}
             />
             <button
               type="submit"
@@ -157,7 +336,7 @@ export function CommentsPopout({
 
       <ConfirmDialog
         open={deleteTargetId !== null}
-        message="This comment will be deleted for good."
+        message="This comment will be deleted for good, along with any replies to it."
         onConfirm={confirmDelete}
         onCancel={() => setDeleteTargetId(null)}
         confirming={deleting}

@@ -36,6 +36,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       gifUrl: c.gifUrl,
       createdAt: c.createdAt,
       author: c.user,
+      parentId: c.parentId,
       isMine: c.userId === session.user.id,
     })),
   });

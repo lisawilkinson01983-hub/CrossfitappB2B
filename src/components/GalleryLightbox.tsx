@@ -6,6 +6,7 @@ import Image from "next/image";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { CommentsPopout } from "@/components/CommentsPopout";
 import type { MediaSource } from "@/lib/gallery";
+import type { ReportTargetTypeOption } from "@/lib/validation";
 
 type MediaItem = { key: string; type: "photo" | "video"; url: string; thumbnail?: string | null; source: MediaSource };
 
@@ -21,16 +22,34 @@ function deleteUrl(source: MediaSource): string {
 }
 
 /** A photo/video's comments always belong to the post or workout it came from, not to the individual media tile — all media in one post share its one thread. */
-function commentsConfig(source: MediaSource): { listUrl: string; postUrl: string; deleteUrlFor: (id: string) => string } {
+function commentsConfig(source: MediaSource): {
+  listUrl: string;
+  postUrl: string;
+  patchUrlFor: (id: string) => string;
+  deleteUrlFor: (id: string) => string;
+  reportTargetType: ReportTargetTypeOption;
+} {
   switch (source.kind) {
     case "postMedia":
     case "postLegacy": {
       const url = `/api/posts/${source.postId}/comments`;
-      return { listUrl: url, postUrl: url, deleteUrlFor: (id) => `/api/comments/${id}` };
+      return {
+        listUrl: url,
+        postUrl: url,
+        patchUrlFor: (id) => `/api/comments/${id}`,
+        deleteUrlFor: (id) => `/api/comments/${id}`,
+        reportTargetType: "COMMENT",
+      };
     }
     case "workout": {
       const url = `/api/workouts/${source.workoutId}/comments`;
-      return { listUrl: url, postUrl: url, deleteUrlFor: (id) => `/api/workout-comments/${id}` };
+      return {
+        listUrl: url,
+        postUrl: url,
+        patchUrlFor: (id) => `/api/workout-comments/${id}`,
+        deleteUrlFor: (id) => `/api/workout-comments/${id}`,
+        reportTargetType: "WORKOUT_COMMENT",
+      };
     }
   }
 }

@@ -2,8 +2,36 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { z } from "zod";
 
-/** Author-only delete of a comment on a logged workout. */
+const workoutCommentSchema = z.object({ text: z.string().trim().min(1).max(1000) });
+
+/** Author-only edit of a comment on a logged workout. */
+export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+  }
+
+  const { id } = await params;
+
+  const comment = await prisma.workoutComment.findUnique({ where: { id } });
+  if (!comment || comment.userId !== session.user.id) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  const body = await req.json().catch(() => null);
+  const parsed = workoutCommentSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
+  }
+
+  await prisma.workoutComment.update({ where: { id }, data: { text: parsed.data.text } });
+
+  return NextResponse.json({ ok: true });
+}
+
+/** Author-only delete of a comment on a logged workout — cascades to its own replies. */
 export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
