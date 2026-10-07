@@ -428,6 +428,8 @@ model User {
   commentLikes     CommentLike[]
   commentReactions CommentReaction[]
   messageReactions MessageReaction[]
+  stories          Story[]
+  storyViews       StoryView[]
 
   following Follow[] @relation("Following")
   followers Follow[] @relation("Followers")
@@ -920,6 +922,15 @@ model Message {
   replyTo   Message?  @relation("MessageReplies", fields: [replyToId], references: [id], onDelete: SetNull)
   replies   Message[] @relation("MessageReplies")
 
+  // Set when this message is a reply to (or a quick-reaction on) someone's
+  // story (see /api/stories/[id]/reply) — Instagram's "story replies land in
+  // your DMs" behavior. SetNull, not Cascade: the message (and its text/
+  // emoji) stays in the conversation even once the story itself is gone,
+  // same reasoning as replyToId above; the UI just stops being able to show
+  // the original story's thumbnail or let you reopen it.
+  storyId String?
+  story   Story?  @relation(fields: [storyId], references: [id], onDelete: SetNull)
+
   createdAt DateTime  @default(now())
   // Set when the sender edits the text after sending.
   editedAt  DateTime?
@@ -1251,6 +1262,45 @@ model Mute {
 
   @@unique([userId, mutedUserId])
   @@index([mutedUserId])
+}
+
+// A 24-hour ephemeral photo/video post (see src/lib/stories.ts), shown in a
+// horizontal bar above the feed — same idea as Instagram Stories. Expired
+// rows are never actively deleted, just filtered out by `expiresAt` in every
+// story-reading query (same "let old rows sit there" pattern as messages);
+// only an early, explicit delete by the author removes one.
+model Story {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  photo          String? // served path, e.g. "/media/xyz.jpg" (see src/lib/uploads.ts)
+  video          String?
+  videoThumbnail String?
+
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+
+  views   StoryView[]
+  replies Message[]
+
+  @@index([userId, expiresAt])
+}
+
+// One viewer having seen one story — powers both the "seen" ring state on
+// the stories bar and the author-only "who's viewed this" list.
+model StoryView {
+  id      String @id @default(cuid())
+  storyId String
+  story   Story  @relation(fields: [storyId], references: [id], onDelete: Cascade)
+
+  viewerId String
+  viewer   User   @relation(fields: [viewerId], references: [id], onDelete: Cascade)
+
+  viewedAt DateTime @default(now())
+
+  @@unique([storyId, viewerId])
+  @@index([storyId])
 }
 
 model Notification {

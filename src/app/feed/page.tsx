@@ -7,6 +7,7 @@ import { NavBar } from "@/components/NavBar";
 import { SectionCard } from "@/components/SectionCard";
 import { SectionOnboarding } from "@/components/SectionOnboarding";
 import { StatusBar } from "@/components/StatusBar";
+import { StoriesBar } from "@/components/StoriesBar";
 import { FEED_PAGE_SIZE, postCardInclude, toPostCardData } from "@/lib/posts";
 import { summarizeReactions } from "@/lib/reactions";
 import { PostComposer } from "./PostComposer";
@@ -31,7 +32,7 @@ export default async function FeedPage({
   const [currentUser, blocked, muted] = await Promise.all([
     prisma.user.findUnique({
       where: { id: session.user.id },
-      select: { hasSeenFeedTour: true, accountType: true, status: true },
+      select: { hasSeenFeedTour: true, accountType: true, status: true, name: true, photo: true },
     }),
     prisma.block.findMany({ where: { blockerId: session.user.id }, select: { blockedId: true } }),
     prisma.mute.findMany({ where: { userId: session.user.id }, select: { mutedUserId: true } }),
@@ -101,6 +102,12 @@ export default async function FeedPage({
       )}
       <NavBar />
       <h1 className="mt-6 text-2xl font-bold">Feed</h1>
+
+      <div className="mt-4">
+        <StoriesBar
+          currentUser={{ id: session.user.id, name: currentUser?.name ?? "You", photo: currentUser?.photo ?? null }}
+        />
+      </div>
 
       <div className="mt-4">
         <StatusBar myStatus={currentUser?.status ?? null} others={statusBarEntries} />

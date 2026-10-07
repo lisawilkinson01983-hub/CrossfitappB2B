@@ -116,6 +116,7 @@ export default async function ConversationPage({
                   sender: m.replyTo.sender,
                 }
               : null,
+            story: m.story,
           }))}
         />
       </div>

@@ -10,6 +10,8 @@ import { MentionText } from "@/components/MentionText";
 import { MAX_VIDEO_SECONDS, MAX_PHOTO_BYTES, MAX_PHOTO_MB } from "@/lib/media";
 import { readVideoInfo } from "@/lib/readVideoInfo";
 import type { ReactionSummary } from "@/lib/reactions";
+import { StoryViewer } from "@/components/StoryViewer";
+import type { StoryGroup } from "@/lib/stories";
 
 type ReplyPreviewData = {
   id: string;
@@ -19,6 +21,14 @@ type ReplyPreviewData = {
   video: string | null;
   deletedAt: string | null;
   sender: { id: string; name: string };
+};
+
+type StoryRefData = {
+  id: string;
+  userId: string;
+  photo: string | null;
+  video: string | null;
+  videoThumbnail: string | null;
 };
 
 type MessageItem = {
@@ -34,6 +44,7 @@ type MessageItem = {
   sender: { id: string; name: string };
   reactions: ReactionSummary[];
   replyTo: ReplyPreviewData | null;
+  story: StoryRefData | null;
 };
 
 const POLL_INTERVAL_MS = 4000;
@@ -75,6 +86,23 @@ export function ChatThread({
   const [flashedId, setFlashedId] = useState<string | null>(null);
   const [mediaError, setMediaError] = useState<string | null>(null);
   const mediaInputRef = useRef<HTMLInputElement>(null);
+
+  const [openingStory, setOpeningStory] = useState<{ groups: StoryGroup[]; groupIndex: number; storyIndex: number } | null>(null);
+  const [storyLoadError, setStoryLoadError] = useState<string | null>(null);
+
+  async function openStory(storyId: string, authorId: string) {
+    setStoryLoadError(null);
+    const res = await fetch("/api/stories");
+    const body: { groups: StoryGroup[] } | null = res.ok ? await res.json() : null;
+    const groupIndex = body?.groups.findIndex((g) => g.author.id === authorId) ?? -1;
+    const storyIndex = groupIndex >= 0 ? body!.groups[groupIndex].stories.findIndex((s) => s.id === storyId) : -1;
+    if (!body || groupIndex < 0 || storyIndex < 0) {
+      setStoryLoadError("This story is no longer available");
+      setTimeout(() => setStoryLoadError((prev) => (prev ? null : prev)), 3000);
+      return;
+    }
+    setOpeningStory({ groups: body.groups, groupIndex, storyIndex });
+  }
 
   useEffect(() => {
     const interval = setInterval(async () => {
@@ -264,6 +292,32 @@ export function ChatThread({
                       : `px-4 py-2.5 text-sm ${isMine ? "bg-b2b-pink text-white" : "bg-b2b-card text-b2b-ink"}`
                   }`}
                 >
+                  {message.story && !isEditing && (
+                    <button
+                      type="button"
+                      onClick={() => openStory(message.story!.id, message.story!.userId)}
+                      className={`flex w-full items-center gap-2 border-l-4 px-3 py-1.5 text-left text-xs ${
+                        hasMedia || hasGif
+                          ? "border-b2b-pink/50 bg-b2b-pink/5 text-b2b-ink/70"
+                          : isMine
+                            ? "border-white/50 bg-white/10 text-white/90"
+                            : "border-b2b-pink/50 bg-b2b-pink/5 text-b2b-ink/70"
+                      }`}
+                    >
+                      {(message.story.videoThumbnail || message.story.photo) && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={message.story.videoThumbnail ?? message.story.photo!}
+                          alt=""
+                          className="h-8 w-8 shrink-0 rounded object-cover"
+                        />
+                      )}
+                      <span className="italic opacity-90">
+                        {isMine ? "Replied to their story" : "Replied to your story"}
+                      </span>
+                    </button>
+                  )}
+
                   {message.replyTo && !isEditing && (
                     <button
                       type="button"
@@ -443,6 +497,18 @@ export function ChatThread({
           ➤
         </button>
       </form>
+
+      {storyLoadError && <p className="mt-2 text-center text-xs text-b2b-ink/50">{storyLoadError}</p>}
+
+      {openingStory && (
+        <StoryViewer
+          groups={openingStory.groups}
+          startGroupIndex={openingStory.groupIndex}
+          startStoryIndex={openingStory.storyIndex}
+          currentUserId={currentUserId}
+          onClose={() => setOpeningStory(null)}
+        />
+      )}
 
       <ConfirmDialog
         open={deleteTargetId !== null}

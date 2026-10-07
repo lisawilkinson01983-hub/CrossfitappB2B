@@ -19,6 +19,13 @@ export const messageInclude = {
       sender: { select: { id: true, name: true } },
     },
   },
+  // Set when this message is a reply to (or quick-reaction on) someone's
+  // story — see /api/stories/[id]/reply. Null once the story itself is gone
+  // (expired rows stay queryable, but an early author-delete sets this),
+  // same graceful-degradation as replyTo above.
+  story: {
+    select: { id: true, userId: true, photo: true, video: true, videoThumbnail: true },
+  },
 } satisfies Prisma.MessageInclude;
 
 /**
