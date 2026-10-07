@@ -1,9 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { Avatar } from "@/components/Avatar";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { StoryViewersList } from "@/components/StoryViewersList";
+import { LikeIcon } from "@/components/LikeIcon";
+import { ShareIcon } from "@/components/ShareIcon";
+import { MoreIcon } from "@/components/MoreIcon";
 import type { StoryGroup } from "@/lib/stories";
 
 // How long a photo story stays up before auto-advancing — a video's own
@@ -42,8 +46,10 @@ export function StoryViewer({
   const [sending, setSending] = useState(false);
   const [sentFlash, setSentFlash] = useState(false);
   const [viewersOpen, setViewersOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [justLiked, setJustLiked] = useState(false);
 
   const pausedRef = useRef(paused);
   useEffect(() => {
@@ -130,7 +136,7 @@ export function StoryViewer({
 
   if (!group || !story) return null;
 
-  async function sendReply(text: string) {
+  async function sendReply(text: string, isHeart = false) {
     if (!text.trim() || sending || isOwn) return;
     setSending(true);
     const res = await fetch(`/api/stories/${story!.id}/reply`, {
@@ -143,6 +149,10 @@ export function StoryViewer({
       setReplyText("");
       setSentFlash(true);
       setTimeout(() => setSentFlash(false), 1500);
+      if (isHeart) {
+        setJustLiked(true);
+        setTimeout(() => setJustLiked(false), 1500);
+      }
     }
   }
 
@@ -185,15 +195,41 @@ export function StoryViewer({
             <span className="text-sm font-medium text-white">{group.author.name}</span>
             <span className="text-xs text-white/60">{timeAgo(story.createdAt)}</span>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close"
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-xl text-white hover:bg-white/20"
-          >
-            ×
-          </button>
+          <div className="flex items-center gap-1">
+            {isOwn && (
+              <button
+                type="button"
+                onClick={() => setMoreOpen(true)}
+                aria-label="More options"
+                className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20"
+              >
+                <MoreIcon className="h-5 w-5" />
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Close"
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-xl text-white hover:bg-white/20"
+            >
+              ×
+            </button>
+          </div>
         </div>
+
+        {story.mentions.length > 0 && (
+          <div className="absolute left-0 right-0 top-16 z-10 flex flex-wrap gap-1.5 px-3">
+            {story.mentions.map((m) => (
+              <Link
+                key={m.id}
+                href={`/profile/${m.id}`}
+                className="rounded-full bg-black/40 px-2.5 py-1 text-xs font-medium text-white hover:bg-black/60"
+              >
+                @{m.name}
+              </Link>
+            ))}
+          </div>
+        )}
 
         {/* Media + tap zones */}
         <div
@@ -245,23 +281,13 @@ export function StoryViewer({
         {/* Footer */}
         <div className="z-10 bg-gradient-to-t from-black/70 to-transparent p-3 pt-6">
           {isOwn ? (
-            <div className="flex items-center justify-between">
-              <button
-                type="button"
-                onClick={() => setViewersOpen(true)}
-                className="flex items-center gap-1.5 text-sm text-white/80 hover:text-white"
-              >
-                👁 <span>Viewers</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setDeleteOpen(true)}
-                aria-label="Delete this story"
-                className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20"
-              >
-                🗑
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={() => setViewersOpen(true)}
+              className="flex items-center gap-1.5 text-sm text-white/80 hover:text-white"
+            >
+              👁 <span>Viewers</span>
+            </button>
           ) : (
             <form
               onSubmit={(e) => {
@@ -279,12 +305,12 @@ export function StoryViewer({
               />
               <button
                 type="button"
-                onClick={() => sendReply("❤️")}
+                onClick={() => sendReply("❤️", true)}
                 disabled={sending}
-                aria-label="Send a heart"
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/10 text-xl text-white hover:bg-white/20 disabled:opacity-50"
+                aria-label="Like"
+                className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 disabled:opacity-50 ${justLiked ? "text-b2b-pink" : "text-white"}`}
               >
-                ❤️
+                <LikeIcon className="h-5 w-5" filled={justLiked} />
               </button>
               {replyText.trim() && (
                 <button
@@ -293,7 +319,7 @@ export function StoryViewer({
                   aria-label="Send"
                   className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-b2b-pink text-white hover:bg-b2b-pink-dark disabled:opacity-40"
                 >
-                  ➤
+                  <ShareIcon className="h-5 w-5" />
                 </button>
               )}
             </form>
@@ -303,6 +329,30 @@ export function StoryViewer({
       </div>
 
       {viewersOpen && <StoryViewersList storyId={story.id} onClose={() => setViewersOpen(false)} />}
+
+      {moreOpen && (
+        <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/50 sm:items-center" onClick={() => setMoreOpen(false)}>
+          <div className="w-full max-w-sm rounded-t-2xl bg-b2b-card p-2 shadow-lg sm:rounded-2xl" onClick={(e) => e.stopPropagation()}>
+            <button
+              type="button"
+              onClick={() => {
+                setMoreOpen(false);
+                setDeleteOpen(true);
+              }}
+              className="w-full rounded-lg px-4 py-3 text-left text-sm font-medium text-red-600 hover:bg-b2b-bg"
+            >
+              Delete story
+            </button>
+            <button
+              type="button"
+              onClick={() => setMoreOpen(false)}
+              className="w-full rounded-lg px-4 py-3 text-left text-sm text-b2b-ink/60 hover:bg-b2b-bg"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
 
       <ConfirmDialog
         open={deleteOpen}

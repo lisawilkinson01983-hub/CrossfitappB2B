@@ -13,6 +13,8 @@ import {
 } from "@/lib/uploads";
 import { activeStoryWhere, groupStoriesByAuthor, storyCardInclude, storyExpiresAt } from "@/lib/stories";
 
+const MAX_STORY_MENTIONS = 10;
+
 /** All currently-active stories the viewer is allowed to see (everyone except blocked/muted), grouped by author — see StoriesBar. */
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -85,10 +87,39 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Add a photo or video" }, { status: 400 });
   }
 
+  const rawMentionIds = formData.getAll("mentionedUserIds").filter((v): v is string => typeof v === "string");
+  const candidateMentionIds = Array.from(new Set(rawMentionIds)).filter((id) => id !== session.user.id);
+  const taggedUsers =
+    candidateMentionIds.length > 0
+      ? await prisma.user.findMany({
+          where: { id: { in: candidateMentionIds.slice(0, MAX_STORY_MENTIONS) } },
+          select: { id: true },
+        })
+      : [];
+
   const now = new Date();
   const story = await prisma.story.create({
-    data: { userId: session.user.id, photo, video, videoThumbnail, createdAt: now, expiresAt: storyExpiresAt(now) },
+    data: {
+      userId: session.user.id,
+      photo,
+      video,
+      videoThumbnail,
+      createdAt: now,
+      expiresAt: storyExpiresAt(now),
+      mentions: { create: taggedUsers.map((u) => ({ userId: u.id })) },
+    },
   });
+
+  if (taggedUsers.length > 0) {
+    await prisma.notification.createMany({
+      data: taggedUsers.map((u) => ({
+        userId: u.id,
+        actorId: session.user.id,
+        type: "MENTION" as const,
+        storyId: story.id,
+      })),
+    });
+  }
 
   return NextResponse.json({ story });
 }

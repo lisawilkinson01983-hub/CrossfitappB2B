@@ -16,12 +16,12 @@ import { FeedPostList } from "./FeedPostList";
 export default async function FeedPage({
   searchParams,
 }: {
-  searchParams: Promise<{ post?: string; comment?: string }>;
+  searchParams: Promise<{ post?: string; comment?: string; story?: string }>;
 }) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) redirect("/login");
 
-  const { post: highlightPostId, comment: highlightCommentId } = await searchParams;
+  const { post: highlightPostId, comment: highlightCommentId, story: autoOpenStoryId } = await searchParams;
 
   // Timing this to separate "the page's own data-fetching is slow" from "the
   // images are slow once the page has already rendered" — reported lag
@@ -106,6 +106,7 @@ export default async function FeedPage({
       <div className="mt-4">
         <StoriesBar
           currentUser={{ id: session.user.id, name: currentUser?.name ?? "You", photo: currentUser?.photo ?? null }}
+          autoOpenStoryId={autoOpenStoryId}
         />
       </div>
 

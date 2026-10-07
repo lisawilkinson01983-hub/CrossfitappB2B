@@ -23,6 +23,7 @@ export function activeStoryWhere(): Prisma.StoryWhereInput {
 export const storyCardInclude = {
   user: { select: { id: true, name: true, photo: true } },
   views: { select: { viewerId: true } },
+  mentions: { select: { user: { select: { id: true, name: true } } } },
 } satisfies Prisma.StoryInclude;
 
 export type StoryWithCardData = Prisma.StoryGetPayload<{ include: typeof storyCardInclude }>;
@@ -34,6 +35,7 @@ export type StoryCardData = {
   videoThumbnail: string | null;
   createdAt: Date;
   viewedByMe: boolean;
+  mentions: { id: string; name: string }[];
 };
 
 export type StoryGroup = {
@@ -65,6 +67,7 @@ export function groupStoriesByAuthor(stories: StoryWithCardData[], viewerId: str
       videoThumbnail: story.videoThumbnail,
       createdAt: story.createdAt,
       viewedByMe,
+      mentions: story.mentions.map((m) => m.user),
     });
     if (!viewedByMe) group.hasUnseen = true;
   }

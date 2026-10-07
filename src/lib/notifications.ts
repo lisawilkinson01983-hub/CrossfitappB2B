@@ -11,6 +11,7 @@ export type NotificationView = {
   workoutId: string | null;
   pbField: string | null;
   emoji: string | null;
+  storyId: string | null;
 };
 
 /** What a post actually is, for notification wording — a photo/video takes priority over its text type, since that's what the other person actually reacted to. */
@@ -70,6 +71,8 @@ export function notificationText(n: NotificationView): string {
         : "commented on your PB";
     case "EVENT_PARTICIPANT_JOINED":
       return `is participating in "${n.event?.name ?? "your event"}"`;
+    case "MENTION":
+      return n.storyId ? "tagged you in their story" : "mentioned you";
     default:
       return "mentioned you";
   }
@@ -105,6 +108,9 @@ export function notificationHref(n: NotificationView, viewerId: string): string 
       return "/feed";
     case "FOLLOW":
       return `/profile/${n.actor.id}`;
+    case "MENTION":
+      if (n.storyId) return `/feed?story=${n.storyId}`;
+      return n.post ? `/posts/${n.post.id}${n.comment ? `?comment=${n.comment.id}` : ""}` : `/profile/${n.actor.id}`;
     default:
       return n.post ? `/posts/${n.post.id}${n.comment ? `?comment=${n.comment.id}` : ""}` : `/profile/${n.actor.id}`;
   }

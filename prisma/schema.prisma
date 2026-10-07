@@ -430,6 +430,7 @@ model User {
   messageReactions MessageReaction[]
   stories          Story[]
   storyViews       StoryView[]
+  storyMentions    StoryMention[]
 
   following Follow[] @relation("Following")
   followers Follow[] @relation("Followers")
@@ -1281,10 +1282,27 @@ model Story {
   createdAt DateTime @default(now())
   expiresAt DateTime
 
-  views   StoryView[]
-  replies Message[]
+  views         StoryView[]
+  replies       Message[]
+  mentions      StoryMention[]
+  notifications Notification[]
 
   @@index([userId, expiresAt])
+}
+
+// Someone tagged in a story (see the "Tag people" step when posting one) —
+// shown as a tappable name chip in the viewer, and triggers a MENTION
+// notification to that person (see src/lib/notifications.ts).
+model StoryMention {
+  id      String @id @default(cuid())
+  storyId String
+  story   Story  @relation(fields: [storyId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([storyId, userId])
+  @@index([storyId])
 }
 
 // One viewer having seen one story — powers both the "seen" ring state on
@@ -1352,6 +1370,13 @@ model Notification {
   // REACTION_EMOJIS was used, so the notification can say which one instead
   // of just "reacted".
   emoji String?
+
+  // Set for MENTION when it's from being tagged in someone's story (see
+  // StoryMention) rather than mentioned in a post/comment — lets the
+  // notification word itself correctly and deep-link back to the story
+  // (via /feed?story=, since a story has no standalone page of its own).
+  storyId String?
+  story   Story?  @relation(fields: [storyId], references: [id], onDelete: Cascade)
 
   readAt    DateTime?
   createdAt DateTime  @default(now())
