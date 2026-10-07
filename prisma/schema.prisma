@@ -229,6 +229,11 @@ model User {
   account   Account? @relation(fields: [accountId], references: [id], onDelete: Cascade)
 
   photo       String? // served path, e.g. "/media/xyz.jpg" (see src/lib/uploads.ts)
+  // The wide cover band behind the avatar on the profile card — optional,
+  // falls back to a plain brand-colored band when unset. Uploaded and
+  // cropped the same way as `photo` (see ImageCropper), just a wide aspect
+  // instead of square.
+  bannerPhoto String?
   bio         String?
   // Stored as a date of birth (not a static age) so a displayed age stays
   // correct after a birthday without anyone having to go edit it — see

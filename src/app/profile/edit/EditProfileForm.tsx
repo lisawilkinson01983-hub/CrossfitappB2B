@@ -27,6 +27,7 @@ import { calculateAge } from "@/lib/age";
 type Initial = {
   name: string;
   photo: string | null;
+  bannerPhoto: string | null;
   accountType: AccountTypeOption;
   website: string;
   bio: string;
@@ -117,6 +118,11 @@ export function EditProfileForm({
   const [cropSource, setCropSource] = useState<string | null>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
 
+  const [bannerFile, setBannerFile] = useState<File | null>(null);
+  const [bannerPreview, setBannerPreview] = useState<string | null>(initial.bannerPhoto);
+  const [bannerCropSource, setBannerCropSource] = useState<string | null>(null);
+  const bannerInputRef = useRef<HTMLInputElement>(null);
+
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -151,6 +157,25 @@ export function EditProfileForm({
     const file = new File([blob], "avatar.jpg", { type: "image/jpeg" });
     setPhotoFile(file);
     setPhotoPreview(URL.createObjectURL(blob));
+  }
+
+  function handleBannerChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0] ?? null;
+    if (file) setBannerCropSource(URL.createObjectURL(file));
+    e.target.value = "";
+  }
+
+  function handleBannerCropCancel() {
+    if (bannerCropSource) URL.revokeObjectURL(bannerCropSource);
+    setBannerCropSource(null);
+  }
+
+  function handleBannerCropped(blob: Blob) {
+    if (bannerCropSource) URL.revokeObjectURL(bannerCropSource);
+    setBannerCropSource(null);
+    const file = new File([blob], "banner.jpg", { type: "image/jpeg" });
+    setBannerFile(file);
+    setBannerPreview(URL.createObjectURL(blob));
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -195,6 +220,7 @@ export function EditProfileForm({
     }
     if (isPrivate) formData.set("isPrivate", "on");
     if (photoFile) formData.set("photo", photoFile);
+    if (bannerFile) formData.set("bannerPhoto", bannerFile);
 
     const res = await fetch("/api/profile", { method: "PATCH", body: formData });
 
@@ -214,6 +240,17 @@ export function EditProfileForm({
     <form onSubmit={handleSubmit} className="flex flex-col gap-5">
       {cropSource && (
         <AvatarCropper imageSrc={cropSource} onCancel={handleCropCancel} onCropped={handleCropped} />
+      )}
+      {bannerCropSource && (
+        <AvatarCropper
+          imageSrc={bannerCropSource}
+          onCancel={handleBannerCropCancel}
+          onCropped={handleBannerCropped}
+          aspect={3}
+          cropShape="rect"
+          outputWidth={1200}
+          outputHeight={400}
+        />
       )}
 
       {error && <p className="rounded bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
@@ -281,6 +318,39 @@ export function EditProfileForm({
             className="rounded-full border border-b2b-purple/20 px-3 py-1.5 text-sm font-medium text-b2b-ink/60 hover:border-b2b-pink hover:text-b2b-pink"
           >
             📷 Change photo
+          </button>
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium">Profile banner</label>
+        <p className="mt-0.5 text-xs text-b2b-ink/50">The wide cover image behind your profile photo. Optional.</p>
+        <div className="mt-2">
+          {bannerPreview ? (
+            <Image
+              src={bannerPreview}
+              alt="Banner preview"
+              width={380}
+              height={112}
+              unoptimized={bannerPreview.startsWith("blob:")}
+              className="h-24 w-full max-w-sm rounded-lg object-cover"
+            />
+          ) : (
+            <div className="h-24 w-full max-w-sm rounded-lg bg-b2b-ink" />
+          )}
+          <input
+            ref={bannerInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            onChange={handleBannerChange}
+            className="hidden"
+          />
+          <button
+            type="button"
+            onClick={() => bannerInputRef.current?.click()}
+            className="mt-2 rounded-full border border-b2b-purple/20 px-3 py-1.5 text-sm font-medium text-b2b-ink/60 hover:border-b2b-pink hover:text-b2b-pink"
+          >
+            🖼️ {bannerPreview ? "Change banner" : "Add banner"}
           </button>
         </div>
       </div>

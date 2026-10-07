@@ -77,6 +77,7 @@ export default async function EditProfilePage() {
             initial={{
               name: user.name,
               photo: user.photo,
+              bannerPhoto: user.bannerPhoto,
               accountType: user.accountType,
               website: user.website ?? "",
               verificationRequested: user.verificationRequestedAt != null && user.verifiedAt == null,

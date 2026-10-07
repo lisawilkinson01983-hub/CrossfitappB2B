@@ -74,6 +74,19 @@ export async function PATCH(req: Request) {
     }
   }
 
+  let bannerPhotoPath: string | undefined;
+  const bannerPhoto = formData.get("bannerPhoto");
+  if (bannerPhoto instanceof File && bannerPhoto.size > 0) {
+    try {
+      bannerPhotoPath = await savePhotoUpload(bannerPhoto, session.user.id, { square: false });
+    } catch (err) {
+      if (err instanceof PhotoUploadError) {
+        return NextResponse.json({ error: err.message }, { status: 400 });
+      }
+      throw err;
+    }
+  }
+
   const data = parsed.data;
 
   const pbData = Object.fromEntries(PB_FIELDS.map((field) => [field, data[field] ?? null]));
@@ -169,6 +182,7 @@ export async function PATCH(req: Request) {
       ...pbData,
       displayedPbs: JSON.stringify(data.displayedPbs ?? []),
       ...(photoPath ? { photo: photoPath } : {}),
+      ...(bannerPhotoPath ? { bannerPhoto: bannerPhotoPath } : {}),
     },
   });
 

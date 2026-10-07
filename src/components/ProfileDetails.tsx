@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import type { ReactNode } from "react";
 import type { User } from "@prisma/client";
 import {
@@ -138,12 +139,26 @@ export async function ProfileDetails({
     <div className="flex flex-col gap-6">
       <div className="overflow-hidden rounded-2xl border border-b2b-purple/10 bg-b2b-card shadow-sm shadow-b2b-purple/5">
         <div
-          className="h-28 bg-b2b-ink"
-          style={{
-            backgroundImage:
-              "repeating-linear-gradient(135deg, rgba(184,132,42,0.14) 0px, rgba(184,132,42,0.14) 2px, transparent 2px, transparent 18px)",
-          }}
-        />
+          className="relative h-28 bg-b2b-ink"
+          style={
+            user.bannerPhoto
+              ? undefined
+              : {
+                  backgroundImage:
+                    "repeating-linear-gradient(135deg, rgba(184,132,42,0.14) 0px, rgba(184,132,42,0.14) 2px, transparent 2px, transparent 18px)",
+                }
+          }
+        >
+          {user.bannerPhoto && (
+            <Image
+              src={user.bannerPhoto}
+              alt=""
+              fill
+              sizes="(min-width: 640px) 640px, 100vw"
+              className="object-cover"
+            />
+          )}
+        </div>
 
         <div className="px-5 pb-5">
           <div className="-mt-10 flex items-end justify-between gap-3">
