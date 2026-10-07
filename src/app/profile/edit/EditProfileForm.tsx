@@ -40,7 +40,6 @@ type Initial = {
   crossfitSinceYear: number | "";
   crossfitSinceMonth: number | "";
   lookingFor: LookingForOption[];
-  showLookingFor: boolean;
   isSingle: boolean | null;
   showRelationshipStatus: boolean;
   showSingleBadge: boolean;
@@ -86,7 +85,6 @@ export function EditProfileForm({
   const [crossfitSinceYear, setCrossfitSinceYear] = useState(String(initial.crossfitSinceYear));
   const [crossfitSinceMonth, setCrossfitSinceMonth] = useState(String(initial.crossfitSinceMonth));
   const [lookingFor, setLookingFor] = useState<LookingForOption[]>(initial.lookingFor);
-  const [showLookingFor, setShowLookingFor] = useState(initial.showLookingFor);
   const [isSingle, setIsSingle] = useState(isSingleToSelectValue(initial.isSingle));
   const [showRelationshipStatus, setShowRelationshipStatus] = useState(initial.showRelationshipStatus);
   const [showSingleBadge, setShowSingleBadge] = useState(initial.showSingleBadge);
@@ -185,7 +183,6 @@ export function EditProfileForm({
       formData.set("gender", gender);
       levels.forEach((v) => formData.append("levels", v));
       lookingFor.forEach((v) => formData.append("lookingFor", v));
-      if (showLookingFor) formData.set("showLookingFor", "on");
       formData.set("isSingle", isSingle);
       if (showRelationshipStatus) formData.set("showRelationshipStatus", "on");
       if (showSingleBadge) formData.set("showSingleBadge", "on");
@@ -363,6 +360,9 @@ export function EditProfileForm({
                 </option>
               ))}
             </select>
+            <p className="mt-1 text-xs text-b2b-ink/50">
+              Used for search &amp; discovery matching only — never shown on your profile.
+            </p>
           </div>
         </div>
       )}
@@ -597,7 +597,9 @@ export function EditProfileForm({
 
           <fieldset>
             <legend className="text-sm font-medium">Looking for</legend>
-            <p className="mt-0.5 text-xs text-b2b-ink/50">Choose at least one.</p>
+            <p className="mt-0.5 text-xs text-b2b-ink/50">
+              Choose at least one. Used for search &amp; discovery matching only — never shown on your profile.
+            </p>
             <div className="mt-2 flex flex-col gap-2">
               {LOOKING_FOR_OPTIONS.map((option) => (
                 <label key={option} className="flex items-center gap-2 text-sm">
@@ -610,14 +612,6 @@ export function EditProfileForm({
                 </label>
               ))}
             </div>
-            <label className="mt-2 flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={showLookingFor}
-                onChange={(e) => setShowLookingFor(e.target.checked)}
-              />
-              Display my looking-for tags on my profile
-            </label>
           </fieldset>
 
           <div>

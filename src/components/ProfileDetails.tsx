@@ -2,14 +2,11 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import type { User } from "@prisma/client";
 import {
-  GENDER_LABELS,
   LEVEL_BADGE_CLASSES,
   LEVEL_LABELS,
-  LOOKING_FOR_LABELS,
   MONTH_NAMES,
   PB_LABELS,
   parseDisplayedPbs,
-  parseLookingFor,
   parseLevels,
   showsSingleBadge,
 } from "@/lib/labels";
@@ -35,6 +32,7 @@ export async function ProfileDetails({
   showEmail,
   followerCount,
   followingCount,
+  workoutCount,
   actions,
   belowActions,
   isOwner = false,
@@ -44,11 +42,11 @@ export async function ProfileDetails({
   showEmail: boolean;
   followerCount: number;
   followingCount: number;
+  workoutCount: number;
   actions?: ReactNode;
   belowActions?: ReactNode;
   isOwner?: boolean;
 }) {
-  const lookingFor = parseLookingFor(user.lookingFor);
   const crossfitSince =
     user.crossfitSinceYear != null
       ? `${user.crossfitSinceMonth ? MONTH_NAMES[user.crossfitSinceMonth - 1] + " " : ""}${user.crossfitSinceYear}`
@@ -102,11 +100,9 @@ export async function ProfileDetails({
       <Badge key="age" label={`${calculateAge(user.dateOfBirth)} yrs`} className="bg-gray-100 text-gray-600" />
     );
   }
-  if (user.gender) {
-    badges.push(
-      <Badge key="gender" label={GENDER_LABELS[user.gender]} className="bg-gray-100 text-gray-600" />
-    );
-  }
+  // Gender and "looking for" are deliberately never rendered here — both are
+  // kept purely for search/discovery matching (see /discover), not shown on
+  // the profile itself.
   if (showRelationshipStatus) {
     badges.push(
       <Badge
@@ -115,13 +111,6 @@ export async function ProfileDetails({
         className="bg-gray-100 text-gray-600"
       />
     );
-  }
-  if (user.showLookingFor && lookingFor.length > 0) {
-    for (const tag of lookingFor) {
-      badges.push(
-        <Badge key={`lf-${tag}`} label={LOOKING_FOR_LABELS[tag]} className="bg-b2b-purple/10 text-b2b-purple" />
-      );
-    }
   }
 
   const metaParts: ReactNode[] = [];
@@ -147,35 +136,47 @@ export async function ProfileDetails({
 
   return (
     <div className="flex flex-col gap-6">
-      <SectionCard>
-        <div className="flex flex-col items-center gap-3 text-center">
-          <ExpandableAvatar
-            photo={user.photo}
-            name={user.name}
-            size={112}
-            showSingleBadge={showSingleBadge}
-            verified={isAffiliate && user.verifiedAt != null}
-          />
+      <div className="overflow-hidden rounded-2xl border border-b2b-purple/10 bg-b2b-card shadow-sm shadow-b2b-purple/5">
+        <div
+          className="h-28 bg-b2b-ink"
+          style={{
+            backgroundImage:
+              "repeating-linear-gradient(135deg, rgba(184,132,42,0.14) 0px, rgba(184,132,42,0.14) 2px, transparent 2px, transparent 18px)",
+          }}
+        />
 
-          <div>
-            <p className="text-xl font-semibold">
+        <div className="px-5 pb-5">
+          <div className="-mt-10 flex items-end justify-between gap-3">
+            <div className="rounded-full ring-4 ring-b2b-card" style={{ width: 84, height: 84 }}>
+              <ExpandableAvatar
+                photo={user.photo}
+                name={user.name}
+                size={84}
+                showSingleBadge={showSingleBadge}
+                verified={isAffiliate && user.verifiedAt != null}
+              />
+            </div>
+            {actions && <div className="mb-1 flex items-center gap-2">{actions}</div>}
+          </div>
+
+          <div className="mt-3">
+            <p className="flex flex-wrap items-center gap-2 text-xl font-semibold">
               {user.name}
               {user.isPrivate && (
-                <span className="ml-2 align-middle text-sm font-normal text-b2b-ink/50">🔒 Private</span>
+                <span className="text-sm font-normal text-b2b-ink/50">🔒 Private</span>
               )}
             </p>
             {showEmail && <p className="text-sm text-b2b-ink/50">{accountEmail}</p>}
-          </div>
-
-          {actions && <div className="flex items-center gap-2">{actions}</div>}
-
-          <div className="flex gap-4 text-sm">
-            <Link href={`/profile/${user.id}/connections?tab=followers`} className="text-b2b-pink underline">
-              {followerCount} followers
-            </Link>
-            <Link href={`/profile/${user.id}/connections?tab=following`} className="text-b2b-pink underline">
-              {followingCount} following
-            </Link>
+            {metaParts.length > 0 && (
+              <p className="mt-0.5 text-sm text-b2b-ink/50">
+                {metaParts.map((part, i) => (
+                  <span key={i}>
+                    {i > 0 && " · "}
+                    {part}
+                  </span>
+                ))}
+              </p>
+            )}
           </div>
 
           {isAffiliate && user.website && (
@@ -183,7 +184,7 @@ export async function ProfileDetails({
               href={user.website}
               target="_blank"
               rel="noopener noreferrer"
-              className="rounded bg-b2b-purple px-4 py-2 text-sm font-medium text-white hover:bg-b2b-purple-dark"
+              className="mt-3 inline-block rounded bg-b2b-purple px-4 py-2 text-sm font-medium text-white hover:bg-b2b-purple-dark"
             >
               🌐 Visit website
             </a>
@@ -191,7 +192,7 @@ export async function ProfileDetails({
 
           {isVerifiedOwnerHere &&
             (gymPage!.bookingEmail ? (
-              <div className="flex flex-wrap justify-center gap-2">
+              <div className="mt-3 flex flex-wrap gap-2">
                 <a
                   href={bookingMailto(gymPage!.bookingEmail, "Intro Session", gymPage!.name)}
                   className="rounded bg-b2b-purple px-4 py-2 text-sm font-medium text-white hover:bg-b2b-purple-dark"
@@ -206,27 +207,38 @@ export async function ProfileDetails({
                 </a>
               </div>
             ) : (
-              <GymBookingButtons gymId={gymPage!.id} />
+              <div className="mt-3">
+                <GymBookingButtons gymId={gymPage!.id} />
+              </div>
             ))}
 
           {belowActions}
 
-          {user.bio && <p className="max-w-sm text-sm italic text-b2b-ink/70">&ldquo;{user.bio}&rdquo;</p>}
+          <div className="mt-4 flex border-t border-b2b-purple/10 pt-4">
+            <Link href={`/profile/${user.id}/connections?tab=followers`} className="flex-1 text-center">
+              <div className="text-lg font-bold text-b2b-ink">{followerCount}</div>
+              <div className="text-[11px] uppercase tracking-wide text-b2b-ink/45">Followers</div>
+            </Link>
+            <Link
+              href={`/profile/${user.id}/connections?tab=following`}
+              className="flex-1 border-l border-b2b-purple/10 text-center"
+            >
+              <div className="text-lg font-bold text-b2b-ink">{followingCount}</div>
+              <div className="text-[11px] uppercase tracking-wide text-b2b-ink/45">Following</div>
+            </Link>
+            {!isAffiliate && (
+              <div className="flex-1 border-l border-b2b-purple/10 text-center">
+                <div className="text-lg font-bold text-b2b-ink">{workoutCount}</div>
+                <div className="text-[11px] uppercase tracking-wide text-b2b-ink/45">Workouts</div>
+              </div>
+            )}
+          </div>
 
-          {badges.length > 0 && <div className="flex flex-wrap justify-center gap-2">{badges}</div>}
+          {badges.length > 0 && <div className="mt-4 flex flex-wrap gap-2">{badges}</div>}
 
-          {metaParts.length > 0 && (
-            <p className="text-sm text-b2b-ink/50">
-              {metaParts.map((part, i) => (
-                <span key={i}>
-                  {i > 0 && " · "}
-                  {part}
-                </span>
-              ))}
-            </p>
-          )}
+          {user.bio && <p className="mt-4 max-w-sm text-sm italic text-b2b-ink/70">&ldquo;{user.bio}&rdquo;</p>}
         </div>
-      </SectionCard>
+      </div>
 
       <ProfilePosts userId={user.id} isOwner={isOwner} />
 

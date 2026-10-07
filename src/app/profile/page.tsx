@@ -67,13 +67,14 @@ export default async function ProfilePage() {
     { endDate: { gte: now } },
   ];
 
-  const [recentWorkouts, followerCount, followingCount, incomingRequests, participatingIn, interestedIn] =
+  const [recentWorkouts, workoutCount, followerCount, followingCount, incomingRequests, participatingIn, interestedIn] =
     await Promise.all([
       prisma.workout.findMany({
         where: { userId: user.id },
         orderBy: { createdAt: "desc" },
         take: 3,
       }),
+      prisma.workout.count({ where: { userId: user.id } }),
       prisma.follow.count({ where: { followingId: user.id } }),
       prisma.follow.count({ where: { followerId: user.id } }),
       prisma.followRequest.findMany({
@@ -118,6 +119,7 @@ export default async function ProfilePage() {
           isOwner
           followerCount={followerCount}
           followingCount={followingCount}
+          workoutCount={workoutCount}
           actions={
             <>
               <Link

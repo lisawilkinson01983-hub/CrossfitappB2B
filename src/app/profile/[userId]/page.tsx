@@ -32,7 +32,7 @@ export default async function UserProfilePage({
   });
   if (!user) notFound();
 
-  const [followerCount, followingCount, existingFollow, pendingRequest, recentWorkouts, me, blockRow, muteRow] =
+  const [followerCount, followingCount, existingFollow, pendingRequest, recentWorkouts, workoutCount, me, blockRow, muteRow] =
     await Promise.all([
       prisma.follow.count({ where: { followingId: user.id } }),
       prisma.follow.count({ where: { followerId: user.id } }),
@@ -43,6 +43,7 @@ export default async function UserProfilePage({
         where: { requesterId_targetId: { requesterId: session.user.id, targetId: user.id } },
       }),
       prisma.workout.findMany({ where: { userId: user.id }, orderBy: { createdAt: "desc" }, take: 3 }),
+      prisma.workout.count({ where: { userId: user.id } }),
       prisma.user.findUnique({ where: { id: session.user.id }, select: { lookingFor: true } }),
       prisma.block.findUnique({
         where: { blockerId_blockedId: { blockerId: session.user.id, blockedId: user.id } },
@@ -113,6 +114,7 @@ export default async function UserProfilePage({
               showEmail={false}
               followerCount={followerCount}
               followingCount={followingCount}
+              workoutCount={workoutCount}
               actions={
                 <>
                   <MessageButton targetUserId={user.id} />

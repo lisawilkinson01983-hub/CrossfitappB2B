@@ -96,7 +96,6 @@ export default async function EditProfilePage() {
               crossfitSinceYear: user.crossfitSinceYear ?? "",
               crossfitSinceMonth: user.crossfitSinceMonth ?? "",
               lookingFor: parseLookingFor(user.lookingFor),
-              showLookingFor: user.showLookingFor,
               isSingle: user.isSingle,
               showRelationshipStatus: user.showRelationshipStatus,
               showSingleBadge: user.showSingleBadge,
