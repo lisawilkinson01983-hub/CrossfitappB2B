@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Avatar } from "@/components/Avatar";
 import { GroupIcon } from "@/components/GroupIcon";
 import { AvatarCropper } from "@/components/AvatarCropper";
+import { SettingsIcon } from "@/components/SettingsIcon";
 
 /**
  * A group conversation's header: photo (any participant may change it — see
@@ -92,9 +93,9 @@ export function GroupHeader({
         <Link
           href={`/messages/${conversationId}/members`}
           aria-label="Manage group members"
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xl text-b2b-ink/50 hover:bg-b2b-purple/5 hover:text-b2b-ink"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-b2b-ink/50 hover:bg-b2b-purple/5 hover:text-b2b-ink"
         >
-          ⚙️
+          <SettingsIcon className="h-5 w-5" />
         </Link>
       </div>
 

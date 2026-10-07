@@ -288,9 +288,9 @@ export function CommentsPopout({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-0 sm:items-center sm:p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
       <div
-        className="flex max-h-[80vh] w-full flex-col rounded-t-xl bg-white sm:max-w-md sm:rounded-xl"
+        className="flex max-h-[80vh] w-full max-w-md flex-col rounded-xl bg-b2b-card shadow-lg"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-b2b-purple/10 px-4 py-3">

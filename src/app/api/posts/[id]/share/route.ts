@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { notifyMentions } from "@/lib/notify";
 
 /**
  * Toggles the current user's share of a post into their own feed. Sharing a
@@ -45,7 +46,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     if (!original.user.allowPostShares) {
       return NextResponse.json({ error: "This person has turned off sharing for their posts" }, { status: 403 });
     }
-    await prisma.post.create({
+    const shareRow = await prisma.post.create({
       data: {
         userId: session.user.id,
         type: original.type,
@@ -59,6 +60,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         data: { userId: original.userId, actorId: session.user.id, type: "POST_SHARE", postId: originalId },
       });
     }
+    await notifyMentions({ text: message, actorId: session.user.id, postId: shareRow.id });
   }
 
   const count = await prisma.post.count({ where: { sharedFromId: originalId } });

@@ -681,10 +681,10 @@ export function PostCard({
       {post.sharedBy &&
         (editingShareMessage ? (
           <div className="mt-2 flex flex-col gap-2">
-            <textarea
+            <MentionTextarea
               rows={2}
               value={editShareMessageText}
-              onChange={(e) => setEditShareMessageText(e.target.value)}
+              onChange={setEditShareMessageText}
               placeholder="Say something about this..."
               className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm focus:border-b2b-pink focus:outline-none"
               autoFocus
@@ -708,7 +708,11 @@ export function PostCard({
             </div>
           </div>
         ) : (
-          shareMessage && <p className="mt-2 whitespace-pre-wrap text-b2b-ink">{shareMessage}</p>
+          shareMessage && (
+            <p className="mt-2 whitespace-pre-wrap text-b2b-ink">
+              <MentionText text={shareMessage} />
+            </p>
+          )
         ))}
 
       <div className={post.sharedBy ? "mt-3 rounded-lg border border-b2b-purple/10 bg-b2b-bg p-3" : ""}>
@@ -974,10 +978,10 @@ export function PostCard({
             onClick={(e) => e.stopPropagation()}
           >
             <p className="text-base font-semibold text-b2b-ink">Share this post</p>
-            <textarea
+            <MentionTextarea
               rows={3}
               value={shareMessageDraft}
-              onChange={(e) => setShareMessageDraft(e.target.value)}
+              onChange={setShareMessageDraft}
               placeholder="Say something about this (optional)..."
               className="mt-3 w-full rounded border border-gray-300 px-2 py-1.5 text-sm focus:border-b2b-pink focus:outline-none"
               autoFocus
