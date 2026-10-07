@@ -60,6 +60,11 @@ export async function createGroupConversation(creatorId: string, otherUserIds: s
   });
 }
 
+/** Narrows a message query to what one participant is allowed to see — everything, unless they joined after opting out of the earlier history (see ConversationParticipant.hideHistory). */
+export function messageVisibilityWhere(participant: { hideHistory: boolean; joinedAt: Date }): Prisma.MessageWhereInput {
+  return participant.hideHistory ? { createdAt: { gte: participant.joinedAt } } : {};
+}
+
 /** The name shown for a conversation: its explicit group name, or else the other participants' names joined together. */
 export function conversationDisplayName(
   conversation: { isGroup: boolean; name: string | null },

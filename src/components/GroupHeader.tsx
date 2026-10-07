@@ -2,31 +2,29 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Avatar } from "@/components/Avatar";
 import { GroupIcon } from "@/components/GroupIcon";
 import { AvatarCropper } from "@/components/AvatarCropper";
-import { ConfirmDialog } from "@/components/ConfirmDialog";
-
-type Member = { id: string; name: string; deletedAt: Date | string | null };
 
 /**
  * A group conversation's header: photo (any participant may change it — see
- * PATCH /api/conversations/[id]), the member list with a per-member remove
- * action, and a "Leave group" button. Flat permissions throughout — there's
- * no group admin/owner concept, any current member can remove any other.
+ * PATCH /api/conversations/[id]) and a link to the dedicated members page
+ * (see /messages/[conversationId]/members) — adding/removing people and
+ * leaving all live there, deliberately apart from this header, rather than
+ * an always-visible × next to a name that's one accidental tap from removing
+ * someone.
  */
 export function GroupHeader({
   conversationId,
   displayName,
   initialPhoto,
-  members,
-  currentUserId,
+  memberCount,
 }: {
   conversationId: string;
   displayName: string;
   initialPhoto: string | null;
-  members: Member[];
-  currentUserId: string;
+  memberCount: number;
 }) {
   const router = useRouter();
   const [photo, setPhoto] = useState(initialPhoto);
@@ -34,13 +32,6 @@ export function GroupHeader({
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [photoError, setPhotoError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const [removeTarget, setRemoveTarget] = useState<Member | null>(null);
-  const [removing, setRemoving] = useState(false);
-  const [leaveConfirmOpen, setLeaveConfirmOpen] = useState(false);
-  const [leaving, setLeaving] = useState(false);
-
-  const others = members.filter((m) => m.id !== currentUserId && !m.deletedAt);
 
   function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0] ?? null;
@@ -74,27 +65,6 @@ export function GroupHeader({
     router.refresh();
   }
 
-  async function confirmRemove() {
-    if (!removeTarget) return;
-    setRemoving(true);
-    const res = await fetch(`/api/conversations/${conversationId}/participants/${removeTarget.id}`, {
-      method: "DELETE",
-    });
-    setRemoving(false);
-    setRemoveTarget(null);
-    if (res.ok) router.refresh();
-  }
-
-  async function confirmLeave() {
-    setLeaving(true);
-    const res = await fetch(`/api/conversations/${conversationId}/participants/${currentUserId}`, {
-      method: "DELETE",
-    });
-    setLeaving(false);
-    setLeaveConfirmOpen(false);
-    if (res.ok) router.push("/messages");
-  }
-
   return (
     <div>
       <div className="flex items-center gap-3">
@@ -113,62 +83,16 @@ export function GroupHeader({
         <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handlePhotoChange} />
         <div className="min-w-0">
           <h1 className="truncate text-xl font-bold">{displayName}</h1>
-          <p className="text-xs text-b2b-ink/50">{members.length} people</p>
+          <Link href={`/messages/${conversationId}/members`} className="text-xs text-b2b-pink underline">
+            {memberCount} {memberCount === 1 ? "member" : "members"} — manage
+          </Link>
         </div>
       </div>
 
       {photoError && <p className="mt-1 text-xs text-red-600">{photoError}</p>}
       {uploadingPhoto && <p className="mt-1 text-xs text-b2b-ink/40">Updating group photo...</p>}
 
-      {others.length > 0 && (
-        <div className="mt-2 flex flex-wrap gap-1.5">
-          {others.map((member) => (
-            <span
-              key={member.id}
-              className="flex items-center gap-1 rounded-full bg-b2b-purple/10 py-1 pl-2.5 pr-1.5 text-xs text-b2b-purple"
-            >
-              {member.name}
-              <button
-                type="button"
-                onClick={() => setRemoveTarget(member)}
-                aria-label={`Remove ${member.name} from the group`}
-                className="text-b2b-purple/60 hover:text-b2b-purple"
-              >
-                ×
-              </button>
-            </span>
-          ))}
-        </div>
-      )}
-
-      <button
-        type="button"
-        onClick={() => setLeaveConfirmOpen(true)}
-        className="mt-2 text-xs text-red-600 hover:underline"
-      >
-        Leave group
-      </button>
-
       {cropSource && <AvatarCropper imageSrc={cropSource} onCancel={handleCropCancel} onCropped={handleCropped} />}
-
-      <ConfirmDialog
-        open={removeTarget !== null}
-        title={`Remove ${removeTarget?.name ?? "this person"}?`}
-        message="They'll no longer see this conversation or receive new messages in it."
-        confirmLabel="Remove"
-        onConfirm={confirmRemove}
-        onCancel={() => setRemoveTarget(null)}
-        confirming={removing}
-      />
-      <ConfirmDialog
-        open={leaveConfirmOpen}
-        title="Leave this group?"
-        message="You'll stop seeing this conversation. The group continues for everyone else."
-        confirmLabel="Leave"
-        onConfirm={confirmLeave}
-        onCancel={() => setLeaveConfirmOpen(false)}
-        confirming={leaving}
-      />
     </div>
   );
 }

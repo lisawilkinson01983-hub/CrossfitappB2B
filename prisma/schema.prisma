@@ -856,6 +856,13 @@ model ConversationParticipant {
   // picks back up.
   hiddenAt DateTime?
 
+  // Set when this participant was added to an existing group and chose not
+  // to be shown messages from before they joined (see POST
+  // /api/conversations/[id]/participants) — the thread then only loads
+  // messages from joinedAt onward for them specifically, same data for
+  // everyone else.
+  hideHistory Boolean @default(false)
+
   @@unique([conversationId, userId])
   @@index([userId])
 }

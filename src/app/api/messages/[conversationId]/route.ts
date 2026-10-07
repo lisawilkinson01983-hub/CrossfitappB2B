@@ -5,19 +5,20 @@ import { prisma } from "@/lib/prisma";
 import { messageSchema } from "@/lib/validation";
 import { checkRateLimit } from "@/lib/rateLimit";
 import { summarizeReactions } from "@/lib/reactions";
-import { messageInclude } from "@/lib/conversations";
+import { messageInclude, messageVisibilityWhere } from "@/lib/conversations";
 import { PhotoUploadError, VideoUploadError, savePhotoUpload, saveVideoThumbnailUpload, saveVideoUpload } from "@/lib/uploads";
 import { parseFormData } from "@/lib/http";
 
 async function loadAuthorizedConversation(conversationId: string, userId: string) {
   const conversation = await prisma.conversation.findUnique({
     where: { id: conversationId },
-    include: { participants: { select: { userId: true } } },
+    include: { participants: { select: { userId: true, hideHistory: true, joinedAt: true } } },
   });
-  if (!conversation || !conversation.participants.some((p) => p.userId === userId)) {
+  const me = conversation?.participants.find((p) => p.userId === userId);
+  if (!conversation || !me) {
     return null;
   }
-  return conversation;
+  return { ...conversation, me };
 }
 
 /** A quote-reply's target must be a real message in this same conversation — null for an invalid/missing id, same convention as comment replies. */
@@ -46,7 +47,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ convers
   });
 
   const messages = await prisma.message.findMany({
-    where: { conversationId },
+    where: { conversationId, ...messageVisibilityWhere(conversation.me) },
     orderBy: { createdAt: "asc" },
     include: messageInclude,
   });

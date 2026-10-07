@@ -8,8 +8,9 @@ import { Avatar } from "@/components/Avatar";
 import { ChatThread } from "@/components/ChatThread";
 import { GroupHeader } from "@/components/GroupHeader";
 import { showsSingleBadge } from "@/lib/labels";
-import { conversationDisplayName, messageInclude } from "@/lib/conversations";
+import { conversationDisplayName, messageInclude, messageVisibilityWhere } from "@/lib/conversations";
 import { summarizeReactions } from "@/lib/reactions";
+import { formatDate } from "@/lib/dates";
 
 export default async function ConversationPage({
   params,
@@ -32,7 +33,8 @@ export default async function ConversationPage({
     },
   });
 
-  if (!conversation || !conversation.participants.some((p) => p.userId === session.user.id)) {
+  const me = conversation?.participants.find((p) => p.userId === session.user.id);
+  if (!conversation || !me) {
     notFound();
   }
 
@@ -46,7 +48,7 @@ export default async function ConversationPage({
   });
 
   const messages = await prisma.message.findMany({
-    where: { conversationId },
+    where: { conversationId, ...messageVisibilityWhere(me) },
     orderBy: { createdAt: "asc" },
     include: messageInclude,
   });
@@ -63,8 +65,7 @@ export default async function ConversationPage({
             conversationId={conversationId}
             displayName={displayName}
             initialPhoto={conversation.photo}
-            members={conversation.participants.map((p) => ({ id: p.userId, name: p.user.name, deletedAt: p.user.deletedAt }))}
-            currentUserId={session.user.id}
+            memberCount={conversation.participants.filter((p) => !p.user.deletedAt).length}
           />
         </div>
       ) : (
@@ -79,6 +80,12 @@ export default async function ConversationPage({
             <h1 className="truncate text-xl font-bold">{displayName}</h1>
           </div>
         </div>
+      )}
+
+      {me.hideHistory && (
+        <p className="mt-3 rounded bg-b2b-bg px-3 py-2 text-xs text-b2b-ink/50">
+          You joined this conversation on {formatDate(me.joinedAt)} — messages from before then aren&rsquo;t shown to you.
+        </p>
       )}
 
       <div className="mt-4">
