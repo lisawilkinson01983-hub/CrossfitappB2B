@@ -875,6 +875,21 @@ model Message {
   // can be GIF-only (see messageSchema's refine in src/lib/validation.ts).
   gifUrl String?
 
+  // An uploaded photo/video (see src/lib/uploads.ts) — mutually exclusive
+  // with each other and with gifUrl, but either can carry `text` too as a
+  // caption, unlike a GIF message.
+  photo          String?
+  video          String?
+  videoThumbnail String?
+
+  // Set when this message is a WhatsApp-style quote-reply to another message
+  // in the same conversation. SetNull (not Cascade) since messages are
+  // soft-deleted in place (see deletedAt below), not actually removed — this
+  // only matters if a message is ever hard-deleted some other way.
+  replyToId String?
+  replyTo   Message?  @relation("MessageReplies", fields: [replyToId], references: [id], onDelete: SetNull)
+  replies   Message[] @relation("MessageReplies")
+
   createdAt DateTime  @default(now())
   // Set when the sender edits the text after sending.
   editedAt  DateTime?

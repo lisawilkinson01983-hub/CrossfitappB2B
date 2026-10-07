@@ -1,4 +1,25 @@
+import type { Prisma } from "@prisma/client";
 import { prisma } from "./prisma";
+
+// Shared across GET/POST/PATCH/DELETE on a message so the shape returned to
+// ChatThread never drifts between them — in particular, every one of those
+// needs to include replyTo, or a freshly-sent/edited/deleted message would
+// come back from the server missing its quoted-reply preview.
+export const messageInclude = {
+  sender: { select: { id: true, name: true } },
+  reactions: { select: { emoji: true, userId: true } },
+  replyTo: {
+    select: {
+      id: true,
+      text: true,
+      gifUrl: true,
+      photo: true,
+      video: true,
+      deletedAt: true,
+      sender: { select: { id: true, name: true } },
+    },
+  },
+} satisfies Prisma.MessageInclude;
 
 /**
  * Finds (or creates) the 1:1 conversation between exactly these two users.

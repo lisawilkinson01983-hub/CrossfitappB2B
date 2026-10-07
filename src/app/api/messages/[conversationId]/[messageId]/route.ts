@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { messageSchema } from "@/lib/validation";
 import { summarizeReactions } from "@/lib/reactions";
+import { messageInclude } from "@/lib/conversations";
 
 async function loadOwnMessage(conversationId: string, messageId: string, userId: string) {
   const message = await prisma.message.findUnique({ where: { id: messageId } });
@@ -37,10 +38,7 @@ export async function PATCH(
   const updated = await prisma.message.update({
     where: { id: messageId },
     data: { text: parsed.data.text, editedAt: new Date() },
-    include: {
-      sender: { select: { id: true, name: true } },
-      reactions: { select: { emoji: true, userId: true } },
-    },
+    include: messageInclude,
   });
 
   return NextResponse.json({
@@ -65,14 +63,13 @@ export async function DELETE(
 
   // Soft-deleted, same as Comment/EventNoticeComment — the placeholder text
   // keeps the thread's order and read state intact for everyone else in it.
-  // gifUrl is cleared too, so nothing of the original content still renders.
+  // gifUrl/photo/video are cleared too, so nothing of the original content
+  // still renders (replyToId is kept — a deleted message can still be quoted
+  // by an existing reply, which shows "This message was deleted" instead).
   const updated = await prisma.message.update({
     where: { id: messageId },
-    data: { text: "[deleted]", gifUrl: null, deletedAt: new Date() },
-    include: {
-      sender: { select: { id: true, name: true } },
-      reactions: { select: { emoji: true, userId: true } },
-    },
+    data: { text: "[deleted]", gifUrl: null, photo: null, video: null, videoThumbnail: null, deletedAt: new Date() },
+    include: messageInclude,
   });
 
   return NextResponse.json({

@@ -8,7 +8,7 @@ import { Avatar } from "@/components/Avatar";
 import { ChatThread } from "@/components/ChatThread";
 import { GroupHeader } from "@/components/GroupHeader";
 import { showsSingleBadge } from "@/lib/labels";
-import { conversationDisplayName } from "@/lib/conversations";
+import { conversationDisplayName, messageInclude } from "@/lib/conversations";
 import { summarizeReactions } from "@/lib/reactions";
 
 export default async function ConversationPage({
@@ -48,10 +48,7 @@ export default async function ConversationPage({
   const messages = await prisma.message.findMany({
     where: { conversationId },
     orderBy: { createdAt: "asc" },
-    include: {
-      sender: { select: { id: true, name: true } },
-      reactions: { select: { emoji: true, userId: true } },
-    },
+    include: messageInclude,
   });
 
   return (
@@ -93,11 +90,25 @@ export default async function ConversationPage({
             id: m.id,
             text: m.text,
             gifUrl: m.gifUrl,
+            photo: m.photo,
+            video: m.video,
+            videoThumbnail: m.videoThumbnail,
             createdAt: m.createdAt.toISOString(),
             editedAt: m.editedAt ? m.editedAt.toISOString() : null,
             deletedAt: m.deletedAt ? m.deletedAt.toISOString() : null,
             sender: m.sender,
             reactions: summarizeReactions(m.reactions, session.user.id),
+            replyTo: m.replyTo
+              ? {
+                  id: m.replyTo.id,
+                  text: m.replyTo.text,
+                  gifUrl: m.replyTo.gifUrl,
+                  photo: m.replyTo.photo,
+                  video: m.replyTo.video,
+                  deletedAt: m.replyTo.deletedAt ? m.replyTo.deletedAt.toISOString() : null,
+                  sender: m.replyTo.sender,
+                }
+              : null,
           }))}
         />
       </div>

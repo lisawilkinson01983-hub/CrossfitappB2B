@@ -1,26 +1,52 @@
 "use client";
 
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import { ReportButton } from "@/components/ReportButton";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { ReactionBar } from "@/components/ReactionBar";
 import { GifPicker } from "@/components/GifPicker";
 import { formatTime } from "@/lib/dates";
 import { MentionText } from "@/components/MentionText";
+import { MAX_VIDEO_SECONDS, MAX_PHOTO_BYTES, MAX_PHOTO_MB } from "@/lib/media";
+import { readVideoInfo } from "@/lib/readVideoInfo";
 import type { ReactionSummary } from "@/lib/reactions";
+
+type ReplyPreviewData = {
+  id: string;
+  text: string;
+  gifUrl: string | null;
+  photo: string | null;
+  video: string | null;
+  deletedAt: string | null;
+  sender: { id: string; name: string };
+};
 
 type MessageItem = {
   id: string;
   text: string;
   gifUrl: string | null;
+  photo: string | null;
+  video: string | null;
+  videoThumbnail: string | null;
   createdAt: string;
   editedAt: string | null;
   deletedAt: string | null;
   sender: { id: string; name: string };
   reactions: ReactionSummary[];
+  replyTo: ReplyPreviewData | null;
 };
 
 const POLL_INTERVAL_MS = 4000;
+const MEDIA_ACCEPT = "image/jpeg,image/png,image/webp,video/mp4,video/quicktime";
+
+/** What a quoted reply (or the reply-draft bar above the composer) shows for the message being quoted. */
+function quotedPreviewText(m: { text: string; gifUrl: string | null; photo: string | null; video: string | null; deletedAt?: string | null }): string {
+  if (m.deletedAt) return "This message was deleted";
+  if (m.video) return "🎥 Video";
+  if (m.photo) return "📷 Photo";
+  if (m.gifUrl) return "GIF";
+  return m.text;
+}
 
 export function ChatThread({
   conversationId,
@@ -45,6 +71,11 @@ export function ChatThread({
   const [deleting, setDeleting] = useState(false);
   const [gifPickerOpen, setGifPickerOpen] = useState(false);
 
+  const [replyingTo, setReplyingTo] = useState<MessageItem | null>(null);
+  const [flashedId, setFlashedId] = useState<string | null>(null);
+  const [mediaError, setMediaError] = useState<string | null>(null);
+  const mediaInputRef = useRef<HTMLInputElement>(null);
+
   useEffect(() => {
     const interval = setInterval(async () => {
       const res = await fetch(`/api/messages/${conversationId}`);
@@ -60,6 +91,12 @@ export function ChatThread({
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages.length]);
 
+  function scrollToMessage(id: string) {
+    document.getElementById(`message-${id}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    setFlashedId(id);
+    setTimeout(() => setFlashedId((prev) => (prev === id ? null : prev)), 1200);
+  }
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (!text.trim() || sending) return;
@@ -67,13 +104,14 @@ export function ChatThread({
     const res = await fetch(`/api/messages/${conversationId}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text }),
+      body: JSON.stringify({ text, replyToId: replyingTo?.id }),
     });
     setSending(false);
     if (res.ok) {
       const body = await res.json();
       setMessages((prev) => [...prev, body.message]);
       setText("");
+      setReplyingTo(null);
     }
   }
 
@@ -82,12 +120,60 @@ export function ChatThread({
     const res = await fetch(`/api/messages/${conversationId}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ gifUrl }),
+      body: JSON.stringify({ gifUrl, replyToId: replyingTo?.id }),
     });
     if (res.ok) {
       const body = await res.json();
       setMessages((prev) => [...prev, body.message]);
+      setReplyingTo(null);
     }
+  }
+
+  async function handleMediaChange(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file || sending) return;
+
+    setMediaError(null);
+    const isVideo = file.type.startsWith("video/");
+    const formData = new FormData();
+    formData.set("text", text);
+    if (replyingTo) formData.set("replyToId", replyingTo.id);
+
+    if (isVideo) {
+      let info;
+      try {
+        info = await readVideoInfo(file);
+      } catch {
+        info = null;
+      }
+      if (info && info.duration > MAX_VIDEO_SECONDS + 0.5) {
+        setMediaError(`Videos must be ${MAX_VIDEO_SECONDS} seconds or under (this one is ${Math.round(info.duration)}s)`);
+        return;
+      }
+      formData.set("video", file);
+      if (info?.thumbnail) formData.set("thumbnail", info.thumbnail, "thumbnail.jpg");
+    } else {
+      if (file.size > MAX_PHOTO_BYTES) {
+        setMediaError(`Photo must be smaller than ${MAX_PHOTO_MB}MB`);
+        return;
+      }
+      formData.set("photo", file);
+    }
+
+    setSending(true);
+    const res = await fetch(`/api/messages/${conversationId}`, { method: "POST", body: formData });
+    setSending(false);
+
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      setMediaError(body.error ?? "Couldn't send that. Please try again.");
+      return;
+    }
+    const body = await res.json();
+    setMessages((prev) => [...prev, body.message]);
+    setText("");
+    setReplyingTo(null);
   }
 
   async function toggleReaction(messageId: string, emoji: string) {
@@ -158,24 +244,47 @@ export function ChatThread({
           const isMine = message.sender.id === currentUserId;
           const isEditing = editingId === message.id;
           const isDeleted = !!message.deletedAt;
+          const hasMedia = !isDeleted && !isEditing && (!!message.photo || !!message.video);
+          const hasGif = !isDeleted && !isEditing && !!message.gifUrl;
 
           return (
-            <div key={message.id} className={`flex ${isMine ? "justify-end" : "justify-start"}`}>
+            <div
+              key={message.id}
+              id={`message-${message.id}`}
+              className={`flex ${isMine ? "justify-end" : "justify-start"} ${flashedId === message.id ? "animate-pulse" : ""}`}
+            >
               <div className={`max-w-[75%] ${isMine ? "items-end" : "items-start"} flex flex-col`}>
                 {isGroup && !isMine && (
                   <span className="mb-0.5 px-1 text-xs font-medium text-b2b-ink/50">{message.sender.name}</span>
                 )}
                 <div
-                  className={
-                    message.gifUrl && !isDeleted && !isEditing
-                      ? "overflow-hidden rounded-2xl shadow-sm"
-                      : `rounded-2xl px-4 py-2.5 text-sm shadow-sm ${
-                          isMine ? "rounded-br-md bg-b2b-pink text-white" : "rounded-bl-md bg-b2b-card text-b2b-ink"
-                        }`
-                  }
+                  className={`rounded-2xl shadow-sm ${isMine ? "rounded-br-md" : "rounded-bl-md"} ${
+                    hasMedia || hasGif
+                      ? "overflow-hidden bg-b2b-card"
+                      : `px-4 py-2.5 text-sm ${isMine ? "bg-b2b-pink text-white" : "bg-b2b-card text-b2b-ink"}`
+                  }`}
                 >
+                  {message.replyTo && !isEditing && (
+                    <button
+                      type="button"
+                      onClick={() => scrollToMessage(message.replyTo!.id)}
+                      className={`block w-full border-l-4 px-3 py-1.5 text-left text-xs ${
+                        hasMedia || hasGif
+                          ? "border-b2b-pink/50 bg-b2b-pink/5 text-b2b-ink/70"
+                          : isMine
+                            ? "border-white/50 bg-white/10 text-white/90"
+                            : "border-b2b-pink/50 bg-b2b-pink/5 text-b2b-ink/70"
+                      }`}
+                    >
+                      <p className="font-semibold">
+                        {message.replyTo.sender.id === currentUserId ? "You" : message.replyTo.sender.name}
+                      </p>
+                      <p className="truncate italic opacity-90">{quotedPreviewText(message.replyTo)}</p>
+                    </button>
+                  )}
+
                   {isEditing ? (
-                    <div className="flex flex-col gap-2">
+                    <div className="flex flex-col gap-2 px-4 py-2.5">
                       <input
                         type="text"
                         value={editText}
@@ -202,6 +311,16 @@ export function ChatThread({
                   ) : message.gifUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element -- external, unsized GIF from Tenor
                     <img src={message.gifUrl} alt="" className="block max-h-64 w-full object-cover" />
+                  ) : message.video ? (
+                    <video
+                      src={message.video}
+                      controls
+                      poster={message.videoThumbnail ?? undefined}
+                      className="block max-h-80 w-full"
+                    />
+                  ) : message.photo ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={message.photo} alt="" className="block max-h-80 w-full object-cover" />
                   ) : (
                     <p className="whitespace-pre-wrap">
                       <MentionText
@@ -209,6 +328,10 @@ export function ChatThread({
                         linkClassName={isMine ? "font-medium underline" : "font-medium text-b2b-pink hover:underline"}
                       />
                     </p>
+                  )}
+
+                  {hasMedia && message.text && (
+                    <p className="whitespace-pre-wrap px-3 pb-2 pt-1.5 text-sm text-b2b-ink">{message.text}</p>
                   )}
                 </div>
                 {!isDeleted && (
@@ -225,9 +348,14 @@ export function ChatThread({
                     {formatTime(message.createdAt)}
                   </span>
                   {!isDeleted && message.editedAt && <span>(edited)</span>}
+                  {!isEditing && !isDeleted && (
+                    <button type="button" onClick={() => setReplyingTo(message)} className="hover:underline">
+                      Reply
+                    </button>
+                  )}
                   {!isEditing && !isDeleted && isMine && (
                     <>
-                      {!message.gifUrl && (
+                      {!message.gifUrl && !message.photo && !message.video && (
                         <button type="button" onClick={() => startEdit(message)} className="hover:underline">
                           Edit
                         </button>
@@ -252,7 +380,44 @@ export function ChatThread({
         <div ref={bottomRef} />
       </div>
 
+      {replyingTo && (
+        <div className="flex items-center justify-between gap-2 rounded-t-lg border border-b-0 border-b2b-purple/15 bg-b2b-bg px-3 py-1.5">
+          <div className="min-w-0 border-l-4 border-b2b-pink pl-2">
+            <p className="text-xs font-semibold text-b2b-ink/70">
+              Replying to {replyingTo.sender.id === currentUserId ? "yourself" : replyingTo.sender.name}
+            </p>
+            <p className="truncate text-xs italic text-b2b-ink/50">{quotedPreviewText(replyingTo)}</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setReplyingTo(null)}
+            aria-label="Cancel reply"
+            className="shrink-0 px-1 text-lg leading-none text-b2b-ink/40 hover:text-b2b-ink/70"
+          >
+            ×
+          </button>
+        </div>
+      )}
+
+      {mediaError && <p className="mt-2 text-xs text-red-600">{mediaError}</p>}
+
       <form onSubmit={handleSubmit} className="relative mt-2 flex items-center gap-2">
+        <input
+          ref={mediaInputRef}
+          type="file"
+          accept={MEDIA_ACCEPT}
+          onChange={handleMediaChange}
+          className="hidden"
+        />
+        <button
+          type="button"
+          onClick={() => mediaInputRef.current?.click()}
+          disabled={sending}
+          aria-label="Send a photo or video"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-b2b-purple/15 bg-b2b-card text-base text-b2b-ink/60 hover:bg-b2b-purple/5 disabled:opacity-50"
+        >
+          📎
+        </button>
         <button
           type="button"
           onClick={() => setGifPickerOpen((v) => !v)}
