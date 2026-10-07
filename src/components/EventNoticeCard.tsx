@@ -12,6 +12,8 @@ import { formatTeammateRequest } from "@/lib/labels";
 import { autoGrowTextarea } from "@/lib/autoGrowTextarea";
 import type { TeammateRequest } from "@/lib/validation";
 import { formatDateTime } from "@/lib/dates";
+import { LikeIcon } from "@/components/LikeIcon";
+import { CommentIcon } from "@/components/CommentIcon";
 
 export type EventNoticeCommentData = {
   id: string;
@@ -424,16 +426,20 @@ export function EventNoticeCard({
           type="button"
           onClick={toggleLike}
           disabled={likeBusy}
-          className={`font-medium ${liked ? "text-b2b-pink" : "text-b2b-ink/50"} hover:underline disabled:opacity-50`}
+          aria-label={liked ? "Unlike" : "Like"}
+          className={`flex items-center gap-1 font-medium disabled:opacity-50 ${liked ? "text-b2b-pink" : "text-b2b-ink/50 hover:text-b2b-pink"}`}
         >
-          {liked ? "♥ Liked" : "♡ Like"} {likeCount > 0 && `(${likeCount})`}
+          <LikeIcon className="h-5 w-5" filled={liked} />
+          {likeCount > 0 && likeCount}
         </button>
         <button
           type="button"
           onClick={() => setShowComments((v) => !v)}
-          className="font-medium text-b2b-ink/50 hover:underline"
+          aria-label="Comments"
+          className="flex items-center gap-1 font-medium text-b2b-ink/50 hover:text-b2b-pink"
         >
-          {comments.length} {comments.length === 1 ? "comment" : "comments"}
+          <CommentIcon className="h-5 w-5" />
+          {comments.length > 0 && comments.length}
         </button>
       </div>
 

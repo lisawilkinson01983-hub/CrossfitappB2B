@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { CommentsPopout } from "@/components/CommentsPopout";
+import { CommentIcon } from "@/components/CommentIcon";
 
 /** One PB value, tappable to open its comments in a popout (see CommentsPopout). */
 export function PbTile({
@@ -49,7 +50,9 @@ export function PbTile({
           )}
         </p>
         <p className="mt-0.5 text-lg font-semibold text-b2b-ink">{value}</p>
-        <p className="mt-0.5 text-[10px] text-b2b-ink/40">💬 Comment</p>
+        <p className="mt-0.5 flex items-center gap-1 text-[10px] text-b2b-ink/40">
+          <CommentIcon className="h-3 w-3" /> Comment
+        </p>
       </button>
 
       <CommentsPopout

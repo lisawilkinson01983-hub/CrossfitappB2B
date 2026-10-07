@@ -22,6 +22,10 @@ import { ReportButton } from "@/components/ReportButton";
 import { WorkoutDescriptionToggle } from "@/components/WorkoutDescriptionToggle";
 import { ReactionBar } from "@/components/ReactionBar";
 import { GifPicker } from "@/components/GifPicker";
+import { LikeIcon } from "@/components/LikeIcon";
+import { CommentIcon } from "@/components/CommentIcon";
+import { ShareIcon } from "@/components/ShareIcon";
+import { SaveIcon } from "@/components/SaveIcon";
 import { formatEventDate } from "@/lib/eventDate";
 import { formatDateTime } from "@/lib/dates";
 import type { ReactionSummary } from "@/lib/reactions";
@@ -108,6 +112,7 @@ export type PostCardData = {
   } | null;
   likeCount: number;
   likedByMe: boolean;
+  savedByMe: boolean;
   comments: CommentData[];
 };
 
@@ -136,6 +141,9 @@ export function PostCard({
   const [liked, setLiked] = useState(post.likedByMe);
   const [likeCount, setLikeCount] = useState(post.likeCount);
   const [likeBusy, setLikeBusy] = useState(false);
+
+  const [saved, setSaved] = useState(post.savedByMe);
+  const [saveBusy, setSaveBusy] = useState(false);
 
   const [shared, setShared] = useState(post.sharedByMe);
   const [shareCount, setShareCount] = useState(post.shareCount);
@@ -207,6 +215,17 @@ export function PostCard({
       const body = await res.json();
       setLiked(body.liked);
       setLikeCount(body.count);
+    }
+  }
+
+  async function toggleSave() {
+    if (saveBusy) return;
+    setSaveBusy(true);
+    const res = await fetch(`/api/posts/${post.id}/save`, { method: "POST" });
+    setSaveBusy(false);
+    if (res.ok) {
+      const body = await res.json();
+      setSaved(body.saved);
     }
   }
 
@@ -503,9 +522,11 @@ export function PostCard({
               <button
                 type="button"
                 onClick={() => toggleCommentLike(comment.id)}
-                className={comment.likedByMe ? "font-medium text-b2b-pink" : "hover:underline"}
+                aria-label={comment.likedByMe ? "Unlike" : "Like"}
+                className={`flex items-center gap-1 ${comment.likedByMe ? "font-medium text-b2b-pink" : "hover:text-b2b-pink"}`}
               >
-                {comment.likedByMe ? "♥ Liked" : "♡ Like"} {comment.likeCount > 0 && `(${comment.likeCount})`}
+                <LikeIcon className="h-3.5 w-3.5" filled={comment.likedByMe} />
+                {comment.likeCount > 0 && comment.likeCount}
               </button>
               <button type="button" onClick={() => startReply(comment.id)} className="hover:underline">
                 Reply
@@ -877,39 +898,55 @@ export function PostCard({
         )}
       </div>
 
-      <div className="mt-3 flex items-center gap-4 border-t border-gray-100 pt-3 text-sm">
-        <span className="flex items-center gap-1">
+      <div className="mt-3 flex items-center justify-between border-t border-gray-100 pt-3 text-sm">
+        <div className="flex items-center gap-4">
+          <span className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={toggleLike}
+              disabled={likeBusy}
+              aria-label={liked ? "Unlike" : "Like"}
+              className={`flex items-center gap-1 font-medium disabled:opacity-50 ${liked ? "text-b2b-pink" : "text-gray-600 hover:text-b2b-pink"}`}
+            >
+              <LikeIcon className="h-5 w-5" filled={liked} />
+            </button>
+            {likeCount > 0 && (
+              <Link href={`/posts/${post.id}/likes`} className="font-medium text-gray-600 hover:underline">
+                {likeCount}
+              </Link>
+            )}
+          </span>
           <button
             type="button"
-            onClick={toggleLike}
-            disabled={likeBusy}
-            className={`font-medium ${liked ? "text-b2b-pink" : "text-gray-600"} hover:underline disabled:opacity-50`}
+            onClick={() => setShowComments((v) => !v)}
+            aria-label="Comments"
+            className="flex items-center gap-1 font-medium text-gray-600 hover:text-b2b-pink"
           >
-            {liked ? "♥ Liked" : "♡ Like"}
+            <CommentIcon className="h-5 w-5" />
+            {comments.length > 0 && comments.length}
           </button>
-          {likeCount > 0 && (
-            <Link href={`/posts/${post.id}/likes`} className="font-medium text-gray-600 hover:underline">
-              ({likeCount})
-            </Link>
+          {(post.canShare || shared) && (
+            <button
+              type="button"
+              onClick={shared ? unshareNow : openShareComposer}
+              disabled={shareBusy}
+              aria-label={shared ? "Unshare" : "Share"}
+              className={`flex items-center gap-1 font-medium disabled:opacity-50 ${shared ? "text-b2b-pink" : "text-gray-600 hover:text-b2b-pink"}`}
+            >
+              <ShareIcon className="h-5 w-5" />
+              {shareCount > 0 && shareCount}
+            </button>
           )}
-        </span>
+        </div>
         <button
           type="button"
-          onClick={() => setShowComments((v) => !v)}
-          className="font-medium text-gray-600 hover:underline"
+          onClick={toggleSave}
+          disabled={saveBusy}
+          aria-label={saved ? "Unsave" : "Save"}
+          className={`disabled:opacity-50 ${saved ? "text-b2b-pink" : "text-gray-600 hover:text-b2b-pink"}`}
         >
-          {comments.length} {comments.length === 1 ? "comment" : "comments"}
+          <SaveIcon className="h-5 w-5" filled={saved} />
         </button>
-        {(post.canShare || shared) && (
-          <button
-            type="button"
-            onClick={shared ? unshareNow : openShareComposer}
-            disabled={shareBusy}
-            className={`font-medium ${shared ? "text-b2b-pink" : "text-gray-600"} hover:underline disabled:opacity-50`}
-          >
-            {shared ? "🔁 Shared" : "🔁 Share"} {shareCount > 0 && `(${shareCount})`}
-          </button>
-        )}
       </div>
 
       {showComments && (

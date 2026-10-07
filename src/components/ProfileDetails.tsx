@@ -228,7 +228,7 @@ export async function ProfileDetails({
         </div>
       </SectionCard>
 
-      <ProfilePosts userId={user.id} />
+      <ProfilePosts userId={user.id} isOwner={isOwner} />
 
       {!isAffiliate && (
         <SectionCard

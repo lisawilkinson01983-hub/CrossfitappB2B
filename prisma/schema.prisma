@@ -418,6 +418,7 @@ model User {
   workouts         Workout[]
   posts            Post[]
   likes            Like[]
+  savedPosts       SavedPost[]
   comments         Comment[]
   commentLikes     CommentLike[]
   commentReactions CommentReaction[]
@@ -586,12 +587,29 @@ model Post {
   createdAt DateTime @default(now())
 
   likes         Like[]
+  savedBy       SavedPost[]
   comments      Comment[]
   notifications Notification[]
 
   @@unique([userId, sharedFromId])
   @@index([userId])
   @@index([createdAt])
+}
+
+// A private bookmark — unlike Like, never notifies the post's author and
+// never shows up anywhere but the saver's own "Saved" list (see
+// /profile/saved). Same shape as Like/CommentLike/EventNoticeLike.
+model SavedPost {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  postId String
+  post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, postId])
+  @@index([postId])
 }
 
 // One photo or video in a post's carousel (see Post.media). `order` controls

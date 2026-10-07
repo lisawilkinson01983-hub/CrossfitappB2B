@@ -33,6 +33,7 @@ const postContentInclude = {
     select: { id: true, kind: true, url: true, thumbnail: true },
   },
   likes: { select: { userId: true } },
+  savedBy: { select: { userId: true } },
   comments: {
     orderBy: { createdAt: "asc" },
     include: {
@@ -106,6 +107,7 @@ export function toPostCardData(post: PostWithCardData, currentUserId: string): P
     linkedEvent: original.linkedEvent,
     likeCount: original.likes.length,
     likedByMe: original.likes.some((like) => like.userId === currentUserId),
+    savedByMe: original.savedBy.some((save) => save.userId === currentUserId),
     comments: original.comments.map((comment) => ({
       id: comment.id,
       text: comment.text,

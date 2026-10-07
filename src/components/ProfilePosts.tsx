@@ -5,6 +5,8 @@ import { SectionCard } from "@/components/SectionCard";
 import { Avatar } from "@/components/Avatar";
 import { stripMentionMarkup } from "@/lib/mentions";
 import { formatDate } from "@/lib/dates";
+import { LikeIcon } from "@/components/LikeIcon";
+import { CommentIcon } from "@/components/CommentIcon";
 
 const PREVIEW_COUNT = 3;
 
@@ -43,7 +45,7 @@ function previewThumbnail(post: PreviewPost): string | null {
 }
 
 /** A profile's own "wall" — compact one-line rows, collapsing to a dedicated full-history page with the real PostCard. */
-export async function ProfilePosts({ userId }: { userId: string }) {
+export async function ProfilePosts({ userId, isOwner = false }: { userId: string; isOwner?: boolean }) {
   const [posts, totalCount] = await Promise.all([
     prisma.post.findMany({
       where: { userId, sharedToFeed: true },
@@ -71,10 +73,19 @@ export async function ProfilePosts({ userId }: { userId: string }) {
     <SectionCard
       title="Posts"
       action={
-        totalCount > PREVIEW_COUNT ? (
-          <Link href={`/profile/${userId}/posts`} className="text-sm text-b2b-pink underline">
-            See all ({totalCount})
-          </Link>
+        isOwner || totalCount > PREVIEW_COUNT ? (
+          <div className="flex items-center gap-3">
+            {isOwner && (
+              <Link href="/saved" className="text-sm text-b2b-pink underline">
+                Saved
+              </Link>
+            )}
+            {totalCount > PREVIEW_COUNT && (
+              <Link href={`/profile/${userId}/posts`} className="text-sm text-b2b-pink underline">
+                See all ({totalCount})
+              </Link>
+            )}
+          </div>
         ) : undefined
       }
     >
@@ -101,10 +112,14 @@ export async function ProfilePosts({ userId }: { userId: string }) {
               )}
               <div className="min-w-0 flex-1">
                 <p className="line-clamp-2">{summarize(post)}</p>
-                <p className="mt-1 text-xs text-b2b-ink/40">
-                  {formatDate(post.createdAt, { month: "short", day: "numeric" })}
-                  {" · "}
-                  {post._count.likes} ♡ · {post._count.comments} 💬
+                <p className="mt-1 flex items-center gap-2 text-xs text-b2b-ink/40">
+                  <span>{formatDate(post.createdAt, { month: "short", day: "numeric" })}</span>
+                  <span className="flex items-center gap-1">
+                    <LikeIcon className="h-3 w-3" /> {post._count.likes}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <CommentIcon className="h-3 w-3" /> {post._count.comments}
+                  </span>
                 </p>
               </div>
             </Link>
