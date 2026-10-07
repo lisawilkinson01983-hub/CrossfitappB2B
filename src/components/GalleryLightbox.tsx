@@ -58,19 +58,28 @@ export function GalleryLightbox({
   items: initialItems,
   canEdit = false,
   layout = "strip",
+  autoOpenIndex,
+  autoOpenComments = false,
 }: {
   items: MediaItem[];
   canEdit?: boolean;
   /** "strip": fixed-width tiles in a horizontal scroller (the profile preview). "grid": fills a responsive grid (the full gallery page). */
   layout?: "strip" | "grid";
+  /** Set when arriving from a WORKOUT_COMMENT notification link (see /profile/[userId]/gallery?workout=) to open straight to that item. */
+  autoOpenIndex?: number;
+  autoOpenComments?: boolean;
 }) {
   const router = useRouter();
   const [items, setItems] = useState(initialItems);
-  const [openIndex, setOpenIndex] = useState<number | null>(null);
+  const [openIndex, setOpenIndex] = useState<number | null>(autoOpenIndex ?? null);
   const [removeTargetKey, setRemoveTargetKey] = useState<string | null>(null);
   const [removing, setRemoving] = useState(false);
-  const [commentsOpen, setCommentsOpen] = useState(false);
+  const [commentsOpen, setCommentsOpen] = useState(autoOpenComments);
   const scrollerRef = useRef<HTMLDivElement>(null);
+  // The comments-reset effect below would otherwise immediately close the
+  // auto-opened popout on mount, since it fires once after the initial
+  // render too — skip exactly that one run.
+  const skipNextCommentsReset = useRef(autoOpenComments);
 
   useEffect(() => {
     if (openIndex === null || !scrollerRef.current) return;
@@ -78,7 +87,13 @@ export function GalleryLightbox({
     el?.scrollIntoView({ behavior: "instant", inline: "center", block: "nearest" });
   }, [openIndex]);
 
-  useEffect(() => setCommentsOpen(false), [openIndex]);
+  useEffect(() => {
+    if (skipNextCommentsReset.current) {
+      skipNextCommentsReset.current = false;
+      return;
+    }
+    setCommentsOpen(false);
+  }, [openIndex]);
 
   useEffect(() => {
     if (openIndex === null) return;

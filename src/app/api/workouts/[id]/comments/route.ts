@@ -91,7 +91,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const recipientId = parentComment ? parentComment.userId : workout.userId;
   if (recipientId !== session.user.id) {
     await prisma.notification.create({
-      data: { userId: recipientId, actorId: session.user.id, type: "WORKOUT_COMMENT" },
+      data: { userId: recipientId, actorId: session.user.id, type: "WORKOUT_COMMENT", workoutId },
     });
   }
 

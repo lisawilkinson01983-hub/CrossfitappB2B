@@ -8,11 +8,18 @@ import { GalleryLightbox } from "@/components/GalleryLightbox";
 import { AddMediaButton } from "@/components/AddMediaButton";
 import { getGalleryItems } from "@/lib/gallery";
 
-export default async function UserGalleryPage({ params }: { params: Promise<{ userId: string }> }) {
+export default async function UserGalleryPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ userId: string }>;
+  searchParams: Promise<{ workout?: string }>;
+}) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) redirect("/login");
 
   const { userId } = await params;
+  const { workout: openWorkoutId } = await searchParams;
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user) notFound();
 
@@ -27,6 +34,11 @@ export default async function UserGalleryPage({ params }: { params: Promise<{ us
 
   const isOwner = userId === session.user.id;
   const items = await getGalleryItems(userId);
+  // A WORKOUT_COMMENT notification deep-links here with ?workout= — open
+  // straight to that photo/video's comments instead of just the grid.
+  const openIndex = openWorkoutId
+    ? items.findIndex((item) => item.source.kind === "workout" && item.source.workoutId === openWorkoutId)
+    : -1;
 
   return (
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
@@ -50,6 +62,8 @@ export default async function UserGalleryPage({ params }: { params: Promise<{ us
               items={items.map(({ key, type, url, thumbnail, source }) => ({ key, type, url, thumbnail, source }))}
               canEdit={isOwner}
               layout="grid"
+              autoOpenIndex={openIndex >= 0 ? openIndex : undefined}
+              autoOpenComments={openIndex >= 0}
             />
           </div>
         )}

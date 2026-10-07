@@ -8,6 +8,7 @@ import { SectionCard } from "@/components/SectionCard";
 import { Avatar } from "@/components/Avatar";
 import { showsSingleBadge } from "@/lib/labels";
 import { formatDate } from "@/lib/dates";
+import { notificationText, notificationHref } from "@/lib/notifications";
 
 export default async function NotificationsPage() {
   const session = await getServerSession(authOptions);
@@ -25,7 +26,7 @@ export default async function NotificationsPage() {
     take: 50,
     include: {
       actor: { select: { id: true, name: true, photo: true, isSingle: true, showSingleBadge: true } },
-      post: { select: { id: true } },
+      post: { select: { id: true, type: true, photo: true, video: true, media: { select: { kind: true } } } },
       comment: { select: { id: true } },
       event: { select: { id: true, name: true } },
       gym: { select: { id: true, name: true } },
@@ -60,76 +61,24 @@ export default async function NotificationsPage() {
                     </div>
                   </div>
                 ) : (
-                <Link
-                  key={n.id}
-                  href={
-                    n.type === "EVENT_SUBMITTED"
-                      ? "/events/review"
-                      : n.type === "GYM_SUBMITTED"
-                        ? "/gyms/review"
-                        : n.type === "REPORT_SUBMITTED"
-                          ? "/reports/review"
-                        : n.type === "AFFILIATE_VERIFICATION_REQUESTED"
-                          ? "/admin/verification-requests"
-                        : n.type === "TEAMMATE_REQUEST_MATCH" ||
-                            n.type === "TEAMMATE_SEARCH_MATCH" ||
-                            n.type === "EVENT_INVITE" ||
-                            n.type === "EVENT_PARTICIPANT_JOINED"
-                          ? `/events/${n.event?.id ?? ""}`
-                          : n.post
-                            ? `/feed?post=${n.post.id}${n.comment ? `&comment=${n.comment.id}` : ""}`
-                            : `/profile/${n.actor.id}`
-                  }
-                  className="flex items-center gap-3 py-3 hover:bg-b2b-purple/5"
-                >
-                  <Avatar
-                    photo={n.actor.photo}
-                    name={n.actor.name}
-                    size={40}
-                    showSingleBadge={showsSingleBadge(n.actor)}
-                  />
-                  <p className="flex-1 text-sm">
-                    <span className="font-semibold">{n.actor.name}</span>{" "}
-                    {n.type === "LIKE"
-                      ? "liked your post"
-                      : n.type === "COMMENT"
-                        ? "commented on your post"
-                        : n.type === "REPLY"
-                          ? "replied to your comment"
-                          : n.type === "COMMENT_LIKE"
-                            ? "liked your comment"
-                            : n.type === "EVENT_SUBMITTED"
-                              ? `submitted "${n.event?.name ?? "an event"}" for review`
-                              : n.type === "GYM_SUBMITTED"
-                                ? `submitted "${n.gym?.name ?? "an affiliate"}" for review`
-                                : n.type === "REPORT_SUBMITTED"
-                                ? "reported something for review"
-                                : n.type === "AFFILIATE_VERIFICATION_REQUESTED"
-                                ? "requested verification as an affiliate owner"
-                                : n.type === "TEAMMATE_REQUEST_MATCH"
-                                ? `posted a teammate request matching your search for "${n.event?.name ?? "an event"}"`
-                                : n.type === "TEAMMATE_SEARCH_MATCH"
-                                  ? `is looking for a team matching your request for "${n.event?.name ?? "an event"}"`
-                                  : n.type === "EVENT_INVITE"
-                                    ? `invited you to "${n.event?.name ?? "an event"}"`
-                                    : n.type === "FOLLOW"
-                                      ? "started following you"
-                                      : n.type === "POST_SHARE"
-                                        ? "shared your post"
-                                        : n.type === "STATUS_REACTION"
-                                          ? "reacted to your status"
-                                          : n.type === "WORKOUT_COMMENT"
-                                            ? "commented on your workout"
-                                            : n.type === "PB_COMMENT"
-                                              ? "commented on your PB"
-                                              : n.type === "EVENT_PARTICIPANT_JOINED"
-                                            ? `is participating in "${n.event?.name ?? "your event"}"`
-                                            : "mentioned you"}
-                  </p>
-                  <span className="whitespace-nowrap text-xs text-b2b-ink/40">
-                    {formatDate(n.createdAt)}
-                  </span>
-                </Link>
+                  <Link
+                    key={n.id}
+                    href={notificationHref(n, session.user.id)}
+                    className="flex items-center gap-3 py-3 hover:bg-b2b-purple/5"
+                  >
+                    <Avatar
+                      photo={n.actor.photo}
+                      name={n.actor.name}
+                      size={40}
+                      showSingleBadge={showsSingleBadge(n.actor)}
+                    />
+                    <p className="flex-1 text-sm">
+                      <span className="font-semibold">{n.actor.name}</span> {notificationText(n)}
+                    </p>
+                    <span className="whitespace-nowrap text-xs text-b2b-ink/40">
+                      {formatDate(n.createdAt)}
+                    </span>
+                  </Link>
                 )
               )}
             </div>

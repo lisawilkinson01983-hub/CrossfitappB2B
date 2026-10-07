@@ -37,7 +37,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ userId:
   } else {
     await prisma.statusReaction.create({ data: { userId, reactorId: session.user.id, emoji } });
     await prisma.notification.create({
-      data: { userId, actorId: session.user.id, type: "STATUS_REACTION" },
+      data: { userId, actorId: session.user.id, type: "STATUS_REACTION", emoji },
     });
   }
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { CommentsPopout } from "@/components/CommentsPopout";
 
 /** One PB value, tappable to open its comments in a popout (see CommentsPopout). */
@@ -10,22 +10,35 @@ export function PbTile({
   featured,
   profileUserId,
   field,
+  autoOpen = false,
 }: {
   label: string;
   value: number;
   featured: boolean;
   profileUserId: string;
   field: string;
+  /** Set when arriving from a PB_COMMENT notification link (see /profile/[userId]/pbs?field=) to open straight to this PB's comments. */
+  autoOpen?: boolean;
 }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(autoOpen);
+  const tileRef = useRef<HTMLButtonElement>(null);
   const url = `/api/users/${profileUserId}/pb-comments/${field}`;
+
+  useEffect(() => {
+    if (autoOpen) tileRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    // Only ever run for the initial page load this link landed on.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <>
       <button
+        ref={tileRef}
         type="button"
         onClick={() => setOpen(true)}
-        className="rounded-lg border border-b2b-purple/10 bg-b2b-bg px-3 py-2 text-left hover:bg-b2b-purple/5"
+        className={`rounded-lg border px-3 py-2 text-left hover:bg-b2b-purple/5 ${
+          autoOpen ? "border-b2b-pink bg-b2b-pink/5" : "border-b2b-purple/10 bg-b2b-bg"
+        }`}
       >
         <p className="text-xs text-b2b-ink/50">
           {label}

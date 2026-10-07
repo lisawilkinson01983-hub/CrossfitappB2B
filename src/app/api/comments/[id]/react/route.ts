@@ -41,6 +41,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
           type: "COMMENT_REACTION",
           postId: comment.postId,
           commentId,
+          emoji,
         },
       });
     }

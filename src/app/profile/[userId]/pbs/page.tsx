@@ -9,11 +9,18 @@ import { PbTile } from "@/components/PbTile";
 import { PB_CATEGORIES, type PbField } from "@/lib/validation";
 import { PB_LABELS, parseDisplayedPbs } from "@/lib/labels";
 
-export default async function UserPbsPage({ params }: { params: Promise<{ userId: string }> }) {
+export default async function UserPbsPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ userId: string }>;
+  searchParams: Promise<{ field?: string }>;
+}) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) redirect("/login");
 
   const { userId } = await params;
+  const { field: openField } = await searchParams;
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user) notFound();
 
@@ -60,6 +67,7 @@ export default async function UserPbsPage({ params }: { params: Promise<{ userId
                     featured={displayedPbSet.has(field)}
                     profileUserId={userId}
                     field={field}
+                    autoOpen={field === openField}
                   />
                 ))}
               </div>
