@@ -139,7 +139,7 @@ export async function ProfileDetails({
     <div className="flex flex-col gap-6">
       <div className="overflow-hidden rounded-2xl border border-b2b-purple/10 bg-b2b-card shadow-sm shadow-b2b-purple/5">
         <div
-          className="relative h-28 bg-b2b-ink"
+          className="relative h-48 bg-b2b-ink"
           style={
             user.bannerPhoto
               ? undefined

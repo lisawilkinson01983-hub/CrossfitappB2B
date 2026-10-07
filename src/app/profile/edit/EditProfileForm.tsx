@@ -246,10 +246,10 @@ export function EditProfileForm({
           imageSrc={bannerCropSource}
           onCancel={handleBannerCropCancel}
           onCropped={handleBannerCropped}
-          aspect={3}
+          aspect={2.5}
           cropShape="rect"
           outputWidth={1200}
-          outputHeight={400}
+          outputHeight={480}
         />
       )}
 
@@ -331,12 +331,12 @@ export function EditProfileForm({
               src={bannerPreview}
               alt="Banner preview"
               width={380}
-              height={112}
+              height={152}
               unoptimized={bannerPreview.startsWith("blob:")}
-              className="h-24 w-full max-w-sm rounded-lg object-cover"
+              className="h-32 w-full max-w-sm rounded-lg object-cover"
             />
           ) : (
-            <div className="h-24 w-full max-w-sm rounded-lg bg-b2b-ink" />
+            <div className="h-32 w-full max-w-sm rounded-lg bg-b2b-ink" />
           )}
           <input
             ref={bannerInputRef}
