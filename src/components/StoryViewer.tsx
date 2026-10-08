@@ -8,6 +8,7 @@ import { StoryViewersList } from "@/components/StoryViewersList";
 import { LikeIcon } from "@/components/LikeIcon";
 import { ShareIcon } from "@/components/ShareIcon";
 import { MoreIcon } from "@/components/MoreIcon";
+import { EyeIcon } from "@/components/EyeIcon";
 import type { StoryGroup } from "@/lib/stories";
 
 // How long a photo story stays up before auto-advancing — a video's own
@@ -278,15 +279,17 @@ export function StoryViewer({
           />
         </div>
 
-        {/* Footer */}
-        <div className="z-10 bg-gradient-to-t from-black/70 to-transparent p-3 pt-6">
+        {/* Footer — extra bottom padding (and a safe-area floor) so this
+            clears a phone's home indicator/gesture bar instead of sitting
+            almost off screen under it. */}
+        <div className="z-10 bg-gradient-to-t from-black/70 to-transparent px-3 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-6">
           {isOwn ? (
             <button
               type="button"
               onClick={() => setViewersOpen(true)}
               className="flex items-center gap-1.5 text-sm text-white/80 hover:text-white"
             >
-              👁 <span>Viewers</span>
+              <EyeIcon className="h-5 w-5" /> <span>Viewers</span>
             </button>
           ) : (
             <form

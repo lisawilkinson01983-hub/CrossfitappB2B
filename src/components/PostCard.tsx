@@ -625,6 +625,16 @@ export function PostCard({
             : ""
         }`}
       >
+      {popped && (
+        <button
+          type="button"
+          onClick={() => setPopped(false)}
+          aria-label="Close"
+          className="absolute -right-2 -top-2 flex h-8 w-8 items-center justify-center rounded-full bg-b2b-ink text-lg text-white shadow hover:bg-b2b-ink/80"
+        >
+          ×
+        </button>
+      )}
       {/* A shared post looks like an ordinary post from whoever shared it —
           their photo/name up top, their message as the body — with the
           original embedded below in its own mini card, same as Facebook's

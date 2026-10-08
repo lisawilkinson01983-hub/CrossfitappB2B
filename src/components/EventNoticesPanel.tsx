@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import {
   TEAMMATE_DIVISIONS,
@@ -9,6 +9,7 @@ import {
   type TeammateGenderOption,
 } from "@/lib/validation";
 import { TEAMMATE_DIVISION_LABELS, TEAMMATE_GENDER_LABELS } from "@/lib/labels";
+import { autoGrowTextarea } from "@/lib/autoGrowTextarea";
 import { InfoDialog } from "./InfoDialog";
 
 type TeammateRow = {
@@ -45,6 +46,12 @@ export function EventNoticesPanel({ eventId }: { eventId: string }) {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [posted, setPosted] = useState(false);
+
+  // Grows to fit what's typed instead of leaving it a fixed 2 rows with its
+  // own internal scrollbar — same behavior as every other comment/message
+  // box in the app (see autoGrowTextarea).
+  const detailTextareaRef = useRef<HTMLTextAreaElement>(null);
+  useEffect(() => autoGrowTextarea(detailTextareaRef.current), [detail]);
 
   function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0] ?? null;
@@ -224,11 +231,12 @@ export function EventNoticesPanel({ eventId }: { eventId: string }) {
             </label>
             <textarea
               id="detail"
-              rows={2}
+              ref={detailTextareaRef}
+              rows={1}
               placeholder="Anything else worth mentioning..."
               value={detail}
               onChange={(e) => setDetail(e.target.value)}
-              className="mt-1 w-full rounded border border-gray-300 px-3 py-2 focus:border-b2b-pink focus:outline-none"
+              className="mt-1 w-full resize-none rounded border border-gray-300 px-3 py-2 focus:border-b2b-pink focus:outline-none"
             />
           </div>
 

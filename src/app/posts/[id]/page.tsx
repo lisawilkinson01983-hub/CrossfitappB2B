@@ -33,9 +33,18 @@ export default async function PostDetailPage({
   return (
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
       <NavBar />
-      <Link href="/feed" className="mt-6 inline-block text-sm text-b2b-pink underline">
-        ← Back to feed
-      </Link>
+      <div className="mt-6 flex items-center justify-between">
+        <Link href="/feed" className="text-sm text-b2b-pink underline">
+          ← Back to feed
+        </Link>
+        <Link
+          href="/feed"
+          aria-label="Close"
+          className="flex h-9 w-9 items-center justify-center rounded-full bg-b2b-card text-xl text-b2b-ink/50 hover:bg-b2b-purple/10 hover:text-b2b-ink"
+        >
+          ×
+        </Link>
+      </div>
 
       <div className="mt-4">
         <PostCard
