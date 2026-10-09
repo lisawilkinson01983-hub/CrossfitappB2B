@@ -335,6 +335,10 @@ export const eventNoticeSchema = z.object({
   teammateRequests: z.array(teammateRequestSchema).max(20).optional(),
   // Also cross-post this search to the main feed (see linkedEventId on Post).
   postToFeed: z.boolean().optional(),
+  // The GIF's own direct media URL from the search picker (see
+  // src/lib/tenor.ts) — not re-uploaded, just linked. Mutually exclusive
+  // with a photo/video attachment, same as Comment/Message.
+  gifUrl: z.preprocess(emptyToUndefined, z.string().trim().url().max(500).optional()),
 });
 
 // Editing an existing notice only ever changes its text — a free-text

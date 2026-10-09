@@ -125,6 +125,10 @@ enum NotificationType {
   // minimal deep-link as WORKOUT_COMMENT/PB_COMMENT rather than the specific
   // comment.
   EVENT_NOTICE_COMMENT
+  // Someone reacted to this user's notice-board comment with an emoji (see
+  // EventNoticeCommentReaction) — separate from the simpler COMMENT_REACTION
+  // on a main-feed Comment.
+  EVENT_NOTICE_COMMENT_REACTION
 }
 
 enum EventStatus {
@@ -460,6 +464,7 @@ model User {
   eventNotices         EventNotice[]
   eventNoticeLikes     EventNoticeLike[]
   eventNoticeComments  EventNoticeComment[]
+  eventNoticeCommentReactions EventNoticeCommentReaction[]
   eventTeammateAlerts  EventTeammateAlert[]
   eventInvitesReceived EventInvite[]        @relation("EventInvitesReceived")
   eventInvitesSent     EventInvite[]        @relation("EventInvitesSent")
@@ -1142,8 +1147,18 @@ model EventNotice {
 
   // An optional attached image — e.g. the organizer sharing a poster of the
   // released competition workouts. Served path (see src/lib/uploads.ts),
-  // same as every other photo field.
+  // same as every other photo field. Mutually exclusive with video/gifUrl —
+  // same "pick one attachment" pattern as Message.
   photo String?
+
+  // An uploaded video, mutually exclusive with photo/gifUrl — same shape as
+  // Message.video/videoThumbnail.
+  video          String?
+  videoThumbnail String?
+
+  // A GIF attached to the notice (its direct media URL from the GIF
+  // provider — see src/lib/tenor.ts), mutually exclusive with photo/video.
+  gifUrl String?
 
   // JSON-encoded array of teammate requests posted together for this event,
   // e.g. [{"quantity":1,"gender":"MALE","division":"RX"},{"quantity":1,"gender":"FEMALE","division":"RX"}]
@@ -1234,10 +1249,38 @@ model EventNoticeComment {
 
   text String
 
+  // A GIF attached to the comment — not re-hosted, just linked, same as
+  // Comment.gifUrl. A comment can be GIF-only.
+  gifUrl String?
+
+  // An uploaded photo/video attachment, mutually exclusive with each other
+  // and with gifUrl — same shape as Message.photo/video/videoThumbnail.
+  photo          String?
+  video          String?
+  videoThumbnail String?
+
   createdAt DateTime @default(now())
+
+  reactions EventNoticeCommentReaction[]
 
   @@index([noticeId])
   @@index([parentId])
+}
+
+// An emoji reaction (see REACTION_EMOJIS in src/lib/validation.ts) on a
+// notice-board comment — same shape as CommentReaction/MessageReaction.
+model EventNoticeCommentReaction {
+  id        String             @id @default(cuid())
+  userId    String
+  user      User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  commentId String
+  comment   EventNoticeComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  emoji     String
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, commentId, emoji])
+  @@index([commentId])
 }
 
 model Block {

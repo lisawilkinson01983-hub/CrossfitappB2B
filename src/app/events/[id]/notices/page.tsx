@@ -9,6 +9,7 @@ import { EventChatFeed } from "@/components/EventChatFeed";
 import type { EventNoticeEntry } from "@/components/EventNoticeCard";
 import { parseTeammateRequests } from "@/lib/labels";
 import { assertEventVisible } from "@/lib/eventVisibility";
+import { summarizeReactions } from "@/lib/reactions";
 
 export default async function EventNoticesPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
@@ -27,7 +28,10 @@ export default async function EventNoticesPage({ params }: { params: Promise<{ i
           likes: { select: { userId: true } },
           comments: {
             orderBy: { createdAt: "asc" },
-            include: { user: { select: { id: true, name: true } } },
+            include: {
+              user: { select: { id: true, name: true } },
+              reactions: { select: { emoji: true, userId: true } },
+            },
           },
         },
       },
@@ -46,6 +50,9 @@ export default async function EventNoticesPage({ params }: { params: Promise<{ i
       id: notice.id,
       text: notice.text,
       photo: notice.photo,
+      video: notice.video,
+      videoThumbnail: notice.videoThumbnail,
+      gifUrl: notice.gifUrl,
       teammateRequests: parseTeammateRequests(notice.teammateRequests),
       createdAt: notice.createdAt,
       author: notice.user,
@@ -54,10 +61,15 @@ export default async function EventNoticesPage({ params }: { params: Promise<{ i
       comments: notice.comments.map((c) => ({
         id: c.id,
         text: c.text,
+        gifUrl: c.gifUrl,
+        photo: c.photo,
+        video: c.video,
+        videoThumbnail: c.videoThumbnail,
         createdAt: c.createdAt,
         author: c.user,
         parentId: c.parentId,
         isMine: c.userId === session.user.id,
+        reactions: summarizeReactions(c.reactions, session.user.id),
       })),
     },
     isOwn: notice.userId === session.user.id,

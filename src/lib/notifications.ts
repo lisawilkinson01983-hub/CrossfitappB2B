@@ -73,6 +73,10 @@ export function notificationText(n: NotificationView): string {
       return `is participating in "${n.event?.name ?? "your event"}"`;
     case "EVENT_NOTICE_COMMENT":
       return `commented on the notice board for "${n.event?.name ?? "an event"}"`;
+    case "EVENT_NOTICE_COMMENT_REACTION":
+      return n.emoji
+        ? `reacted ${n.emoji} to your notice board comment`
+        : "reacted to your notice board comment";
     case "MENTION":
       return n.storyId ? "tagged you in their story" : "mentioned you";
     default:
@@ -103,6 +107,7 @@ export function notificationHref(n: NotificationView, viewerId: string): string 
     case "EVENT_PARTICIPANT_JOINED":
       return `/events/${n.event?.id ?? ""}`;
     case "EVENT_NOTICE_COMMENT":
+    case "EVENT_NOTICE_COMMENT_REACTION":
       return `/events/${n.event?.id ?? ""}/notices`;
     case "WORKOUT_COMMENT":
       return `/profile/${viewerId}/gallery${n.workoutId ? `?workout=${n.workoutId}` : ""}`;

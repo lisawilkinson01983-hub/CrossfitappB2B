@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { eventNoticeSchema } from "@/lib/validation";
 import { parseTeammateRequests } from "@/lib/labels";
 import { teammateCriteriaMatch } from "@/lib/teammateMatch";
-import { PhotoUploadError, savePhotoUpload } from "@/lib/uploads";
+import { PhotoUploadError, VideoUploadError, savePhotoUpload, saveVideoThumbnailUpload, saveVideoUpload } from "@/lib/uploads";
 import { parseFormData } from "@/lib/http";
 import { notifyMentions } from "@/lib/notify";
 
@@ -43,6 +43,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     text: formData.get("text"),
     teammateRequests,
     postToFeed: formData.get("postToFeed") === "on" || formData.get("postToFeed") === "true",
+    gifUrl: formData.get("gifUrl"),
   });
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
@@ -50,9 +51,29 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
   const hasTeammateRequests = !!parsed.data.teammateRequests && parsed.data.teammateRequests.length > 0;
 
+  // At most one attachment — video takes priority over photo over a GIF,
+  // same "pick one" convention as Message.
+  const videoFile = formData.get("video");
   const photoFile = formData.get("photo");
   let photoPath: string | null = null;
-  if (photoFile instanceof File && photoFile.size > 0) {
+  let videoPath: string | null = null;
+  let videoThumbnailPath: string | null = null;
+  let gifUrl: string | null = null;
+
+  if (videoFile instanceof File && videoFile.size > 0) {
+    try {
+      videoPath = await saveVideoUpload(videoFile, session.user.id);
+    } catch (err) {
+      if (err instanceof VideoUploadError) {
+        return NextResponse.json({ error: err.message }, { status: 400 });
+      }
+      throw err;
+    }
+    const thumbnailFile = formData.get("thumbnail");
+    if (thumbnailFile instanceof File && thumbnailFile.size > 0) {
+      videoThumbnailPath = await saveVideoThumbnailUpload(thumbnailFile, session.user.id);
+    }
+  } else if (photoFile instanceof File && photoFile.size > 0) {
     try {
       photoPath = await savePhotoUpload(photoFile, session.user.id);
     } catch (err) {
@@ -61,10 +82,15 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       }
       throw err;
     }
+  } else if (parsed.data.gifUrl) {
+    gifUrl = parsed.data.gifUrl;
   }
 
-  if (!parsed.data.text && !hasTeammateRequests && !photoPath) {
-    return NextResponse.json({ error: "Add at least one athlete request, a photo, or write a notice" }, { status: 400 });
+  if (!parsed.data.text && !hasTeammateRequests && !photoPath && !videoPath && !gifUrl) {
+    return NextResponse.json(
+      { error: "Add at least one athlete request, a photo, a video, a GIF, or write a notice" },
+      { status: 400 }
+    );
   }
 
   const notice = await prisma.eventNotice.create({
@@ -74,6 +100,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       text: parsed.data.text ?? null,
       teammateRequests: hasTeammateRequests ? JSON.stringify(parsed.data.teammateRequests) : null,
       photo: photoPath,
+      video: videoPath,
+      videoThumbnail: videoThumbnailPath,
+      gifUrl,
     },
     include: { user: { select: { id: true, name: true, photo: true } } },
   });
@@ -125,9 +154,15 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       id: notice.id,
       text: notice.text,
       photo: notice.photo,
+      video: notice.video,
+      videoThumbnail: notice.videoThumbnail,
+      gifUrl: notice.gifUrl,
       teammateRequests: parseTeammateRequests(notice.teammateRequests),
       createdAt: notice.createdAt,
       author: notice.user,
+      likeCount: 0,
+      likedByMe: false,
+      comments: [],
     },
   });
 }
