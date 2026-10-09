@@ -120,6 +120,11 @@ enum NotificationType {
   WORKOUT_COMMENT
   // Someone commented on one of this user's PBs (see PbComment).
   PB_COMMENT
+  // Someone commented on (or replied to a comment on) this user's event
+  // notice (see EventNoticeComment) — eventId below has the event, same
+  // minimal deep-link as WORKOUT_COMMENT/PB_COMMENT rather than the specific
+  // comment.
+  EVENT_NOTICE_COMMENT
 }
 
 enum EventStatus {

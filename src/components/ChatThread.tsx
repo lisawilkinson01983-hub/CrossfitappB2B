@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from "react";
+import { useEffect, useRef, useState, type ChangeEvent, type FormEvent, type KeyboardEvent } from "react";
 import { ReportButton } from "@/components/ReportButton";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { ReactionBar } from "@/components/ReactionBar";
 import { GifPicker } from "@/components/GifPicker";
 import { formatTime } from "@/lib/dates";
 import { MentionText } from "@/components/MentionText";
+import { MentionTextarea } from "@/components/MentionTextarea";
 import { MAX_VIDEO_SECONDS, MAX_PHOTO_BYTES, MAX_PHOTO_MB } from "@/lib/media";
 import { readVideoInfo } from "@/lib/readVideoInfo";
 import type { ReactionSummary } from "@/lib/reactions";
@@ -123,6 +124,13 @@ export function ChatThread({
     document.getElementById(`message-${id}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
     setFlashedId(id);
     setTimeout(() => setFlashedId((prev) => (prev === id ? null : prev)), 1200);
+  }
+
+  function handleComposerKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      e.currentTarget.form?.requestSubmit();
+    }
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -339,10 +347,10 @@ export function ChatThread({
 
                   {isEditing ? (
                     <div className="flex flex-col gap-2 px-4 py-2.5">
-                      <input
-                        type="text"
+                      <MentionTextarea
+                        rows={1}
                         value={editText}
-                        onChange={(e) => setEditText(e.target.value)}
+                        onChange={setEditText}
                         autoFocus
                         className="rounded border border-white/30 bg-white/10 px-2 py-1 text-sm text-inherit placeholder:text-inherit/60 focus:outline-none"
                       />
@@ -481,12 +489,13 @@ export function ChatThread({
           GIF
         </button>
         {gifPickerOpen && <GifPicker onSelect={sendGif} onClose={() => setGifPickerOpen(false)} />}
-        <input
-          type="text"
+        <MentionTextarea
+          rows={1}
           placeholder="Type a message..."
           value={text}
-          onChange={(e) => setText(e.target.value)}
-          className="flex-1 rounded-full border border-b2b-purple/15 bg-b2b-card px-4 py-2.5 focus:border-b2b-pink focus:outline-none"
+          onChange={setText}
+          onKeyDown={handleComposerKeyDown}
+          className="flex-1 resize-none rounded-full border border-b2b-purple/15 bg-b2b-card px-4 py-2.5 focus:border-b2b-pink focus:outline-none"
         />
         <button
           type="submit"

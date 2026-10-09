@@ -1,15 +1,15 @@
 "use client";
 
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Avatar } from "@/components/Avatar";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { ReportButton } from "@/components/ReportButton";
 import { MentionText } from "@/components/MentionText";
+import { MentionTextarea } from "@/components/MentionTextarea";
 import { ExpandableImage } from "@/components/ExpandableImage";
 import { formatTeammateRequest } from "@/lib/labels";
-import { autoGrowTextarea } from "@/lib/autoGrowTextarea";
 import type { TeammateRequest } from "@/lib/validation";
 import { formatDateTime } from "@/lib/dates";
 import { LikeIcon } from "@/components/LikeIcon";
@@ -81,19 +81,6 @@ export function EventNoticeCard({
   const [commentSaving, setCommentSaving] = useState(false);
   const [deletingCommentId, setDeletingCommentId] = useState<string | null>(null);
   const [commentDeleting, setCommentDeleting] = useState(false);
-
-  // Grows each box to fit its content instead of leaving it a fixed number
-  // of rows with its own internal scrollbar — keyed to each box's own text
-  // so it also shrinks back down once the text is cleared after posting,
-  // not just while typing.
-  const editNoticeTextareaRef = useRef<HTMLTextAreaElement>(null);
-  const commentTextareaRef = useRef<HTMLTextAreaElement>(null);
-  const replyTextareaRef = useRef<HTMLTextAreaElement>(null);
-  const editCommentTextareaRef = useRef<HTMLTextAreaElement>(null);
-  useEffect(() => autoGrowTextarea(editNoticeTextareaRef.current), [editNoticeText]);
-  useEffect(() => autoGrowTextarea(commentTextareaRef.current), [commentText]);
-  useEffect(() => autoGrowTextarea(replyTextareaRef.current), [replyText]);
-  useEffect(() => autoGrowTextarea(editCommentTextareaRef.current), [editCommentText]);
 
   async function confirmDelete() {
     setDeleting(true);
@@ -234,11 +221,10 @@ export function EventNoticeCard({
       <div key={comment.id} className="flex flex-col gap-1" style={{ marginLeft: depth * 20 }}>
         {isEditing ? (
           <div className="flex gap-2">
-            <textarea
-              ref={editCommentTextareaRef}
+            <MentionTextarea
               rows={1}
               value={editCommentText}
-              onChange={(e) => setEditCommentText(e.target.value)}
+              onChange={setEditCommentText}
               className={textareaClass}
               autoFocus
             />
@@ -262,7 +248,7 @@ export function EventNoticeCard({
           <div className="text-sm">
             <p>
               <span className="font-semibold">{comment.author.name}</span>{" "}
-              <span className="text-gray-800">{comment.text}</span>
+              <MentionText text={comment.text} className="text-gray-800" />
             </p>
             <div className="mt-0.5 flex items-center gap-3 text-xs text-b2b-ink/50">
               <button type="button" onClick={() => startReply(comment.id)} className="hover:underline">
@@ -300,11 +286,10 @@ export function EventNoticeCard({
             }}
             className="mt-1 flex gap-2"
           >
-            <textarea
-              ref={replyTextareaRef}
+            <MentionTextarea
               rows={1}
               value={replyText}
-              onChange={(e) => setReplyText(e.target.value)}
+              onChange={setReplyText}
               placeholder={`Reply to ${comment.author.name}...`}
               className={textareaClass}
               autoFocus
@@ -381,11 +366,10 @@ export function EventNoticeCard({
       {editingNotice ? (
         <div className="mt-2 flex flex-col gap-2">
           {noticeError && <p className="text-sm text-red-600">{noticeError}</p>}
-          <textarea
-            ref={editNoticeTextareaRef}
+          <MentionTextarea
             rows={3}
             value={editNoticeText}
-            onChange={(e) => setEditNoticeText(e.target.value)}
+            onChange={setEditNoticeText}
             className="w-full rounded border border-gray-300 px-2 py-1 text-sm focus:border-b2b-pink focus:outline-none"
           />
           <div className="flex gap-3">
@@ -447,11 +431,10 @@ export function EventNoticeCard({
         <div className="mt-2 flex flex-col gap-3 border-t border-b2b-purple/10 pt-2">
           {topLevelComments.map((c) => renderComment(c, 0))}
           <form onSubmit={submitComment} className="flex gap-2">
-            <textarea
-              ref={commentTextareaRef}
+            <MentionTextarea
               rows={1}
               value={commentText}
-              onChange={(e) => setCommentText(e.target.value)}
+              onChange={setCommentText}
               placeholder="Add a comment..."
               className={textareaClass}
             />

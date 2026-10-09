@@ -71,6 +71,8 @@ export function notificationText(n: NotificationView): string {
         : "commented on your PB";
     case "EVENT_PARTICIPANT_JOINED":
       return `is participating in "${n.event?.name ?? "your event"}"`;
+    case "EVENT_NOTICE_COMMENT":
+      return `commented on the notice board for "${n.event?.name ?? "an event"}"`;
     case "MENTION":
       return n.storyId ? "tagged you in their story" : "mentioned you";
     default:
@@ -100,6 +102,8 @@ export function notificationHref(n: NotificationView, viewerId: string): string 
     case "EVENT_INVITE":
     case "EVENT_PARTICIPANT_JOINED":
       return `/events/${n.event?.id ?? ""}`;
+    case "EVENT_NOTICE_COMMENT":
+      return `/events/${n.event?.id ?? ""}/notices`;
     case "WORKOUT_COMMENT":
       return `/profile/${viewerId}/gallery${n.workoutId ? `?workout=${n.workoutId}` : ""}`;
     case "PB_COMMENT":
@@ -110,6 +114,9 @@ export function notificationHref(n: NotificationView, viewerId: string): string 
       return `/profile/${n.actor.id}`;
     case "MENTION":
       if (n.storyId) return `/feed?story=${n.storyId}`;
+      if (n.event) return `/events/${n.event.id}/notices`;
+      if (n.workoutId) return `/profile/${viewerId}/gallery?workout=${n.workoutId}`;
+      if (n.pbField) return `/profile/${viewerId}/pbs?field=${n.pbField}`;
       return n.post ? `/posts/${n.post.id}${n.comment ? `?comment=${n.comment.id}` : ""}` : `/profile/${n.actor.id}`;
     default:
       return n.post ? `/posts/${n.post.id}${n.comment ? `?comment=${n.comment.id}` : ""}` : `/profile/${n.actor.id}`;

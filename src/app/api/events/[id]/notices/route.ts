@@ -7,6 +7,7 @@ import { parseTeammateRequests } from "@/lib/labels";
 import { teammateCriteriaMatch } from "@/lib/teammateMatch";
 import { PhotoUploadError, savePhotoUpload } from "@/lib/uploads";
 import { parseFormData } from "@/lib/http";
+import { notifyMentions } from "@/lib/notify";
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
@@ -116,6 +117,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       });
     }
   }
+
+  await notifyMentions({ text: parsed.data.text, actorId: session.user.id, eventId });
 
   return NextResponse.json({
     notice: {

@@ -486,11 +486,12 @@ export function PostCard({
       >
         {isEditing ? (
           <div className="flex gap-2">
-            <input
-              type="text"
+            <MentionTextarea
+              rows={1}
               value={editCommentText}
-              onChange={(e) => setEditCommentText(e.target.value)}
-              className="flex-1 rounded border border-gray-300 px-2 py-1 text-sm focus:border-b2b-pink focus:outline-none"
+              onChange={setEditCommentText}
+              className="flex-1 resize-none rounded border border-gray-300 px-2 py-1 text-sm focus:border-b2b-pink focus:outline-none"
+              autoFocus
             />
             <button
               type="button"

@@ -113,6 +113,7 @@ export function MentionTextarea({
   rows = 3,
   className,
   autoFocus,
+  onKeyDown,
 }: {
   value: string;
   onChange: (value: string) => void;
@@ -120,6 +121,7 @@ export function MentionTextarea({
   rows?: number;
   className?: string;
   autoFocus?: boolean;
+  onKeyDown?: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
 }) {
   const [display, setDisplay] = useState(() => toDisplay(value).display);
   const [spans, setSpans] = useState<MentionSpan[]>(() => toDisplay(value).spans);
@@ -248,6 +250,7 @@ export function MentionTextarea({
           value={display}
           onChange={handleChange}
           onScroll={syncScroll}
+          onKeyDown={onKeyDown}
           autoFocus={autoFocus}
           className={`${className ?? ""} relative z-10 bg-transparent text-transparent caret-b2b-ink`}
         />

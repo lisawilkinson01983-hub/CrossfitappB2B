@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { commentSchema } from "@/lib/validation";
+import { notifyMentions } from "@/lib/notify";
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
@@ -24,12 +25,13 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   }
 
   const parentId = typeof body?.parentId === "string" ? body.parentId : null;
+  let parentComment: { id: string; userId: string } | null = null;
   if (parentId) {
-    const parentComment = await prisma.eventNoticeComment.findUnique({
+    parentComment = await prisma.eventNoticeComment.findUnique({
       where: { id: parentId },
-      select: { noticeId: true },
-    });
-    if (!parentComment || parentComment.noticeId !== noticeId) {
+      select: { id: true, userId: true, noticeId: true },
+    }).then((c) => (c && c.noticeId === noticeId ? c : null));
+    if (!parentComment) {
       return NextResponse.json({ error: "Comment not found" }, { status: 404 });
     }
   }
@@ -37,6 +39,24 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const comment = await prisma.eventNoticeComment.create({
     data: { userId: session.user.id, noticeId, text: parsed.data.text, parentId },
     include: { user: { select: { id: true, name: true } } },
+  });
+
+  // A reply notifies the parent comment's author; a top-level comment
+  // notifies the notice author — not both, same split as post comments.
+  const recipientId = parentComment ? parentComment.userId : notice.userId;
+  const notified: string[] = [];
+  if (recipientId !== session.user.id) {
+    await prisma.notification.create({
+      data: { userId: recipientId, actorId: session.user.id, type: "EVENT_NOTICE_COMMENT", eventId: notice.eventId },
+    });
+    notified.push(recipientId);
+  }
+
+  await notifyMentions({
+    text: parsed.data.text,
+    actorId: session.user.id,
+    eventId: notice.eventId,
+    skipUserIds: notified,
   });
 
   return NextResponse.json({

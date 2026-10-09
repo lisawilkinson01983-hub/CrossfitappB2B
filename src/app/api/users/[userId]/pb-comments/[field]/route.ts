@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { PB_FIELDS } from "@/lib/validation";
+import { notifyMentions } from "@/lib/notify";
 
 const fieldParamSchema = z.enum(PB_FIELDS);
 const pbCommentSchema = z.object({ text: z.string().trim().min(1).max(1000) });
@@ -95,11 +96,20 @@ export async function POST(req: Request, { params }: { params: Promise<{ userId:
   // A reply notifies the parent comment's author; a top-level comment
   // notifies the profile owner — not both, same split as post comments.
   const recipientId = parentComment ? parentComment.userId : profileUserId;
+  const notified: string[] = [];
   if (recipientId !== session.user.id) {
     await prisma.notification.create({
       data: { userId: recipientId, actorId: session.user.id, type: "PB_COMMENT", pbField: parsedField.data },
     });
+    notified.push(recipientId);
   }
+
+  await notifyMentions({
+    text: parsed.data.text,
+    actorId: session.user.id,
+    pbField: parsedField.data,
+    skipUserIds: notified,
+  });
 
   return NextResponse.json({
     comment: {

@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { ReportButton } from "@/components/ReportButton";
-import { autoGrowTextarea } from "@/lib/autoGrowTextarea";
+import { MentionTextarea } from "@/components/MentionTextarea";
+import { MentionText } from "@/components/MentionText";
 import { formatDateTime } from "@/lib/dates";
 import type { ReportTargetTypeOption } from "@/lib/validation";
 
@@ -63,13 +64,6 @@ export function CommentsPopout({
 
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
-
-  const commentTextareaRef = useRef<HTMLTextAreaElement>(null);
-  const replyTextareaRef = useRef<HTMLTextAreaElement>(null);
-  const editTextareaRef = useRef<HTMLTextAreaElement>(null);
-  useEffect(() => autoGrowTextarea(commentTextareaRef.current), [text]);
-  useEffect(() => autoGrowTextarea(replyTextareaRef.current), [replyText]);
-  useEffect(() => autoGrowTextarea(editTextareaRef.current), [editText]);
 
   useEffect(() => {
     if (!open) return;
@@ -192,11 +186,10 @@ export function CommentsPopout({
       <div key={comment.id} className="flex flex-col gap-1" style={{ marginLeft: depth * 16 }}>
         {isEditing ? (
           <div className="flex gap-2">
-            <textarea
-              ref={editTextareaRef}
+            <MentionTextarea
               rows={1}
               value={editText}
-              onChange={(e) => setEditText(e.target.value)}
+              onChange={setEditText}
               className={textareaClass}
               autoFocus
             />
@@ -220,7 +213,7 @@ export function CommentsPopout({
           <div className="text-sm">
             <p>
               <span className="font-semibold">{comment.author.name}</span>{" "}
-              {comment.text && <span className="text-gray-800">{comment.text}</span>}
+              {comment.text && <MentionText text={comment.text} className="text-gray-800" />}
             </p>
             {comment.gifUrl && (
               // eslint-disable-next-line @next/next/no-img-element
@@ -263,11 +256,10 @@ export function CommentsPopout({
             }}
             className="mt-1 flex gap-2"
           >
-            <textarea
-              ref={replyTextareaRef}
+            <MentionTextarea
               rows={1}
               value={replyText}
-              onChange={(e) => setReplyText(e.target.value)}
+              onChange={setReplyText}
               placeholder={`Reply to ${comment.author.name}...`}
               className={textareaClass}
               autoFocus
@@ -315,11 +307,10 @@ export function CommentsPopout({
         <form onSubmit={submitComment} className="flex flex-col gap-1 border-t border-b2b-purple/10 p-3">
           {postError && <p className="text-xs text-red-600">{postError}</p>}
           <div className="flex gap-2">
-            <textarea
-              ref={commentTextareaRef}
+            <MentionTextarea
               rows={1}
               value={text}
-              onChange={(e) => setText(e.target.value)}
+              onChange={setText}
               placeholder="Add a comment..."
               className={textareaClass}
             />

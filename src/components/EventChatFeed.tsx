@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
+import { useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import { useRouter } from "next/navigation";
 import { EventNoticeCard, type EventNoticeEntry } from "./EventNoticeCard";
-import { autoGrowTextarea } from "@/lib/autoGrowTextarea";
+import { MentionTextarea } from "@/components/MentionTextarea";
 
 export function EventChatFeed({ eventId, notices }: { eventId: string; notices: EventNoticeEntry[] }) {
   const router = useRouter();
@@ -13,12 +13,6 @@ export function EventChatFeed({ eventId, notices }: { eventId: string; notices: 
   const photoInputRef = useRef<HTMLInputElement>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  // Grows to fit what's typed instead of staying a single fixed-height line
-  // — matches every comment/reply box below it on this same screen (see
-  // EventNoticeCard), and how messaging works in the inbox (ChatThread).
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-  useEffect(() => autoGrowTextarea(textareaRef.current), [text]);
 
   function handleKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -97,12 +91,11 @@ export function EventChatFeed({ eventId, notices }: { eventId: string; notices: 
           >
             📷
           </button>
-          <textarea
-            ref={textareaRef}
+          <MentionTextarea
             rows={1}
             placeholder="Type a message..."
             value={text}
-            onChange={(e) => setText(e.target.value)}
+            onChange={setText}
             onKeyDown={handleKeyDown}
             className="flex-1 resize-none rounded border border-gray-300 px-3 py-2 text-sm focus:border-b2b-pink focus:outline-none"
           />
