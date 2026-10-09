@@ -17,6 +17,11 @@ export default async function EventNoticesPage({ params }: { params: Promise<{ i
 
   const { id } = await params;
 
+  const currentUser = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { name: true, photo: true },
+  });
+
   const event = await prisma.event.findUnique({
     where: { id },
     include: {
@@ -89,7 +94,12 @@ export default async function EventNoticesPage({ params }: { params: Promise<{ i
           <p className="mb-3 text-sm text-b2b-ink/50">
             A lift, a training partner, or anything else about {event.name}.
           </p>
-          <EventChatFeed eventId={event.id} notices={chatEntries} />
+          <EventChatFeed
+            eventId={event.id}
+            notices={chatEntries}
+            currentUserName={currentUser?.name ?? "You"}
+            currentUserPhoto={currentUser?.photo ?? null}
+          />
         </SectionCard>
       </div>
     </main>
