@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { EventNoticeCard, type EventNoticeEntry } from "./EventNoticeCard";
 import { MentionTextarea } from "@/components/MentionTextarea";
 import { GifPicker } from "@/components/GifPicker";
+import { AttachmentMenu } from "@/components/AttachmentMenu";
+import { SendIcon } from "@/components/SendIcon";
 import { MAX_VIDEO_SECONDS, MAX_PHOTO_BYTES, MAX_PHOTO_MB } from "@/lib/media";
 import { readVideoInfo } from "@/lib/readVideoInfo";
 
@@ -138,22 +140,12 @@ export function EventChatFeed({ eventId, notices }: { eventId: string; notices: 
             onChange={handleMediaChange}
             className="hidden"
           />
-          <button
-            type="button"
-            onClick={() => mediaInputRef.current?.click()}
-            aria-label="Attach a photo or video"
-            className="shrink-0 rounded border border-gray-300 px-3 py-2 text-sm hover:bg-b2b-bg"
-          >
-            📷
-          </button>
-          <button
-            type="button"
-            onClick={() => setGifPickerOpen((v) => !v)}
-            aria-label="Send a GIF"
-            className="shrink-0 rounded border border-gray-300 px-3 py-2 text-xs font-semibold text-b2b-ink/60 hover:bg-b2b-bg"
-          >
-            GIF
-          </button>
+          <AttachmentMenu
+            items={[
+              { key: "media", label: "📷 Photo / Video", onClick: () => mediaInputRef.current?.click() },
+              { key: "gif", label: "GIF", onClick: () => setGifPickerOpen(true) },
+            ]}
+          />
           {gifPickerOpen && <GifPicker onSelect={sendGif} onClose={() => setGifPickerOpen(false)} />}
           <MentionTextarea
             rows={1}
@@ -166,9 +158,10 @@ export function EventChatFeed({ eventId, notices }: { eventId: string; notices: 
           <button
             type="submit"
             disabled={submitting || (!text.trim() && !mediaFile)}
-            className="rounded bg-b2b-pink px-4 py-2 text-sm font-medium text-white hover:bg-b2b-pink-dark disabled:opacity-50"
+            aria-label="Send"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-b2b-pink text-white hover:bg-b2b-pink-dark disabled:opacity-50"
           >
-            Send
+            <SendIcon className="h-4 w-4" />
           </button>
         </form>
       </div>

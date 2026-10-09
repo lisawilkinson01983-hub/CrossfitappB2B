@@ -5,6 +5,8 @@ import { ReportButton } from "@/components/ReportButton";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { ReactionBar } from "@/components/ReactionBar";
 import { GifPicker } from "@/components/GifPicker";
+import { AttachmentMenu } from "@/components/AttachmentMenu";
+import { SendIcon } from "@/components/SendIcon";
 import { formatTime } from "@/lib/dates";
 import { MentionText } from "@/components/MentionText";
 import { MentionTextarea } from "@/components/MentionTextarea";
@@ -471,23 +473,12 @@ export function ChatThread({
           onChange={handleMediaChange}
           className="hidden"
         />
-        <button
-          type="button"
-          onClick={() => mediaInputRef.current?.click()}
-          disabled={sending}
-          aria-label="Send a photo or video"
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-b2b-purple/15 bg-b2b-card text-base text-b2b-ink/60 hover:bg-b2b-purple/5 disabled:opacity-50"
-        >
-          📎
-        </button>
-        <button
-          type="button"
-          onClick={() => setGifPickerOpen((v) => !v)}
-          aria-label="Send a GIF"
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-b2b-purple/15 bg-b2b-card text-xs font-semibold text-b2b-ink/60 hover:bg-b2b-purple/5"
-        >
-          GIF
-        </button>
+        <AttachmentMenu
+          items={[
+            { key: "media", label: "📷 Photo / Video", onClick: () => mediaInputRef.current?.click() },
+            { key: "gif", label: "GIF", onClick: () => setGifPickerOpen(true) },
+          ]}
+        />
         {gifPickerOpen && <GifPicker onSelect={sendGif} onClose={() => setGifPickerOpen(false)} />}
         <MentionTextarea
           rows={1}
@@ -503,7 +494,7 @@ export function ChatThread({
           aria-label="Send"
           className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-b2b-pink text-white hover:bg-b2b-pink-dark disabled:opacity-40"
         >
-          ➤
+          <SendIcon className="h-4 w-4" />
         </button>
       </form>
 

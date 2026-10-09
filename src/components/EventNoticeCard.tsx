@@ -11,6 +11,8 @@ import { MentionTextarea } from "@/components/MentionTextarea";
 import { ExpandableImage } from "@/components/ExpandableImage";
 import { GifPicker } from "@/components/GifPicker";
 import { ReactionBar } from "@/components/ReactionBar";
+import { AttachmentMenu } from "@/components/AttachmentMenu";
+import { SendIcon } from "@/components/SendIcon";
 import { formatTeammateRequest } from "@/lib/labels";
 import type { TeammateRequest } from "@/lib/validation";
 import { formatDateTime } from "@/lib/dates";
@@ -60,9 +62,6 @@ export type EventNoticeEntry = {
 
 const textareaClass =
   "flex-1 resize-none rounded border border-gray-300 px-2 py-1.5 text-sm focus:border-b2b-pink focus:outline-none";
-
-const mediaButtonClass =
-  "h-fit shrink-0 rounded border border-gray-300 px-2 py-1.5 text-xs font-semibold text-b2b-ink/60 hover:bg-b2b-bg";
 
 export function EventNoticeCard({
   notice,
@@ -486,21 +485,12 @@ export function EventNoticeCard({
                 onChange={(e) => handleReplyMediaChange(comment.id, e)}
                 className="hidden"
               />
-              <button
-                type="button"
-                onClick={() => replyMediaInputRef.current?.click()}
-                aria-label="Attach a photo or video"
-                className={mediaButtonClass}
-              >
-                📷
-              </button>
-              <button
-                type="button"
-                onClick={() => setReplyGifPickerOpen((v) => !v)}
-                className={mediaButtonClass}
-              >
-                GIF
-              </button>
+              <AttachmentMenu
+                items={[
+                  { key: "media", label: "📷 Photo / Video", onClick: () => replyMediaInputRef.current?.click() },
+                  { key: "gif", label: "GIF", onClick: () => setReplyGifPickerOpen(true) },
+                ]}
+              />
               {replyGifPickerOpen && (
                 <GifPicker
                   onSelect={(url) => sendReplyGif(comment.id, url)}
@@ -518,9 +508,10 @@ export function EventNoticeCard({
               <button
                 type="submit"
                 disabled={replyBusy || !replyText.trim()}
-                className="h-fit rounded bg-b2b-pink px-3 py-1.5 text-sm text-white hover:bg-b2b-pink-dark disabled:opacity-50"
+                aria-label="Send reply"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-b2b-pink text-white hover:bg-b2b-pink-dark disabled:opacity-50"
               >
-                Reply
+                <SendIcon className="h-4 w-4" />
               </button>
             </div>
           </form>
@@ -676,21 +667,12 @@ export function EventNoticeCard({
                 onChange={handleCommentMediaChange}
                 className="hidden"
               />
-              <button
-                type="button"
-                onClick={() => commentMediaInputRef.current?.click()}
-                aria-label="Attach a photo or video"
-                className={mediaButtonClass}
-              >
-                📷
-              </button>
-              <button
-                type="button"
-                onClick={() => setCommentGifPickerOpen((v) => !v)}
-                className={mediaButtonClass}
-              >
-                GIF
-              </button>
+              <AttachmentMenu
+                items={[
+                  { key: "media", label: "📷 Photo / Video", onClick: () => commentMediaInputRef.current?.click() },
+                  { key: "gif", label: "GIF", onClick: () => setCommentGifPickerOpen(true) },
+                ]}
+              />
               {commentGifPickerOpen && (
                 <GifPicker onSelect={sendCommentGif} onClose={() => setCommentGifPickerOpen(false)} />
               )}
@@ -704,9 +686,10 @@ export function EventNoticeCard({
               <button
                 type="submit"
                 disabled={commentBusy || !commentText.trim()}
-                className="h-fit rounded bg-b2b-pink px-3 py-1.5 text-sm text-white hover:bg-b2b-pink-dark disabled:opacity-50"
+                aria-label="Post comment"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-b2b-pink text-white hover:bg-b2b-pink-dark disabled:opacity-50"
               >
-                Comment
+                <SendIcon className="h-4 w-4" />
               </button>
             </div>
           </form>

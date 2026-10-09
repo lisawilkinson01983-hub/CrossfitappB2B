@@ -5,6 +5,7 @@ import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { ReportButton } from "@/components/ReportButton";
 import { MentionTextarea } from "@/components/MentionTextarea";
 import { MentionText } from "@/components/MentionText";
+import { SendIcon } from "@/components/SendIcon";
 import { formatDateTime } from "@/lib/dates";
 import type { ReportTargetTypeOption } from "@/lib/validation";
 
@@ -267,9 +268,10 @@ export function CommentsPopout({
             <button
               type="submit"
               disabled={replyBusy || !replyText.trim()}
-              className="h-fit rounded bg-b2b-pink px-3 py-1.5 text-sm text-white hover:bg-b2b-pink-dark disabled:opacity-50"
+              aria-label="Send reply"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-b2b-pink text-white hover:bg-b2b-pink-dark disabled:opacity-50"
             >
-              Reply
+              <SendIcon className="h-4 w-4" />
             </button>
           </form>
         )}
@@ -317,9 +319,10 @@ export function CommentsPopout({
             <button
               type="submit"
               disabled={posting || !text.trim()}
-              className="h-fit rounded bg-b2b-pink px-3 py-1.5 text-sm font-medium text-white hover:bg-b2b-pink-dark disabled:opacity-50"
+              aria-label="Post comment"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-b2b-pink text-white hover:bg-b2b-pink-dark disabled:opacity-50"
             >
-              Post
+              <SendIcon className="h-4 w-4" />
             </button>
           </div>
         </form>

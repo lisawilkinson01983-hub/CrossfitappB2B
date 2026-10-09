@@ -22,6 +22,8 @@ import { ReportButton } from "@/components/ReportButton";
 import { WorkoutDescriptionToggle } from "@/components/WorkoutDescriptionToggle";
 import { ReactionBar } from "@/components/ReactionBar";
 import { GifPicker } from "@/components/GifPicker";
+import { AttachmentMenu } from "@/components/AttachmentMenu";
+import { SendIcon } from "@/components/SendIcon";
 import { LikeIcon } from "@/components/LikeIcon";
 import { CommentIcon } from "@/components/CommentIcon";
 import { ShareIcon } from "@/components/ShareIcon";
@@ -569,13 +571,9 @@ export function PostCard({
             }}
             className="relative mt-1 flex gap-2"
           >
-            <button
-              type="button"
-              onClick={() => setReplyGifPickerOpen((v) => !v)}
-              className="h-fit shrink-0 rounded border border-b2b-purple/15 bg-b2b-card px-2 py-1.5 text-xs font-semibold text-b2b-ink/60 hover:bg-b2b-purple/5"
-            >
-              GIF
-            </button>
+            <AttachmentMenu
+              items={[{ key: "gif", label: "GIF", onClick: () => setReplyGifPickerOpen(true) }]}
+            />
             {replyGifPickerOpen && (
               <GifPicker
                 onSelect={(url) => sendReplyGif(comment.id, url)}
@@ -593,9 +591,10 @@ export function PostCard({
             <button
               type="submit"
               disabled={replyBusy || !replyText.trim()}
-              className="h-fit rounded bg-b2b-pink px-3 py-1.5 text-sm text-white hover:bg-b2b-pink-dark disabled:opacity-50"
+              aria-label="Send reply"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-b2b-pink text-white hover:bg-b2b-pink-dark disabled:opacity-50"
             >
-              Reply
+              <SendIcon className="h-4 w-4" />
             </button>
           </form>
         )}
@@ -964,13 +963,9 @@ export function PostCard({
         <div className="mt-3 flex flex-col gap-3 border-t border-gray-100 pt-3">
           {topLevelComments.map((c) => renderComment(c, 0))}
           <form onSubmit={submitComment} className="relative mt-1 flex gap-2">
-            <button
-              type="button"
-              onClick={() => setCommentGifPickerOpen((v) => !v)}
-              className="h-fit shrink-0 rounded border border-b2b-purple/15 bg-b2b-card px-2 py-1.5 text-xs font-semibold text-b2b-ink/60 hover:bg-b2b-purple/5"
-            >
-              GIF
-            </button>
+            <AttachmentMenu
+              items={[{ key: "gif", label: "GIF", onClick: () => setCommentGifPickerOpen(true) }]}
+            />
             {commentGifPickerOpen && (
               <GifPicker onSelect={sendCommentGif} onClose={() => setCommentGifPickerOpen(false)} />
             )}
@@ -984,9 +979,10 @@ export function PostCard({
             <button
               type="submit"
               disabled={commentBusy || !commentText.trim()}
-              className="h-fit rounded bg-b2b-pink px-3 py-1.5 text-sm text-white hover:bg-b2b-pink-dark disabled:opacity-50"
+              aria-label="Post comment"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-b2b-pink text-white hover:bg-b2b-pink-dark disabled:opacity-50"
             >
-              Comment
+              <SendIcon className="h-4 w-4" />
             </button>
           </form>
         </div>
