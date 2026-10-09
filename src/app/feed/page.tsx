@@ -127,7 +127,10 @@ export default async function FeedPage({
             )
           }
         >
-          <PostComposer />
+          <PostComposer
+            currentUserName={currentUser?.name ?? "You"}
+            currentUserPhoto={currentUser?.photo ?? null}
+          />
         </SectionCard>
       </div>
 
