@@ -37,12 +37,12 @@ export function EventEngagementButtons({
   const [busy, setBusy] = useState<"participate" | "interested" | null>(null);
   const [showTeamPrompt, setShowTeamPrompt] = useState(false);
 
-  async function joinEvent(teammateIds: string[]) {
+  async function joinEvent(teammateIds: string[], teammateNames: string[] = []) {
     setBusy("participate");
     const res = await fetch(`/api/events/${eventId}/participate`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ teammateIds }),
+      body: JSON.stringify({ teammateIds, teammateNames }),
     });
     setBusy(null);
     setShowTeamPrompt(false);
@@ -97,11 +97,18 @@ export function EventEngagementButtons({
       </div>
 
       {showTeamPrompt && (
-        <TeamTagPrompt busy={busy === "participate"} onSkip={() => joinEvent([])} onConfirm={joinEvent} onCancel={() => setShowTeamPrompt(false)} />
+        <TeamTagPrompt
+          busy={busy === "participate"}
+          onSkip={() => joinEvent([])}
+          onConfirm={joinEvent}
+          onCancel={() => setShowTeamPrompt(false)}
+        />
       )}
     </>
   );
 }
+
+const MAX_TEAMMATES = 20;
 
 function TeamTagPrompt({
   busy,
@@ -111,13 +118,17 @@ function TeamTagPrompt({
 }: {
   busy: boolean;
   onSkip: () => void;
-  onConfirm: (teammateIds: string[]) => void;
+  onConfirm: (teammateIds: string[], teammateNames: string[]) => void;
   onCancel: () => void;
 }) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<UserOption[]>([]);
   const [teammates, setTeammates] = useState<UserOption[]>([]);
+  const [freeformNames, setFreeformNames] = useState<string[]>([]);
+  const [freeformInput, setFreeformInput] = useState("");
   const requestId = useRef(0);
+
+  const totalTagged = teammates.length + freeformNames.length;
 
   async function handleQueryChange(value: string) {
     setQuery(value);
@@ -135,6 +146,7 @@ function TeamTagPrompt({
   }
 
   function addTeammate(user: UserOption) {
+    if (totalTagged >= MAX_TEAMMATES) return;
     setTeammates((prev) => (prev.some((u) => u.id === user.id) ? prev : [...prev, user]));
     setQuery("");
     setResults([]);
@@ -142,6 +154,19 @@ function TeamTagPrompt({
 
   function removeTeammate(userId: string) {
     setTeammates((prev) => prev.filter((u) => u.id !== userId));
+  }
+
+  function addFreeformName() {
+    const name = freeformInput.trim().slice(0, 60);
+    if (!name || totalTagged >= MAX_TEAMMATES) return;
+    setFreeformNames((prev) =>
+      prev.some((n) => n.toLowerCase() === name.toLowerCase()) ? prev : [...prev, name]
+    );
+    setFreeformInput("");
+  }
+
+  function removeFreeformName(name: string) {
+    setFreeformNames((prev) => prev.filter((n) => n !== name));
   }
 
   return (
@@ -154,10 +179,11 @@ function TeamTagPrompt({
       >
         <p className="text-base font-semibold text-b2b-ink">Tag your team?</p>
         <p className="mt-1 text-sm text-b2b-ink/60">
-          Add your teammates and they'll be tagged on the event's Notice Board — or skip if you're going solo.
+          Add your teammates and they'll be tagged in your feed post and the event's Notice Board — or skip if
+          you're going solo.
         </p>
 
-        {teammates.length > 0 && (
+        {(teammates.length > 0 || freeformNames.length > 0) && (
           <div className="mt-3 flex flex-wrap gap-2">
             {teammates.map((user) => (
               <span
@@ -176,6 +202,22 @@ function TeamTagPrompt({
                 </button>
               </span>
             ))}
+            {freeformNames.map((name) => (
+              <span
+                key={name}
+                className="flex items-center gap-1.5 rounded-full bg-b2b-ink/5 py-1 pl-2.5 pr-2 text-sm text-b2b-ink/70"
+              >
+                {name}
+                <button
+                  type="button"
+                  onClick={() => removeFreeformName(name)}
+                  aria-label={`Remove ${name}`}
+                  className="text-b2b-ink/40 hover:text-b2b-ink"
+                >
+                  ×
+                </button>
+              </span>
+            ))}
           </div>
         )}
 
@@ -185,7 +227,8 @@ function TeamTagPrompt({
             value={query}
             onChange={(e) => handleQueryChange(e.target.value)}
             placeholder="Search teammates by name..."
-            className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-b2b-pink focus:outline-none"
+            disabled={totalTagged >= MAX_TEAMMATES}
+            className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-b2b-pink focus:outline-none disabled:opacity-50"
           />
           {results.length > 0 && (
             <div className="absolute z-10 mt-1 w-full overflow-hidden rounded border border-gray-200 bg-b2b-card shadow-lg">
@@ -206,6 +249,34 @@ function TeamTagPrompt({
           )}
         </div>
 
+        <div className="mt-3">
+          <p className="text-xs font-medium text-b2b-ink/50">Teammate not on Box 2 Box?</p>
+          <div className="mt-1 flex gap-2">
+            <input
+              type="text"
+              value={freeformInput}
+              onChange={(e) => setFreeformInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  addFreeformName();
+                }
+              }}
+              placeholder="Type their name..."
+              disabled={totalTagged >= MAX_TEAMMATES}
+              className="flex-1 rounded border border-gray-300 px-3 py-2 text-sm focus:border-b2b-pink focus:outline-none disabled:opacity-50"
+            />
+            <button
+              type="button"
+              onClick={addFreeformName}
+              disabled={!freeformInput.trim() || totalTagged >= MAX_TEAMMATES}
+              className="shrink-0 rounded border border-b2b-purple/20 px-3 py-2 text-sm font-medium text-b2b-ink/60 hover:border-b2b-pink hover:text-b2b-pink disabled:opacity-50"
+            >
+              Add
+            </button>
+          </div>
+        </div>
+
         <div className="mt-4 flex justify-end gap-3">
           <button
             type="button"
@@ -217,11 +288,11 @@ function TeamTagPrompt({
           </button>
           <button
             type="button"
-            onClick={() => onConfirm(teammates.map((t) => t.id))}
+            onClick={() => onConfirm(teammates.map((t) => t.id), freeformNames)}
             disabled={busy}
             className="rounded bg-b2b-pink px-3 py-1.5 text-sm font-medium text-white hover:bg-b2b-pink-dark disabled:opacity-50"
           >
-            {busy ? "Joining..." : teammates.length > 0 ? "Add team & join" : "I'm in!"}
+            {busy ? "Joining..." : totalTagged > 0 ? "Add team & join" : "I'm in!"}
           </button>
         </div>
       </div>

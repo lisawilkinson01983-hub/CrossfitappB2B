@@ -485,6 +485,9 @@ export const eventInviteAudienceSchema = z.object({
 // /api/events/[id]/participate. Optional; skipping is always allowed.
 export const eventParticipateSchema = z.object({
   teammateIds: z.array(z.string()).max(20).optional().default([]),
+  // A teammate who isn't on Box 2 Box yet — tagged by plain name rather than
+  // a profile link, alongside teammateIds above.
+  teammateNames: z.array(z.string().trim().min(1).max(60)).max(20).optional().default([]),
 });
 
 export const messageSchema = z
