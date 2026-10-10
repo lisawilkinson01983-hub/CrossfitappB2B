@@ -79,7 +79,6 @@ export async function NavBar({ isProfileEditPage = false }: { isProfileEditPage?
             <Link href="/settings" aria-label="Settings" className="text-b2b-ink/70 hover:text-b2b-pink">
               <SettingsIcon />
             </Link>
-            <SignOutButton />
           </div>
         ) : (
           <SignOutButton />

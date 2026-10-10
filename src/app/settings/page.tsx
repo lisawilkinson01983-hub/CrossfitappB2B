@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { NavBar } from "@/components/NavBar";
 import { SectionCard } from "@/components/SectionCard";
 import { SettingsMenuLink } from "@/components/SettingsMenuLink";
+import { SignOutButton } from "@/components/SignOutButton";
 
 export default async function SettingsPage() {
   const session = await getServerSession(authOptions);
@@ -79,6 +80,10 @@ export default async function SettingsPage() {
             <SettingsMenuLink href="/settings/danger" label="Danger Zone" description="Delete your account" />
           </div>
         </SectionCard>
+      </div>
+
+      <div className="mt-6 flex justify-center">
+        <SignOutButton />
       </div>
     </main>
   );
