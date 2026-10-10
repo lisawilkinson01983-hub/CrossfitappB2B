@@ -50,28 +50,22 @@ export function PostComposer({
 function PostComposerModal({ onClose, canPostWorkout }: { onClose: () => void; canPostWorkout: boolean }) {
   const [contentText, setContentText] = useState("");
   const [attachments, setAttachments] = useState<Attachment[]>([]);
+  // A GIF is staged like any other attachment — picking one just fills this
+  // in (with a preview + remove button below), it doesn't post anything
+  // until Post is pressed. Mutually exclusive with photo/video attachments,
+  // same as the Post model itself.
+  const [stagedGifUrl, setStagedGifUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [gifPickerOpen, setGifPickerOpen] = useState(false);
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  async function sendGif(gifUrl: string) {
+  function pickGif(gifUrl: string) {
     setGifPickerOpen(false);
     setError(null);
-    setSubmitting(true);
-    const formData = new FormData();
-    formData.set("contentText", contentText);
-    formData.set("gifUrl", gifUrl);
-    const res = await fetch("/api/posts", { method: "POST", body: formData });
-    setSubmitting(false);
-    if (!res.ok) {
-      const body = await res.json().catch(() => ({}));
-      setError(body.error ?? "Something went wrong. Please try again.");
-      return;
-    }
-    router.refresh();
-    onClose();
+    setAttachments([]);
+    setStagedGifUrl(gifUrl);
   }
 
   async function handleFilesChange(e: ChangeEvent<HTMLInputElement>) {
@@ -80,6 +74,7 @@ function PostComposerModal({ onClose, canPostWorkout }: { onClose: () => void; c
     if (files.length === 0) return;
 
     setError(null);
+    setStagedGifUrl(null);
     const room = MAX_ATTACHMENTS - attachments.length;
     if (files.length > room) {
       setError(`You can attach up to ${MAX_ATTACHMENTS} photos/videos`);
@@ -126,8 +121,8 @@ function PostComposerModal({ onClose, canPostWorkout }: { onClose: () => void; c
     e.preventDefault();
     setError(null);
 
-    if (!contentText.trim() && attachments.length === 0) {
-      setError("Write something, or add a photo or video");
+    if (!contentText.trim() && attachments.length === 0 && !stagedGifUrl) {
+      setError("Write something, or add a photo, video, or GIF");
       return;
     }
 
@@ -135,13 +130,17 @@ function PostComposerModal({ onClose, canPostWorkout }: { onClose: () => void; c
 
     const formData = new FormData();
     formData.set("contentText", contentText);
-    attachments.forEach((att, i) => {
-      formData.append("media", att.file);
-      formData.append("mediaKind", att.kind);
-      if (att.kind === "video" && att.thumbnail) {
-        formData.append(`thumbnail-${i}`, att.thumbnail, "thumbnail.jpg");
-      }
-    });
+    if (stagedGifUrl) {
+      formData.set("gifUrl", stagedGifUrl);
+    } else {
+      attachments.forEach((att, i) => {
+        formData.append("media", att.file);
+        formData.append("mediaKind", att.kind);
+        if (att.kind === "video" && att.thumbnail) {
+          formData.append(`thumbnail-${i}`, att.thumbnail, "thumbnail.jpg");
+        }
+      });
+    }
 
     const res = await fetch("/api/posts", { method: "POST", body: formData });
 
@@ -206,8 +205,23 @@ function PostComposerModal({ onClose, canPostWorkout }: { onClose: () => void; c
                 { key: "gif", label: "GIF", onClick: () => setGifPickerOpen(true) },
               ]}
             />
-            {gifPickerOpen && <GifPicker onSelect={sendGif} onClose={() => setGifPickerOpen(false)} />}
+            {gifPickerOpen && <GifPicker onSelect={pickGif} onClose={() => setGifPickerOpen(false)} />}
           </div>
+
+          {stagedGifUrl && (
+            <div className="relative mt-3 inline-block">
+              {/* eslint-disable-next-line @next/next/no-img-element -- external, unsized GIF from Tenor */}
+              <img src={stagedGifUrl} alt="" className="max-h-48 rounded-lg object-cover" />
+              <button
+                type="button"
+                onClick={() => setStagedGifUrl(null)}
+                aria-label="Remove GIF"
+                className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-b2b-ink/70 text-sm text-white hover:bg-b2b-ink"
+              >
+                ×
+              </button>
+            </div>
+          )}
 
           {attachments.length > 0 && (
             <div className="mt-3 flex flex-col gap-2">
