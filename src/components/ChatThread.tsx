@@ -8,6 +8,7 @@ import { GifPicker } from "@/components/GifPicker";
 import { AttachmentMenu } from "@/components/AttachmentMenu";
 import { SendIcon } from "@/components/SendIcon";
 import { EditIcon } from "@/components/EditIcon";
+import { DeleteIcon } from "@/components/DeleteIcon";
 import { formatTime } from "@/lib/dates";
 import { MentionText } from "@/components/MentionText";
 import { MentionTextarea } from "@/components/MentionTextarea";
@@ -433,9 +434,10 @@ export function ChatThread({
                       <button
                         type="button"
                         onClick={() => setDeleteTargetId(message.id)}
-                        className="hover:underline"
+                        aria-label="Delete"
+                        className="text-b2b-ink/60 hover:text-red-600"
                       >
-                        Delete
+                        <DeleteIcon className="h-3.5 w-3.5" />
                       </button>
                     </>
                   )}

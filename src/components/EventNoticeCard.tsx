@@ -14,6 +14,7 @@ import { ReactionBar } from "@/components/ReactionBar";
 import { AttachmentMenu } from "@/components/AttachmentMenu";
 import { SendIcon } from "@/components/SendIcon";
 import { EditIcon } from "@/components/EditIcon";
+import { DeleteIcon } from "@/components/DeleteIcon";
 import { formatTeammateRequest } from "@/lib/labels";
 import type { TeammateRequest } from "@/lib/validation";
 import { formatDateTime } from "@/lib/dates";
@@ -455,9 +456,10 @@ export function EventNoticeCard({
                   <button
                     type="button"
                     onClick={() => setDeletingCommentId(comment.id)}
-                    className="text-red-600 hover:underline"
+                    aria-label="Delete"
+                    className="text-red-600 hover:text-red-700"
                   >
-                    Delete
+                    <DeleteIcon className="h-3.5 w-3.5" />
                   </button>
                 </>
               ) : (
@@ -558,9 +560,10 @@ export function EventNoticeCard({
             <button
               type="button"
               onClick={() => setConfirmOpen(true)}
-              className="text-xs text-red-600 hover:underline"
+              aria-label="Delete"
+              className="text-red-600 hover:text-red-700"
             >
-              Delete
+              <DeleteIcon className="h-4 w-4" />
             </button>
           </div>
         )}

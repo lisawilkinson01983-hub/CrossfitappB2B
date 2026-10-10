@@ -25,6 +25,7 @@ import { GifPicker } from "@/components/GifPicker";
 import { AttachmentMenu } from "@/components/AttachmentMenu";
 import { SendIcon } from "@/components/SendIcon";
 import { EditIcon } from "@/components/EditIcon";
+import { DeleteIcon } from "@/components/DeleteIcon";
 import { LikeIcon } from "@/components/LikeIcon";
 import { CommentIcon } from "@/components/CommentIcon";
 import { ShareIcon } from "@/components/ShareIcon";
@@ -551,9 +552,10 @@ export function PostCard({
                   <button
                     type="button"
                     onClick={() => setCommentDeleteTargetId(comment.id)}
-                    className="hover:underline"
+                    aria-label="Delete"
+                    className="text-b2b-ink/60 hover:text-red-600"
                   >
-                    Delete
+                    <DeleteIcon className="h-3.5 w-3.5" />
                   </button>
                 </>
               ) : (
@@ -699,9 +701,10 @@ export function PostCard({
             <button
               type="button"
               onClick={() => setConfirmDeleteOpen(true)}
-              className="text-xs text-red-600 hover:underline"
+              aria-label="Delete"
+              className="text-red-600 hover:text-red-700"
             >
-              Delete
+              <DeleteIcon className="h-4 w-4" />
             </button>
           </div>
         ) : (
@@ -783,9 +786,10 @@ export function PostCard({
                 <button
                   type="button"
                   onClick={() => setConfirmDeleteOpen(true)}
-                  className="text-xs text-red-600 hover:underline"
+                  aria-label="Delete"
+                  className="text-red-600 hover:text-red-700"
                 >
-                  Delete
+                  <DeleteIcon className="h-4 w-4" />
                 </button>
               </div>
             ) : (

@@ -6,6 +6,7 @@ import Image from "next/image";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { CommentsPopout } from "@/components/CommentsPopout";
 import { CommentIcon } from "@/components/CommentIcon";
+import { DeleteIcon } from "@/components/DeleteIcon";
 import type { MediaSource } from "@/lib/gallery";
 import type { ReportTargetTypeOption } from "@/lib/validation";
 
@@ -202,7 +203,7 @@ export function GalleryLightbox({
                 aria-label="Remove from gallery"
                 className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20"
               >
-                🗑
+                <DeleteIcon className="h-4 w-4" />
               </button>
             )}
             <button

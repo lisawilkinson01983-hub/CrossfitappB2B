@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { DeleteIcon } from "@/components/DeleteIcon";
 
 export function DeleteWorkoutButton({ id }: { id: string }) {
   const router = useRouter();
@@ -22,9 +23,10 @@ export function DeleteWorkoutButton({ id }: { id: string }) {
       <button
         type="button"
         onClick={() => setConfirmOpen(true)}
-        className="text-xs text-red-600 hover:underline"
+        aria-label="Delete"
+        className="text-red-600 hover:text-red-700"
       >
-        Delete
+        <DeleteIcon className="h-3.5 w-3.5" />
       </button>
       <ConfirmDialog
         open={confirmOpen}

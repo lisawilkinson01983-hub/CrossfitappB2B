@@ -9,6 +9,7 @@ import { LikeIcon } from "@/components/LikeIcon";
 import { ShareIcon } from "@/components/ShareIcon";
 import { MoreIcon } from "@/components/MoreIcon";
 import { EyeIcon } from "@/components/EyeIcon";
+import { DeleteIcon } from "@/components/DeleteIcon";
 import type { StoryGroup } from "@/lib/stories";
 
 // How long a photo story stays up before auto-advancing — a video's own
@@ -342,8 +343,9 @@ export function StoryViewer({
                 setMoreOpen(false);
                 setDeleteOpen(true);
               }}
-              className="w-full rounded-lg px-4 py-3 text-left text-sm font-medium text-red-600 hover:bg-b2b-bg"
+              className="flex w-full items-center gap-2 rounded-lg px-4 py-3 text-left text-sm font-medium text-red-600 hover:bg-b2b-bg"
             >
+              <DeleteIcon className="h-4 w-4" />
               Delete story
             </button>
             <button

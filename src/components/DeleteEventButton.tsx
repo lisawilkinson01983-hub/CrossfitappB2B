@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { DeleteIcon } from "@/components/DeleteIcon";
 
 /** Admin-only — permanently deletes an event, then returns to Discover. */
 export function DeleteEventButton({ eventId, eventName }: { eventId: string; eventName: string }) {
@@ -31,8 +32,9 @@ export function DeleteEventButton({ eventId, eventName }: { eventId: string; eve
       <button
         type="button"
         onClick={() => setConfirmOpen(true)}
-        className="rounded border border-red-300 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50"
+        className="inline-flex items-center gap-2 rounded border border-red-300 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50"
       >
+        <DeleteIcon className="h-4 w-4" />
         Delete this event
       </button>
       <ConfirmDialog

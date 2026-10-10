@@ -7,6 +7,7 @@ import { MentionTextarea } from "@/components/MentionTextarea";
 import { MentionText } from "@/components/MentionText";
 import { SendIcon } from "@/components/SendIcon";
 import { EditIcon } from "@/components/EditIcon";
+import { DeleteIcon } from "@/components/DeleteIcon";
 import { formatDateTime } from "@/lib/dates";
 import type { ReportTargetTypeOption } from "@/lib/validation";
 
@@ -239,9 +240,10 @@ export function CommentsPopout({
                   <button
                     type="button"
                     onClick={() => setDeleteTargetId(comment.id)}
-                    className="text-red-600 hover:underline"
+                    aria-label="Delete"
+                    className="text-red-600 hover:text-red-700"
                   >
-                    Delete
+                    <DeleteIcon className="h-3.5 w-3.5" />
                   </button>
                 </>
               ) : (
