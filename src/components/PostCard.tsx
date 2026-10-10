@@ -26,6 +26,7 @@ import { AttachmentMenu } from "@/components/AttachmentMenu";
 import { SendIcon } from "@/components/SendIcon";
 import { EditIcon } from "@/components/EditIcon";
 import { DeleteIcon } from "@/components/DeleteIcon";
+import { EditModal } from "@/components/EditModal";
 import { LikeIcon } from "@/components/LikeIcon";
 import { CommentIcon } from "@/components/CommentIcon";
 import { ShareIcon } from "@/components/ShareIcon";
@@ -276,16 +277,16 @@ export function PostCard({
     setEditingShareMessage(true);
   }
 
-  async function submitEditShareMessage() {
+  async function submitEditShareMessage(value: string) {
     setShareMessageSaving(true);
     const res = await fetch(`/api/posts/${post.feedItemId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ contentText: editShareMessageText }),
+      body: JSON.stringify({ contentText: value }),
     });
     setShareMessageSaving(false);
     if (res.ok) {
-      setShareMessage(editShareMessageText.trim() ? editShareMessageText : null);
+      setShareMessage(value.trim() ? value : null);
       setEditingShareMessage(false);
     }
   }
@@ -359,17 +360,17 @@ export function PostCard({
     setEditCommentText(text);
   }
 
-  async function submitEditComment(id: string) {
-    if (!editCommentText.trim() || commentSaving) return;
+  async function submitEditComment(id: string, value: string) {
+    if (!value.trim() || commentSaving) return;
     setCommentSaving(true);
     const res = await fetch(`/api/comments/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text: editCommentText }),
+      body: JSON.stringify({ text: value }),
     });
     setCommentSaving(false);
     if (res.ok) {
-      setComments((prev) => prev.map((c) => (c.id === id ? { ...c, text: editCommentText } : c)));
+      setComments((prev) => prev.map((c) => (c.id === id ? { ...c, text: value } : c)));
       setEditingCommentId(null);
     }
   }
@@ -448,13 +449,13 @@ export function PostCard({
     if (res.ok) router.refresh();
   }
 
-  async function submitEditPost() {
+  async function submitEditPost(value: string) {
     setPostSaving(true);
     setPostError(null);
     const res = await fetch(`/api/posts/${post.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ contentText: editPostText }),
+      body: JSON.stringify({ contentText: value }),
     });
     setPostSaving(false);
     if (!res.ok) {
@@ -462,7 +463,7 @@ export function PostCard({
       setPostError(body.error ?? "Something went wrong. Please try again.");
       return;
     }
-    setContentText(editPostText.trim() ? editPostText : null);
+    setContentText(value.trim() ? value : null);
     setEditingPost(false);
   }
 
@@ -489,32 +490,16 @@ export function PostCard({
         }`}
         style={{ marginLeft: depth * 20 }}
       >
-        {isEditing ? (
-          <div className="flex gap-2">
-            <MentionTextarea
-              rows={1}
-              value={editCommentText}
-              onChange={setEditCommentText}
-              className="flex-1 resize-none rounded border border-gray-300 px-2 py-1 text-sm focus:border-b2b-pink focus:outline-none"
-              autoFocus
-            />
-            <button
-              type="button"
-              onClick={() => submitEditComment(comment.id)}
-              disabled={commentSaving || !editCommentText.trim()}
-              className="rounded bg-b2b-pink px-3 py-1 text-sm text-white hover:bg-b2b-pink-dark disabled:opacity-50"
-            >
-              Save
-            </button>
-            <button
-              type="button"
-              onClick={() => setEditingCommentId(null)}
-              className="text-sm text-b2b-ink/50 hover:underline"
-            >
-              Cancel
-            </button>
-          </div>
-        ) : (
+        {isEditing && (
+          <EditModal
+            title="Edit comment"
+            initialValue={editCommentText}
+            saving={commentSaving}
+            onSave={(value) => submitEditComment(comment.id, value)}
+            onClose={() => setEditingCommentId(null)}
+          />
+        )}
+        {!isEditing && (
           <div className="text-sm">
             <p>
               <span className="font-semibold">{comment.author.name}</span>{" "}
@@ -618,17 +603,11 @@ export function PostCard({
         />
       )}
       <div
-        ref={containerRef}
-        id={`post-${post.feedItemId}`}
-        className={`rounded-xl border bg-b2b-card p-4 ${
-          isPb
-            ? "border-yellow-400 shadow-[0_0_0_1px_rgba(240,192,32,0.35),0_8px_20px_-12px_rgba(240,192,32,0.6)]"
-            : "border-b2b-purple/10"
-        } ${
+        className={
           popped
-            ? "fixed left-1/2 top-1/2 z-50 max-h-[85vh] w-[calc(100%-2rem)] max-w-2xl -translate-x-1/2 -translate-y-1/2 overflow-y-auto shadow-2xl"
-            : ""
-        }`}
+            ? "fixed left-1/2 top-1/2 z-50 w-[calc(100%-2rem)] max-w-2xl -translate-x-1/2 -translate-y-1/2"
+            : "contents"
+        }
       >
       {popped && (
         <button
@@ -640,6 +619,15 @@ export function PostCard({
           ×
         </button>
       )}
+      <div
+        ref={containerRef}
+        id={`post-${post.feedItemId}`}
+        className={`rounded-xl border bg-b2b-card p-4 ${
+          isPb
+            ? "border-yellow-400 shadow-[0_0_0_1px_rgba(240,192,32,0.35),0_8px_20px_-12px_rgba(240,192,32,0.6)]"
+            : "border-b2b-purple/10"
+        } ${popped ? "max-h-[85vh] overflow-y-auto shadow-2xl" : ""}`}
+      >
       {/* A shared post looks like an ordinary post from whoever shared it —
           their photo/name up top, their message as the body — with the
           original embedded below in its own mini card, same as Facebook's
@@ -716,42 +704,21 @@ export function PostCard({
         )}
       </div>
 
-      {post.sharedBy &&
-        (editingShareMessage ? (
-          <div className="mt-2 flex flex-col gap-2">
-            <MentionTextarea
-              rows={2}
-              value={editShareMessageText}
-              onChange={setEditShareMessageText}
-              placeholder="Say something about this..."
-              className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm focus:border-b2b-pink focus:outline-none"
-              autoFocus
-            />
-            <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={submitEditShareMessage}
-                disabled={shareMessageSaving}
-                className="rounded bg-b2b-pink px-3 py-1 text-sm text-white hover:bg-b2b-pink-dark disabled:opacity-50"
-              >
-                {shareMessageSaving ? "Saving..." : "Save"}
-              </button>
-              <button
-                type="button"
-                onClick={() => setEditingShareMessage(false)}
-                className="text-sm text-b2b-ink/50 hover:underline"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        ) : (
-          shareMessage && (
-            <p className="mt-2 whitespace-pre-wrap text-b2b-ink">
-              <MentionText text={shareMessage} />
-            </p>
-          )
-        ))}
+      {post.sharedBy && editingShareMessage && (
+        <EditModal
+          title="Edit share message"
+          initialValue={editShareMessageText}
+          placeholder="Say something about this..."
+          saving={shareMessageSaving}
+          onSave={submitEditShareMessage}
+          onClose={() => setEditingShareMessage(false)}
+        />
+      )}
+      {post.sharedBy && !editingShareMessage && shareMessage && (
+        <p className="mt-2 whitespace-pre-wrap text-b2b-ink">
+          <MentionText text={shareMessage} />
+        </p>
+      )}
 
       <div className={post.sharedBy ? "mt-3 rounded-lg border border-b2b-purple/10 bg-b2b-bg p-3" : ""}>
         {post.sharedBy && (
@@ -850,39 +817,20 @@ export function PostCard({
           </div>
         )}
 
-        {editingPost ? (
-          <div className="mt-2 flex flex-col gap-2">
-            {postError && <p className="text-sm text-red-600">{postError}</p>}
-            <MentionTextarea
-              rows={3}
-              value={editPostText}
-              onChange={setEditPostText}
-              className="w-full rounded border border-gray-300 px-2 py-1 text-sm focus:border-b2b-pink focus:outline-none"
-            />
-            <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={submitEditPost}
-                disabled={postSaving}
-                className="rounded bg-b2b-pink px-3 py-1 text-sm text-white hover:bg-b2b-pink-dark disabled:opacity-50"
-              >
-                {postSaving ? "Saving..." : "Save"}
-              </button>
-              <button
-                type="button"
-                onClick={() => setEditingPost(false)}
-                className="text-sm text-b2b-ink/50 hover:underline"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        ) : (
-          contentText && (
-            <p className={`whitespace-pre-wrap text-b2b-ink ${post.sharedBy ? "" : "mt-2"}`}>
-              <MentionText text={contentText} />
-            </p>
-          )
+        {editingPost && (
+          <EditModal
+            title="Edit post"
+            initialValue={editPostText}
+            saving={postSaving}
+            error={postError}
+            onSave={submitEditPost}
+            onClose={() => setEditingPost(false)}
+          />
+        )}
+        {!editingPost && contentText && (
+          <p className={`whitespace-pre-wrap text-b2b-ink ${post.sharedBy ? "" : "mt-2"}`}>
+            <MentionText text={contentText} />
+          </p>
         )}
 
         {post.gifUrl && (
@@ -1068,6 +1016,7 @@ export function PostCard({
           </div>
         </div>
       )}
+      </div>
       </div>
     </>
   );

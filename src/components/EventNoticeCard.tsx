@@ -15,6 +15,7 @@ import { AttachmentMenu } from "@/components/AttachmentMenu";
 import { SendIcon } from "@/components/SendIcon";
 import { EditIcon } from "@/components/EditIcon";
 import { DeleteIcon } from "@/components/DeleteIcon";
+import { EditModal } from "@/components/EditModal";
 import { formatTeammateRequest } from "@/lib/labels";
 import type { TeammateRequest } from "@/lib/validation";
 import { formatDateTime } from "@/lib/dates";
@@ -117,13 +118,13 @@ export function EventNoticeCard({
     if (res.ok) router.refresh();
   }
 
-  async function submitEditNotice() {
+  async function submitEditNotice(value: string) {
     setNoticeSaving(true);
     setNoticeError(null);
     const res = await fetch(`/api/event-notices/${notice.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text: editNoticeText }),
+      body: JSON.stringify({ text: value }),
     });
     setNoticeSaving(false);
     if (!res.ok) {
@@ -131,7 +132,7 @@ export function EventNoticeCard({
       setNoticeError(body.error ?? "Something went wrong. Please try again.");
       return;
     }
-    setText(editNoticeText.trim() ? editNoticeText : null);
+    setText(value.trim() ? value : null);
     setEditingNotice(false);
   }
 
@@ -309,17 +310,17 @@ export function EventNoticeCard({
     setEditCommentText(text);
   }
 
-  async function submitEditComment(id: string) {
-    if (!editCommentText.trim() || commentSaving) return;
+  async function submitEditComment(id: string, value: string) {
+    if (!value.trim() || commentSaving) return;
     setCommentSaving(true);
     const res = await fetch(`/api/event-notice-comments/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text: editCommentText }),
+      body: JSON.stringify({ text: value }),
     });
     setCommentSaving(false);
     if (res.ok) {
-      setComments((prev) => prev.map((c) => (c.id === id ? { ...c, text: editCommentText } : c)));
+      setComments((prev) => prev.map((c) => (c.id === id ? { ...c, text: value } : c)));
       setEditingCommentId(null);
     }
   }
@@ -390,32 +391,16 @@ export function EventNoticeCard({
 
     return (
       <div key={comment.id} className="flex flex-col gap-1" style={{ marginLeft: depth * 20 }}>
-        {isEditing ? (
-          <div className="flex gap-2">
-            <MentionTextarea
-              rows={1}
-              value={editCommentText}
-              onChange={setEditCommentText}
-              className={textareaClass}
-              autoFocus
-            />
-            <button
-              type="button"
-              onClick={() => submitEditComment(comment.id)}
-              disabled={commentSaving || !editCommentText.trim()}
-              className="h-fit rounded bg-b2b-pink px-3 py-1 text-sm text-white hover:bg-b2b-pink-dark disabled:opacity-50"
-            >
-              Save
-            </button>
-            <button
-              type="button"
-              onClick={() => setEditingCommentId(null)}
-              className="h-fit text-sm text-b2b-ink/50 hover:underline"
-            >
-              Cancel
-            </button>
-          </div>
-        ) : (
+        {isEditing && (
+          <EditModal
+            title="Edit comment"
+            initialValue={editCommentText}
+            saving={commentSaving}
+            onSave={(value) => submitEditComment(comment.id, value)}
+            onClose={() => setEditingCommentId(null)}
+          />
+        )}
+        {!isEditing && (
           <div className="text-sm">
             <p>
               <span className="font-semibold">{comment.author.name}</span>{" "}
@@ -582,36 +567,17 @@ export function EventNoticeCard({
         </div>
       )}
 
-      {editingNotice ? (
-        <div className="mt-2 flex flex-col gap-2">
-          {noticeError && <p className="text-sm text-red-600">{noticeError}</p>}
-          <MentionTextarea
-            rows={3}
-            value={editNoticeText}
-            onChange={setEditNoticeText}
-            className="w-full rounded border border-gray-300 px-2 py-1 text-sm focus:border-b2b-pink focus:outline-none"
-          />
-          <div className="flex gap-3">
-            <button
-              type="button"
-              onClick={submitEditNotice}
-              disabled={noticeSaving}
-              className="rounded bg-b2b-pink px-3 py-1 text-sm text-white hover:bg-b2b-pink-dark disabled:opacity-50"
-            >
-              {noticeSaving ? "Saving..." : "Save"}
-            </button>
-            <button
-              type="button"
-              onClick={() => setEditingNotice(false)}
-              className="text-sm text-b2b-ink/50 hover:underline"
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
-      ) : (
-        text && <MentionText text={text} className="mt-2 block whitespace-pre-wrap text-b2b-ink" />
+      {editingNotice && (
+        <EditModal
+          title="Edit notice"
+          initialValue={editNoticeText}
+          saving={noticeSaving}
+          error={noticeError}
+          onSave={submitEditNotice}
+          onClose={() => setEditingNotice(false)}
+        />
       )}
+      {text && <MentionText text={text} className="mt-2 block whitespace-pre-wrap text-b2b-ink" />}
 
       {notice.gifUrl && (
         // eslint-disable-next-line @next/next/no-img-element -- external, unsized GIF from Tenor

@@ -7,6 +7,7 @@ import { MentionTextarea } from "@/components/MentionTextarea";
 import { MentionText } from "@/components/MentionText";
 import { SendIcon } from "@/components/SendIcon";
 import { EditIcon } from "@/components/EditIcon";
+import { EditModal } from "@/components/EditModal";
 import { DeleteIcon } from "@/components/DeleteIcon";
 import { formatDateTime } from "@/lib/dates";
 import type { ReportTargetTypeOption } from "@/lib/validation";
@@ -130,17 +131,17 @@ export function CommentsPopout({
     setEditText(currentText);
   }
 
-  async function submitEdit(id: string) {
-    if (!editText.trim() || editSaving) return;
+  async function submitEdit(id: string, value: string) {
+    if (!value.trim() || editSaving) return;
     setEditSaving(true);
     const res = await fetch(patchUrlFor(id), {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text: editText }),
+      body: JSON.stringify({ text: value }),
     });
     setEditSaving(false);
     if (res.ok) {
-      setComments((prev) => (prev ?? []).map((c) => (c.id === id ? { ...c, text: editText } : c)));
+      setComments((prev) => (prev ?? []).map((c) => (c.id === id ? { ...c, text: value } : c)));
       setEditingId(null);
     }
   }
@@ -187,32 +188,16 @@ export function CommentsPopout({
 
     return (
       <div key={comment.id} className="flex flex-col gap-1" style={{ marginLeft: depth * 16 }}>
-        {isEditing ? (
-          <div className="flex gap-2">
-            <MentionTextarea
-              rows={1}
-              value={editText}
-              onChange={setEditText}
-              className={textareaClass}
-              autoFocus
-            />
-            <button
-              type="button"
-              onClick={() => submitEdit(comment.id)}
-              disabled={editSaving || !editText.trim()}
-              className="h-fit rounded bg-b2b-pink px-3 py-1 text-sm text-white hover:bg-b2b-pink-dark disabled:opacity-50"
-            >
-              Save
-            </button>
-            <button
-              type="button"
-              onClick={() => setEditingId(null)}
-              className="h-fit text-sm text-b2b-ink/50 hover:underline"
-            >
-              Cancel
-            </button>
-          </div>
-        ) : (
+        {isEditing && (
+          <EditModal
+            title="Edit comment"
+            initialValue={editText}
+            saving={editSaving}
+            onSave={(value) => submitEdit(comment.id, value)}
+            onClose={() => setEditingId(null)}
+          />
+        )}
+        {!isEditing && (
           <div className="text-sm">
             <p>
               <span className="font-semibold">{comment.author.name}</span>{" "}

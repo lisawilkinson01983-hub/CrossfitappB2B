@@ -142,7 +142,7 @@ export default async function MyEventsPage({
 
       <div className="mt-4 flex flex-col gap-6">
         <SectionCard>
-          <form method="GET" className="flex gap-2">
+          <form method="GET" className="flex flex-col gap-3">
             <input type="hidden" name="tab" value={tab} />
             <label htmlFor="q" className="sr-only">
               Search my events by name or area
@@ -155,23 +155,23 @@ export default async function MyEventsPage({
               defaultValue={q}
               className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-b2b-pink focus:outline-none"
             />
-            <button
-              type="submit"
-              className="shrink-0 rounded bg-b2b-pink px-4 py-2 text-sm font-medium text-white hover:bg-b2b-pink-dark"
-            >
-              Search
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                type="submit"
+                className="shrink-0 rounded bg-b2b-pink px-4 py-2 text-sm font-medium text-white hover:bg-b2b-pink-dark"
+              >
+                Search
+              </button>
+              {q && (
+                <a href={`/events/mine?tab=${tab}`} className="text-xs text-b2b-ink/50 hover:underline">
+                  Clear search
+                </a>
+              )}
+              <Link href="/discover?view=events" className="text-xs text-b2b-ink/50 hover:underline">
+                Browse all events
+              </Link>
+            </div>
           </form>
-          <div className="mt-2 flex gap-3">
-            {q && (
-              <a href={`/events/mine?tab=${tab}`} className="text-xs text-b2b-ink/50 hover:underline">
-                Clear search
-              </a>
-            )}
-            <Link href="/discover?view=events" className="text-xs text-b2b-ink/50 hover:underline">
-              Browse all events
-            </Link>
-          </div>
         </SectionCard>
 
         {visibleEvents.length === 0 ? (

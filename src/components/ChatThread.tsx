@@ -9,6 +9,7 @@ import { AttachmentMenu } from "@/components/AttachmentMenu";
 import { SendIcon } from "@/components/SendIcon";
 import { EditIcon } from "@/components/EditIcon";
 import { DeleteIcon } from "@/components/DeleteIcon";
+import { EditModal } from "@/components/EditModal";
 import { formatTime } from "@/lib/dates";
 import { MentionText } from "@/components/MentionText";
 import { MentionTextarea } from "@/components/MentionTextarea";
@@ -246,13 +247,13 @@ export function ChatThread({
     setEditText(message.text);
   }
 
-  async function submitEdit(messageId: string) {
-    if (!editText.trim() || editSaving) return;
+  async function submitEdit(messageId: string, value: string) {
+    if (!value.trim() || editSaving) return;
     setEditSaving(true);
     const res = await fetch(`/api/messages/${conversationId}/${messageId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text: editText }),
+      body: JSON.stringify({ text: value }),
     });
     setEditSaving(false);
     if (res.ok) {
@@ -349,30 +350,7 @@ export function ChatThread({
                     </button>
                   )}
 
-                  {isEditing ? (
-                    <div className="flex flex-col gap-2 px-4 py-2.5">
-                      <MentionTextarea
-                        rows={1}
-                        value={editText}
-                        onChange={setEditText}
-                        autoFocus
-                        className="rounded border border-white/30 bg-white/10 px-2 py-1 text-sm text-inherit placeholder:text-inherit/60 focus:outline-none"
-                      />
-                      <div className="flex gap-3 text-xs">
-                        <button
-                          type="button"
-                          onClick={() => submitEdit(message.id)}
-                          disabled={editSaving || !editText.trim()}
-                          className="font-semibold underline disabled:opacity-50"
-                        >
-                          Save
-                        </button>
-                        <button type="button" onClick={() => setEditingId(null)} className="underline">
-                          Cancel
-                        </button>
-                      </div>
-                    </div>
-                  ) : isDeleted ? (
+                  {isDeleted ? (
                     <p className="whitespace-pre-wrap italic opacity-70">This message was deleted</p>
                   ) : message.gifUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element -- external, unsized GIF from Tenor
@@ -400,6 +378,15 @@ export function ChatThread({
                     <p className="whitespace-pre-wrap px-3 pb-2 pt-1.5 text-sm text-b2b-ink">{message.text}</p>
                   )}
                 </div>
+                {isEditing && (
+                  <EditModal
+                    title="Edit message"
+                    initialValue={editText}
+                    saving={editSaving}
+                    onSave={(value) => submitEdit(message.id, value)}
+                    onClose={() => setEditingId(null)}
+                  />
+                )}
                 {!isDeleted && (
                   <div className="mt-1 px-1">
                     <ReactionBar
