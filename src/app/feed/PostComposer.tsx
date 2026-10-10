@@ -6,6 +6,8 @@ import { MAX_VIDEO_SECONDS, MAX_PHOTO_BYTES, MAX_PHOTO_MB } from "@/lib/media";
 import { readVideoInfo } from "@/lib/readVideoInfo";
 import { MentionTextarea } from "@/components/MentionTextarea";
 import { Avatar } from "@/components/Avatar";
+import { AttachmentMenu } from "@/components/AttachmentMenu";
+import { GifPicker } from "@/components/GifPicker";
 
 type Attachment = { kind: "photo" | "video"; file: File; thumbnail?: Blob | null };
 
@@ -21,9 +23,11 @@ const MEDIA_ACCEPT = "image/jpeg,image/png,image/webp,video/mp4,video/quicktime"
 export function PostComposer({
   currentUserName,
   currentUserPhoto,
+  canPostWorkout,
 }: {
   currentUserName: string;
   currentUserPhoto: string | null;
+  canPostWorkout: boolean;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -38,18 +42,37 @@ export function PostComposer({
         <span>Share something with the community...</span>
       </button>
 
-      {open && <PostComposerModal onClose={() => setOpen(false)} />}
+      {open && <PostComposerModal onClose={() => setOpen(false)} canPostWorkout={canPostWorkout} />}
     </>
   );
 }
 
-function PostComposerModal({ onClose }: { onClose: () => void }) {
+function PostComposerModal({ onClose, canPostWorkout }: { onClose: () => void; canPostWorkout: boolean }) {
   const [contentText, setContentText] = useState("");
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [gifPickerOpen, setGifPickerOpen] = useState(false);
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  async function sendGif(gifUrl: string) {
+    setGifPickerOpen(false);
+    setError(null);
+    setSubmitting(true);
+    const formData = new FormData();
+    formData.set("contentText", contentText);
+    formData.set("gifUrl", gifUrl);
+    const res = await fetch("/api/posts", { method: "POST", body: formData });
+    setSubmitting(false);
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      setError(body.error ?? "Something went wrong. Please try again.");
+      return;
+    }
+    router.refresh();
+    onClose();
+  }
 
   async function handleFilesChange(e: ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? []);
@@ -163,7 +186,7 @@ function PostComposerModal({ onClose }: { onClose: () => void }) {
             autoFocus
           />
 
-          <div className="mt-3 flex items-center gap-2">
+          <div className="relative mt-3 flex items-center gap-2">
             <input
               ref={fileInputRef}
               type="file"
@@ -172,14 +195,18 @@ function PostComposerModal({ onClose }: { onClose: () => void }) {
               onChange={handleFilesChange}
               className="hidden"
             />
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={attachments.length >= MAX_ATTACHMENTS}
-              className="rounded-full border border-b2b-purple/20 px-3 py-1.5 text-sm font-medium text-b2b-ink/60 hover:border-b2b-pink hover:text-b2b-pink disabled:opacity-50"
-            >
-              📎 Upload media
-            </button>
+            <AttachmentMenu
+              items={[
+                ...(canPostWorkout
+                  ? [{ key: "workout", label: "🏋️ Post workout", onClick: () => router.push("/workouts/new") }]
+                  : []),
+                ...(attachments.length < MAX_ATTACHMENTS
+                  ? [{ key: "media", label: "📎 Upload media", onClick: () => fileInputRef.current?.click() }]
+                  : []),
+                { key: "gif", label: "GIF", onClick: () => setGifPickerOpen(true) },
+              ]}
+            />
+            {gifPickerOpen && <GifPicker onSelect={sendGif} onClose={() => setGifPickerOpen(false)} />}
           </div>
 
           {attachments.length > 0 && (

@@ -32,6 +32,7 @@ export async function POST(req: Request) {
   const parsed = postSchema.safeParse({
     contentText: formData.get("contentText"),
     sharedToFeed: formData.get("sharedToFeed"),
+    gifUrl: formData.get("gifUrl"),
   });
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
@@ -47,8 +48,8 @@ export async function POST(req: Request) {
   }
   const hasMedia = mediaFiles.length > 0;
 
-  if (!parsed.data.contentText && !hasMedia) {
-    return NextResponse.json({ error: "Write something, or add a photo or video" }, { status: 400 });
+  if (!parsed.data.contentText && !hasMedia && !parsed.data.gifUrl) {
+    return NextResponse.json({ error: "Write something, or add a photo, video, or GIF" }, { status: 400 });
   }
 
   // A post kept out of the feed only ever shows up via its media in the
@@ -94,6 +95,10 @@ export async function POST(req: Request) {
       type: "UPDATE",
       contentText: parsed.data.contentText ?? null,
       sharedToFeed: parsed.data.sharedToFeed,
+      // Mutually exclusive with media — the composer only ever sends one or
+      // the other (a GIF is sent as its own immediate request with no other
+      // attachment, same as Comment/Message).
+      gifUrl: hasMedia ? null : (parsed.data.gifUrl ?? null),
       media: { create: media },
     },
   });

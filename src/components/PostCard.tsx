@@ -84,6 +84,7 @@ export type PostCardData = {
   photo: string | null;
   video: string | null;
   videoThumbnail: string | null;
+  gifUrl: string | null;
   media: PostMediaItem[];
   createdAt: Date;
   isOwner: boolean;
@@ -874,6 +875,15 @@ export function PostCard({
               <MentionText text={contentText} />
             </p>
           )
+        )}
+
+        {post.gifUrl && (
+          // eslint-disable-next-line @next/next/no-img-element -- external, unsized GIF from Tenor
+          <img
+            src={post.gifUrl}
+            alt=""
+            className={`w-full rounded object-cover ${post.sharedBy ? "mt-2 max-h-72" : "mt-3 max-h-96"}`}
+          />
         )}
 
         {post.media.length > 0 ? (

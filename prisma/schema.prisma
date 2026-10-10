@@ -567,6 +567,12 @@ model Post {
   // just shows a black box until played.
   videoThumbnail String?
 
+  // A GIF attached to the post (its direct media URL from the GIF provider
+  // — see src/lib/tenor.ts), not re-hosted, just linked. Mutually exclusive
+  // with media below — a GIF post is sent immediately with no other
+  // attachment, same convention as Comment/Message.gifUrl.
+  gifUrl String?
+
   // A post's photos/videos, in carousel order — see PostMedia below.
   media PostMedia[]
 

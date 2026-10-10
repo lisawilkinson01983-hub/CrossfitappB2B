@@ -90,6 +90,7 @@ export function toPostCardData(post: PostWithCardData, currentUserId: string): P
     photo: original.photo,
     video: original.video,
     videoThumbnail: original.videoThumbnail,
+    gifUrl: original.gifUrl,
     media: original.media,
     createdAt: original.createdAt,
     isOwner: original.userId === currentUserId,

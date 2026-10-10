@@ -298,6 +298,9 @@ export const postSchema = z.object({
   sharedToFeed: z
     .preprocess(emptyToUndefined, z.enum(["true", "false"]).optional())
     .transform((v) => v === undefined || v === "true"),
+  // The GIF's own direct media URL from the search picker (see
+  // src/lib/tenor.ts) — not re-uploaded, just linked.
+  gifUrl: z.preprocess(emptyToUndefined, z.string().trim().url().max(500).optional()),
 });
 
 export const commentSchema = z
