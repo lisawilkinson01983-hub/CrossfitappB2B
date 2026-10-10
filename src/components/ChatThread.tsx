@@ -273,7 +273,7 @@ export function ChatThread({
   }
 
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col pb-24">
       <div className="flex max-h-[60vh] min-h-[300px] flex-col gap-3 overflow-y-auto py-2">
         {messages.length === 0 && (
           <p className="text-sm text-b2b-ink/40">No messages yet — say hello.</p>
@@ -444,59 +444,63 @@ export function ChatThread({
         <div ref={bottomRef} />
       </div>
 
-      {replyingTo && (
-        <div className="flex items-center justify-between gap-2 rounded-t-lg border border-b-0 border-b2b-purple/15 bg-b2b-bg px-3 py-1.5">
-          <div className="min-w-0 border-l-4 border-b2b-pink pl-2">
-            <p className="text-xs font-semibold text-b2b-ink/70">
-              Replying to {replyingTo.sender.id === currentUserId ? "yourself" : replyingTo.sender.name}
-            </p>
-            <p className="truncate text-xs italic text-b2b-ink/50">{quotedPreviewText(replyingTo)}</p>
-          </div>
-          <button
-            type="button"
-            onClick={() => setReplyingTo(null)}
-            aria-label="Cancel reply"
-            className="shrink-0 px-1 text-lg leading-none text-b2b-ink/40 hover:text-b2b-ink/70"
-          >
-            ×
-          </button>
+      <div className="fixed inset-x-0 bottom-16 z-10 border-t border-b2b-purple/15 bg-b2b-bg">
+        <div className="mx-auto max-w-2xl px-4 pt-2">
+          {replyingTo && (
+            <div className="flex items-center justify-between gap-2 rounded-t-lg border border-b-0 border-b2b-purple/15 bg-b2b-bg px-3 py-1.5">
+              <div className="min-w-0 border-l-4 border-b2b-pink pl-2">
+                <p className="text-xs font-semibold text-b2b-ink/70">
+                  Replying to {replyingTo.sender.id === currentUserId ? "yourself" : replyingTo.sender.name}
+                </p>
+                <p className="truncate text-xs italic text-b2b-ink/50">{quotedPreviewText(replyingTo)}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setReplyingTo(null)}
+                aria-label="Cancel reply"
+                className="shrink-0 px-1 text-lg leading-none text-b2b-ink/40 hover:text-b2b-ink/70"
+              >
+                ×
+              </button>
+            </div>
+          )}
+
+          {mediaError && <p className="text-xs text-red-600">{mediaError}</p>}
+
+          <form onSubmit={handleSubmit} className="relative flex items-center gap-2 py-2">
+            <input
+              ref={mediaInputRef}
+              type="file"
+              accept={MEDIA_ACCEPT}
+              onChange={handleMediaChange}
+              className="hidden"
+            />
+            <AttachmentMenu
+              items={[
+                { key: "media", label: "📷 Photo / Video", onClick: () => mediaInputRef.current?.click() },
+                { key: "gif", label: "GIF", onClick: () => setGifPickerOpen(true) },
+              ]}
+            />
+            {gifPickerOpen && <GifPicker onSelect={sendGif} onClose={() => setGifPickerOpen(false)} />}
+            <MentionTextarea
+              rows={1}
+              placeholder="Type a message..."
+              value={text}
+              onChange={setText}
+              onKeyDown={handleComposerKeyDown}
+              className="resize-none rounded-full border border-b2b-purple/15 bg-b2b-card px-4 py-2.5 focus:border-b2b-pink focus:outline-none"
+            />
+            <button
+              type="submit"
+              disabled={sending || !text.trim()}
+              aria-label="Send"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-b2b-pink text-white hover:bg-b2b-pink-dark disabled:opacity-40"
+            >
+              <SendIcon className="h-4 w-4" />
+            </button>
+          </form>
         </div>
-      )}
-
-      {mediaError && <p className="mt-2 text-xs text-red-600">{mediaError}</p>}
-
-      <form onSubmit={handleSubmit} className="relative mt-2 flex items-center gap-2">
-        <input
-          ref={mediaInputRef}
-          type="file"
-          accept={MEDIA_ACCEPT}
-          onChange={handleMediaChange}
-          className="hidden"
-        />
-        <AttachmentMenu
-          items={[
-            { key: "media", label: "📷 Photo / Video", onClick: () => mediaInputRef.current?.click() },
-            { key: "gif", label: "GIF", onClick: () => setGifPickerOpen(true) },
-          ]}
-        />
-        {gifPickerOpen && <GifPicker onSelect={sendGif} onClose={() => setGifPickerOpen(false)} />}
-        <MentionTextarea
-          rows={1}
-          placeholder="Type a message..."
-          value={text}
-          onChange={setText}
-          onKeyDown={handleComposerKeyDown}
-          className="flex-1 resize-none rounded-full border border-b2b-purple/15 bg-b2b-card px-4 py-2.5 focus:border-b2b-pink focus:outline-none"
-        />
-        <button
-          type="submit"
-          disabled={sending || !text.trim()}
-          aria-label="Send"
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-b2b-pink text-white hover:bg-b2b-pink-dark disabled:opacity-40"
-        >
-          <SendIcon className="h-4 w-4" />
-        </button>
-      </form>
+      </div>
 
       {storyLoadError && <p className="mt-2 text-center text-xs text-b2b-ink/50">{storyLoadError}</p>}
 

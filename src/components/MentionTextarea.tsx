@@ -234,7 +234,7 @@ export function MentionTextarea({
   }
 
   return (
-    <div className="relative">
+    <div className="relative w-full">
       <div className="relative">
         <div
           ref={backdropRef}
@@ -252,7 +252,7 @@ export function MentionTextarea({
           onScroll={syncScroll}
           onKeyDown={onKeyDown}
           autoFocus={autoFocus}
-          className={`${className ?? ""} relative z-10 bg-transparent text-transparent caret-b2b-ink`}
+          className={`${className ?? ""} relative z-10 w-full appearance-none bg-transparent text-transparent caret-b2b-ink`}
         />
       </div>
       {suggestions.length > 0 && (
