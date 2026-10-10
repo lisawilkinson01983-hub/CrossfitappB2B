@@ -10,6 +10,8 @@ import { GymBookingButtons } from "@/components/GymBookingButtons";
 import { FollowButton, type FollowStatus } from "@/components/FollowButton";
 import { MessageButton } from "@/components/MessageButton";
 import { bookingMailto, findVerifiedGymOwner } from "@/lib/gymPages";
+import { BackLink } from "@/components/BackLink";
+import { EditIcon } from "@/components/EditIcon";
 
 export default async function GymPage({ params }: { params: Promise<{ name: string }> }) {
   const session = await getServerSession(authOptions);
@@ -54,12 +56,14 @@ export default async function GymPage({ params }: { params: Promise<{ name: stri
       <NavBar />
 
       <div className="mt-6 flex items-center justify-between">
-        <Link href="/discover?view=affiliates" className="inline-block text-sm text-b2b-pink underline">
-          ← Back to affiliates
-        </Link>
+        <BackLink href="/discover?view=affiliates">Back to affiliates</BackLink>
         {me?.isAdmin && (
-          <Link href={`/gyms/${encodeURIComponent(gym.name)}/edit`} className="text-sm text-b2b-purple underline">
-            Edit affiliate
+          <Link
+            href={`/gyms/${encodeURIComponent(gym.name)}/edit`}
+            aria-label="Edit affiliate"
+            className="text-b2b-purple hover:text-b2b-purple-dark"
+          >
+            <EditIcon className="h-5 w-5" />
           </Link>
         )}
       </div>

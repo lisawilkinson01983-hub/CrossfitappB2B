@@ -7,6 +7,7 @@ import { NavBar } from "@/components/NavBar";
 import { Avatar } from "@/components/Avatar";
 import { FollowButton, type FollowStatus } from "@/components/FollowButton";
 import { showsSingleBadge } from "@/lib/labels";
+import { BackLink } from "@/components/BackLink";
 
 export default async function PostLikesPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
@@ -43,9 +44,7 @@ export default async function PostLikesPage({ params }: { params: Promise<{ id: 
   return (
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
       <NavBar />
-      <Link href="/feed" className="mt-6 inline-block text-sm text-b2b-pink underline">
-        ← Back to feed
-      </Link>
+      <BackLink href="/feed" className="mt-6">Back to feed</BackLink>
 
       <h1 className="mt-4 text-2xl font-bold">Liked by</h1>
 

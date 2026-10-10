@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { redirect, notFound } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -8,6 +7,7 @@ import { NavBar } from "@/components/NavBar";
 import { SectionCard } from "@/components/SectionCard";
 import { GrantAccessForm } from "./GrantAccessForm";
 import { RevokeAccessButton } from "./RevokeAccessButton";
+import { BackLink } from "@/components/BackLink";
 
 export default async function BrandAccessPage() {
   const session = await getServerSession(authOptions);
@@ -33,9 +33,7 @@ export default async function BrandAccessPage() {
   return (
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
       <NavBar />
-      <Link href="/settings/admin" className="mt-6 inline-block text-sm text-b2b-pink underline">
-        ← Back to settings
-      </Link>
+      <BackLink href="/settings/admin" className="mt-6">Back to settings</BackLink>
 
       <h1 className="mt-4 text-2xl font-bold">Box 2 Box profile access</h1>
       <p className="mt-1 text-sm text-b2b-ink/60">

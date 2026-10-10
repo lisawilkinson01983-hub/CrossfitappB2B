@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { redirect, notFound } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -7,6 +6,7 @@ import { NavBar } from "@/components/NavBar";
 import { Avatar } from "@/components/Avatar";
 import { ChatThread } from "@/components/ChatThread";
 import { GroupHeader } from "@/components/GroupHeader";
+import { BackLink } from "@/components/BackLink";
 import { showsSingleBadge } from "@/lib/labels";
 import { conversationDisplayName, messageInclude, messageVisibilityWhere } from "@/lib/conversations";
 import { summarizeReactions } from "@/lib/reactions";
@@ -56,9 +56,7 @@ export default async function ConversationPage({
   return (
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
       <NavBar />
-      <Link href="/messages" className="mt-6 inline-block text-sm text-b2b-pink underline">
-        ← All messages
-      </Link>
+      <BackLink href="/messages" className="mt-6">All messages</BackLink>
       {conversation.isGroup ? (
         <div className="mt-3">
           <GroupHeader

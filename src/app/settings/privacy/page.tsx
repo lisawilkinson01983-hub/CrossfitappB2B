@@ -7,6 +7,7 @@ import { NavBar } from "@/components/NavBar";
 import { SectionCard } from "@/components/SectionCard";
 import { BlockMuteControls } from "@/components/BlockMuteControls";
 import { AllowPostSharesToggle } from "@/components/AllowPostSharesToggle";
+import { BackLink } from "@/components/BackLink";
 
 export default async function PrivacySettingsPage() {
   const session = await getServerSession(authOptions);
@@ -30,9 +31,7 @@ export default async function PrivacySettingsPage() {
   return (
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
       <NavBar />
-      <Link href="/settings" className="mt-6 inline-block text-sm text-b2b-pink underline">
-        ← Settings
-      </Link>
+      <BackLink href="/settings" className="mt-6">Settings</BackLink>
 
       <div className="mt-4">
         <SectionCard title="Privacy & Safety">

@@ -1,10 +1,10 @@
-import Link from "next/link";
 import { redirect, notFound } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NavBar } from "@/components/NavBar";
 import { EventChatFeed } from "@/components/EventChatFeed";
+import { BackLink } from "@/components/BackLink";
 import type { EventNoticeEntry } from "@/components/EventNoticeCard";
 import { parseTeammateRequests } from "@/lib/labels";
 import { assertEventVisible } from "@/lib/eventVisibility";
@@ -84,9 +84,7 @@ export default async function EventNoticesPage({ params }: { params: Promise<{ i
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
       <NavBar />
 
-      <Link href={`/events/${event.id}`} className="mt-6 inline-block text-sm text-b2b-pink underline">
-        ← Back to {event.name}
-      </Link>
+      <BackLink href={`/events/${event.id}`} className="mt-6">Back to {event.name}</BackLink>
 
       <h1 className="mt-4 text-2xl font-bold">Message Board</h1>
       <p className="mt-1 text-sm text-b2b-ink/50">

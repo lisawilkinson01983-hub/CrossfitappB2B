@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { NavBar } from "@/components/NavBar";
 import { PostCard } from "@/components/PostCard";
 import { postCardInclude, toPostCardData } from "@/lib/posts";
+import { BackLink } from "@/components/BackLink";
 
 /**
  * A single post, standalone — the canonical link target for post/comment
@@ -34,9 +35,7 @@ export default async function PostDetailPage({
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
       <NavBar />
       <div className="mt-6 flex items-center justify-between">
-        <Link href="/feed" className="text-sm text-b2b-pink underline">
-          ← Back to feed
-        </Link>
+        <BackLink href="/feed">Back to feed</BackLink>
         <Link
           href="/feed"
           aria-label="Close"

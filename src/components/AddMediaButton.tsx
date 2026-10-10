@@ -110,8 +110,13 @@ export function AddMediaButton() {
 
   if (!open) {
     return (
-      <button type="button" onClick={() => setOpen(true)} className="mb-3 text-sm text-b2b-pink underline">
-        + Add media
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        aria-label="Add media"
+        className="mb-3 flex h-9 w-9 items-center justify-center rounded-full border border-gray-300 text-lg leading-none text-b2b-ink/60 hover:bg-b2b-bg"
+      >
+        +
       </button>
     );
   }

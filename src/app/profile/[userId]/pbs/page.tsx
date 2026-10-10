@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { redirect, notFound } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -6,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { NavBar } from "@/components/NavBar";
 import { SectionCard } from "@/components/SectionCard";
 import { PbTile } from "@/components/PbTile";
+import { BackLink } from "@/components/BackLink";
 import { PB_CATEGORIES, type PbField } from "@/lib/validation";
 import { PB_LABELS, parseDisplayedPbs } from "@/lib/labels";
 
@@ -46,9 +46,7 @@ export default async function UserPbsPage({
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
       <NavBar />
 
-      <Link href={`/profile/${userId}`} className="mt-6 inline-block text-sm text-b2b-pink underline">
-        ← Back to profile
-      </Link>
+      <BackLink href={`/profile/${userId}`} className="mt-6">Back to profile</BackLink>
 
       <h1 className="mt-2 text-2xl font-bold">{user.name}&rsquo;s PBs</h1>
 

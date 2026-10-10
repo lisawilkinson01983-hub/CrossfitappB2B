@@ -7,6 +7,7 @@ import { NavBar } from "@/components/NavBar";
 import { SectionCard } from "@/components/SectionCard";
 import { EVENT_STATUS_BADGE_CLASSES, EVENT_STATUS_LABELS } from "@/lib/labels";
 import { formatEventDate } from "@/lib/eventDate";
+import { BackLink } from "@/components/BackLink";
 
 export default async function EventSubmissionsSettingsPage() {
   const session = await getServerSession(authOptions);
@@ -20,9 +21,7 @@ export default async function EventSubmissionsSettingsPage() {
   return (
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
       <NavBar />
-      <Link href="/settings" className="mt-6 inline-block text-sm text-b2b-pink underline">
-        ← Settings
-      </Link>
+      <BackLink href="/settings" className="mt-6">Settings</BackLink>
 
       <div className="mt-4">
         <SectionCard

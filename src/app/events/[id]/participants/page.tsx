@@ -8,6 +8,7 @@ import { SectionCard } from "@/components/SectionCard";
 import { Avatar } from "@/components/Avatar";
 import { showsSingleBadge, isCompetitionEvent } from "@/lib/labels";
 import { assertEventVisible } from "@/lib/eventVisibility";
+import { BackLink } from "@/components/BackLink";
 
 export default async function EventParticipantsPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
@@ -38,9 +39,7 @@ export default async function EventParticipantsPage({ params }: { params: Promis
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
       <NavBar />
 
-      <Link href={`/events/${event.id}`} className="mt-6 inline-block text-sm text-b2b-pink underline">
-        ← Back to {event.name}
-      </Link>
+      <BackLink href={`/events/${event.id}`} className="mt-6">Back to {event.name}</BackLink>
 
       <div className="mt-4">
         <SectionCard

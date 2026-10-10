@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { redirect, notFound } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -6,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { NavBar } from "@/components/NavBar";
 import { SectionCard } from "@/components/SectionCard";
 import { GymModerationCard } from "@/components/GymModerationCard";
+import { BackLink } from "@/components/BackLink";
 
 export default async function GymReviewPage() {
   const session = await getServerSession(authOptions);
@@ -24,9 +24,7 @@ export default async function GymReviewPage() {
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
       <NavBar />
 
-      <Link href="/discover?view=affiliates" className="mt-6 inline-block text-sm text-b2b-pink underline">
-        ← Back to affiliates
-      </Link>
+      <BackLink href="/discover?view=affiliates" className="mt-6">Back to affiliates</BackLink>
 
       <div className="mt-4">
         <SectionCard title={`${pending.length} ${pending.length === 1 ? "submission" : "submissions"} to review`}>

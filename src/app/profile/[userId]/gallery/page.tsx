@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { redirect, notFound } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -7,6 +6,7 @@ import { NavBar } from "@/components/NavBar";
 import { GalleryLightbox } from "@/components/GalleryLightbox";
 import { AddMediaButton } from "@/components/AddMediaButton";
 import { getGalleryItems } from "@/lib/gallery";
+import { BackLink } from "@/components/BackLink";
 
 export default async function UserGalleryPage({
   params,
@@ -44,9 +44,7 @@ export default async function UserGalleryPage({
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
       <NavBar />
 
-      <Link href={isOwner ? "/profile" : `/profile/${userId}`} className="mt-6 inline-block text-sm text-b2b-pink underline">
-        ← Back to profile
-      </Link>
+      <BackLink href={isOwner ? "/profile" : `/profile/${userId}`} className="mt-6">Back to profile</BackLink>
 
       <h1 className="mt-2 text-2xl font-bold">{isOwner ? "Your" : `${user.name}'s`} gallery</h1>
 

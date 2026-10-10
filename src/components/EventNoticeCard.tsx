@@ -13,6 +13,7 @@ import { GifPicker } from "@/components/GifPicker";
 import { ReactionBar } from "@/components/ReactionBar";
 import { AttachmentMenu } from "@/components/AttachmentMenu";
 import { SendIcon } from "@/components/SendIcon";
+import { EditIcon } from "@/components/EditIcon";
 import { formatTeammateRequest } from "@/lib/labels";
 import type { TeammateRequest } from "@/lib/validation";
 import { formatDateTime } from "@/lib/dates";
@@ -445,9 +446,10 @@ export function EventNoticeCard({
                     <button
                       type="button"
                       onClick={() => startEditComment(comment.id, comment.text)}
-                      className="text-b2b-pink hover:underline"
+                      aria-label="Edit"
+                      className="text-b2b-pink hover:text-b2b-pink-dark"
                     >
-                      Edit
+                      <EditIcon className="h-3.5 w-3.5" />
                     </button>
                   )}
                   <button
@@ -548,9 +550,10 @@ export function EventNoticeCard({
                 setNoticeError(null);
                 setEditingNotice(true);
               }}
-              className="text-xs text-b2b-pink hover:underline"
+              aria-label="Edit"
+              className="text-b2b-pink hover:text-b2b-pink-dark"
             >
-              Edit
+              <EditIcon className="h-4 w-4" />
             </button>
             <button
               type="button"

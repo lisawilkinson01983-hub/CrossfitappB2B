@@ -6,6 +6,7 @@ import { ReportButton } from "@/components/ReportButton";
 import { MentionTextarea } from "@/components/MentionTextarea";
 import { MentionText } from "@/components/MentionText";
 import { SendIcon } from "@/components/SendIcon";
+import { EditIcon } from "@/components/EditIcon";
 import { formatDateTime } from "@/lib/dates";
 import type { ReportTargetTypeOption } from "@/lib/validation";
 
@@ -230,9 +231,10 @@ export function CommentsPopout({
                   <button
                     type="button"
                     onClick={() => startEdit(comment.id, comment.text)}
-                    className="text-b2b-pink hover:underline"
+                    aria-label="Edit"
+                    className="text-b2b-pink hover:text-b2b-pink-dark"
                   >
-                    Edit
+                    <EditIcon className="h-3.5 w-3.5" />
                   </button>
                   <button
                     type="button"

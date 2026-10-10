@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { redirect, notFound } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -9,6 +8,7 @@ import { EventSubmitForm } from "@/components/EventSubmitForm";
 import { EventWorkoutsCarousel } from "@/components/EventWorkoutsCarousel";
 import { DeleteEventButton } from "@/components/DeleteEventButton";
 import { parseJsonArray } from "@/lib/labels";
+import { BackLink } from "@/components/BackLink";
 import type { EventDivisionOption, EventGenderCategoryOption, EventTeamFormatOption } from "@/lib/validation";
 
 function toDateInputValue(date: Date | null): string {
@@ -38,9 +38,7 @@ export default async function EditEventPage({ params }: { params: Promise<{ id: 
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
       <NavBar />
 
-      <Link href={`/events/${event.id}`} className="mt-6 inline-block text-sm text-b2b-pink underline">
-        ← Back to event
-      </Link>
+      <BackLink href={`/events/${event.id}`} className="mt-6">Back to event</BackLink>
 
       {me?.isAdmin && (
         <div className="mt-4">

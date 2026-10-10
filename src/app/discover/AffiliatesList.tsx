@@ -8,6 +8,7 @@ import { DISTANCE_RANGES, distanceMiles, ensureUserAreaCoords, geocode } from "@
 import { SearchSuggestInput } from "@/components/SearchSuggestInput";
 import { SearchFilters } from "@/components/SearchFilters";
 import { FollowButton, type FollowStatus } from "@/components/FollowButton";
+import { EditIcon } from "@/components/EditIcon";
 
 export type AffiliateSearchParams = {
   q?: string;
@@ -302,9 +303,10 @@ export async function AffiliatesList({
                   {currentUser?.isAdmin && (
                     <Link
                       href={`/gyms/${encodeURIComponent(gym.name)}/edit`}
-                      className="text-xs text-b2b-purple underline"
+                      aria-label="Edit"
+                      className="text-b2b-purple hover:text-b2b-purple-dark"
                     >
-                      Edit
+                      <EditIcon className="h-4 w-4" />
                     </Link>
                   )}
                 </div>

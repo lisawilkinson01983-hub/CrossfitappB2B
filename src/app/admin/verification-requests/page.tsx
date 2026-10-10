@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { redirect, notFound } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -6,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { NavBar } from "@/components/NavBar";
 import { SectionCard } from "@/components/SectionCard";
 import { VerificationRequestCard } from "@/components/VerificationRequestCard";
+import { BackLink } from "@/components/BackLink";
 
 export default async function VerificationRequestsPage() {
   const session = await getServerSession(authOptions);
@@ -30,9 +30,7 @@ export default async function VerificationRequestsPage() {
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
       <NavBar />
 
-      <Link href="/settings/admin" className="mt-6 inline-block text-sm text-b2b-pink underline">
-        ← Back to settings
-      </Link>
+      <BackLink href="/settings/admin" className="mt-6">Back to settings</BackLink>
 
       <div className="mt-4">
         <SectionCard

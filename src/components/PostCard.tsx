@@ -24,6 +24,7 @@ import { ReactionBar } from "@/components/ReactionBar";
 import { GifPicker } from "@/components/GifPicker";
 import { AttachmentMenu } from "@/components/AttachmentMenu";
 import { SendIcon } from "@/components/SendIcon";
+import { EditIcon } from "@/components/EditIcon";
 import { LikeIcon } from "@/components/LikeIcon";
 import { CommentIcon } from "@/components/CommentIcon";
 import { ShareIcon } from "@/components/ShareIcon";
@@ -541,9 +542,10 @@ export function PostCard({
                     <button
                       type="button"
                       onClick={() => startEditComment(comment.id, comment.text)}
-                      className="text-b2b-pink hover:underline"
+                      aria-label="Edit"
+                      className="text-b2b-pink hover:text-b2b-pink-dark"
                     >
-                      Edit
+                      <EditIcon className="h-3.5 w-3.5" />
                     </button>
                   )}
                   <button
@@ -668,8 +670,8 @@ export function PostCard({
         {post.sharedBy ? (
           post.sharedBy.id === currentUserId && (
             <div className="flex shrink-0 items-center gap-3">
-              <button type="button" onClick={startEditShareMessage} className="text-xs text-b2b-pink hover:underline">
-                Edit
+              <button type="button" onClick={startEditShareMessage} aria-label="Edit" className="text-b2b-pink hover:text-b2b-pink-dark">
+                <EditIcon className="h-4 w-4" />
               </button>
               <button
                 type="button"
@@ -689,9 +691,10 @@ export function PostCard({
                 setPostError(null);
                 setEditingPost(true);
               }}
-              className="text-xs text-b2b-pink hover:underline"
+              aria-label="Edit"
+              className="text-b2b-pink hover:text-b2b-pink-dark"
             >
-              Edit
+              <EditIcon className="h-4 w-4" />
             </button>
             <button
               type="button"
@@ -772,9 +775,10 @@ export function PostCard({
                     setPostError(null);
                     setEditingPost(true);
                   }}
-                  className="text-xs text-b2b-pink hover:underline"
+                  aria-label="Edit"
+                  className="text-b2b-pink hover:text-b2b-pink-dark"
                 >
-                  Edit
+                  <EditIcon className="h-4 w-4" />
                 </button>
                 <button
                   type="button"

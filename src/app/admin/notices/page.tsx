@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { redirect, notFound } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -8,6 +7,7 @@ import { SectionCard } from "@/components/SectionCard";
 import { UNAFFILIATED } from "@/lib/gyms";
 import { ComposeNoticeForm } from "./ComposeNoticeForm";
 import { formatDate } from "@/lib/dates";
+import { BackLink } from "@/components/BackLink";
 
 export default async function AdminNoticesPage() {
   const session = await getServerSession(authOptions);
@@ -31,9 +31,7 @@ export default async function AdminNoticesPage() {
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
       <NavBar />
 
-      <Link href="/settings/admin" className="mt-6 inline-block text-sm text-b2b-pink underline">
-        ← Back to settings
-      </Link>
+      <BackLink href="/settings/admin" className="mt-6">Back to settings</BackLink>
 
       <h1 className="mt-4 text-2xl font-bold">Send a notice</h1>
       <p className="mt-1 text-sm text-b2b-ink/60">

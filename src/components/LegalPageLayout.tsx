@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { Logo } from "@/components/Logo";
+import { BackLink } from "@/components/BackLink";
 
 /**
  * Shared chrome for standalone legal/policy pages (Terms, Privacy,
@@ -19,9 +19,7 @@ export function LegalPageLayout({
     <main className="mx-auto max-w-2xl px-4 pb-28 pt-8">
       <Logo size="sm" href="/" />
 
-      <Link href="/" className="mt-6 inline-block text-sm text-b2b-pink underline">
-        ← Back
-      </Link>
+      <BackLink href="/" className="mt-6">Back</BackLink>
 
       <h1 className="mt-3 text-2xl font-bold">{title}</h1>
       <p className="mt-1 text-sm text-b2b-ink/40">Last updated {updatedAt}</p>

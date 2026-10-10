@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { redirect, notFound } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -7,6 +6,7 @@ import { NavBar } from "@/components/NavBar";
 import { SectionCard } from "@/components/SectionCard";
 import { EventNoticesPanel } from "@/components/EventNoticesPanel";
 import { assertEventVisible } from "@/lib/eventVisibility";
+import { BackLink } from "@/components/BackLink";
 
 export default async function FindTeammatePage({ params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
@@ -22,9 +22,7 @@ export default async function FindTeammatePage({ params }: { params: Promise<{ i
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
       <NavBar />
 
-      <Link href={`/events/${event.id}`} className="mt-6 inline-block text-sm text-b2b-pink underline">
-        ← Back to {event.name}
-      </Link>
+      <BackLink href={`/events/${event.id}`} className="mt-6">Back to {event.name}</BackLink>
 
       <div className="mt-4">
         <SectionCard title="Find a teammate">

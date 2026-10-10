@@ -6,6 +6,7 @@ import { DeleteWorkoutButton } from "./DeleteWorkoutButton";
 import { PinButton } from "./PinButton";
 import { WorkoutDescriptionToggle } from "./WorkoutDescriptionToggle";
 import { formatDate } from "@/lib/dates";
+import { EditIcon } from "./EditIcon";
 
 type WorkoutCardData = {
   id: string;
@@ -98,8 +99,8 @@ export function WorkoutCard({
           )}
           {showDelete && (
             <>
-              <Link href={`/workouts/${workout.id}/edit`} className="text-xs text-b2b-pink hover:underline">
-                Edit
+              <Link href={`/workouts/${workout.id}/edit`} aria-label="Edit" className="text-b2b-pink hover:text-b2b-pink-dark">
+                <EditIcon className="h-3.5 w-3.5" />
               </Link>
               <DeleteWorkoutButton id={workout.id} />
             </>

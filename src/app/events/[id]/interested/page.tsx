@@ -10,6 +10,7 @@ import { MessageButton } from "@/components/MessageButton";
 import { GENDER_LABELS, LEVEL_BADGE_CLASSES, LEVEL_LABELS, parseLevels, showsSingleBadge } from "@/lib/labels";
 import { GENDERS, LEVELS } from "@/lib/validation";
 import { assertEventVisible } from "@/lib/eventVisibility";
+import { BackLink } from "@/components/BackLink";
 
 // "Prefer not to disclose" is a profile-level privacy choice, not a search filter.
 const SEARCHABLE_GENDERS = GENDERS.filter((g) => g !== "PREFER_NOT_TO_DISCLOSE");
@@ -83,9 +84,7 @@ export default async function EventInterestedPage({
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
       <NavBar />
 
-      <Link href={`/events/${event.id}`} className="mt-6 inline-block text-sm text-b2b-pink underline">
-        ← Back to {event.name}
-      </Link>
+      <BackLink href={`/events/${event.id}`} className="mt-6">Back to {event.name}</BackLink>
 
       <div className="mt-4 flex flex-col gap-4">
         <SectionCard>

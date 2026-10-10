@@ -10,6 +10,7 @@ import { SearchSuggestInput } from "@/components/SearchSuggestInput";
 import { SearchFilters } from "@/components/SearchFilters";
 import { eventVisibilityWhere } from "@/lib/eventVisibility";
 import { isCompetitionEvent } from "@/lib/labels";
+import { EditIcon } from "@/components/EditIcon";
 
 const TIME_RANGES = {
   week: { label: "Next 7 days", days: 7 },
@@ -215,9 +216,10 @@ export async function EventsList({
                   {currentUser?.isAdmin && (
                     <Link
                       href={`/events/${event.id}/edit`}
-                      className="shrink-0 text-xs text-b2b-purple underline"
+                      aria-label="Edit"
+                      className="shrink-0 text-b2b-purple hover:text-b2b-purple-dark"
                     >
-                      Edit
+                      <EditIcon className="h-4 w-4" />
                     </Link>
                   )}
                 </div>

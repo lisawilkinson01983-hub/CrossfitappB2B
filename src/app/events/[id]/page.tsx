@@ -13,6 +13,8 @@ import { CollapsibleText } from "@/components/CollapsibleText";
 import { InviteToEventForm } from "@/components/InviteToEventForm";
 import { MessageAttendeesButton } from "@/components/MessageAttendeesButton";
 import { ShareEventButton } from "@/components/ShareEventButton";
+import { BackLink } from "@/components/BackLink";
+import { EditIcon } from "@/components/EditIcon";
 import { parseJsonArray, eventKindLabel, isCompetitionEvent } from "@/lib/labels";
 import { formatEventDate } from "@/lib/eventDate";
 import { assertEventVisible } from "@/lib/eventVisibility";
@@ -85,11 +87,13 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
       <NavBar />
 
       <div className="mt-6 flex items-center justify-between">
-        <Link href="/discover?view=events" className="inline-block text-sm text-b2b-pink underline">
-          ← Back to events
-        </Link>
+        <BackLink href="/discover?view=events">Back to events</BackLink>
         {(isOrganizer || me?.isAdmin) && (
-          <Link href={`/events/${event.id}/edit`} className="text-sm text-b2b-purple underline">
+          <Link
+            href={`/events/${event.id}/edit`}
+            className="inline-flex items-center gap-1.5 text-sm text-b2b-purple hover:underline"
+          >
+            <EditIcon className="h-4 w-4 shrink-0" />
             {me?.isAdmin ? "Edit event" : "Event settings"}
           </Link>
         )}

@@ -13,6 +13,7 @@ import { EventEngagementButtons } from "@/components/EventEngagementButtons";
 import { distanceMiles, ensureUserAreaCoords, ensureEventCoords } from "@/lib/geocode";
 import { formatEventDate } from "@/lib/eventDate";
 import { isCompetitionEvent } from "@/lib/labels";
+import { EditIcon } from "@/components/EditIcon";
 
 export default async function MyEventsPage({
   searchParams,
@@ -225,8 +226,8 @@ export default async function MyEventsPage({
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
                       {currentUser?.isAdmin && (
-                        <Link href={`/events/${event.id}/edit`} className="text-xs text-b2b-purple underline">
-                          Edit
+                        <Link href={`/events/${event.id}/edit`} aria-label="Edit" className="text-b2b-purple hover:text-b2b-purple-dark">
+                          <EditIcon className="h-4 w-4" />
                         </Link>
                       )}
                       <PinButton endpoint={`/api/events/${event.id}/pin`} initialPinned={pinned} />
