@@ -8,6 +8,7 @@ import { GifPicker } from "@/components/GifPicker";
 import { AttachmentMenu } from "@/components/AttachmentMenu";
 import { SendIcon } from "@/components/SendIcon";
 import { Avatar } from "@/components/Avatar";
+import { SectionCard } from "@/components/SectionCard";
 import { MAX_VIDEO_SECONDS, MAX_PHOTO_BYTES, MAX_PHOTO_MB } from "@/lib/media";
 import { readVideoInfo } from "@/lib/readVideoInfo";
 
@@ -16,9 +17,12 @@ const MEDIA_ACCEPT = "image/jpeg,image/png,image/webp,video/mp4,video/quicktime"
 /**
  * Collapsed to a single "post something" bar by default — tapping it pops
  * the full composer (attachment menu, textarea, send button) open in a
- * modal instead of permanently taking up space at the top of a notice board
+ * modal instead of permanently taking up space at the top of a message board
  * that's already tight on room (teammate requests, replies, etc. below it).
- * Same pattern as the main feed's PostComposer.
+ * Same pattern as the main feed's PostComposer — the composer trigger sits in
+ * its own card and each notice renders as its own freestanding card below,
+ * directly on the page, matching how the feed lays out posts rather than
+ * nesting everything inside one big boxed-in section.
  */
 export function EventChatFeed({
   eventId,
@@ -35,21 +39,23 @@ export function EventChatFeed({
 
   return (
     <div>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="flex w-full items-center gap-3 rounded-full border border-gray-300 bg-white px-4 py-2.5 text-left text-b2b-ink/50 hover:bg-b2b-bg"
-      >
-        <Avatar photo={currentUserPhoto} name={currentUserName} size={36} />
-        <span>Post something to the notice board...</span>
-      </button>
+      <SectionCard>
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="flex w-full items-center gap-3 rounded-full border border-gray-300 bg-white px-4 py-2.5 text-left text-b2b-ink/50 hover:bg-b2b-bg"
+        >
+          <Avatar photo={currentUserPhoto} name={currentUserName} size={36} />
+          <span>Post something to the message board...</span>
+        </button>
+      </SectionCard>
 
       {open && <EventChatComposerModal eventId={eventId} onClose={() => setOpen(false)} />}
 
       {notices.length === 0 ? (
-        <p className="mt-4 text-b2b-ink/40">No messages yet — say hi.</p>
+        <p className="mt-6 text-b2b-ink/50">No messages yet — say hi.</p>
       ) : (
-        <div className="mt-4 flex flex-col gap-4">
+        <div className="mt-6 flex flex-col gap-4">
           {notices.map(({ notice, isOwn, isAuthorParticipating }) => (
             <EventNoticeCard key={notice.id} notice={notice} isOwn={isOwn} isAuthorParticipating={isAuthorParticipating} />
           ))}
@@ -158,7 +164,7 @@ function EventChatComposerModal({ eventId, onClose }: { eventId: string; onClose
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
       <div className="w-full max-w-lg rounded-xl bg-white p-4 shadow-lg" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between border-b border-b2b-purple/10 pb-3">
-          <p className="font-semibold text-b2b-ink">Notice board</p>
+          <p className="font-semibold text-b2b-ink">Message board</p>
           <button
             type="button"
             onClick={onClose}

@@ -72,11 +72,11 @@ export function notificationText(n: NotificationView): string {
     case "EVENT_PARTICIPANT_JOINED":
       return `is participating in "${n.event?.name ?? "your event"}"`;
     case "EVENT_NOTICE_COMMENT":
-      return `commented on the notice board for "${n.event?.name ?? "an event"}"`;
+      return `commented on the message board for "${n.event?.name ?? "an event"}"`;
     case "EVENT_NOTICE_COMMENT_REACTION":
       return n.emoji
-        ? `reacted ${n.emoji} to your notice board comment`
-        : "reacted to your notice board comment";
+        ? `reacted ${n.emoji} to your message board comment`
+        : "reacted to your message board comment";
     case "MENTION":
       return n.storyId ? "tagged you in their story" : "mentioned you";
     default:

@@ -523,7 +523,7 @@ export function EventNoticeCard({
   }
 
   return (
-    <div className="rounded-xl border border-b2b-purple/10 bg-b2b-bg p-4">
+    <div className="rounded-xl border border-b2b-purple/10 bg-b2b-card p-4">
       <div className="flex items-start justify-between gap-4">
         <Link href={`/profile/${notice.author.id}`} className="flex items-center gap-3">
           <Avatar photo={notice.author.photo} name={notice.author.name} size={40} />

@@ -301,7 +301,7 @@ export function EventNoticesPanel({ eventId }: { eventId: string }) {
       <InfoDialog
         open={posted}
         title="Posted!"
-        message="Your search has been posted to the notice board."
+        message="Your search has been posted to the message board."
         onClose={() => setPosted(false)}
       />
     </div>

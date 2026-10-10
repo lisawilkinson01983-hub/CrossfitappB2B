@@ -4,7 +4,6 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NavBar } from "@/components/NavBar";
-import { SectionCard } from "@/components/SectionCard";
 import { EventChatFeed } from "@/components/EventChatFeed";
 import type { EventNoticeEntry } from "@/components/EventNoticeCard";
 import { parseTeammateRequests } from "@/lib/labels";
@@ -89,18 +88,18 @@ export default async function EventNoticesPage({ params }: { params: Promise<{ i
         ← Back to {event.name}
       </Link>
 
+      <h1 className="mt-4 text-2xl font-bold">Message Board</h1>
+      <p className="mt-1 text-sm text-b2b-ink/50">
+        A lift, a training partner, or anything else about {event.name}.
+      </p>
+
       <div className="mt-4">
-        <SectionCard title="Notice Board">
-          <p className="mb-3 text-sm text-b2b-ink/50">
-            A lift, a training partner, or anything else about {event.name}.
-          </p>
-          <EventChatFeed
-            eventId={event.id}
-            notices={chatEntries}
-            currentUserName={currentUser?.name ?? "You"}
-            currentUserPhoto={currentUser?.photo ?? null}
-          />
-        </SectionCard>
+        <EventChatFeed
+          eventId={event.id}
+          notices={chatEntries}
+          currentUserName={currentUser?.name ?? "You"}
+          currentUserPhoto={currentUser?.photo ?? null}
+        />
       </div>
     </main>
   );

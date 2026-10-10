@@ -179,7 +179,7 @@ function TeamTagPrompt({
       >
         <p className="text-base font-semibold text-b2b-ink">Tag your team?</p>
         <p className="mt-1 text-sm text-b2b-ink/60">
-          Add your teammates and they'll be tagged in your feed post and the event's Notice Board — or skip if
+          Add your teammates and they'll be tagged in your feed post and the event's Message Board — or skip if
           you're going solo.
         </p>
 

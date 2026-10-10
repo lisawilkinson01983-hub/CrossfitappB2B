@@ -29,7 +29,7 @@ export default function GuidelinesPage() {
       <LegalSection title="Keep it appropriate">
         <p>
           No sexually explicit content, no spam or scams, and nothing illegal. Event notices and
-          the notice board are for finding teammates and training partners — keep them on-topic.
+          the message board are for finding teammates and training partners — keep them on-topic.
         </p>
       </LegalSection>
 

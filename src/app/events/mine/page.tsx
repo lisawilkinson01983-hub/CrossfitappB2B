@@ -102,7 +102,7 @@ export default async function MyEventsPage({
             {
               emoji: "🤝",
               title: "Find a Team",
-              body: "Short a teammate, or a whole team? Post a notice on the event page to find one — or set an alert to get notified the moment someone matching your criteria posts. You can also chat with fellow competitors in that event's Notice Board.",
+              body: "Short a teammate, or a whole team? Post a notice on the event page to find one — or set an alert to get notified the moment someone matching your criteria posts. You can also chat with fellow competitors in that event's Message Board.",
             },
           ]}
         />

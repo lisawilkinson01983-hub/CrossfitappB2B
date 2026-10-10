@@ -159,7 +159,7 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
                 href={`/events/${event.id}/notices`}
                 className="rounded-xl bg-b2b-pink px-4 py-3 text-center text-sm font-bold text-white hover:bg-b2b-pink-dark"
               >
-                Notice Board{chatMessageCount > 0 ? ` · ${chatMessageCount} new` : ""}
+                Message Board{chatMessageCount > 0 ? ` · ${chatMessageCount} new` : ""}
               </Link>
             </div>
 
