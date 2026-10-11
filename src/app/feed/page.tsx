@@ -5,7 +5,6 @@ import { prisma } from "@/lib/prisma";
 import { NavBar } from "@/components/NavBar";
 import { SectionCard } from "@/components/SectionCard";
 import { SectionOnboarding } from "@/components/SectionOnboarding";
-import { StatusBar } from "@/components/StatusBar";
 import { StoriesBar } from "@/components/StoriesBar";
 import { FEED_PAGE_SIZE, postCardInclude, toPostCardData } from "@/lib/posts";
 import { summarizeReactions } from "@/lib/reactions";
@@ -105,12 +104,10 @@ export default async function FeedPage({
       <div className="mt-4">
         <StoriesBar
           currentUser={{ id: session.user.id, name: currentUser?.name ?? "You", photo: currentUser?.photo ?? null }}
+          myStatus={currentUser?.status ?? null}
+          statusEntries={statusBarEntries}
           autoOpenStoryId={autoOpenStoryId}
         />
-      </div>
-
-      <div className="mt-4">
-        <StatusBar myStatus={currentUser?.status ?? null} others={statusBarEntries} />
       </div>
 
       <div className="mt-4">

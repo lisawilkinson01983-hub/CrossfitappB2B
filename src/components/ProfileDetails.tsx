@@ -169,6 +169,7 @@ export async function ProfileDetails({
                 size={84}
                 showSingleBadge={showSingleBadge}
                 verified={isAffiliate && user.verifiedAt != null}
+                status={user.status}
               />
             </div>
             {actions && <div className="mb-1 flex items-center gap-2">{actions}</div>}

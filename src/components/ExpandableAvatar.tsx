@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { Avatar } from "@/components/Avatar";
+import type { UserStatusOption } from "@/lib/validation";
 
 /** A profile-header Avatar that opens the photo full-screen on tap. */
 export function ExpandableAvatar({
@@ -11,12 +12,14 @@ export function ExpandableAvatar({
   size,
   showSingleBadge,
   verified,
+  status,
 }: {
   photo: string | null;
   name: string;
   size: number;
   showSingleBadge?: boolean;
   verified?: boolean;
+  status?: UserStatusOption | null;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -30,7 +33,9 @@ export function ExpandableAvatar({
   }, [open]);
 
   if (!photo) {
-    return <Avatar photo={photo} name={name} size={size} showSingleBadge={showSingleBadge} verified={verified} />;
+    return (
+      <Avatar photo={photo} name={name} size={size} showSingleBadge={showSingleBadge} verified={verified} status={status} />
+    );
   }
 
   return (
@@ -41,7 +46,7 @@ export function ExpandableAvatar({
         aria-label={`View ${name}'s photo`}
         className="cursor-pointer rounded-full"
       >
-        <Avatar photo={photo} name={name} size={size} showSingleBadge={showSingleBadge} verified={verified} />
+        <Avatar photo={photo} name={name} size={size} showSingleBadge={showSingleBadge} verified={verified} status={status} />
       </button>
 
       {open && (

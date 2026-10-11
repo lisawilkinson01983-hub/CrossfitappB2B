@@ -11,7 +11,7 @@ import {
   formatTeammateRequest,
   showsSingleBadge,
 } from "@/lib/labels";
-import type { LevelOption, TeammateRequest, WorkoutIntensityOption, WorkoutUnitOption } from "@/lib/validation";
+import type { LevelOption, TeammateRequest, UserStatusOption, WorkoutIntensityOption, WorkoutUnitOption } from "@/lib/validation";
 import { Avatar } from "@/components/Avatar";
 import { ExpandableImage } from "@/components/ExpandableImage";
 import { PostMediaCarousel } from "@/components/PostMediaCarousel";
@@ -71,6 +71,7 @@ export type PostCardData = {
     isSingle: boolean | null;
     showSingleBadge: boolean;
     verified: boolean;
+    status: UserStatusOption | null;
     sharedAt: Date;
     message: string | null;
   } | null;
@@ -100,6 +101,7 @@ export type PostCardData = {
     isSingle: boolean | null;
     showSingleBadge: boolean;
     verified: boolean;
+    status: UserStatusOption | null;
   };
   linkedWorkout: {
     wodName: string;
@@ -640,6 +642,7 @@ export function PostCard({
             size={40}
             showSingleBadge={showsSingleBadge(headerUser)}
             verified={headerUser.verified}
+            status={headerUser.status}
           />
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-x-2 gap-y-1">

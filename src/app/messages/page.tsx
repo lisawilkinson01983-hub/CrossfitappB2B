@@ -20,7 +20,15 @@ export default async function MessagesPage() {
       participants: {
         include: {
           user: {
-            select: { id: true, name: true, photo: true, isSingle: true, showSingleBadge: true, deletedAt: true },
+            select: {
+              id: true,
+              name: true,
+              photo: true,
+              isSingle: true,
+              showSingleBadge: true,
+              deletedAt: true,
+              status: true,
+            },
           },
         },
       },
@@ -61,6 +69,9 @@ export default async function MessagesPage() {
         displayName: conversationDisplayName(conv, others.map((u) => u.name)),
         photo: conv.isGroup ? conv.photo : (avatarUser?.photo ?? null),
         showSingleBadge: avatarUser ? showsSingleBadge(avatarUser) : false,
+        // Only shown for 1:1 threads (a group's row shows its own photo,
+        // not any one member's status) — see ConversationRow.
+        status: !conv.isGroup && avatarUser ? avatarUser.status : null,
         lastMessagePreview: lastMessage
           ? conv.isGroup
             ? `${lastMessage.sender.id === session.user.id ? "You" : lastMessage.sender.name}: ${stripMentionMarkup(lastMessage.text)}`

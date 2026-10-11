@@ -4,6 +4,7 @@ import { useRef, useState, type PointerEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Avatar } from "@/components/Avatar";
 import { GroupIcon } from "@/components/GroupIcon";
+import type { UserStatusOption } from "@/lib/validation";
 
 const REVEAL_WIDTH = 84;
 
@@ -13,6 +14,8 @@ export type ConversationRowData = {
   displayName: string;
   photo: string | null;
   showSingleBadge: boolean;
+  // Null for group threads — see src/app/messages/page.tsx.
+  status: UserStatusOption | null;
   lastMessagePreview: string;
   dateLabel: string;
   unreadCount: number;
@@ -112,7 +115,13 @@ export function ConversationRow({ row }: { row: ConversationRowData }) {
             <GroupIcon size={48} />
           )
         ) : (
-          <Avatar photo={row.photo} name={row.displayName} size={48} showSingleBadge={row.showSingleBadge} />
+          <Avatar
+            photo={row.photo}
+            name={row.displayName}
+            size={48}
+            showSingleBadge={row.showSingleBadge}
+            status={row.status}
+          />
         )}
         <div className="min-w-0 flex-1">
           <p className="font-semibold">{row.displayName}</p>

@@ -1,4 +1,6 @@
 import Image from "next/image";
+import { USER_STATUS_BADGE_CLASSES, USER_STATUS_EMOJI, USER_STATUS_LABELS } from "@/lib/labels";
+import type { UserStatusOption } from "@/lib/validation";
 
 export function Avatar({
   photo,
@@ -6,6 +8,7 @@ export function Avatar({
   size,
   showSingleBadge,
   verified,
+  status,
   fallback = "initial",
 }: {
   photo: string | null;
@@ -18,6 +21,10 @@ export function Avatar({
   // text next to a name on the full profile page. showSingleBadge and this
   // never co-occur (ATHLETE vs AFFILIATE only), so sharing the corner is safe.
   verified?: boolean;
+  // A person's current "how I'm doing" status (see User.status) — shown as
+  // a small emoji badge on the opposite (top-right) corner from
+  // showSingleBadge/verified, since status CAN co-occur with either of those.
+  status?: UserStatusOption | null;
   // What to show with no photo: the name's first letter (people), or a
   // generic gym icon (affiliates, whose names nearly all start with "C").
   fallback?: "initial" | "gym";
@@ -41,6 +48,15 @@ export function Avatar({
         >
           {name.charAt(0).toUpperCase()}
         </div>
+      )}
+      {status && (
+        <span
+          title={USER_STATUS_LABELS[status]}
+          className={`absolute right-0 top-0 flex items-center justify-center rounded-full border shadow ${USER_STATUS_BADGE_CLASSES[status]}`}
+          style={{ width: size * 0.34, height: size * 0.34, fontSize: size * 0.2 }}
+        >
+          {USER_STATUS_EMOJI[status]}
+        </span>
       )}
       {showSingleBadge && (
         <span

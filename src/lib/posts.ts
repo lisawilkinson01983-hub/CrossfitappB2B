@@ -24,6 +24,7 @@ const postContentInclude = {
       allowPostShares: true,
       accountType: true,
       verifiedAt: true,
+      status: true,
     },
   },
   linkedWorkout: { select: { wodName: true, score: true, unit: true, intensity: true, description: true } },
@@ -80,6 +81,7 @@ export function toPostCardData(post: PostWithCardData, currentUserId: string): P
           isSingle: post.user.isSingle,
           showSingleBadge: post.user.showSingleBadge,
           verified: isVerifiedAffiliate(post.user),
+          status: post.user.status,
           sharedAt: post.createdAt,
           message: post.contentText,
         }
@@ -103,6 +105,7 @@ export function toPostCardData(post: PostWithCardData, currentUserId: string): P
       isSingle: original.user.isSingle,
       showSingleBadge: original.user.showSingleBadge,
       verified: isVerifiedAffiliate(original.user),
+      status: original.user.status,
     },
     linkedWorkout: original.linkedWorkout,
     linkedEvent: original.linkedEvent,

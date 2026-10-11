@@ -90,6 +90,7 @@ export async function AthletesSearch({
       lookingFor: true,
       isSingle: true,
       showSingleBadge: true,
+      status: true,
     },
     orderBy: { name: "asc" },
   });
@@ -282,7 +283,13 @@ export async function AthletesSearch({
                 className="flex items-center justify-between rounded-xl border border-b2b-purple/10 bg-b2b-card p-3"
               >
                 <Link href={`/profile/${user.id}`} className="flex flex-1 items-center gap-3">
-                  <Avatar photo={user.photo} name={user.name} size={48} showSingleBadge={showsSingleBadge(user)} />
+                  <Avatar
+                    photo={user.photo}
+                    name={user.name}
+                    size={48}
+                    showSingleBadge={showsSingleBadge(user)}
+                    status={user.status}
+                  />
                   <div>
                     <p className="font-medium">{user.name}</p>
                     {user.affiliateGym && <p className="text-sm text-b2b-ink/50">{user.affiliateGym}</p>}

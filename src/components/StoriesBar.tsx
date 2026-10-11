@@ -1,11 +1,15 @@
 "use client";
 
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
+import { useRouter } from "next/navigation";
 import { Avatar } from "@/components/Avatar";
 import { StoryViewer } from "@/components/StoryViewer";
 import { MAX_VIDEO_SECONDS, MAX_PHOTO_BYTES, MAX_PHOTO_MB } from "@/lib/media";
 import { readVideoInfo } from "@/lib/readVideoInfo";
 import type { StoryGroup } from "@/lib/stories";
+import { USER_STATUS_BADGE_CLASSES, USER_STATUS_EMOJI, USER_STATUS_LABELS } from "@/lib/labels";
+import { USER_STATUSES, type UserStatusOption } from "@/lib/validation";
+import { REACTION_EMOJIS, type ReactionSummary } from "@/lib/reactions";
 
 const MEDIA_ACCEPT = "image/jpeg,image/png,image/webp,video/mp4,video/quicktime";
 const MAX_STORY_MENTIONS = 10;
@@ -13,16 +17,48 @@ const MAX_STORY_MENTIONS = 10;
 type PendingStory = { file: File; previewUrl: string; isVideo: boolean; thumbnail: Blob | null };
 type UserOption = { id: string; name: string; photo: string | null };
 
-/** The horizontal "Stories" strip above the feed — Instagram's own layout: your own slot first, then everyone else's, unseen-ringed ones first. */
+export type StatusBarEntry = {
+  id: string;
+  name: string;
+  photo: string | null;
+  status: UserStatusOption;
+  reactions: ReactionSummary[];
+};
+
+// A person who shows up in the merged strip: either from an active story, a
+// current "how I'm doing" status, or both — see the merge in the component
+// below. Someone with only a status (no story) has groupIndex null.
+type MergedPerson = {
+  id: string;
+  name: string;
+  photo: string | null;
+  groupIndex: number | null;
+  hasUnseen: boolean;
+  statusEntry: StatusBarEntry | null;
+};
+
+/**
+ * The horizontal strip above the feed — Instagram's own layout for stories
+ * (your own slot first, then everyone else's, unseen-ringed ones first),
+ * folded together with everyone's "how I'm doing" status so there's one row
+ * instead of two: a status becomes a small emoji badge on the same avatar
+ * (top-right corner — see Avatar's `status` prop), and anyone with only a
+ * status (no active story) still gets their own slot, tappable to react.
+ */
 export function StoriesBar({
   currentUser,
+  myStatus,
+  statusEntries,
   autoOpenStoryId,
 }: {
   currentUser: { id: string; name: string; photo: string | null };
+  myStatus: UserStatusOption | null;
+  statusEntries: StatusBarEntry[];
   // Set when arriving from a "tagged you in their story" notification link
   // (see /feed?story=) to open straight to that story, if it's still active.
   autoOpenStoryId?: string;
 }) {
+  const router = useRouter();
   const [groups, setGroups] = useState<StoryGroup[] | null>(null);
   const [viewerStart, setViewerStart] = useState<{ groupIndex: number; storyIndex: number } | null>(null);
   const [pending, setPending] = useState<PendingStory | null>(null);
@@ -35,6 +71,50 @@ export function StoriesBar({
   const [tagResults, setTagResults] = useState<UserOption[]>([]);
   const [taggedUsers, setTaggedUsers] = useState<UserOption[]>([]);
   const tagRequestId = useRef(0);
+
+  const [editingStatus, setEditingStatus] = useState(false);
+  const [statusSaving, setStatusSaving] = useState(false);
+  const [localStatusEntries, setLocalStatusEntries] = useState(statusEntries);
+  const [reactingToId, setReactingToId] = useState<string | null>(null);
+
+  useEffect(() => setLocalStatusEntries(statusEntries), [statusEntries]);
+
+  async function setStatus(status: UserStatusOption | null) {
+    setStatusSaving(true);
+    const res = await fetch("/api/status", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status }),
+    });
+    setStatusSaving(false);
+    setEditingStatus(false);
+    if (res.ok) router.refresh();
+  }
+
+  async function toggleStatusReaction(userId: string, emoji: string) {
+    const res = await fetch(`/api/users/${userId}/status/react`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ emoji }),
+    });
+    if (!res.ok) return;
+    const body: { emoji: string; reacted: boolean; reactions: { emoji: string; count: number }[] } =
+      await res.json();
+    setLocalStatusEntries((prev) =>
+      prev.map((o) => {
+        if (o.id !== userId) return o;
+        const prevByEmoji = new Map(o.reactions.map((r) => [r.emoji, r.reactedByMe]));
+        return {
+          ...o,
+          reactions: body.reactions.map((r) => ({
+            emoji: r.emoji,
+            count: r.count,
+            reactedByMe: r.emoji === body.emoji ? body.reacted : (prevByEmoji.get(r.emoji) ?? false),
+          })),
+        };
+      })
+    );
+  }
 
   async function loadStories() {
     const res = await fetch("/api/stories");
@@ -159,6 +239,31 @@ export function StoriesBar({
 
   if (groups === null) return null;
 
+  // Merge story authors with status-setters into one ordered strip: everyone
+  // with an active story keeps their spot (unseen-first, per the stories
+  // API's own order), and anyone with only a status (no story) is appended
+  // after, in statusEntries' recency order. Someone with both just carries a
+  // status badge alongside their story ring.
+  const statusById = new Map(localStatusEntries.map((o) => [o.id, o]));
+  const consumedIds = new Set<string>();
+  const merged: MergedPerson[] = otherGroups.map((g) => {
+    consumedIds.add(g.author.id);
+    return {
+      id: g.author.id,
+      name: g.author.name,
+      photo: g.author.photo,
+      groupIndex: groups.findIndex((gr) => gr.author.id === g.author.id),
+      hasUnseen: g.hasUnseen,
+      statusEntry: statusById.get(g.author.id) ?? null,
+    };
+  });
+  for (const o of localStatusEntries) {
+    if (consumedIds.has(o.id)) continue;
+    merged.push({ id: o.id, name: o.name, photo: o.photo, groupIndex: null, hasUnseen: false, statusEntry: o });
+  }
+
+  const reactingTo = localStatusEntries.find((o) => o.id === reactingToId) ?? null;
+
   return (
     <>
       <div className="flex gap-3 overflow-x-auto pb-1">
@@ -190,23 +295,49 @@ export function StoriesBar({
           <span className="max-w-[4.5rem] truncate text-center text-xs text-b2b-ink/60">Your story</span>
         </button>
 
-        {otherGroups.map((g) => {
-          const trueIndex = groups.findIndex((gr) => gr.author.id === g.author.id);
+        <button
+          type="button"
+          onClick={() => setEditingStatus(true)}
+          className="flex shrink-0 flex-col items-center gap-1"
+        >
+          <div
+            className={`flex h-14 w-14 items-center justify-center rounded-full border-2 text-2xl ${
+              myStatus ? USER_STATUS_BADGE_CLASSES[myStatus] : "border-dashed border-b2b-purple/30 text-b2b-purple/40"
+            }`}
+          >
+            {myStatus ? USER_STATUS_EMOJI[myStatus] : "+"}
+          </div>
+          <span className="max-w-[4.5rem] truncate text-center text-xs text-b2b-ink/60">
+            {myStatus ? USER_STATUS_LABELS[myStatus] : "Set status"}
+          </span>
+        </button>
+
+        {merged.map((p) => {
+          const totalReactions = p.statusEntry?.reactions.reduce((sum, r) => sum + r.count, 0) ?? 0;
+          const hasStory = p.groupIndex !== null;
           return (
             <button
-              key={g.author.id}
+              key={p.id}
               type="button"
-              onClick={() => openViewer(trueIndex)}
+              onClick={() => (hasStory ? openViewer(p.groupIndex!) : setReactingToId(p.id))}
               className="flex shrink-0 flex-col items-center gap-1"
+              title={p.statusEntry ? `${p.name} · ${USER_STATUS_LABELS[p.statusEntry.status]}` : p.name}
             >
               <div
-                className={`rounded-full ring-2 ring-offset-2 ${g.hasUnseen ? "ring-b2b-pink" : "ring-gray-300"}`}
+                className={`rounded-full ${
+                  hasStory ? `ring-2 ring-offset-2 ${p.hasUnseen ? "ring-b2b-pink" : "ring-gray-300"}` : ""
+                }`}
               >
-                <Avatar photo={g.author.photo} name={g.author.name} size={56} />
+                <Avatar photo={p.photo} name={p.name} size={56} status={p.statusEntry?.status ?? null} />
               </div>
               <span className="max-w-[4.5rem] truncate text-center text-xs text-b2b-ink/60">
-                {g.author.name.split(" ")[0]}
+                {p.name.split(" ")[0]}
               </span>
+              {totalReactions > 0 && (
+                <span className="text-[10px] text-b2b-ink/40">
+                  {p.statusEntry!.reactions[0].emoji} {totalReactions}
+                </span>
+              )}
             </button>
           );
         })}
@@ -313,6 +444,98 @@ export function StoriesBar({
       )}
 
       {!pending && mediaError && <p className="mt-1 text-xs text-red-600">{mediaError}</p>}
+
+      {editingStatus && (
+        <div
+          className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 p-4"
+          onClick={() => setEditingStatus(false)}
+        >
+          <div
+            className="w-full max-w-xs rounded-xl bg-b2b-card p-4 shadow-lg"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="text-sm font-semibold text-b2b-ink">How are you doing?</p>
+            <p className="mt-0.5 text-xs text-b2b-ink/50">Shown at the top of the feed until you change it.</p>
+            <div className="mt-3 flex flex-col gap-2">
+              {USER_STATUSES.map((opt) => (
+                <button
+                  key={opt}
+                  type="button"
+                  onClick={() => setStatus(opt)}
+                  disabled={statusSaving}
+                  className={`rounded-lg border px-3 py-2 text-left text-sm font-medium disabled:opacity-50 ${
+                    myStatus === opt ? USER_STATUS_BADGE_CLASSES[opt] : "border-gray-200 hover:bg-b2b-bg"
+                  }`}
+                >
+                  {USER_STATUS_EMOJI[opt]} {USER_STATUS_LABELS[opt]}
+                </button>
+              ))}
+              {myStatus && (
+                <button
+                  type="button"
+                  onClick={() => setStatus(null)}
+                  disabled={statusSaving}
+                  className="mt-1 text-sm text-b2b-ink/50 hover:underline disabled:opacity-50"
+                >
+                  Clear status
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => setEditingStatus(false)}
+                className="text-sm text-b2b-ink/40 hover:underline"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {reactingTo && (
+        <div
+          className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 p-4"
+          onClick={() => setReactingToId(null)}
+        >
+          <div
+            className="w-full max-w-xs rounded-xl bg-b2b-card p-4 shadow-lg"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="text-sm font-semibold text-b2b-ink">React to {reactingTo.name.split(" ")[0]}'s status</p>
+            <p className="mt-0.5 text-xs text-b2b-ink/50">
+              {USER_STATUS_EMOJI[reactingTo.status]} {USER_STATUS_LABELS[reactingTo.status]} — tap an emoji to let
+              them know, tap again to take it back.
+            </p>
+            <div className="mt-3 grid grid-cols-3 gap-2">
+              {REACTION_EMOJIS.map((emoji) => {
+                const summary = reactingTo.reactions.find((r) => r.emoji === emoji);
+                return (
+                  <button
+                    key={emoji}
+                    type="button"
+                    onClick={() => toggleStatusReaction(reactingTo.id, emoji)}
+                    className={`flex flex-col items-center gap-1 rounded-lg border px-2 py-2 ${
+                      summary?.reactedByMe
+                        ? "border-b2b-pink bg-b2b-pink/10"
+                        : "border-gray-200 hover:bg-b2b-bg"
+                    }`}
+                  >
+                    <span className="text-xl">{emoji}</span>
+                    <span className="text-xs text-b2b-ink/50">{summary?.count ?? 0}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <button
+              type="button"
+              onClick={() => setReactingToId(null)}
+              className="mt-3 text-sm text-b2b-ink/40 hover:underline"
+            >
+              Done
+            </button>
+          </div>
+        </div>
+      )}
     </>
   );
 }
