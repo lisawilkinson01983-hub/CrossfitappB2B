@@ -11,6 +11,7 @@ import { Avatar } from "@/components/Avatar";
 import { WorkoutCard } from "@/components/WorkoutCard";
 import { IncomingFollowRequests } from "@/components/IncomingFollowRequests";
 import { GymUpdateNudge } from "@/components/GymUpdateNudge";
+import { EditIcon } from "@/components/EditIcon";
 import { OTHER_GYM } from "@/lib/gyms";
 import { formatEventDate } from "@/lib/eventDate";
 import { isCompetitionEvent } from "@/lib/labels";
@@ -124,9 +125,10 @@ export default async function ProfilePage() {
             <>
               <Link
                 href="/profile/edit"
-                className="rounded bg-b2b-pink px-3 py-1.5 text-sm font-medium text-white hover:bg-b2b-pink-dark"
+                aria-label="Edit profile"
+                className="text-b2b-pink hover:text-b2b-pink-dark"
               >
-                Edit profile
+                <EditIcon className="h-5 w-5" />
               </Link>
             </>
           }

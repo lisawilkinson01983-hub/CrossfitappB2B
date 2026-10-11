@@ -90,29 +90,18 @@ export async function ProfileDetails({
   // own gym.
   const isVerifiedOwnerHere = isAffiliate && !isOwner && gymPage?.claimedById === user.id;
 
-  const badges: ReactNode[] = [];
-  if (!isSiteAccount) {
-    for (const level of parseLevels(user.levels)) {
-      badges.push(<Badge key={`level-${level}`} label={LEVEL_LABELS[level]} className={LEVEL_BADGE_CLASSES[level]} />);
-    }
-  }
-  if (user.showAge && user.dateOfBirth != null) {
-    badges.push(
-      <Badge key="age" label={`${calculateAge(user.dateOfBirth)} yrs`} className="bg-gray-100 text-gray-600" />
-    );
-  }
+  const abilityBadges: ReactNode[] = isSiteAccount
+    ? []
+    : parseLevels(user.levels).map((level) => (
+        <Badge key={`level-${level}`} label={LEVEL_LABELS[level]} className={LEVEL_BADGE_CLASSES[level]} />
+      ));
+  const ageBadge =
+    user.showAge && user.dateOfBirth != null ? (
+      <Badge label={`${calculateAge(user.dateOfBirth)} yrs`} className="bg-gray-100 text-gray-600" />
+    ) : null;
   // Gender and "looking for" are deliberately never rendered here — both are
   // kept purely for search/discovery matching (see /discover), not shown on
   // the profile itself.
-  if (showRelationshipStatus) {
-    badges.push(
-      <Badge
-        key="relationship"
-        label={user.isSingle ? "Single" : "Not single"}
-        className="bg-gray-100 text-gray-600"
-      />
-    );
-  }
 
   const metaParts: ReactNode[] = [];
   if (user.area && !isSiteAccount) metaParts.push(<span key="area">{user.area}</span>);
@@ -250,7 +239,23 @@ export async function ProfileDetails({
             )}
           </div>
 
-          {badges.length > 0 && <div className="mt-4 flex flex-wrap gap-2">{badges}</div>}
+          {abilityBadges.length > 0 && (
+            <div className="mt-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-b2b-ink/40">Ability</p>
+              <div className="mt-1.5 flex flex-wrap gap-2">{abilityBadges}</div>
+            </div>
+          )}
+
+          {showRelationshipStatus && (
+            <div className="mt-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-b2b-ink/40">Relationship Status</p>
+              <div className="mt-1.5 flex flex-wrap gap-2">
+                <Badge label={user.isSingle ? "Single" : "In a relationship"} className="bg-gray-100 text-gray-600" />
+              </div>
+            </div>
+          )}
+
+          {ageBadge && <div className="mt-4 flex flex-wrap gap-2">{ageBadge}</div>}
 
           {user.bio && <p className="mt-4 max-w-sm text-sm italic text-b2b-ink/70">&ldquo;{user.bio}&rdquo;</p>}
         </div>

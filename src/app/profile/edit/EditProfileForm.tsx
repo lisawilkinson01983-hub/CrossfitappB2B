@@ -700,7 +700,7 @@ export function EditProfileForm({
             >
               <option value="">Prefer not to say</option>
               <option value="true">Single</option>
-              <option value="false">Not single</option>
+              <option value="false">In a relationship</option>
             </select>
 
             {isSingle !== "" && (
