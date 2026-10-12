@@ -222,7 +222,7 @@ export async function TeammatesSearch({
               {notice.text && <p className="mt-2.5 text-sm text-b2b-ink/80">{notice.text}</p>}
 
               <Link
-                href={`/events/${notice.event.id}/find-teammate`}
+                href={`/events/${notice.event.id}/notices#notice-${notice.id}`}
                 className="mt-3 inline-block rounded-full bg-b2b-pink px-4 py-1.5 text-xs font-semibold text-white hover:bg-b2b-pink-dark"
               >
                 Reply in Message Board
