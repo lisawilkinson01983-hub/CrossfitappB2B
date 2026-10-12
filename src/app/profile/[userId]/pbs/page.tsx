@@ -48,11 +48,11 @@ export default async function UserPbsPage({
 
       <BackLink href={`/profile/${userId}`} className="mt-6">Back to profile</BackLink>
 
-      <h1 className="mt-2 text-2xl font-bold">{user.name}&rsquo;s PBs</h1>
+      <h1 className="mt-2 text-2xl font-bold text-b2b-page-ink">{user.name}&rsquo;s PBs</h1>
 
       <div className="mt-6 flex flex-col gap-4">
         {categories.length === 0 ? (
-          <p className="text-b2b-ink/40">No PBs recorded yet.</p>
+          <p className="text-b2b-page-ink/40">No PBs recorded yet.</p>
         ) : (
           categories.map((category) => (
             <SectionCard key={category.label} title={category.label}>

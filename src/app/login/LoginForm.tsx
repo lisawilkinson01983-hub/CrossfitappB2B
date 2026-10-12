@@ -40,7 +40,7 @@ export function LoginForm() {
       {error && <p className="rounded bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
 
       <div>
-        <label htmlFor="email" className="block text-sm font-medium">
+        <label htmlFor="email" className="block text-sm font-medium text-b2b-page-ink">
           Email
         </label>
         <input
@@ -55,7 +55,7 @@ export function LoginForm() {
       </div>
 
       <div>
-        <label htmlFor="password" className="block text-sm font-medium">
+        <label htmlFor="password" className="block text-sm font-medium text-b2b-page-ink">
           Password
         </label>
         <input

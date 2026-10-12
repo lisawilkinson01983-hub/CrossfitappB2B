@@ -3,13 +3,22 @@
 @theme {
   /* Box 2 Box brand palette — grey/gold/white, matching the logo mark (see
      public/logo-mark.png). Single fixed theme, no user-facing color choice
-     and no dark mode. Cards carry a soft grey tint and sit on a white page.
+     and no dark mode. Cards carry a soft grey tint and sit on a dark page.
      Token names (b2b-pink/b2b-purple/etc.) are historical from an earlier
      pink/purple palette — kept as-is since every component already
      references them, only the values changed. */
   --color-b2b-bg: #ffffff;
   --color-b2b-card: #f5f4f2;
   --color-b2b-ink: #232223;
+
+  /* The page itself (body/html) — kept separate from b2b-bg, which is also
+     reused all over as a plain "white surface" fill (hover states, menu
+     rows, etc.) and must stay white regardless of the page's own color.
+     b2b-page-ink is for text/icons that sit directly on the page rather
+     than inside a b2b-card — everything else keeps using b2b-ink, which
+     stays correct since cards themselves stay light. */
+  --color-b2b-page: #1a1a1a;
+  --color-b2b-page-ink: #ededec;
 
   /* Primary accent (buttons, links, highlights) — the logo's gold. */
   --color-b2b-pink: #b8842a;
@@ -24,7 +33,12 @@
 }
 
 body {
-  background-color: var(--color-b2b-bg);
+  background-color: var(--color-b2b-page);
+  /* Stays b2b-ink (dark), not b2b-page-ink — most text in the app lives
+     inside a b2b-card (light) and relies on inheriting this default rather
+     than setting its own color explicitly. Only the handful of elements
+     that render directly on the page (page-title h1s, the top nav icons)
+     opt into b2b-page-ink by hand. */
   color: var(--color-b2b-ink);
 }
 
@@ -33,4 +47,17 @@ h2,
 h3 {
   font-family: var(--font-display);
   letter-spacing: 0.02em;
+}
+
+/* Every form field in the app assumes a white field with dark text and
+   never sets its own background — that was free before (body itself was
+   white). Tailwind's preflight sets form elements to a transparent
+   background, so once the page went dark they'd otherwise show the dark
+   page straight through, with typed text invisible against it. Restoring
+   it here, once, is simpler and safer than touching every input/textarea. */
+input,
+textarea,
+select {
+  background-color: var(--color-b2b-bg);
+  color: var(--color-b2b-ink);
 }

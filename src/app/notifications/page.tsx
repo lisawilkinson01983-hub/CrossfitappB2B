@@ -37,7 +37,7 @@ export default async function NotificationsPage() {
   return (
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
       <NavBar />
-      <h1 className="mt-6 text-2xl font-bold">Notifications</h1>
+      <h1 className="mt-6 text-2xl font-bold text-b2b-page-ink">Notifications</h1>
 
       <div className="mt-6">
         <SectionCard>

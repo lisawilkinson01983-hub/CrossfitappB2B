@@ -91,7 +91,7 @@ export default async function MessagesPage() {
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
       <NavBar />
       <div className="mt-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Messages</h1>
+        <h1 className="text-2xl font-bold text-b2b-page-ink">Messages</h1>
         <Link
           href="/messages/new"
           className="rounded bg-b2b-pink px-3 py-1.5 text-sm font-medium text-white hover:bg-b2b-pink-dark"
@@ -101,7 +101,7 @@ export default async function MessagesPage() {
       </div>
 
       {rows.length === 0 ? (
-        <p className="mt-6 text-b2b-ink/50">
+        <p className="mt-6 text-b2b-page-ink/50">
           No conversations yet — start one with the button above, or message someone from their profile.
         </p>
       ) : (

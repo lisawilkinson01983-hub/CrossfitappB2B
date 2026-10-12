@@ -110,7 +110,7 @@ export default async function MyEventsPage({
       )}
       <NavBar />
       <div className="mt-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold">My Events</h1>
+        <h1 className="text-2xl font-bold text-b2b-page-ink">My Events</h1>
         <Link
           href="/events/submit"
           className="rounded bg-b2b-pink px-4 py-2 text-sm font-medium text-white hover:bg-b2b-pink-dark"
@@ -175,7 +175,7 @@ export default async function MyEventsPage({
         </SectionCard>
 
         {visibleEvents.length === 0 ? (
-          <p className="text-b2b-ink/50">
+          <p className="text-b2b-page-ink/50">
             {q
               ? "No events match that search."
               : tab === "past"

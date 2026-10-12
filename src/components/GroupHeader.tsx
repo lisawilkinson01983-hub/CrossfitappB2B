@@ -84,8 +84,8 @@ export function GroupHeader({
           </button>
           <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handlePhotoChange} />
           <div className="min-w-0">
-            <h1 className="truncate text-xl font-bold">{displayName}</h1>
-            <p className="text-xs text-b2b-ink/50">
+            <h1 className="truncate text-xl font-bold text-b2b-page-ink">{displayName}</h1>
+            <p className="text-xs text-b2b-page-ink/50">
               {memberCount} {memberCount === 1 ? "member" : "members"}
             </p>
           </div>
@@ -93,7 +93,7 @@ export function GroupHeader({
         <Link
           href={`/messages/${conversationId}/members`}
           aria-label="Manage group members"
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-b2b-ink/50 hover:bg-b2b-purple/5 hover:text-b2b-ink"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-b2b-page-ink/50 hover:bg-b2b-purple/10 hover:text-b2b-page-ink"
         >
           <SettingsIcon className="h-5 w-5" />
         </Link>

@@ -20,7 +20,7 @@ export default async function VerifyEmailPage({
       <div className="mx-auto">
         <Logo size="sm" />
       </div>
-      <h1 className="mt-6 text-xl font-bold">{result.title}</h1>
+      <h1 className="mt-6 text-xl font-bold text-b2b-page-ink">{result.title}</h1>
       <p className="mt-2 text-sm text-b2b-ink/60">{result.message}</p>
       <Link href="/feed" className="mt-6 rounded bg-b2b-pink px-4 py-2 font-medium text-white hover:bg-b2b-pink-dark">
         Continue to Box 2 Box

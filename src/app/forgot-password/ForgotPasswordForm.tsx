@@ -43,7 +43,7 @@ export function ForgotPasswordForm() {
       {error && <p className="rounded bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
 
       <div>
-        <label htmlFor="email" className="block text-sm font-medium">
+        <label htmlFor="email" className="block text-sm font-medium text-b2b-page-ink">
           Email
         </label>
         <input

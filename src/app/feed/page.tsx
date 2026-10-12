@@ -99,7 +99,7 @@ export default async function FeedPage({
         />
       )}
       <NavBar />
-      <h1 className="mt-6 text-2xl font-bold">Feed</h1>
+      <h1 className="mt-6 text-2xl font-bold text-b2b-page-ink">Feed</h1>
 
       <div className="mt-4">
         <StoriesBar
@@ -121,7 +121,7 @@ export default async function FeedPage({
       </div>
 
       {initialPosts.length === 0 ? (
-        <p className="mt-6 text-b2b-ink/50">
+        <p className="mt-6 text-b2b-page-ink/50">
           No posts yet — be the first to share something, or share a workout from your log.
         </p>
       ) : (

@@ -19,8 +19,8 @@ export default async function InstallPage({ searchParams }: { searchParams: Prom
       <OpenInstalledApp target={appTarget} />
       <Logo size="md" href="/" />
 
-      <h1 className="mt-6 text-2xl font-bold">Get the Box 2 Box app</h1>
-      <p className="mt-2 text-sm text-b2b-ink/60">
+      <h1 className="mt-6 text-2xl font-bold text-b2b-page-ink">Get the Box 2 Box app</h1>
+      <p className="mt-2 text-sm text-b2b-page-ink/60">
         Add it to your home screen and it works just like an app: its own icon, full screen, no
         browser bars. It takes about 30 seconds.
       </p>
@@ -67,7 +67,7 @@ export default async function InstallPage({ searchParams }: { searchParams: Prom
         </ol>
       </section>
 
-      <p className="mt-6 text-sm text-b2b-ink/60">
+      <p className="mt-6 text-sm text-b2b-page-ink/60">
         On a computer, or just want to look first?{" "}
         <Link href={code ? `/signup?ref=${code}` : "/signup"} className="text-b2b-pink underline">
           Sign up in the browser

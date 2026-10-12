@@ -38,11 +38,11 @@ export default async function SavedPostsPage() {
 
       <BackLink href="/profile" className="mt-6">Back to profile</BackLink>
 
-      <h1 className="mt-2 text-2xl font-bold">Saved posts</h1>
+      <h1 className="mt-2 text-2xl font-bold text-b2b-page-ink">Saved posts</h1>
 
       <div className="mt-6 flex flex-col gap-4">
         {posts.length === 0 ? (
-          <p className="text-b2b-ink/40">Nothing saved yet — tap the bookmark on a post to save it here.</p>
+          <p className="text-b2b-page-ink/40">Nothing saved yet — tap the bookmark on a post to save it here.</p>
         ) : (
           posts.map((post) => (
             <PostCard key={post.id} currentUserId={session.user.id} post={toPostCardData(post, session.user.id)} />

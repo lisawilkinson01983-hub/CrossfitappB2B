@@ -55,8 +55,8 @@ export default async function LeaderboardPage({
 
       <BackLink href="/settings/admin" className="mt-6">Back to settings</BackLink>
 
-      <h1 className="mt-3 text-2xl font-bold">Activity Leaderboard</h1>
-      <p className="mt-1 text-sm text-b2b-ink/50">
+      <h1 className="mt-3 text-2xl font-bold text-b2b-page-ink">Activity Leaderboard</h1>
+      <p className="mt-1 text-sm text-b2b-page-ink/50">
         Every column is a straight count of that activity. Total is an unweighted sum — use the breakdown, not just
         the total, to judge who's actually earned a prize.
       </p>
