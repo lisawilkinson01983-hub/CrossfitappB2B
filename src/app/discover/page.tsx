@@ -8,8 +8,12 @@ import { SectionOnboarding } from "@/components/SectionOnboarding";
 import { AthletesSearch, type AthleteSearchParams } from "./AthletesSearch";
 import { EventsList, type EventSearchParams } from "./EventsList";
 import { AffiliatesList, type AffiliateSearchParams } from "./AffiliatesList";
+import { TeammatesSearch, type TeammateSearchParams } from "./TeammatesSearch";
 
-type SearchParams = AthleteSearchParams & EventSearchParams & AffiliateSearchParams & { view?: string };
+type SearchParams = AthleteSearchParams &
+  EventSearchParams &
+  AffiliateSearchParams &
+  TeammateSearchParams & { view?: string };
 
 export default async function DiscoverPage({
   searchParams,
@@ -20,7 +24,14 @@ export default async function DiscoverPage({
   if (!session?.user?.id) redirect("/login");
 
   const sp = await searchParams;
-  const view = sp.view === "events" ? "events" : sp.view === "affiliates" ? "affiliates" : "athletes";
+  const view =
+    sp.view === "events"
+      ? "events"
+      : sp.view === "affiliates"
+        ? "affiliates"
+        : sp.view === "teammates"
+          ? "teammates"
+          : "athletes";
 
   const currentUser = await prisma.user.findUnique({
     where: { id: session.user.id },
@@ -63,14 +74,22 @@ export default async function DiscoverPage({
         >
           Affiliates
         </Link>
+        <Link
+          href="/discover?view=teammates"
+          className={`pb-2 ${view === "teammates" ? "border-b-2 border-b2b-purple text-b2b-purple" : "text-gray-500"}`}
+        >
+          Teammates
+        </Link>
       </div>
 
       {view === "athletes" ? (
         <AthletesSearch sp={sp} currentUserId={session.user.id} />
       ) : view === "events" ? (
         <EventsList sp={sp} currentUserId={session.user.id} />
-      ) : (
+      ) : view === "affiliates" ? (
         <AffiliatesList sp={sp} currentUserId={session.user.id} />
+      ) : (
+        <TeammatesSearch sp={sp} currentUserId={session.user.id} />
       )}
     </main>
   );
