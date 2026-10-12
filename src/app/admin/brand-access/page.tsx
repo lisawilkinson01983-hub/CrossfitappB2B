@@ -35,7 +35,7 @@ export default async function BrandAccessPage() {
       <NavBar />
       <BackLink href="/settings/admin" className="mt-6">Back to settings</BackLink>
 
-      <h1 className="mt-4 text-2xl font-bold text-b2b-page-ink">Box 2 Box profile access</h1>
+      <h1 className="mt-4 text-2xl font-bold">Box 2 Box profile access</h1>
       <p className="mt-1 text-sm text-b2b-ink/60">
         Admins listed here can switch to the Box 2 Box profile from their own login (see Settings → Profiles),
         without sharing its password. The brand account itself keeps working as normal — auto-follow on

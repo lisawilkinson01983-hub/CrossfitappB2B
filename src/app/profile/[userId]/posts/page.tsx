@@ -45,11 +45,11 @@ export default async function UserPostsPage({ params }: { params: Promise<{ user
 
       <BackLink href={`/profile/${userId}`} className="mt-6">Back to profile</BackLink>
 
-      <h1 className="mt-2 text-2xl font-bold text-b2b-page-ink">{user.name}&rsquo;s posts</h1>
+      <h1 className="mt-2 text-2xl font-bold">{user.name}&rsquo;s posts</h1>
 
       <div className="mt-6 flex flex-col gap-4">
         {posts.length === 0 ? (
-          <p className="text-b2b-page-ink/40">No posts yet.</p>
+          <p className="text-b2b-ink/40">No posts yet.</p>
         ) : (
           posts.map((post) => (
             <PostCard key={post.id} currentUserId={session.user.id} post={toPostCardData(post, session.user.id)} />

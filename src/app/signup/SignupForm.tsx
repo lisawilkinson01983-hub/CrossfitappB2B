@@ -81,7 +81,7 @@ export function SignupForm({ inviteOnly }: { inviteOnly: boolean }) {
       {error && <p className="rounded bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
 
       <div>
-        <label htmlFor="name" className="block text-sm font-medium text-b2b-page-ink">
+        <label htmlFor="name" className="block text-sm font-medium">
           Name
         </label>
         <input
@@ -96,7 +96,7 @@ export function SignupForm({ inviteOnly }: { inviteOnly: boolean }) {
       </div>
 
       <div>
-        <label htmlFor="email" className="block text-sm font-medium text-b2b-page-ink">
+        <label htmlFor="email" className="block text-sm font-medium">
           Email
         </label>
         <input
@@ -111,7 +111,7 @@ export function SignupForm({ inviteOnly }: { inviteOnly: boolean }) {
       </div>
 
       <div>
-        <label htmlFor="password" className="block text-sm font-medium text-b2b-page-ink">
+        <label htmlFor="password" className="block text-sm font-medium">
           Password
         </label>
         <input
@@ -124,13 +124,13 @@ export function SignupForm({ inviteOnly }: { inviteOnly: boolean }) {
           onChange={(e) => setPassword(e.target.value)}
           className="mt-1 w-full rounded border border-gray-300 px-3 py-2 focus:border-b2b-pink focus:outline-none"
         />
-        <p className="mt-1 text-xs text-b2b-page-ink/50">At least 8 characters.</p>
+        <p className="mt-1 text-xs text-gray-500">At least 8 characters.</p>
       </div>
 
       <div>
-        <label htmlFor="inviteCode" className="block text-sm font-medium text-b2b-page-ink">
+        <label htmlFor="inviteCode" className="block text-sm font-medium">
           Invite code{" "}
-          {!inviteOnly && <span className="font-normal text-b2b-page-ink/50">(optional)</span>}
+          {!inviteOnly && <span className="font-normal text-gray-500">(optional)</span>}
         </label>
         <input
           id="inviteCode"
@@ -144,7 +144,7 @@ export function SignupForm({ inviteOnly }: { inviteOnly: boolean }) {
       </div>
 
       <div className="flex flex-col gap-2">
-        <label className="flex items-start gap-2 text-sm text-b2b-page-ink">
+        <label className="flex items-start gap-2 text-sm text-gray-700">
           <input
             type="checkbox"
             checked={confirmedAge}
@@ -153,7 +153,7 @@ export function SignupForm({ inviteOnly }: { inviteOnly: boolean }) {
           />
           I confirm I'm at least 18 years old.
         </label>
-        <label className="flex items-start gap-2 text-sm text-b2b-page-ink">
+        <label className="flex items-start gap-2 text-sm text-gray-700">
           <input
             type="checkbox"
             checked={agreedToTerms}

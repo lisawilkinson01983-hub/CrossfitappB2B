@@ -41,7 +41,7 @@ export default async function ManageMembersPage({ params }: { params: Promise<{ 
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
       <NavBar />
       <BackLink href={`/messages/${conversationId}`} className="mt-6">Back to {displayName}</BackLink>
-      <h1 className="mt-2 text-2xl font-bold text-b2b-page-ink">Manage members</h1>
+      <h1 className="mt-2 text-2xl font-bold">Manage members</h1>
 
       <div className="mt-6">
         <ManageMembersPanel

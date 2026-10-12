@@ -40,7 +40,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" className={`${bebasNeue.variable} ${inter.variable}`}>
-      <body className="min-h-screen bg-b2b-page pt-[env(safe-area-inset-top)] font-sans text-b2b-ink antialiased">
+      <body className="min-h-screen bg-b2b-bg pt-[env(safe-area-inset-top)] font-sans text-b2b-ink antialiased">
         <Providers>{children}</Providers>
       </body>
     </html>

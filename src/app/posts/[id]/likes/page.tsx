@@ -46,7 +46,7 @@ export default async function PostLikesPage({ params }: { params: Promise<{ id: 
       <NavBar />
       <BackLink href="/feed" className="mt-6">Back to feed</BackLink>
 
-      <h1 className="mt-4 text-2xl font-bold text-b2b-page-ink">Liked by</h1>
+      <h1 className="mt-4 text-2xl font-bold">Liked by</h1>
 
       {likers.length === 0 ? (
         <p className="mt-6 text-gray-500">No one has liked this post yet.</p>

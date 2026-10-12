@@ -51,11 +51,11 @@ export async function NavBar({ isProfileEditPage = false }: { isProfileEditPage?
   return (
     <>
       {session?.user?.id && !profile?.account?.emailVerifiedAt && <VerifyEmailBanner />}
-      <nav className="flex items-center justify-between gap-3 border-b border-b2b-purple/30 pb-4">
+      <nav className="flex items-center justify-between gap-3 border-b border-b2b-purple/10 pb-4">
         <Logo size="sm" href="/feed" wordmark={false} />
         {setupComplete ? (
           <div className="flex items-center gap-4">
-            <Link href="/notifications" className="relative text-b2b-page-ink/70 hover:text-b2b-pink" aria-label="Notifications">
+            <Link href="/notifications" className="relative text-b2b-ink/70 hover:text-b2b-pink" aria-label="Notifications">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="h-6 w-6">
                 <path d="M6 8a6 6 0 0 1 12 0c0 5 2 6 2 6H4s2-1 2-6Z" />
                 <path d="M10 20a2 2 0 0 0 4 0" />
@@ -66,7 +66,7 @@ export async function NavBar({ isProfileEditPage = false }: { isProfileEditPage?
                 </span>
               )}
             </Link>
-            <Link href="/messages" className="relative text-b2b-page-ink/70 hover:text-b2b-pink" aria-label="Messages">
+            <Link href="/messages" className="relative text-b2b-ink/70 hover:text-b2b-pink" aria-label="Messages">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="h-6 w-6">
                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
               </svg>
@@ -76,7 +76,7 @@ export async function NavBar({ isProfileEditPage = false }: { isProfileEditPage?
                 </span>
               )}
             </Link>
-            <Link href="/settings" aria-label="Settings" className="text-b2b-page-ink/70 hover:text-b2b-pink">
+            <Link href="/settings" aria-label="Settings" className="text-b2b-ink/70 hover:text-b2b-pink">
               <SettingsIcon />
             </Link>
           </div>

@@ -33,7 +33,7 @@ export default async function AdminNoticesPage() {
 
       <BackLink href="/settings/admin" className="mt-6">Back to settings</BackLink>
 
-      <h1 className="mt-4 text-2xl font-bold text-b2b-page-ink">Send a notice</h1>
+      <h1 className="mt-4 text-2xl font-bold">Send a notice</h1>
       <p className="mt-1 text-sm text-b2b-ink/60">
         Broadcasts a message from Box 2 Box to the notifications feed of everyone it matches. There's no
         undo once sent, so double check the audience count before sending.

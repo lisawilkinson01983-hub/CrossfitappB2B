@@ -50,7 +50,7 @@ export function ResetPasswordForm({ token }: { token: string }) {
       {error && <p className="rounded bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
 
       <div>
-        <label htmlFor="password" className="block text-sm font-medium text-b2b-page-ink">
+        <label htmlFor="password" className="block text-sm font-medium">
           New password
         </label>
         <input
@@ -63,7 +63,7 @@ export function ResetPasswordForm({ token }: { token: string }) {
           onChange={(e) => setPassword(e.target.value)}
           className="mt-1 w-full rounded border border-gray-300 px-3 py-2 focus:border-b2b-pink focus:outline-none"
         />
-        <p className="mt-1 text-xs text-b2b-page-ink/50">At least 8 characters.</p>
+        <p className="mt-1 text-xs text-gray-500">At least 8 characters.</p>
       </div>
 
       <button

@@ -86,7 +86,7 @@ export default async function EventNoticesPage({ params }: { params: Promise<{ i
 
       <BackLink href={`/events/${event.id}`} className="mt-6">Back to {event.name}</BackLink>
 
-      <h1 className="mt-4 text-2xl font-bold text-b2b-page-ink">Message Board</h1>
+      <h1 className="mt-4 text-2xl font-bold">Message Board</h1>
       <p className="mt-1 text-sm text-b2b-ink/50">
         A lift, a training partner, or anything else about {event.name}.
       </p>

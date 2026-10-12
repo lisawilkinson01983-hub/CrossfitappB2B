@@ -75,7 +75,7 @@ export default async function ConversationPage({
             showSingleBadge={others[0] ? showsSingleBadge(others[0]) : false}
           />
           <div className="min-w-0">
-            <h1 className="truncate text-xl font-bold text-b2b-page-ink">{displayName}</h1>
+            <h1 className="truncate text-xl font-bold">{displayName}</h1>
           </div>
         </div>
       )}

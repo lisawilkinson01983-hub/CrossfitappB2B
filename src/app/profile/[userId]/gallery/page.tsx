@@ -46,12 +46,12 @@ export default async function UserGalleryPage({
 
       <BackLink href={isOwner ? "/profile" : `/profile/${userId}`} className="mt-6">Back to profile</BackLink>
 
-      <h1 className="mt-2 text-2xl font-bold text-b2b-page-ink">{isOwner ? "Your" : `${user.name}'s`} gallery</h1>
+      <h1 className="mt-2 text-2xl font-bold">{isOwner ? "Your" : `${user.name}'s`} gallery</h1>
 
       <div className="mt-6">
         {isOwner && <AddMediaButton />}
         {items.length === 0 ? (
-          <p className="mt-4 text-b2b-page-ink/40">
+          <p className="mt-4 text-b2b-ink/40">
             No photos or videos yet — share one from the feed or log a workout with a photo.
           </p>
         ) : (
