@@ -6,7 +6,6 @@ import { prisma } from "@/lib/prisma";
 import { isProfileSetupComplete } from "@/lib/profileSetup";
 import { Logo } from "./Logo";
 import { BottomTabBar } from "./BottomTabBar";
-import { VerifyEmailBanner } from "./VerifyEmailBanner";
 import { SettingsIcon } from "./SettingsIcon";
 
 /** Rendered on every authenticated page. An incomplete profile never reaches a page that renders this — both /profile/edit and the setup wizard at /profile/setup redirect an incomplete profile to the wizard before rendering anything else — so this never needs to bypass its own redirect. */
@@ -33,7 +32,6 @@ export async function NavBar() {
             affiliateGym: true,
             levels: true,
             lookingFor: true,
-            account: { select: { emailVerifiedAt: true } },
           },
         }),
       ])
@@ -49,7 +47,6 @@ export async function NavBar() {
 
   return (
     <>
-      {session?.user?.id && !profile?.account?.emailVerifiedAt && <VerifyEmailBanner />}
       <nav className="flex items-center justify-between gap-3 border-b border-b2b-purple/10 pb-4">
         <Logo size="sm" href="/feed" wordmark={false} />
         <div className="flex items-center gap-4">

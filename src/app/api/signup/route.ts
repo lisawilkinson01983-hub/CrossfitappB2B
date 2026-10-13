@@ -2,8 +2,6 @@ import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { signupSchema } from "@/lib/validation";
-import { generateToken } from "@/lib/tokens";
-import { sendEmail } from "@/lib/email";
 import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
 import { generateUniqueInviteCode, isInviteOnly } from "@/lib/inviteCode";
 import { getSiteAccountId } from "@/lib/siteAccount";
@@ -36,7 +34,6 @@ export async function POST(req: Request) {
 
   const passwordHash = await bcrypt.hash(parsed.data.password, 10);
   const now = new Date();
-  const emailVerificationToken = generateToken();
   const inviteCode = await generateUniqueInviteCode();
 
   // Outside invite-only mode, an invalid/unrecognized code just means an
@@ -61,12 +58,7 @@ export async function POST(req: Request) {
   }
 
   const account = await prisma.account.create({
-    data: {
-      email,
-      passwordHash,
-      emailVerificationToken,
-      emailVerificationTokenExpiresAt: new Date(now.getTime() + 24 * 60 * 60 * 1000),
-    },
+    data: { email, passwordHash },
   });
 
   const user = await prisma.user.create({
@@ -81,19 +73,8 @@ export async function POST(req: Request) {
   });
 
   await addWelcomeFriend(user.id);
-  await sendVerificationEmail(email, emailVerificationToken);
 
   return NextResponse.json({ ok: true });
-}
-
-async function sendVerificationEmail(email: string, token: string) {
-  const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
-  const verifyUrl = `${baseUrl}/verify-email?token=${token}`;
-  await sendEmail({
-    to: email,
-    subject: "Verify your Box 2 Box email",
-    text: `Welcome to Box 2 Box! Confirm your email address by visiting this link:\n\n${verifyUrl}\n\nThis link expires in 24 hours.`,
-  });
 }
 
 /**
