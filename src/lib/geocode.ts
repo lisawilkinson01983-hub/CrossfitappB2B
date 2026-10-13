@@ -4,8 +4,11 @@
 import { prisma } from "@/lib/prisma";
 
 const NOMINATIM_URL = "https://nominatim.openstreetmap.org/search";
+// Required by Nominatim's usage policy: identify the app + a contact.
+const NOMINATIM_USER_AGENT = "Box2Box CrossFit App (contact: vinyljunkie8@gmail.com)";
 
 export type Coords = { lat: number; lng: number };
+export type PlaceSuggestion = Coords & { label: string };
 
 // Shared distance-filter options for any "within N miles" search (Discover's
 // Athletes and Events tabs).
@@ -19,10 +22,7 @@ export async function geocode(query: string): Promise<Coords | null> {
   try {
     const url = `${NOMINATIM_URL}?format=json&limit=1&q=${encodeURIComponent(trimmed)}`;
     const res = await fetch(url, {
-      headers: {
-        // Required by Nominatim's usage policy: identify the app + a contact.
-        "User-Agent": "Box2Box CrossFit App (contact: vinyljunkie8@gmail.com)",
-      },
+      headers: { "User-Agent": NOMINATIM_USER_AGENT },
     });
     if (!res.ok) {
       console.error(`geocode: Nominatim returned ${res.status} for "${trimmed}"`);
@@ -43,6 +43,31 @@ export async function geocode(query: string): Promise<Coords | null> {
     // filtering skips this record rather than breaking the page.
     console.error(`geocode: failed for "${trimmed}"`, err);
     return null;
+  }
+}
+
+// Live "as you type" suggestions for the profile-setup wizard's Area field —
+// distinct from geocode() above, which resolves one already-chosen string to
+// a single best-guess point. Limited/debounced by the caller (see
+// /api/geocode/search-suggest) to stay within Nominatim's usage policy.
+export async function searchPlaces(query: string, limit = 5): Promise<PlaceSuggestion[]> {
+  const trimmed = query.trim();
+  if (!trimmed) return [];
+
+  try {
+    const url = `${NOMINATIM_URL}?format=json&limit=${limit}&q=${encodeURIComponent(trimmed)}`;
+    const res = await fetch(url, {
+      headers: { "User-Agent": NOMINATIM_USER_AGENT },
+    });
+    if (!res.ok) return [];
+
+    const results = (await res.json()) as Array<{ display_name: string; lat: string; lon: string }>;
+    return results
+      .map((r) => ({ label: r.display_name, lat: parseFloat(r.lat), lng: parseFloat(r.lon) }))
+      .filter((r) => !Number.isNaN(r.lat) && !Number.isNaN(r.lng));
+  } catch (err) {
+    console.error(`searchPlaces: failed for "${trimmed}"`, err);
+    return [];
   }
 }
 

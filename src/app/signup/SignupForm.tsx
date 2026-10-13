@@ -72,7 +72,7 @@ export function SignupForm({ inviteOnly }: { inviteOnly: boolean }) {
       return;
     }
 
-    router.push("/profile/edit");
+    router.push("/profile/setup");
     router.refresh();
   }
 

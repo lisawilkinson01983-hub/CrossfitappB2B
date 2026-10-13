@@ -26,6 +26,10 @@ export default async function EditProfilePage() {
   ]);
   if (!user) redirect("/login");
 
+  // First-time setup happens in the wizard now — this page is only for
+  // editing an already-complete profile.
+  if (!isProfileSetupComplete(user)) redirect("/profile/setup");
+
   const gymOptions = [...approvedGyms.map((g) => g.name), UNAFFILIATED];
 
   // Older data (from before the gym field was locked to a fixed list, or a
@@ -40,8 +44,6 @@ export default async function EditProfilePage() {
     ? (user.affiliateGymOther ?? "")
     : (user.affiliateGym ?? "");
 
-  const setupComplete = isProfileSetupComplete(user);
-
   return (
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
       {!user.hasSeenOnboarding && (
@@ -52,28 +54,22 @@ export default async function EditProfilePage() {
             {
               emoji: "🎉",
               title: "Welcome to Box 2 Box!",
-              body: "Here's a quick tour to help you find your way around. First, let's complete your profile before continuing.",
+              body: "Here's a quick tour to help you find your way around.",
             },
             {
               emoji: "👤",
               title: "Profile",
-              body: "Manage your profile and settings, and track your personal bests. Fill in your details below to get started.",
+              body: "Manage your profile and settings, and track your personal bests below.",
             },
           ]}
         />
       )}
-      <NavBar isProfileEditPage />
-      {!setupComplete && (
-        <p className="mt-6 rounded bg-b2b-purple/10 px-4 py-3 text-sm text-b2b-ink/70">
-          Finish setting up your profile below to start using Box 2 Box — the rest of the app unlocks once
-          it's complete.
-        </p>
-      )}
+      <NavBar />
       <div className="mt-6">
         <SectionCard title="Edit profile">
           <EditProfileForm
             gymOptions={gymOptions}
-            accountTypeLocked={setupComplete}
+            accountTypeLocked
             initial={{
               name: user.name,
               photo: user.photo,

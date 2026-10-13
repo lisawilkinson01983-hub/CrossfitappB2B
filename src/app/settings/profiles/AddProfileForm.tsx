@@ -45,7 +45,7 @@ export function AddProfileForm() {
     }
 
     await update({ switchToProfileId: created.profile.id });
-    router.push("/profile/edit");
+    router.push("/profile/setup");
   }
 
   if (!open) {
