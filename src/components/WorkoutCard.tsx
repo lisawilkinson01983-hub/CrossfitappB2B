@@ -45,29 +45,23 @@ export function WorkoutCard({
       }`}
     >
       <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="font-semibold">
-            {workout.isPb && <span className="mr-1 text-yellow-600">★ PB</span>}
-            {workout.wodName}
-          </p>
-          <p className="mt-1 flex items-baseline gap-2">
-            <span className="font-display text-xl leading-none text-b2b-ink">
-              {workout.score}{" "}
-              <span className="text-xs font-sans font-medium normal-case text-b2b-ink/40">
-                {WORKOUT_UNIT_LABELS[workout.unit]}
-              </span>
-            </span>
-            <span
-              className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold ${WORKOUT_INTENSITY_BADGE_CLASSES[workout.intensity]}`}
-            >
-              {WORKOUT_INTENSITY_LABELS[workout.intensity]}
-            </span>
-          </p>
-        </div>
-        <p className="whitespace-nowrap text-xs text-b2b-ink/40">
-          {formatDate(workout.createdAt)}
+        <p className="font-semibold">
+          {workout.isPb && <span className="mr-1 text-yellow-600">★ PB</span>}
+          {workout.wodName}
         </p>
+        <div className="flex shrink-0 items-center gap-2">
+          <span
+            className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${WORKOUT_INTENSITY_BADGE_CLASSES[workout.intensity]}`}
+          >
+            {WORKOUT_INTENSITY_LABELS[workout.intensity]}
+          </span>
+          <p className="whitespace-nowrap text-xs text-b2b-ink/40">{formatDate(workout.createdAt)}</p>
+        </div>
       </div>
+      <p className="mt-2.5 text-[10px] font-semibold uppercase tracking-wide text-b2b-ink/40">
+        {WORKOUT_UNIT_LABELS[workout.unit]}
+      </p>
+      <p className="font-display text-2xl leading-none text-b2b-ink">{workout.score}</p>
 
       {workout.description && <WorkoutDescriptionToggle description={workout.description} />}
       {workout.notes && <p className="mt-2 text-sm text-gray-700">{workout.notes}</p>}

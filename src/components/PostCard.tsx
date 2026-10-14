@@ -775,23 +775,21 @@ export function PostCard({
 
         {post.linkedWorkout && (
           <div className={post.sharedBy ? "" : "mt-3"}>
-            <div className="flex items-center justify-between gap-3 rounded-xl border border-b2b-purple/10 bg-b2b-bg px-3.5 py-2.5">
-              <div className="min-w-0">
+            <div className="rounded-xl border border-b2b-purple/10 bg-b2b-bg px-4 py-3">
+              <div className="flex items-center justify-between gap-3">
                 <p className="truncate text-xs font-semibold uppercase tracking-wide text-b2b-ink/40">
                   {post.linkedWorkout.wodName}
                 </p>
-                <p className="font-display text-xl leading-none text-b2b-ink">
-                  {post.linkedWorkout.score}{" "}
-                  <span className="text-xs font-sans font-medium normal-case text-b2b-ink/40">
-                    {WORKOUT_UNIT_LABELS[post.linkedWorkout.unit]}
-                  </span>
-                </p>
+                <span
+                  className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${WORKOUT_INTENSITY_BADGE_CLASSES[post.linkedWorkout.intensity]}`}
+                >
+                  {WORKOUT_INTENSITY_LABELS[post.linkedWorkout.intensity]}
+                </span>
               </div>
-              <span
-                className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${WORKOUT_INTENSITY_BADGE_CLASSES[post.linkedWorkout.intensity]}`}
-              >
-                {WORKOUT_INTENSITY_LABELS[post.linkedWorkout.intensity]}
-              </span>
+              <p className="mt-2.5 text-[10px] font-semibold uppercase tracking-wide text-b2b-ink/40">
+                {WORKOUT_UNIT_LABELS[post.linkedWorkout.unit]}
+              </p>
+              <p className="font-display text-3xl leading-none text-b2b-ink">{post.linkedWorkout.score}</p>
             </div>
             {post.linkedWorkout.description && (
               <WorkoutDescriptionToggle description={post.linkedWorkout.description} />
