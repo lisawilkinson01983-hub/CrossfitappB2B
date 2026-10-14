@@ -43,7 +43,7 @@ export function EventChatFeed({
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="flex w-full items-center gap-3 rounded-full border border-gray-300 bg-white px-4 py-2.5 text-left text-b2b-ink/50 hover:bg-b2b-bg"
+          className="flex w-full items-center gap-3 rounded-full border border-gray-300 bg-b2b-bg px-4 py-2.5 text-left text-b2b-ink/50 hover:bg-b2b-card"
         >
           <Avatar photo={currentUserPhoto} name={currentUserName} size={36} />
           <span>Post something to the message board...</span>
@@ -162,7 +162,7 @@ function EventChatComposerModal({ eventId, onClose }: { eventId: string; onClose
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
-      <div className="w-full max-w-lg rounded-xl bg-white p-4 shadow-lg" onClick={(e) => e.stopPropagation()}>
+      <div className="w-full max-w-lg rounded-xl bg-b2b-bg p-4 shadow-lg" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between border-b border-b2b-purple/10 pb-3">
           <p className="font-semibold text-b2b-ink">Message board</p>
           <button

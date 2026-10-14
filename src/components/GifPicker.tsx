@@ -54,7 +54,7 @@ export function GifPicker({ onSelect, onClose }: { onSelect: (url: string) => vo
   return (
     <div
       ref={panelRef}
-      className="absolute bottom-full left-0 z-20 mb-2 flex w-80 flex-col gap-2 rounded-xl border border-b2b-purple/15 bg-white p-3 shadow-lg"
+      className="absolute bottom-full left-0 z-20 mb-2 flex w-80 flex-col gap-2 rounded-xl border border-b2b-purple/15 bg-b2b-bg p-3 shadow-lg"
     >
       <input
         type="text"

@@ -60,7 +60,7 @@ export function ReactionBar({
       {pickerOpen && (
         <div
           ref={pickerRef}
-          className={`absolute bottom-full z-10 mb-1 flex gap-1 rounded-full border border-b2b-purple/15 bg-white px-2 py-1 shadow-lg ${
+          className={`absolute bottom-full z-10 mb-1 flex gap-1 rounded-full border border-b2b-purple/15 bg-b2b-bg px-2 py-1 shadow-lg ${
             align === "end" ? "right-0" : "left-0"
           }`}
         >

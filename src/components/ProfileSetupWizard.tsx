@@ -405,7 +405,7 @@ function AccountTypeTile({
       type="button"
       onClick={onClick}
       className={`flex items-center gap-3.5 rounded-2xl border-2 p-4 text-left transition-colors ${
-        selected ? "border-b2b-pink bg-b2b-pink/5" : "border-b2b-card bg-white"
+        selected ? "border-b2b-pink bg-b2b-pink/5" : "border-b2b-card bg-b2b-bg"
       }`}
     >
       <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${selected ? "bg-b2b-pink" : "bg-b2b-card"}`}>
@@ -605,7 +605,7 @@ function LocationStep({
             className="w-full rounded-xl border border-gray-200 px-3.5 py-3 text-sm focus:border-b2b-pink focus:outline-none"
           />
           {areaFocused && areaSuggestions.length > 0 && (
-            <div className="absolute z-10 mt-1 w-full overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg">
+            <div className="absolute z-10 mt-1 w-full overflow-hidden rounded-xl border border-gray-200 bg-b2b-bg shadow-lg">
               {areaSuggestions.map((s, i) => (
                 <button
                   key={i}
@@ -638,7 +638,7 @@ function LocationStep({
             }`}
           />
           {!gymSelected && !showOtherGym && gymSuggestions.length > 0 && (
-            <div className="absolute z-10 mt-1 w-full overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg">
+            <div className="absolute z-10 mt-1 w-full overflow-hidden rounded-xl border border-gray-200 bg-b2b-bg shadow-lg">
               {gymSuggestions.map((g) => (
                 <button
                   key={g.id}

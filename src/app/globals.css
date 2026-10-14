@@ -1,12 +1,23 @@
 @import "tailwindcss";
 
 @theme {
-  /* Box 2 Box brand palette — grey/gold/white, matching the logo mark (see
-     public/logo-mark.png). Single fixed theme, no user-facing color choice
-     and no dark mode. Cards carry a soft grey tint and sit on a white page.
-     Token names (b2b-pink/b2b-purple/etc.) are historical from an earlier
-     pink/purple palette — kept as-is since every component already
-     references them, only the values changed. */
+  /* Box 2 Box brand palette — grey/gold, matching the logo mark (see
+     public/logo-mark.png), now with a light and a dark mode ("Performance"
+     direction: a neutral page behind bordered/glassy cards, gold accents on
+     stat numbers and badges). Token names (b2b-pink/b2b-purple/etc.) are
+     historical from an earlier pink/purple palette — kept as-is since every
+     component already references them, only the values changed.
+
+     --color-b2b-bg/--color-b2b-card/--color-b2b-ink are a SURFACE triad —
+     "a white-ish row/card/button sits here" — used in ~45 components for
+     rows, buttons and modals, not for the page itself. The true page
+     backdrop is the separate --color-b2b-page token below, applied only to
+     `body`. Collapsing these two roles into one token is exactly what broke
+     dark mode here last time (Settings rows etc. went dark-on-dark) — keep
+     them distinct. Dark-mode values for all of these live in the `.dark`
+     block further down, which only ever redefines a token already declared
+     here, never introduces one. */
+  --color-b2b-page: #f1f0ed;
   --color-b2b-bg: #ffffff;
   --color-b2b-card: #f5f4f2;
   --color-b2b-ink: #232223;
@@ -23,8 +34,36 @@
   --font-sans: var(--font-inter);
 }
 
+/* Dark mode — toggled by adding .dark to <html> (see ThemeToggle +
+   the inline init script in layout.tsx); redefines tokens only, never
+   introduces new ones, so every existing component adapts automatically. */
+.dark {
+  color-scheme: dark;
+
+  --color-b2b-page: #28282c;
+  --color-b2b-bg: #3a3a3f;
+  --color-b2b-card: #333338;
+  --color-b2b-ink: #f2f1ee;
+
+  --color-b2b-pink: #e7c377;
+  --color-b2b-pink-dark: #c9a35f;
+
+  --color-b2b-purple: #b5b2ac;
+  --color-b2b-purple-dark: #8f8c86;
+}
+
 body {
-  background-color: var(--color-b2b-bg);
+  background-color: var(--color-b2b-page);
+  color: var(--color-b2b-ink);
+}
+
+/* Tailwind's preflight leaves these transparent; this app never sets an
+   explicit input background, so it was only ever safe while the page itself
+   was white. Making it explicit (and theme-aware) fixes that for both modes. */
+input,
+textarea,
+select {
+  background: var(--color-b2b-bg);
   color: var(--color-b2b-ink);
 }
 

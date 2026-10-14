@@ -6,6 +6,7 @@ import { NavBar } from "@/components/NavBar";
 import { SectionCard } from "@/components/SectionCard";
 import { SettingsMenuLink } from "@/components/SettingsMenuLink";
 import { SignOutButton } from "@/components/SignOutButton";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 export default async function SettingsPage() {
   const session = await getServerSession(authOptions);
@@ -35,6 +36,12 @@ export default async function SettingsPage() {
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
       <NavBar />
       <h1 className="mt-6 text-2xl font-bold">Settings</h1>
+
+      <div className="mt-6">
+        <SectionCard title="Appearance">
+          <ThemeToggle />
+        </SectionCard>
+      </div>
 
       <div className="mt-6">
         <SectionCard>

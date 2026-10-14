@@ -32,7 +32,7 @@ export function EditModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
-      <div className="w-full max-w-lg rounded-xl bg-white p-4 shadow-lg" onClick={(e) => e.stopPropagation()}>
+      <div className="w-full max-w-lg rounded-xl bg-b2b-bg p-4 shadow-lg" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between border-b border-b2b-purple/10 pb-3">
           <p className="font-semibold text-b2b-ink">{title}</p>
           <button

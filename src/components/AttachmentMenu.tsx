@@ -41,7 +41,7 @@ export function AttachmentMenu({ items }: { items: AttachmentMenuItem[] }) {
         +
       </button>
       {open && (
-        <div className="absolute bottom-full left-0 z-20 mb-1 flex flex-col gap-0.5 whitespace-nowrap rounded-lg border border-b2b-purple/15 bg-white p-1 shadow-lg">
+        <div className="absolute bottom-full left-0 z-20 mb-1 flex flex-col gap-0.5 whitespace-nowrap rounded-lg border border-b2b-purple/15 bg-b2b-bg p-1 shadow-lg">
           {items.map((item) => (
             <button
               key={item.key}
