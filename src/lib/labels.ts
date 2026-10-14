@@ -236,17 +236,6 @@ export const WORKOUT_INTENSITY_BADGE_CLASSES: Record<WorkoutIntensityOption, str
   SCALED: NEUTRAL_BADGE_CLASSES,
 };
 
-/** The score to display for a workout — rounds/reps are their own fields (see Workout.rounds/.reps), everything else is the free-text `score`. */
-export function formatWorkoutScore(workout: {
-  unit: WorkoutUnitOption;
-  score: string | null;
-  rounds: number | null;
-  reps: number | null;
-}): string {
-  if (workout.unit === "ROUNDS_REPS") return `${workout.rounds ?? 0}+${workout.reps ?? 0}`;
-  return workout.score ?? "";
-}
-
 export const WORKOUT_INTENSITY_LABELS: Record<WorkoutIntensityOption, string> = {
   RX: "Rx",
   SCALED: "Scaled",

@@ -1,11 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import {
-  WORKOUT_INTENSITY_BADGE_CLASSES,
-  WORKOUT_INTENSITY_LABELS,
-  WORKOUT_UNIT_LABELS,
-  formatWorkoutScore,
-} from "@/lib/labels";
+import { WORKOUT_INTENSITY_BADGE_CLASSES, WORKOUT_INTENSITY_LABELS, WORKOUT_UNIT_LABELS } from "@/lib/labels";
 import type { WorkoutIntensityOption, WorkoutUnitOption } from "@/lib/validation";
 import { DeleteWorkoutButton } from "./DeleteWorkoutButton";
 import { PinButton } from "./PinButton";
@@ -65,10 +60,25 @@ export function WorkoutCard({
           <p className="whitespace-nowrap text-xs text-b2b-ink/40">{formatDate(workout.createdAt)}</p>
         </div>
       </div>
-      <p className="mt-2.5 text-[10px] font-semibold uppercase tracking-wide text-b2b-ink/40">
-        {WORKOUT_UNIT_LABELS[workout.unit]}
-      </p>
-      <p className="font-display text-2xl leading-none text-b2b-ink">{formatWorkoutScore(workout)}</p>
+      {workout.unit === "ROUNDS_REPS" ? (
+        <div className="mt-2.5 flex divide-x divide-b2b-purple/10">
+          <div className="flex-1 pr-4">
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-b2b-ink/40">Rounds</p>
+            <p className="font-display text-2xl leading-none text-b2b-ink">{workout.rounds}</p>
+          </div>
+          <div className="flex-1 pl-4">
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-b2b-ink/40">Reps</p>
+            <p className="font-display text-2xl leading-none text-b2b-ink">{workout.reps}</p>
+          </div>
+        </div>
+      ) : (
+        <>
+          <p className="mt-2.5 text-[10px] font-semibold uppercase tracking-wide text-b2b-ink/40">
+            {WORKOUT_UNIT_LABELS[workout.unit]}
+          </p>
+          <p className="font-display text-2xl leading-none text-b2b-ink">{workout.score}</p>
+        </>
+      )}
 
       {workout.description && <WorkoutDescriptionToggle description={workout.description} />}
       {workout.notes && <p className="mt-2 text-sm text-gray-700">{workout.notes}</p>}

@@ -10,7 +10,6 @@ import {
   WORKOUT_INTENSITY_LABELS,
   WORKOUT_UNIT_LABELS,
   formatTeammateRequest,
-  formatWorkoutScore,
   showsSingleBadge,
 } from "@/lib/labels";
 import type { LevelOption, TeammateRequest, UserStatusOption, WorkoutIntensityOption, WorkoutUnitOption } from "@/lib/validation";
@@ -779,29 +778,35 @@ export function PostCard({
         {post.linkedWorkout && (
           <div className={post.sharedBy ? "" : "mt-3"}>
             <div className="rounded-xl border border-b2b-purple/10 bg-b2b-bg px-4 py-3">
-              <p className="truncate text-xs font-semibold uppercase tracking-wide text-b2b-ink/40">
-                {post.linkedWorkout.wodName}
-              </p>
-              <div className="mt-2.5 flex divide-x divide-b2b-purple/10">
-                <div className="flex-1 pr-4">
+              <div className="flex items-center justify-between gap-3">
+                <p className="truncate text-xs font-semibold uppercase tracking-wide text-b2b-ink/40">
+                  {post.linkedWorkout.wodName}
+                </p>
+                <span
+                  className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${WORKOUT_INTENSITY_BADGE_CLASSES[post.linkedWorkout.intensity]}`}
+                >
+                  {WORKOUT_INTENSITY_LABELS[post.linkedWorkout.intensity]}
+                </span>
+              </div>
+              {post.linkedWorkout.unit === "ROUNDS_REPS" ? (
+                <div className="mt-2.5 flex divide-x divide-b2b-purple/10">
+                  <div className="flex-1 pr-4">
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-b2b-ink/40">Rounds</p>
+                    <p className="font-display text-2xl leading-none text-b2b-ink">{post.linkedWorkout.rounds}</p>
+                  </div>
+                  <div className="flex-1 pl-4">
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-b2b-ink/40">Reps</p>
+                    <p className="font-display text-2xl leading-none text-b2b-ink">{post.linkedWorkout.reps}</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="mt-2.5">
                   <p className="text-[10px] font-semibold uppercase tracking-wide text-b2b-ink/40">
                     {WORKOUT_UNIT_LABELS[post.linkedWorkout.unit]}
                   </p>
-                  <p className="font-display text-2xl leading-none text-b2b-ink">
-                    {formatWorkoutScore(post.linkedWorkout)}
-                  </p>
+                  <p className="font-display text-3xl leading-none text-b2b-ink">{post.linkedWorkout.score}</p>
                 </div>
-                <div className="flex-1 pl-4">
-                  <p className="text-[10px] font-semibold uppercase tracking-wide text-b2b-ink/40">Intensity</p>
-                  <p
-                    className={`font-display text-2xl leading-none ${
-                      post.linkedWorkout.intensity === "RX" ? "text-b2b-pink" : "text-b2b-ink"
-                    }`}
-                  >
-                    {WORKOUT_INTENSITY_LABELS[post.linkedWorkout.intensity]}
-                  </p>
-                </div>
-              </div>
+              )}
             </div>
             {post.linkedWorkout.description && (
               <WorkoutDescriptionToggle description={post.linkedWorkout.description} />
