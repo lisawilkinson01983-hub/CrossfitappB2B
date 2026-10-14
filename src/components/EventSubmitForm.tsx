@@ -630,12 +630,15 @@ export function EventSubmitForm({
       )}
 
       <div>
-        <label className="block text-sm font-medium">Event image</label>
+        <label className="block text-sm font-medium">Event poster</label>
+        <p className="mt-0.5 text-xs text-b2b-ink/50">
+          Shown as the full card image when this event appears in Discover's swipeable carousel.
+        </p>
         <div className="mt-2 flex items-center gap-4">
           {imagePreview ? (
             <Image
               src={imagePreview}
-              alt="Event image preview"
+              alt="Event poster preview"
               width={80}
               height={80}
               unoptimized
@@ -656,7 +659,7 @@ export function EventSubmitForm({
             onClick={() => fileInputRef.current?.click()}
             className="rounded-full border border-b2b-purple/20 px-3 py-1.5 text-sm font-medium text-b2b-ink/60 hover:border-b2b-pink hover:text-b2b-pink"
           >
-            📷 {image ? "Change photo" : mode === "edit" ? "Change photo" : "Add photo"}
+            📷 {image ? "Change poster" : mode === "edit" ? "Change poster" : "Add poster"}
           </button>
         </div>
       </div>

@@ -8,14 +8,14 @@ import {
   GENDER_LABELS,
   LEVEL_LABELS,
   LOOKING_FOR_LABELS,
+  parseLevels,
   parseLookingFor,
-  showsSingleBadge,
 } from "@/lib/labels";
 import { UNAFFILIATED } from "@/lib/gyms";
 import { DISTANCE_RANGES, distanceMiles, ensureUserAreaCoords } from "@/lib/geocode";
 import { SectionCard } from "@/components/SectionCard";
-import { Avatar } from "@/components/Avatar";
 import { SearchFilters } from "@/components/SearchFilters";
+import { SwipeCardList, type SwipeCardItem } from "@/components/SwipeCardList";
 
 // "Prefer not to disclose" is a profile-level privacy choice, not a search filter.
 const SEARCHABLE_GENDERS = GENDERS.filter((g) => g !== "PREFER_NOT_TO_DISCLOSE");
@@ -88,9 +88,7 @@ export async function AthletesSearch({
       areaLng: true,
       affiliateGym: true,
       lookingFor: true,
-      isSingle: true,
-      showSingleBadge: true,
-      status: true,
+      levels: true,
     },
     orderBy: { name: "asc" },
   });
@@ -266,48 +264,40 @@ export async function AthletesSearch({
       </form>
       </SectionCard>
 
-      {results.length === 0 ? (
-        <p className="text-b2b-ink/50">No athletes match those filters.</p>
-      ) : (
-        <div className="flex flex-col gap-3">
-          {results.map(({ user }) => {
-            const status: FollowStatus = myFollowingIds.has(user.id)
-              ? "following"
-              : myPendingIds.has(user.id)
-                ? "pending"
-                : "none";
-
-            return (
-              <div
-                key={user.id}
-                className="flex items-center justify-between rounded-xl border border-b2b-purple/10 bg-b2b-card p-3"
-              >
-                <Link href={`/profile/${user.id}`} className="flex flex-1 items-center gap-3">
-                  <Avatar
-                    photo={user.photo}
-                    name={user.name}
-                    size={48}
-                    showSingleBadge={showsSingleBadge(user)}
-                    status={user.status}
-                  />
-                  <div>
-                    <p className="font-medium">{user.name}</p>
-                    {user.affiliateGym && <p className="text-sm text-b2b-ink/50">{user.affiliateGym}</p>}
-                  </div>
-                </Link>
-                <div className="flex flex-col items-end gap-1">
-                  <FollowButton targetUserId={user.id} initialStatus={status} />
-                  <BlockMuteControls
-                    targetUserId={user.id}
-                    initialBlocked={false}
-                    initialMuted={myMutedIds.has(user.id)}
-                  />
-                </div>
+      {(() => {
+        const items: SwipeCardItem[] = results.map(({ user, miles }) => {
+          const status: FollowStatus = myFollowingIds.has(user.id)
+            ? "following"
+            : myPendingIds.has(user.id)
+              ? "pending"
+              : "none";
+          return {
+            id: user.id,
+            image: user.photo,
+            initial: user.name.charAt(0),
+            title: user.name,
+            badges: parseLevels(user.levels).map((lvl) => LEVEL_LABELS[lvl]),
+            subtitle:
+              [user.affiliateGym, miles !== null ? `${miles < 1 ? "<1" : Math.round(miles)} miles away` : null]
+                .filter(Boolean)
+                .join(" · ") || null,
+            href: `/profile/${user.id}`,
+            action: (
+              <div className="flex flex-col items-center gap-1.5">
+                <FollowButton targetUserId={user.id} initialStatus={status} />
+                <BlockMuteControls targetUserId={user.id} initialBlocked={false} initialMuted={myMutedIds.has(user.id)} />
               </div>
-            );
-          })}
-        </div>
-      )}
+            ),
+          };
+        });
+        return (
+          <SwipeCardList
+            items={items}
+            emptyMessage="No athletes match those filters."
+            label={`${items.length} ${items.length === 1 ? "athlete" : "athletes"}`}
+          />
+        );
+      })()}
     </div>
   );
 }

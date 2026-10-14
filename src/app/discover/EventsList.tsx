@@ -3,7 +3,6 @@ import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { EventEngagementButtons } from "@/components/EventEngagementButtons";
 import { SectionCard } from "@/components/SectionCard";
-import { Avatar } from "@/components/Avatar";
 import { distanceMiles, ensureUserAreaCoords, ensureEventCoords, DISTANCE_RANGES } from "@/lib/geocode";
 import { formatEventDate } from "@/lib/eventDate";
 import { SearchSuggestInput } from "@/components/SearchSuggestInput";
@@ -11,6 +10,7 @@ import { SearchFilters } from "@/components/SearchFilters";
 import { eventVisibilityWhere } from "@/lib/eventVisibility";
 import { isCompetitionEvent } from "@/lib/labels";
 import { EditIcon } from "@/components/EditIcon";
+import { SwipeCardList, type SwipeCardItem } from "@/components/SwipeCardList";
 
 const TIME_RANGES = {
   week: { label: "Next 7 days", days: 7 },
@@ -184,65 +184,51 @@ export async function EventsList({
         </p>
       </SectionCard>
 
-      {visibleEvents.length === 0 ? (
-        <p className="text-b2b-ink/50">No events match those filters.</p>
-      ) : (
-        <div className="flex flex-col gap-3">
-          {visibleEvents.map(({ event, miles }) => {
-            const isParticipating = event.participants.some((p) => p.userId === currentUserId);
-            const isInterested = event.interests.some((i) => i.userId === currentUserId);
-            return (
-              <div key={event.id} className="rounded-xl border border-b2b-purple/10 bg-b2b-card p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <Avatar photo={event.photo} name={event.name} size={48} />
-                    <div>
-                      <p className="font-semibold">
-                        <Link href={`/events/${event.id}`} className="hover:underline">
-                          {event.name}
-                        </Link>
-                        {event.tag && (
-                          <span className="ml-2 rounded-full bg-b2b-purple/10 px-2 py-0.5 text-xs text-b2b-purple">
-                            {event.tag}
-                          </span>
-                        )}
-                      </p>
-                      <p className="text-sm text-b2b-ink/50">
-                        {formatEventDate(event)} · {event.isOnline ? "Online" : event.location}
-                        {miles !== null && <> · {miles < 1 ? "<1" : Math.round(miles)} miles away</>}
-                      </p>
-                    </div>
-                  </div>
-                  {currentUser?.isAdmin && (
-                    <Link
-                      href={`/events/${event.id}/edit`}
-                      aria-label="Edit"
-                      className="shrink-0 text-b2b-purple hover:text-b2b-purple-dark"
-                    >
-                      <EditIcon className="h-4 w-4" />
-                    </Link>
-                  )}
-                </div>
-                {event.description && (
-                  <p className="mt-2 line-clamp-2 text-sm text-b2b-ink/70">{event.description}</p>
-                )}
-                <p className="mt-2 text-xs text-b2b-ink/40">
-                  {event.participants.length}{" "}
-                  {event.participants.length === 1 ? "athlete" : "athletes"} participating
-                </p>
-                <div className="mt-3">
-                  <EventEngagementButtons
-                    eventId={event.id}
-                    initialParticipating={isParticipating}
-                    initialInterested={isInterested}
-                    isCompetition={isCompetitionEvent(event)}
-                  />
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
+      {(() => {
+        const items: SwipeCardItem[] = visibleEvents.map(({ event, miles }) => {
+          const isParticipating = event.participants.some((p) => p.userId === currentUserId);
+          const isInterested = event.interests.some((i) => i.userId === currentUserId);
+          return {
+            id: event.id,
+            image: event.photo,
+            initial: event.name.charAt(0),
+            title: event.name,
+            badges: event.tag ? [event.tag] : [],
+            subtitle: [
+              formatEventDate(event),
+              event.isOnline ? "Online" : event.location,
+              miles !== null ? `${miles < 1 ? "<1" : Math.round(miles)} miles away` : null,
+            ]
+              .filter(Boolean)
+              .join(" · "),
+            href: `/events/${event.id}`,
+            action: (
+              <EventEngagementButtons
+                eventId={event.id}
+                initialParticipating={isParticipating}
+                initialInterested={isInterested}
+                isCompetition={isCompetitionEvent(event)}
+              />
+            ),
+            cornerAction: currentUser?.isAdmin ? (
+              <Link
+                href={`/events/${event.id}/edit`}
+                aria-label="Edit"
+                className="block text-white hover:text-b2b-pink"
+              >
+                <EditIcon className="h-4 w-4" />
+              </Link>
+            ) : undefined,
+          };
+        });
+        return (
+          <SwipeCardList
+            items={items}
+            emptyMessage="No events match those filters."
+            label={`${items.length} ${items.length === 1 ? "event" : "events"}`}
+          />
+        );
+      })()}
     </div>
   );
 }

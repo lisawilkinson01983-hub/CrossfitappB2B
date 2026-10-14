@@ -2,13 +2,13 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { AFFILIATE_GYMS } from "@/lib/gyms";
 import { ensureGymPage } from "@/lib/gymPages";
-import { Avatar } from "@/components/Avatar";
 import { SectionCard } from "@/components/SectionCard";
 import { DISTANCE_RANGES, distanceMiles, ensureUserAreaCoords, geocode } from "@/lib/geocode";
 import { SearchSuggestInput } from "@/components/SearchSuggestInput";
 import { SearchFilters } from "@/components/SearchFilters";
 import { FollowButton, type FollowStatus } from "@/components/FollowButton";
 import { EditIcon } from "@/components/EditIcon";
+import { SwipeCardList, type SwipeCardItem } from "@/components/SwipeCardList";
 
 export type AffiliateSearchParams = {
   q?: string;
@@ -253,68 +253,50 @@ export async function AffiliatesList({
         </p>
       </SectionCard>
 
-      {visibleGyms.length === 0 ? (
-        <p className="text-b2b-ink/50">No affiliates match those filters.</p>
-      ) : (
-        <div className="flex flex-col gap-3">
-          {visibleGyms.map(({ gym, miles }) => {
-            const athleteCount = countByName.get(gym.name) ?? 0;
-            const followStatus: FollowStatus = gym.claimedBy
-              ? myFollowingIds.has(gym.claimedBy.id)
-                ? "following"
-                : myPendingIds.has(gym.claimedBy.id)
-                  ? "pending"
-                  : "none"
-              : "none";
-
-            return (
-              <div
-                key={gym.id}
-                className="flex items-center gap-3 rounded-xl border border-b2b-purple/10 bg-b2b-card p-4 hover:border-b2b-pink"
+      {(() => {
+        const items: SwipeCardItem[] = visibleGyms.map(({ gym, miles }) => {
+          const athleteCount = countByName.get(gym.name) ?? 0;
+          const followStatus: FollowStatus = gym.claimedBy
+            ? myFollowingIds.has(gym.claimedBy.id)
+              ? "following"
+              : myPendingIds.has(gym.claimedBy.id)
+                ? "pending"
+                : "none"
+            : "none";
+          return {
+            id: gym.id,
+            image: gym.claimedBy?.photo ?? gym.photo,
+            initial: gym.name.charAt(0),
+            title: gym.name,
+            badges: gym.claimedBy ? ["Verified"] : [],
+            subtitle:
+              [gym.address, miles !== null ? `${miles < 1 ? "<1" : Math.round(miles)} miles away` : null, `${athleteCount} ${athleteCount === 1 ? "athlete" : "athletes"}`]
+                .filter(Boolean)
+                .join(" · ") || null,
+            href: gym.claimedBy ? `/profile/${gym.claimedBy.id}` : `/gyms/${encodeURIComponent(gym.name)}`,
+            action:
+              gym.claimedBy && gym.claimedBy.id !== currentUserId ? (
+                <FollowButton targetUserId={gym.claimedBy.id} initialStatus={followStatus} />
+              ) : undefined,
+            cornerAction: currentUser?.isAdmin ? (
+              <Link
+                href={`/gyms/${encodeURIComponent(gym.name)}/edit`}
+                aria-label="Edit"
+                className="block text-white hover:text-b2b-pink"
               >
-                <Link
-                  href={gym.claimedBy ? `/profile/${gym.claimedBy.id}` : `/gyms/${encodeURIComponent(gym.name)}`}
-                  className="flex flex-1 items-center gap-3"
-                >
-                  <Avatar
-                    fallback="gym"
-                    photo={gym.claimedBy?.photo ?? gym.photo}
-                    name={gym.name}
-                    size={48}
-                    verified={Boolean(gym.claimedBy)}
-                  />
-                  <div className="flex-1">
-                    <p className="font-medium">{gym.name}</p>
-                    {gym.address && (
-                      <p className="text-sm text-b2b-ink/50">
-                        {gym.address}
-                        {miles !== null && <> · {miles < 1 ? "<1" : Math.round(miles)} miles away</>}
-                      </p>
-                    )}
-                    <p className="text-xs text-b2b-ink/40">
-                      {athleteCount} {athleteCount === 1 ? "athlete" : "athletes"} on Box 2 Box
-                    </p>
-                  </div>
-                </Link>
-                <div className="flex shrink-0 flex-col items-end gap-1">
-                  {gym.claimedBy && gym.claimedBy.id !== currentUserId && (
-                    <FollowButton targetUserId={gym.claimedBy.id} initialStatus={followStatus} />
-                  )}
-                  {currentUser?.isAdmin && (
-                    <Link
-                      href={`/gyms/${encodeURIComponent(gym.name)}/edit`}
-                      aria-label="Edit"
-                      className="text-b2b-purple hover:text-b2b-purple-dark"
-                    >
-                      <EditIcon className="h-4 w-4" />
-                    </Link>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
+                <EditIcon className="h-4 w-4" />
+              </Link>
+            ) : undefined,
+          };
+        });
+        return (
+          <SwipeCardList
+            items={items}
+            emptyMessage="No affiliates match those filters."
+            label={`${items.length} ${items.length === 1 ? "affiliate" : "affiliates"}`}
+          />
+        );
+      })()}
     </div>
   );
 }
