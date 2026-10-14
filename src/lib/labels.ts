@@ -60,6 +60,16 @@ export const LEVEL_BADGE_CLASSES: Record<LevelOption, string> = {
 
 export const NEUTRAL_BADGE_CLASSES = "bg-b2b-ink/5 text-b2b-ink/60 border border-b2b-ink/10";
 
+// A plain-text alternative to LEVEL_BADGE_CLASSES's pills — no background,
+// border or padding — for spots where a level tag sits inline right next to
+// someone's name (see LevelTags) rather than in its own labeled section
+// (see ProfileDetails' "Ability" block, which keeps the full pill).
+export const LEVEL_TEXT_CLASSES: Record<LevelOption, string> = {
+  SCALED: "text-b2b-ink/45",
+  INTERMEDIATE: "text-b2b-purple",
+  RX: "text-b2b-pink",
+};
+
 export const USER_STATUS_LABELS: Record<UserStatusOption, string> = {
   FIGHTING_FIT: "Fighting fit",
   ADAPTING: "Adapting",

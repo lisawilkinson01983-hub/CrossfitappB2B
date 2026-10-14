@@ -7,10 +7,11 @@ import { NavBar } from "@/components/NavBar";
 import { SectionCard } from "@/components/SectionCard";
 import { Avatar } from "@/components/Avatar";
 import { MessageButton } from "@/components/MessageButton";
-import { GENDER_LABELS, LEVEL_BADGE_CLASSES, LEVEL_LABELS, parseLevels, showsSingleBadge } from "@/lib/labels";
+import { GENDER_LABELS, LEVEL_LABELS, parseLevels, showsSingleBadge } from "@/lib/labels";
 import { GENDERS, LEVELS } from "@/lib/validation";
 import { assertEventVisible } from "@/lib/eventVisibility";
 import { BackLink } from "@/components/BackLink";
+import { LevelTags } from "@/components/LevelTags";
 
 // "Prefer not to disclose" is a profile-level privacy choice, not a search filter.
 const SEARCHABLE_GENDERS = GENDERS.filter((g) => g !== "PREFER_NOT_TO_DISCLOSE");
@@ -179,11 +180,7 @@ export default async function EventInterestedPage({
                     <div className="min-w-0">
                       <p className="truncate text-sm font-medium">
                         {interest.user.name}
-                        {parseLevels(interest.user.levels).map((level) => (
-                          <span key={level} className={`ml-2 rounded-full px-2 py-0.5 text-xs ${LEVEL_BADGE_CLASSES[level]}`}>
-                            {LEVEL_LABELS[level]}
-                          </span>
-                        ))}
+                        <LevelTags levels={parseLevels(interest.user.levels)} className="ml-2" />
                       </p>
                       {interest.user.affiliateGym && (
                         <p className="truncate text-xs text-b2b-ink/40">{interest.user.affiliateGym}</p>

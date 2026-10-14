@@ -4,8 +4,6 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  LEVEL_BADGE_CLASSES,
-  LEVEL_LABELS,
   WORKOUT_INTENSITY_BADGE_CLASSES,
   WORKOUT_INTENSITY_LABELS,
   WORKOUT_UNIT_LABELS,
@@ -14,6 +12,7 @@ import {
 } from "@/lib/labels";
 import type { LevelOption, TeammateRequest, UserStatusOption, WorkoutIntensityOption, WorkoutUnitOption } from "@/lib/validation";
 import { Avatar } from "@/components/Avatar";
+import { LevelTags } from "@/components/LevelTags";
 import { ExpandableImage } from "@/components/ExpandableImage";
 import { PostMediaCarousel } from "@/components/PostMediaCarousel";
 import { MentionText } from "@/components/MentionText";
@@ -650,11 +649,7 @@ export function PostCard({
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
               <span className="break-words font-semibold hover:underline">{headerUser.name}</span>
-              {headerUser.levels.map((level) => (
-                <span key={level} className={`shrink-0 rounded-full px-2 py-0.5 text-xs ${LEVEL_BADGE_CLASSES[level]}`}>
-                  {LEVEL_LABELS[level]}
-                </span>
-              ))}
+              <LevelTags levels={headerUser.levels} />
               {!post.sharedBy && isPb && <span className="shrink-0 text-sm font-semibold text-yellow-600">★ PB</span>}
             </div>
             <p className="truncate text-xs text-b2b-ink/40">
