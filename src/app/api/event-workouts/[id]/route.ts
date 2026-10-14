@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { eventWorkoutSchema } from "@/lib/validation";
 import { canEditEvent } from "@/lib/eventVisibility";
 
-/** Edits a numbered workout's title/standards/workflow — admin, organizer, or claiming affiliate only. The number itself isn't editable (reordering isn't supported). */
+/** Edits a numbered workout's title/workout/standards/workflow — admin, organizer, or claiming affiliate only. The number itself isn't editable (reordering isn't supported). */
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
@@ -36,6 +36,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     where: { id },
     data: {
       title: parsed.data.title,
+      workout: parsed.data.workout ?? null,
       standards: parsed.data.standards ?? null,
       workflow: parsed.data.workflow ?? null,
     },

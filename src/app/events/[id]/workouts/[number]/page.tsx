@@ -47,6 +47,13 @@ export default async function EventWorkoutPage({
           </div>
 
           <div className="mt-5 border-t border-b2b-purple/10 pt-4">
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-b2b-ink/50">Workout</h2>
+            <p className="mt-1.5 whitespace-pre-wrap text-sm text-b2b-ink/80">
+              {workout.workout ?? "Not released yet."}
+            </p>
+          </div>
+
+          <div className="mt-5 border-t border-b2b-purple/10 pt-4">
             <h2 className="text-xs font-semibold uppercase tracking-wider text-b2b-ink/50">Standards</h2>
             <p className="mt-1.5 whitespace-pre-wrap text-sm text-b2b-ink/80">
               {workout.standards ?? "Not released yet."}

@@ -333,6 +333,7 @@ export const reactionSchema = z.object({
 // is a reasonable thing to post ahead of the competition.
 export const eventWorkoutSchema = z.object({
   title: z.string().trim().min(1, "Give this workout a title").max(100),
+  workout: z.preprocess(emptyToUndefined, z.string().trim().max(2000).optional()),
   standards: z.preprocess(emptyToUndefined, z.string().trim().max(2000).optional()),
   workflow: z.preprocess(emptyToUndefined, z.string().trim().max(2000).optional()),
 });

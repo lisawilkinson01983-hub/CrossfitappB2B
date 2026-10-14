@@ -1235,8 +1235,9 @@ model EventWorkout {
   number Int
 
   title     String
-  standards String? // movement standards / rep scheme text
-  workflow  String? // the actual workout (time cap, rounds, rest, etc.)
+  workout   String? // the movements/reps/load prescription, e.g. "21-15-9 Thrusters (42.5/30kg) and Pull-ups"
+  standards String? // movement standards — what counts as a valid rep, depth, lockout, etc.
+  workflow  String? // format/structure — time cap, rounds, rest, scoring
 
   createdAt DateTime @default(now())
 

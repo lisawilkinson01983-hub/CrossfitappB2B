@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { eventWorkoutSchema } from "@/lib/validation";
 import { canEditEvent } from "@/lib/eventVisibility";
 
-/** Adds a numbered workout entry (title/standards/workflow) to an event — admin, organizer, or claiming affiliate only (see canEditEvent). */
+/** Adds a numbered workout entry (title/workout/standards/workflow) to an event — admin, organizer, or claiming affiliate only (see canEditEvent). */
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
@@ -41,6 +41,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       userId: session.user.id,
       number,
       title: parsed.data.title,
+      workout: parsed.data.workout ?? null,
       standards: parsed.data.standards ?? null,
       workflow: parsed.data.workflow ?? null,
     },

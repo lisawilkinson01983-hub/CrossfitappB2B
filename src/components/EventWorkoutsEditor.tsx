@@ -7,6 +7,7 @@ export type EventWorkoutEditData = {
   id: string;
   number: number;
   title: string;
+  workout: string | null;
   standards: string | null;
   workflow: string | null;
 };
@@ -28,7 +29,7 @@ export function EventWorkoutsEditor({ eventId, workouts }: { eventId: string; wo
   async function submit(
     url: string,
     method: "POST" | "PATCH",
-    data: { title: string; standards: string; workflow: string }
+    data: { title: string; workout: string; standards: string; workflow: string }
   ) {
     const res = await fetch(url, {
       method,
@@ -102,7 +103,7 @@ export function EventWorkoutsEditor({ eventId, workouts }: { eventId: string; wo
       {adding && (
         <WorkoutFieldsModal
           title="Add workout"
-          initial={{ title: "", standards: "", workflow: "" }}
+          initial={{ title: "", workout: "", standards: "", workflow: "" }}
           onClose={() => setAdding(false)}
           onSubmit={async (data) => {
             const ok = await submit(`/api/events/${eventId}/workouts`, "POST", data);
@@ -117,6 +118,7 @@ export function EventWorkoutsEditor({ eventId, workouts }: { eventId: string; wo
           title={`Edit workout ${editingWorkout.number}`}
           initial={{
             title: editingWorkout.title,
+            workout: editingWorkout.workout ?? "",
             standards: editingWorkout.standards ?? "",
             workflow: editingWorkout.workflow ?? "",
           }}
@@ -132,7 +134,7 @@ export function EventWorkoutsEditor({ eventId, workouts }: { eventId: string; wo
   );
 }
 
-/** A 3-field (title/standards/workflow) variant of the shared EditModal popout, used for both adding and editing a workout entry. */
+/** A 4-field (title/workout/standards/workflow) variant of the shared EditModal popout, used for both adding and editing a workout entry. */
 function WorkoutFieldsModal({
   title,
   initial,
@@ -140,9 +142,9 @@ function WorkoutFieldsModal({
   onSubmit,
 }: {
   title: string;
-  initial: { title: string; standards: string; workflow: string };
+  initial: { title: string; workout: string; standards: string; workflow: string };
   onClose: () => void;
-  onSubmit: (data: { title: string; standards: string; workflow: string }) => Promise<boolean>;
+  onSubmit: (data: { title: string; workout: string; standards: string; workflow: string }) => Promise<boolean>;
 }) {
   const [fields, setFields] = useState(initial);
   const [saving, setSaving] = useState(false);
@@ -171,6 +173,16 @@ function WorkoutFieldsModal({
               onChange={(e) => setFields((f) => ({ ...f, title: e.target.value }))}
               autoFocus
               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-b2b-pink focus:outline-none"
+            />
+          </label>
+
+          <label className="flex flex-col gap-1">
+            <span className="text-xs font-semibold uppercase tracking-wide text-b2b-ink/50">Workout</span>
+            <textarea
+              rows={4}
+              value={fields.workout}
+              onChange={(e) => setFields((f) => ({ ...f, workout: e.target.value }))}
+              className="w-full resize-none rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-b2b-pink focus:outline-none"
             />
           </label>
 
