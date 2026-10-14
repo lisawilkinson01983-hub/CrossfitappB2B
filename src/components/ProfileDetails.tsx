@@ -6,6 +6,7 @@ import {
   LEVEL_BADGE_CLASSES,
   LEVEL_LABELS,
   MONTH_NAMES,
+  NEUTRAL_BADGE_CLASSES,
   PB_LABELS,
   parseDisplayedPbs,
   parseLevels,
@@ -97,7 +98,7 @@ export async function ProfileDetails({
       ));
   const ageBadge =
     user.showAge && user.dateOfBirth != null ? (
-      <Badge label={`${calculateAge(user.dateOfBirth)} yrs`} className="bg-gray-100 text-gray-600" />
+      <Badge label={`${calculateAge(user.dateOfBirth)} yrs`} className={NEUTRAL_BADGE_CLASSES} />
     ) : null;
   // Gender and "looking for" are deliberately never rendered here — both are
   // kept purely for search/discovery matching (see /discover), not shown on
@@ -221,20 +222,20 @@ export async function ProfileDetails({
 
           <div className="mt-4 flex border-t border-b2b-purple/10 pt-4">
             <Link href={`/profile/${user.id}/connections?tab=followers`} className="flex-1 text-center">
-              <div className="text-lg font-bold text-b2b-ink">{followerCount}</div>
-              <div className="text-[11px] uppercase tracking-wide text-b2b-ink/45">Followers</div>
+              <div className="font-display text-2xl leading-none text-b2b-ink">{followerCount}</div>
+              <div className="mt-1 text-[11px] uppercase tracking-wide text-b2b-ink/45">Followers</div>
             </Link>
             <Link
               href={`/profile/${user.id}/connections?tab=following`}
               className="flex-1 border-l border-b2b-purple/10 text-center"
             >
-              <div className="text-lg font-bold text-b2b-ink">{followingCount}</div>
-              <div className="text-[11px] uppercase tracking-wide text-b2b-ink/45">Following</div>
+              <div className="font-display text-2xl leading-none text-b2b-ink">{followingCount}</div>
+              <div className="mt-1 text-[11px] uppercase tracking-wide text-b2b-ink/45">Following</div>
             </Link>
             {!isAffiliate && (
               <div className="flex-1 border-l border-b2b-purple/10 text-center">
-                <div className="text-lg font-bold text-b2b-ink">{workoutCount}</div>
-                <div className="text-[11px] uppercase tracking-wide text-b2b-ink/45">Workouts</div>
+                <div className="font-display text-2xl leading-none text-b2b-ink">{workoutCount}</div>
+                <div className="mt-1 text-[11px] uppercase tracking-wide text-b2b-ink/45">Workouts</div>
               </div>
             )}
           </div>
@@ -250,7 +251,7 @@ export async function ProfileDetails({
             <div className="mt-4">
               <p className="text-xs font-semibold uppercase tracking-wide text-b2b-ink/40">Relationship Status</p>
               <div className="mt-1.5 flex flex-wrap gap-2">
-                <Badge label={user.isSingle ? "Single" : "In a relationship"} className="bg-gray-100 text-gray-600" />
+                <Badge label={user.isSingle ? "Single" : "In a relationship"} className={NEUTRAL_BADGE_CLASSES} />
               </div>
             </div>
           )}

@@ -10,7 +10,7 @@ export function SectionCard({
   children: ReactNode;
 }) {
   return (
-    <section className="rounded-2xl border border-b2b-purple/10 bg-b2b-card p-5 shadow-sm shadow-b2b-purple/5">
+    <section className="rounded-[20px] border border-b2b-purple/15 bg-b2b-card p-5 shadow-sm shadow-b2b-purple/5">
       {(title || action) && (
         <div className="mb-4 flex items-center justify-between">
           {title && (

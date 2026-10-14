@@ -46,13 +46,19 @@ export const LEVEL_LABELS: Record<LevelOption, string> = {
   RX: "Rx",
 };
 
-// RX badges use the primary pink accent, Intermediate the secondary purple,
-// per the brand spec; Scaled has no accent assigned, so it stays neutral.
+// RX badges use the primary pink (gold) accent, Intermediate the secondary
+// purple (charcoal), per the brand spec; Scaled has no accent assigned, so it
+// stays neutral — all three keep a thin tonal border (the "Performance"
+// direction's gold-bordered-pill look), and use theme tokens rather than
+// literal grays so Scaled/age/relationship badges stay legible in dark mode
+// too (a literal bg-gray-100 would otherwise read as a stray light patch).
 export const LEVEL_BADGE_CLASSES: Record<LevelOption, string> = {
-  SCALED: "bg-gray-100 text-gray-600",
-  INTERMEDIATE: "bg-b2b-purple/10 text-b2b-purple",
-  RX: "bg-b2b-pink/10 text-b2b-pink",
+  SCALED: "bg-b2b-ink/5 text-b2b-ink/60 border border-b2b-ink/10",
+  INTERMEDIATE: "bg-b2b-purple/10 text-b2b-purple border border-b2b-purple/25",
+  RX: "bg-b2b-pink/10 text-b2b-pink border border-b2b-pink/30",
 };
+
+export const NEUTRAL_BADGE_CLASSES = "bg-b2b-ink/5 text-b2b-ink/60 border border-b2b-ink/10";
 
 export const USER_STATUS_LABELS: Record<UserStatusOption, string> = {
   FIGHTING_FIT: "Fighting fit",
@@ -221,6 +227,13 @@ export const WORKOUT_UNIT_LABELS: Record<WorkoutUnitOption, string> = {
   REPS: "Reps",
   WEIGHT: "Weight",
   ROUNDS_REPS: "Rounds + Reps",
+};
+
+// Same gold-bordered-pill treatment as LEVEL_BADGE_CLASSES's RX, reused for
+// a logged workout's own Rx/Scaled call (see WorkoutIntensity).
+export const WORKOUT_INTENSITY_BADGE_CLASSES: Record<WorkoutIntensityOption, string> = {
+  RX: "bg-b2b-pink/10 text-b2b-pink border border-b2b-pink/30",
+  SCALED: NEUTRAL_BADGE_CLASSES,
 };
 
 export const WORKOUT_INTENSITY_LABELS: Record<WorkoutIntensityOption, string> = {

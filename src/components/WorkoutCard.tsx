@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { WORKOUT_INTENSITY_LABELS, WORKOUT_UNIT_LABELS } from "@/lib/labels";
+import { WORKOUT_INTENSITY_BADGE_CLASSES, WORKOUT_INTENSITY_LABELS, WORKOUT_UNIT_LABELS } from "@/lib/labels";
 import type { WorkoutIntensityOption, WorkoutUnitOption } from "@/lib/validation";
 import { DeleteWorkoutButton } from "./DeleteWorkoutButton";
 import { PinButton } from "./PinButton";
@@ -50,12 +50,21 @@ export function WorkoutCard({
             {workout.isPb && <span className="mr-1 text-yellow-600">★ PB</span>}
             {workout.wodName}
           </p>
-          <p className="text-sm text-gray-600">
-            {workout.score} ({WORKOUT_UNIT_LABELS[workout.unit]}) ·{" "}
-            {WORKOUT_INTENSITY_LABELS[workout.intensity]}
+          <p className="mt-1 flex items-baseline gap-2">
+            <span className="font-display text-xl leading-none text-b2b-ink">
+              {workout.score}{" "}
+              <span className="text-xs font-sans font-medium normal-case text-b2b-ink/40">
+                {WORKOUT_UNIT_LABELS[workout.unit]}
+              </span>
+            </span>
+            <span
+              className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold ${WORKOUT_INTENSITY_BADGE_CLASSES[workout.intensity]}`}
+            >
+              {WORKOUT_INTENSITY_LABELS[workout.intensity]}
+            </span>
           </p>
         </div>
-        <p className="whitespace-nowrap text-xs text-gray-400">
+        <p className="whitespace-nowrap text-xs text-b2b-ink/40">
           {formatDate(workout.createdAt)}
         </p>
       </div>
