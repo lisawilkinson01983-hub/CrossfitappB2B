@@ -133,6 +133,11 @@ enum NotificationType {
   // (see Event.claimRequestedById) — sent to every admin, same pattern as
   // AFFILIATE_VERIFICATION_REQUESTED/EVENT_SUBMITTED/GYM_SUBMITTED.
   EVENT_CLAIM_REQUESTED
+  // Someone reacted to one of this event's numbered workouts with an emoji
+  // (see EventWorkoutReaction) — sent to whoever authored/last touched that
+  // EventWorkout entry (EventWorkout.userId), same pattern as
+  // COMMENT_REACTION/EVENT_NOTICE_COMMENT_REACTION.
+  EVENT_WORKOUT_REACTION
 }
 
 enum EventStatus {
@@ -456,25 +461,26 @@ model User {
   conversationParticipants ConversationParticipant[]
   sentMessages             Message[]
 
-  createdEvents        Event[]
-  submittedEvents      Event[]              @relation("EventSubmissions")
-  submittedGyms        Gym[]                @relation("GymSubmissions")
-  claimedGym           Gym?                 @relation("GymClaim")
-  claimedEvent         Event?               @relation("EventClaim")
-  requestedEventClaims Event[]              @relation("EventClaimRequests")
+  createdEvents               Event[]
+  submittedEvents             Event[]                      @relation("EventSubmissions")
+  submittedGyms               Gym[]                        @relation("GymSubmissions")
+  claimedGym                  Gym?                         @relation("GymClaim")
+  claimedEvent                Event?                       @relation("EventClaim")
+  requestedEventClaims        Event[]                      @relation("EventClaimRequests")
   // Other Accounts granted a toggle onto this profile — see ProfileAccess.
-  sharedWithAccounts   ProfileAccess[]
-  eventParticipations  EventParticipant[]
-  eventInterests       EventInterest[]
-  eventPins            EventPin[]
-  eventNotices         EventNotice[]
-  eventNoticeLikes     EventNoticeLike[]
-  eventNoticeComments  EventNoticeComment[]
+  sharedWithAccounts          ProfileAccess[]
+  eventParticipations         EventParticipant[]
+  eventInterests              EventInterest[]
+  eventPins                   EventPin[]
+  eventNotices                EventNotice[]
+  eventNoticeLikes            EventNoticeLike[]
+  eventNoticeComments         EventNoticeComment[]
   eventNoticeCommentReactions EventNoticeCommentReaction[]
-  eventTeammateAlerts  EventTeammateAlert[]
-  eventInvitesReceived EventInvite[]        @relation("EventInvitesReceived")
-  eventInvitesSent     EventInvite[]        @relation("EventInvitesSent")
-  eventWorkouts        EventWorkout[]
+  eventTeammateAlerts         EventTeammateAlert[]
+  eventInvitesReceived        EventInvite[]                @relation("EventInvitesReceived")
+  eventInvitesSent            EventInvite[]                @relation("EventInvitesSent")
+  eventWorkouts               EventWorkout[]
+  eventWorkoutReactions       EventWorkoutReaction[]
 
   blocksMade     Block[] @relation("BlocksMade")
   blocksReceived Block[] @relation("BlocksReceived")
@@ -518,7 +524,7 @@ model Workout {
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  wodName String
+  wodName        String
   // Free text, e.g. "12:34", "150 reps", "225 lb" — set for every unit
   // except ROUNDS_REPS, which stores its two numbers in `rounds`/`reps`
   // below instead of packing them into one "11+5" string.
@@ -611,6 +617,13 @@ model Post {
   linkedEventId String?
   linkedEvent   Event?  @relation(fields: [linkedEventId], references: [id], onDelete: Cascade)
 
+  // Set when this post shares one of an event's numbered workouts to the
+  // sharer's own feed (see /api/event-workouts/[id]/share) — toggled on/off
+  // like a post reshare, not auto-created. Deleting that EventWorkout
+  // removes this post too, since it has nothing left to show.
+  linkedEventWorkoutId String?
+  linkedEventWorkout   EventWorkout? @relation(fields: [linkedEventWorkoutId], references: [id], onDelete: Cascade)
+
   // Set when this post is a share/reshare of another post to the sharer's
   // own feed (see /api/posts/[id]/share) — a share row carries none of its
   // own content (contentText/media/etc. stay null); PostCard reads the
@@ -629,6 +642,7 @@ model Post {
   notifications Notification[]
 
   @@unique([userId, sharedFromId])
+  @@unique([userId, linkedEventWorkoutId])
   @@index([userId])
   @@index([createdAt])
 }
@@ -1241,8 +1255,29 @@ model EventWorkout {
 
   createdAt DateTime @default(now())
 
+  reactions     EventWorkoutReaction[]
+  posts         Post[]
+  notifications Notification[]
+
   @@unique([eventId, number])
   @@index([eventId])
+}
+
+// Someone reacting to one of an event's numbered workouts (see EventWorkout)
+// with one of the fixed REACTION_EMOJIS — same shape as
+// CommentReaction/EventNoticeCommentReaction.
+model EventWorkoutReaction {
+  id             String       @id @default(cuid())
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  eventWorkoutId String
+  eventWorkout   EventWorkout @relation(fields: [eventWorkoutId], references: [id], onDelete: Cascade)
+  emoji          String
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, eventWorkoutId, emoji])
+  @@index([eventWorkoutId])
 }
 
 // A saved "find a team" search — lets someone with no current matches get
@@ -1472,6 +1507,11 @@ model Notification {
   // (via /feed?story=, since a story has no standalone page of its own).
   storyId String?
   story   Story?  @relation(fields: [storyId], references: [id], onDelete: Cascade)
+
+  // Set for EVENT_WORKOUT_REACTION — which numbered workout was reacted to,
+  // so the notification can deep-link to /events/[id]/workouts/[number].
+  eventWorkoutId String?
+  eventWorkout   EventWorkout? @relation(fields: [eventWorkoutId], references: [id], onDelete: Cascade)
 
   readAt    DateTime?
   createdAt DateTime  @default(now())

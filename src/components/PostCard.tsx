@@ -120,6 +120,16 @@ export type PostCardData = {
     isOnline: boolean;
     location: string | null;
   } | null;
+  linkedEventWorkout: {
+    id: string;
+    number: number;
+    title: string;
+    workout: string | null;
+    standards: string | null;
+    workflow: string | null;
+    eventId: string;
+    event: { name: string };
+  } | null;
   likeCount: number;
   likedByMe: boolean;
   savedByMe: boolean;
@@ -806,6 +816,27 @@ export function PostCard({
             {post.linkedWorkout.description && (
               <WorkoutDescriptionToggle description={post.linkedWorkout.description} />
             )}
+          </div>
+        )}
+
+        {post.linkedEventWorkout && (
+          <div className={post.sharedBy ? "" : "mt-3"}>
+            <Link
+              href={`/events/${post.linkedEventWorkout.eventId}/workouts/${post.linkedEventWorkout.number}`}
+              className="block rounded-xl border border-b2b-purple/10 bg-b2b-bg px-4 py-3 hover:border-b2b-pink/30"
+            >
+              <p className="truncate text-xs font-semibold uppercase tracking-wide text-b2b-ink/40">
+                {post.linkedEventWorkout.event.name} · Workout {post.linkedEventWorkout.number}
+              </p>
+              <p className="mt-1 font-display text-lg leading-none text-b2b-ink">
+                {post.linkedEventWorkout.title}
+              </p>
+              {post.linkedEventWorkout.workout && (
+                <p className="mt-2 whitespace-pre-wrap text-sm text-b2b-ink/70">
+                  {post.linkedEventWorkout.workout}
+                </p>
+              )}
+            </Link>
           </div>
         )}
 

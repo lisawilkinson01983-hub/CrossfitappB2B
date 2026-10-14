@@ -32,7 +32,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     !post.photo &&
     !post.video &&
     !post.linkedWorkoutId &&
-    !post.linkedEventId
+    !post.linkedEventId &&
+    !post.linkedEventWorkoutId
   ) {
     return NextResponse.json({ error: "Post can't be empty" }, { status: 400 });
   }

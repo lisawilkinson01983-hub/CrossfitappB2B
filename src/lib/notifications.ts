@@ -12,6 +12,7 @@ export type NotificationView = {
   pbField: string | null;
   emoji: string | null;
   storyId: string | null;
+  eventWorkout: { eventId: string; number: number } | null;
 };
 
 /** What a post actually is, for notification wording — a photo/video takes priority over its text type, since that's what the other person actually reacted to. */
@@ -79,6 +80,8 @@ export function notificationText(n: NotificationView): string {
       return n.emoji
         ? `reacted ${n.emoji} to your message board comment`
         : "reacted to your message board comment";
+    case "EVENT_WORKOUT_REACTION":
+      return n.emoji ? `reacted ${n.emoji} to a workout you posted` : "reacted to a workout you posted";
     case "MENTION":
       return n.storyId ? "tagged you in their story" : "mentioned you";
     default:
@@ -113,6 +116,10 @@ export function notificationHref(n: NotificationView, viewerId: string): string 
     case "EVENT_NOTICE_COMMENT":
     case "EVENT_NOTICE_COMMENT_REACTION":
       return `/events/${n.event?.id ?? ""}/notices`;
+    case "EVENT_WORKOUT_REACTION":
+      return n.eventWorkout
+        ? `/events/${n.eventWorkout.eventId}/workouts/${n.eventWorkout.number}`
+        : "/feed";
     case "WORKOUT_COMMENT":
       return `/profile/${viewerId}/gallery${n.workoutId ? `?workout=${n.workoutId}` : ""}`;
     case "PB_COMMENT":

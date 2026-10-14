@@ -31,6 +31,7 @@ export default async function NotificationsPage() {
       event: { select: { id: true, name: true } },
       gym: { select: { id: true, name: true } },
       notice: { select: { id: true, title: true, body: true } },
+      eventWorkout: { select: { eventId: true, number: true } },
     },
   });
 

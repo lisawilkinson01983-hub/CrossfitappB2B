@@ -22,6 +22,7 @@ type PreviewPost = {
   _count: { likes: number; comments: number; media: number };
   linkedWorkout: { wodName: string } | null;
   linkedEvent: { name: string } | null;
+  linkedEventWorkout: { title: string } | null;
   user: { name: string; photo: string | null };
 };
 
@@ -29,6 +30,7 @@ type PreviewPost = {
 function summarize(post: PreviewPost): string {
   if (post.contentText) return stripMentionMarkup(post.contentText);
   if (post.linkedWorkout) return post.linkedWorkout.wodName;
+  if (post.linkedEventWorkout) return `Shared workout: ${post.linkedEventWorkout.title}`;
   if (post.type === "TEAMMATE_REQUEST") return "Looking for teammates";
   if (post.linkedEvent) return `Competing in ${post.linkedEvent.name}`;
   if (post._count.media > 1) return `Shared ${post._count.media} photos/videos`;
@@ -63,6 +65,7 @@ export async function ProfilePosts({ userId, isOwner = false }: { userId: string
         _count: { select: { likes: true, comments: true, media: true } },
         linkedWorkout: { select: { wodName: true } },
         linkedEvent: { select: { name: true } },
+        linkedEventWorkout: { select: { title: true } },
         user: { select: { name: true, photo: true } },
       },
     }),

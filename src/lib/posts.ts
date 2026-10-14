@@ -31,6 +31,18 @@ const postContentInclude = {
     select: { wodName: true, score: true, rounds: true, reps: true, unit: true, intensity: true, description: true },
   },
   linkedEvent: { select: { id: true, name: true, date: true, endDate: true, isOnline: true, location: true } },
+  linkedEventWorkout: {
+    select: {
+      id: true,
+      number: true,
+      title: true,
+      workout: true,
+      standards: true,
+      workflow: true,
+      eventId: true,
+      event: { select: { name: true } },
+    },
+  },
   media: {
     orderBy: { order: "asc" },
     select: { id: true, kind: true, url: true, thumbnail: true },
@@ -111,6 +123,7 @@ export function toPostCardData(post: PostWithCardData, currentUserId: string): P
     },
     linkedWorkout: original.linkedWorkout,
     linkedEvent: original.linkedEvent,
+    linkedEventWorkout: original.linkedEventWorkout,
     likeCount: original.likes.length,
     likedByMe: original.likes.some((like) => like.userId === currentUserId),
     savedByMe: original.savedBy.some((save) => save.userId === currentUserId),

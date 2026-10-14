@@ -6,6 +6,9 @@ import { NavBar } from "@/components/NavBar";
 import { SectionCard } from "@/components/SectionCard";
 import { BackLink } from "@/components/BackLink";
 import { assertEventVisible } from "@/lib/eventVisibility";
+import { EventWorkoutReactions } from "@/components/EventWorkoutReactions";
+import { EventWorkoutShareButton } from "@/components/EventWorkoutShareButton";
+import { summarizeReactions } from "@/lib/reactions";
 
 export default async function EventWorkoutPage({
   params,
@@ -28,6 +31,11 @@ export default async function EventWorkoutPage({
 
   const workout = await prisma.eventWorkout.findUnique({
     where: { eventId_number: { eventId, number: workoutNumber } },
+    include: {
+      reactions: { select: { emoji: true, userId: true } },
+      posts: { where: { userId: session.user.id }, select: { id: true } },
+      _count: { select: { posts: true } },
+    },
   });
   if (!workout) notFound();
 
@@ -65,6 +73,18 @@ export default async function EventWorkoutPage({
             <p className="mt-1.5 whitespace-pre-wrap text-sm text-b2b-ink/80">
               {workout.workflow ?? "Not released yet."}
             </p>
+          </div>
+
+          <div className="mt-5 flex items-center justify-between border-t border-b2b-purple/10 pt-4">
+            <EventWorkoutReactions
+              eventWorkoutId={workout.id}
+              initialReactions={summarizeReactions(workout.reactions, session.user.id)}
+            />
+            <EventWorkoutShareButton
+              eventWorkoutId={workout.id}
+              initialShared={workout.posts.length > 0}
+              initialCount={workout._count.posts}
+            />
           </div>
         </SectionCard>
       </div>
