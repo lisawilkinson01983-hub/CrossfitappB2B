@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import Image from "next/image";
 import { Avatar } from "@/components/Avatar";
 import { MessageButton } from "@/components/MessageButton";
 import { LEVEL_LABELS, LEVEL_TEXT_CLASSES, showsSingleBadge } from "@/lib/labels";
@@ -13,9 +14,16 @@ export type InterestedAthlete = {
   levels: LevelOption[];
   area: string | null;
   affiliateGym: string | null;
-  bio: string | null;
   isSingle: boolean | null;
   showSingleBadge: boolean;
+};
+
+// The brand's "no photo" fill — same diagonal gold-on-ink pattern used as the
+// banner fallback on a full profile (see ProfileDetails) — so a photo-less
+// card still reads as an intentional brand moment, not a blank gap.
+const NO_PHOTO_PATTERN = {
+  backgroundImage:
+    "repeating-linear-gradient(135deg, rgba(184,132,42,0.22) 0px, rgba(184,132,42,0.22) 2px, transparent 2px, transparent 18px)",
 };
 
 function LevelTagsInline({ levels }: { levels: LevelOption[] }) {
@@ -178,7 +186,6 @@ export function InterestedAthletesCarousel({ athletes }: { athletes: InterestedA
                 </button>
                 <MessageButton targetUserId={a.id} compact />
               </div>
-              {a.bio && <p className="mt-2 line-clamp-2 text-xs text-b2b-ink/65">{a.bio}</p>}
             </div>
           ))}
         </div>
@@ -203,26 +210,43 @@ export function InterestedAthletesCarousel({ athletes }: { athletes: InterestedA
                 onPointerDown={onPointerDown}
                 onPointerMove={onPointerMove}
                 onPointerUp={onPointerUp}
-                className="flex w-full max-w-[280px] touch-none select-none flex-col items-center rounded-2xl border border-b2b-purple/10 bg-b2b-card p-5 text-center shadow-sm"
-                style={{ height: 380 }}
+                className="relative w-full max-w-[280px] touch-none select-none overflow-hidden rounded-2xl shadow-lg"
+                style={{ height: 440 }}
               >
-                <Avatar photo={active.photo} name={active.name} size={64} showSingleBadge={showsSingleBadge(active)} />
-                <p className="mt-2.5 text-base font-semibold">{active.name}</p>
-                <p className="mt-0.5 text-sm">
-                  <LevelTagsInline levels={active.levels} />
-                </p>
-                <p className="mt-1 text-xs text-b2b-ink/50">
-                  {[active.area, active.affiliateGym].filter(Boolean).join(" · ") || "—"}
-                </p>
-
-                <div className="my-3 w-full flex-shrink-0 border-t border-b2b-purple/10" />
-
-                <div className="min-h-0 flex-1 overflow-y-auto">
-                  <p className="text-sm leading-relaxed text-b2b-ink/75">{active.bio ?? "No bio yet."}</p>
+                <div className="absolute inset-0">
+                  {active.photo ? (
+                    <Image
+                      src={active.photo}
+                      alt=""
+                      fill
+                      draggable={false}
+                      sizes="280px"
+                      className="pointer-events-none object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center bg-b2b-ink" style={NO_PHOTO_PATTERN}>
+                      <span className="font-display text-9xl leading-none text-b2b-pink/80">
+                        {active.name.charAt(0).toUpperCase()}
+                      </span>
+                    </div>
+                  )}
                 </div>
 
-                <div className="mt-3 flex-shrink-0">
-                  <MessageButton targetUserId={active.id} />
+                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/45 to-transparent px-5 pb-5 pt-16 text-left">
+                  <p className="text-xl font-bold leading-tight text-white drop-shadow-sm">{active.name}</p>
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {active.levels.map((lvl) => (
+                      <span
+                        key={lvl}
+                        className="rounded-full bg-white/15 px-2.5 py-0.5 text-[11px] font-semibold text-white ring-1 ring-inset ring-white/25 backdrop-blur-sm"
+                      >
+                        {LEVEL_LABELS[lvl]}
+                      </span>
+                    ))}
+                  </div>
+                  <p className="mt-1.5 text-xs font-medium text-white/85">
+                    {[active.area, active.affiliateGym].filter(Boolean).join(" · ") || "—"}
+                  </p>
                 </div>
               </div>
             </div>
@@ -238,6 +262,10 @@ export function InterestedAthletesCarousel({ athletes }: { athletes: InterestedA
                 <path d="M9 18l6-6-6-6" />
               </svg>
             </button>
+          </div>
+
+          <div className="mt-3 flex justify-center">
+            <MessageButton targetUserId={active.id} />
           </div>
 
           <div className="mt-3 flex items-center justify-center gap-1.5" role="tablist" aria-label="Jump to athlete">

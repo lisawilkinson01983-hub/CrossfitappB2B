@@ -31,7 +31,6 @@ export default async function FindTeammatePage({ params }: { params: Promise<{ i
               levels: true,
               area: true,
               affiliateGym: true,
-              bio: true,
               isSingle: true,
               showSingleBadge: true,
             },
@@ -50,7 +49,6 @@ export default async function FindTeammatePage({ params }: { params: Promise<{ i
     levels: parseLevels(interest.user.levels),
     area: interest.user.area,
     affiliateGym: interest.user.affiliateGym,
-    bio: interest.user.bio,
     isSingle: interest.user.isSingle,
     showSingleBadge: interest.user.showSingleBadge,
   }));
