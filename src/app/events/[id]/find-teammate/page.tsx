@@ -5,6 +5,8 @@ import { prisma } from "@/lib/prisma";
 import { NavBar } from "@/components/NavBar";
 import { SectionCard } from "@/components/SectionCard";
 import { EventNoticesPanel } from "@/components/EventNoticesPanel";
+import { InterestedAthletesCarousel, type InterestedAthlete } from "@/components/InterestedAthletesCarousel";
+import { parseLevels } from "@/lib/labels";
 import { assertEventVisible } from "@/lib/eventVisibility";
 import { BackLink } from "@/components/BackLink";
 
@@ -14,9 +16,44 @@ export default async function FindTeammatePage({ params }: { params: Promise<{ i
 
   const { id } = await params;
 
-  const event = await prisma.event.findUnique({ where: { id } });
+  const event = await prisma.event.findUnique({
+    where: { id },
+    include: {
+      interests: {
+        where: { userId: { not: session.user.id } },
+        orderBy: { createdAt: "asc" },
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              photo: true,
+              levels: true,
+              area: true,
+              affiliateGym: true,
+              bio: true,
+              isSingle: true,
+              showSingleBadge: true,
+            },
+          },
+        },
+      },
+    },
+  });
   if (!event) notFound();
   if (!(await assertEventVisible(event, session.user.id))) notFound();
+
+  const athletes: InterestedAthlete[] = event.interests.map((interest) => ({
+    id: interest.user.id,
+    name: interest.user.name,
+    photo: interest.user.photo,
+    levels: parseLevels(interest.user.levels),
+    area: interest.user.area,
+    affiliateGym: interest.user.affiliateGym,
+    bio: interest.user.bio,
+    isSingle: interest.user.isSingle,
+    showSingleBadge: interest.user.showSingleBadge,
+  }));
 
   return (
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
@@ -26,7 +63,14 @@ export default async function FindTeammatePage({ params }: { params: Promise<{ i
 
       <div className="mt-4">
         <SectionCard title="Find a teammate">
-          <p className="mb-3 text-sm text-b2b-ink/50">Looking for teammates for {event.name}? Post it here.</p>
+          <p className="mb-3 text-sm text-b2b-ink/50">Browse who's interested, or post your own request below.</p>
+
+          <InterestedAthletesCarousel athletes={athletes} />
+
+          <div className="my-5 border-t border-b2b-purple/10" />
+
+          <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-b2b-ink/45">Post a request</p>
+          <p className="mb-3 text-sm text-b2b-ink/50">Looking for teammates yourself? Let others know.</p>
           <EventNoticesPanel eventId={event.id} />
         </SectionCard>
       </div>
