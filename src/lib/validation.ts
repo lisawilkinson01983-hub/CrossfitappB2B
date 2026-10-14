@@ -330,9 +330,14 @@ export const reactionSchema = z.object({
 
 // One of an event's numbered workouts (see EventWorkout) — standards/workflow
 // are optional since a title-only placeholder ("workout not released yet")
-// is a reasonable thing to post ahead of the competition.
+// is a reasonable thing to post ahead of the competition. `number` is picked
+// by whoever's adding it (not auto-assigned) since the first one entered
+// isn't necessarily "Workout 1" — e.g. only workout 3's details might be
+// out yet. Uniqueness per event is enforced at the DB level (see
+// EventWorkout's @@unique) and surfaced as a friendly error by the route.
 export const eventWorkoutSchema = z.object({
   title: z.string().trim().min(1, "Give this workout a title").max(100),
+  number: z.coerce.number().int().min(1, "Enter a workout number").max(99),
   workout: z.preprocess(emptyToUndefined, z.string().trim().max(2000).optional()),
   standards: z.preprocess(emptyToUndefined, z.string().trim().max(2000).optional()),
   workflow: z.preprocess(emptyToUndefined, z.string().trim().max(2000).optional()),

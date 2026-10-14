@@ -29,7 +29,7 @@ export function EventWorkoutsEditor({ eventId, workouts }: { eventId: string; wo
   async function submit(
     url: string,
     method: "POST" | "PATCH",
-    data: { title: string; workout: string; standards: string; workflow: string }
+    data: { number: string; title: string; workout: string; standards: string; workflow: string }
   ) {
     const res = await fetch(url, {
       method,
@@ -103,7 +103,13 @@ export function EventWorkoutsEditor({ eventId, workouts }: { eventId: string; wo
       {adding && (
         <WorkoutFieldsModal
           title="Add workout"
-          initial={{ title: "", workout: "", standards: "", workflow: "" }}
+          initial={{
+            number: String(Math.max(0, ...workouts.map((w) => w.number)) + 1),
+            title: "",
+            workout: "",
+            standards: "",
+            workflow: "",
+          }}
           onClose={() => setAdding(false)}
           onSubmit={async (data) => {
             const ok = await submit(`/api/events/${eventId}/workouts`, "POST", data);
@@ -117,6 +123,7 @@ export function EventWorkoutsEditor({ eventId, workouts }: { eventId: string; wo
         <WorkoutFieldsModal
           title={`Edit workout ${editingWorkout.number}`}
           initial={{
+            number: String(editingWorkout.number),
             title: editingWorkout.title,
             workout: editingWorkout.workout ?? "",
             standards: editingWorkout.standards ?? "",
@@ -134,7 +141,7 @@ export function EventWorkoutsEditor({ eventId, workouts }: { eventId: string; wo
   );
 }
 
-/** A 4-field (title/workout/standards/workflow) variant of the shared EditModal popout, used for both adding and editing a workout entry. */
+/** A 5-field (number/title/workout/standards/workflow) variant of the shared EditModal popout, used for both adding and editing a workout entry. */
 function WorkoutFieldsModal({
   title,
   initial,
@@ -142,9 +149,15 @@ function WorkoutFieldsModal({
   onSubmit,
 }: {
   title: string;
-  initial: { title: string; workout: string; standards: string; workflow: string };
+  initial: { number: string; title: string; workout: string; standards: string; workflow: string };
   onClose: () => void;
-  onSubmit: (data: { title: string; workout: string; standards: string; workflow: string }) => Promise<boolean>;
+  onSubmit: (data: {
+    number: string;
+    title: string;
+    workout: string;
+    standards: string;
+    workflow: string;
+  }) => Promise<boolean>;
 }) {
   const [fields, setFields] = useState(initial);
   const [saving, setSaving] = useState(false);
@@ -166,15 +179,28 @@ function WorkoutFieldsModal({
         <div className="mt-3 flex flex-col gap-3">
           {error && <p className="text-sm text-red-600">{error}</p>}
 
-          <label className="flex flex-col gap-1">
-            <span className="text-xs font-semibold uppercase tracking-wide text-b2b-ink/50">Title</span>
-            <input
-              value={fields.title}
-              onChange={(e) => setFields((f) => ({ ...f, title: e.target.value }))}
-              autoFocus
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-b2b-pink focus:outline-none"
-            />
-          </label>
+          <div className="flex gap-3">
+            <label className="flex w-20 shrink-0 flex-col gap-1">
+              <span className="text-xs font-semibold uppercase tracking-wide text-b2b-ink/50">Number</span>
+              <input
+                type="number"
+                min={1}
+                max={99}
+                value={fields.number}
+                onChange={(e) => setFields((f) => ({ ...f, number: e.target.value }))}
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-b2b-pink focus:outline-none"
+              />
+            </label>
+            <label className="flex flex-1 flex-col gap-1">
+              <span className="text-xs font-semibold uppercase tracking-wide text-b2b-ink/50">Title</span>
+              <input
+                value={fields.title}
+                onChange={(e) => setFields((f) => ({ ...f, title: e.target.value }))}
+                autoFocus
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-b2b-pink focus:outline-none"
+              />
+            </label>
+          </div>
 
           <label className="flex flex-col gap-1">
             <span className="text-xs font-semibold uppercase tracking-wide text-b2b-ink/50">Workout</span>
@@ -212,7 +238,7 @@ function WorkoutFieldsModal({
             </button>
             <button
               type="button"
-              disabled={saving || !fields.title.trim()}
+              disabled={saving || !fields.title.trim() || !fields.number.trim() || Number(fields.number) < 1}
               onClick={async () => {
                 setSaving(true);
                 setError(null);

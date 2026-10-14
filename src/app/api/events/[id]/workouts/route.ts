@@ -32,14 +32,19 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
   }
 
-  const highest = await prisma.eventWorkout.aggregate({ where: { eventId }, _max: { number: true } });
-  const number = (highest._max.number ?? 0) + 1;
+  const existingNumber = await prisma.eventWorkout.findUnique({
+    where: { eventId_number: { eventId, number: parsed.data.number } },
+    select: { id: true },
+  });
+  if (existingNumber) {
+    return NextResponse.json({ error: `Workout ${parsed.data.number} already exists for this event` }, { status: 409 });
+  }
 
   const workout = await prisma.eventWorkout.create({
     data: {
       eventId,
       userId: session.user.id,
-      number,
+      number: parsed.data.number,
       title: parsed.data.title,
       workout: parsed.data.workout ?? null,
       standards: parsed.data.standards ?? null,

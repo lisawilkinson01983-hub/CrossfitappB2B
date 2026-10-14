@@ -69,8 +69,8 @@ export default async function EditEventPage({ params }: { params: Promise<{ id: 
       <div className="mt-4">
         <SectionCard title="Workouts">
           <p className="mb-3 text-sm text-b2b-ink/50">
-            Shown as numbered buttons on the event page — each opens its own page with Title, Standards, and
-            Workflow.
+            Shown as numbered buttons on the event page — each opens its own page with Title, Workout, Standards,
+            and Workflow.
           </p>
           <EventWorkoutsEditor eventId={event.id} workouts={event.workouts} />
         </SectionCard>
