@@ -1,6 +1,11 @@
 import Image from "next/image";
 import Link from "next/link";
-import { WORKOUT_INTENSITY_BADGE_CLASSES, WORKOUT_INTENSITY_LABELS, WORKOUT_UNIT_LABELS } from "@/lib/labels";
+import {
+  WORKOUT_INTENSITY_BADGE_CLASSES,
+  WORKOUT_INTENSITY_LABELS,
+  WORKOUT_UNIT_LABELS,
+  formatWorkoutScore,
+} from "@/lib/labels";
 import type { WorkoutIntensityOption, WorkoutUnitOption } from "@/lib/validation";
 import { DeleteWorkoutButton } from "./DeleteWorkoutButton";
 import { PinButton } from "./PinButton";
@@ -11,7 +16,9 @@ import { EditIcon } from "./EditIcon";
 type WorkoutCardData = {
   id: string;
   wodName: string;
-  score: string;
+  score: string | null;
+  rounds: number | null;
+  reps: number | null;
   unit: WorkoutUnitOption;
   intensity: WorkoutIntensityOption;
   description: string | null;
@@ -61,7 +68,7 @@ export function WorkoutCard({
       <p className="mt-2.5 text-[10px] font-semibold uppercase tracking-wide text-b2b-ink/40">
         {WORKOUT_UNIT_LABELS[workout.unit]}
       </p>
-      <p className="font-display text-2xl leading-none text-b2b-ink">{workout.score}</p>
+      <p className="font-display text-2xl leading-none text-b2b-ink">{formatWorkoutScore(workout)}</p>
 
       {workout.description && <WorkoutDescriptionToggle description={workout.description} />}
       {workout.notes && <p className="mt-2 text-sm text-gray-700">{workout.notes}</p>}

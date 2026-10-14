@@ -276,16 +276,25 @@ export const pbEditSchema = z.object({
     .default([]),
 });
 
-export const workoutSchema = z.object({
-  wodName: z.string().trim().min(1, "WOD name is required"),
-  score: z.string().trim().min(1, "Score is required"),
-  unit: z.enum(WORKOUT_UNITS, { errorMap: () => ({ message: "Select a unit" }) }),
-  intensity: z.enum(WORKOUT_INTENSITIES, { errorMap: () => ({ message: "Select Rx or Scaled" }) }),
-  description: z.preprocess(emptyToUndefined, z.string().trim().max(2000).optional()),
-  notes: z.preprocess(emptyToUndefined, z.string().trim().max(2000).optional()),
-  isPb: checkboxToBoolean,
-  sharedToFeed: checkboxToBoolean,
-});
+// Rounds/reps are their own fields (not packed into `score`) only for the
+// ROUNDS_REPS unit; every other unit keeps using the free-text `score`.
+export const workoutSchema = z
+  .object({
+    wodName: z.string().trim().min(1, "WOD name is required"),
+    score: z.preprocess(emptyToUndefined, z.string().trim().optional()),
+    rounds: z.preprocess(emptyToUndefined, z.coerce.number().int().min(0).optional()),
+    reps: z.preprocess(emptyToUndefined, z.coerce.number().int().min(0).optional()),
+    unit: z.enum(WORKOUT_UNITS, { errorMap: () => ({ message: "Select a unit" }) }),
+    intensity: z.enum(WORKOUT_INTENSITIES, { errorMap: () => ({ message: "Select Rx or Scaled" }) }),
+    description: z.preprocess(emptyToUndefined, z.string().trim().max(2000).optional()),
+    notes: z.preprocess(emptyToUndefined, z.string().trim().max(2000).optional()),
+    isPb: checkboxToBoolean,
+    sharedToFeed: checkboxToBoolean,
+  })
+  .refine(
+    (data) => (data.unit === "ROUNDS_REPS" ? data.rounds !== undefined && data.reps !== undefined : !!data.score),
+    { message: "Score is required", path: ["score"] }
+  );
 
 // contentText alone doesn't say whether a photo came along too, so "must have
 // text or a photo" is checked in the route handler, not here.

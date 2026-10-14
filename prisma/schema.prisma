@@ -518,8 +518,15 @@ model Workout {
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  wodName        String
-  score          String // free text, e.g. "12:34", "150 reps", "225 lb"; "5+10" (rounds+reps) when unit is ROUNDS_REPS
+  wodName String
+  // Free text, e.g. "12:34", "150 reps", "225 lb" — set for every unit
+  // except ROUNDS_REPS, which stores its two numbers in `rounds`/`reps`
+  // below instead of packing them into one "11+5" string.
+  score          String?
+  // Only set when unit is ROUNDS_REPS — rounds completed, and the extra
+  // reps into the next round (0 for an exact round count).
+  rounds         Int?
+  reps           Int?
   unit           WorkoutUnit
   intensity      WorkoutIntensity
   // The WOD's standard description (e.g. "21-15-9 reps of thrusters and

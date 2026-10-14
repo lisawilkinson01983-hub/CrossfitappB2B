@@ -27,7 +27,9 @@ const postContentInclude = {
       status: true,
     },
   },
-  linkedWorkout: { select: { wodName: true, score: true, unit: true, intensity: true, description: true } },
+  linkedWorkout: {
+    select: { wodName: true, score: true, rounds: true, reps: true, unit: true, intensity: true, description: true },
+  },
   linkedEvent: { select: { id: true, name: true, date: true, endDate: true, isOnline: true, location: true } },
   media: {
     orderBy: { order: "asc" },

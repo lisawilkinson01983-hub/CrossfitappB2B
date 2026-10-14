@@ -24,6 +24,8 @@ export default async function EditWorkoutPage({ params }: { params: Promise<{ id
             initial={{
               wodName: workout.wodName,
               score: workout.score,
+              rounds: workout.rounds,
+              reps: workout.reps,
               unit: workout.unit,
               intensity: workout.intensity,
               description: workout.description ?? "",

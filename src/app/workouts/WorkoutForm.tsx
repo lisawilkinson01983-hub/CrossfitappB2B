@@ -34,7 +34,9 @@ function splitTime(raw: string): [string, string, string] {
 
 type Initial = {
   wodName: string;
-  score: string;
+  score: string | null;
+  rounds: number | null;
+  reps: number | null;
   unit: WorkoutUnitOption | "";
   intensity: WorkoutIntensityOption | "";
   description: string;
@@ -49,6 +51,8 @@ type Initial = {
 const BLANK_INITIAL: Initial = {
   wodName: "",
   score: "",
+  rounds: null,
+  reps: null,
   unit: "",
   intensity: "",
   description: "",
@@ -66,16 +70,12 @@ export function WorkoutForm({ workoutId, initial }: { workoutId?: string; initia
   const isEditing = Boolean(workoutId);
   const start = initial ?? BLANK_INITIAL;
 
-  const initialTime = start.unit === "TIME" ? splitTime(start.score) : ["", "", ""];
+  const initialTime = start.unit === "TIME" ? splitTime(start.score ?? "") : ["", "", ""];
 
   const [wodName, setWodName] = useState(start.wodName);
-  const [score, setScore] = useState(start.unit === "ROUNDS_REPS" || start.unit === "TIME" ? "" : start.score);
-  const [rounds, setRounds] = useState(() =>
-    start.unit === "ROUNDS_REPS" ? (start.score.split("+")[0]?.trim() ?? "") : ""
-  );
-  const [reps, setReps] = useState(() =>
-    start.unit === "ROUNDS_REPS" ? (start.score.split("+")[1]?.trim() ?? "") : ""
-  );
+  const [score, setScore] = useState(start.unit === "ROUNDS_REPS" || start.unit === "TIME" ? "" : (start.score ?? ""));
+  const [rounds, setRounds] = useState(start.rounds != null ? String(start.rounds) : "");
+  const [reps, setReps] = useState(start.reps != null ? String(start.reps) : "");
   const [timeHours, setTimeHours] = useState(initialTime[0]);
   const [timeMinutes, setTimeMinutes] = useState(initialTime[1]);
   const [timeSeconds, setTimeSeconds] = useState(initialTime[2]);
@@ -149,15 +149,16 @@ export function WorkoutForm({ workoutId, initial }: { workoutId?: string; initia
     setSubmitting(true);
 
     const formData = new FormData();
-    const finalScore =
-      unit === "ROUNDS_REPS"
-        ? `${rounds}+${reps}`
-        : unit === "TIME"
-          ? `${pad2(timeHours)}:${pad2(timeMinutes)}:${pad2(timeSeconds)}`
-          : score;
 
     formData.set("wodName", wodName);
-    formData.set("score", finalScore);
+    if (unit === "ROUNDS_REPS") {
+      formData.set("rounds", rounds);
+      formData.set("reps", reps);
+    } else if (unit === "TIME") {
+      formData.set("score", `${pad2(timeHours)}:${pad2(timeMinutes)}:${pad2(timeSeconds)}`);
+    } else {
+      formData.set("score", score);
+    }
     formData.set("unit", unit);
     formData.set("intensity", intensity);
     formData.set("description", description);

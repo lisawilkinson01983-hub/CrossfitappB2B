@@ -33,6 +33,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const parsed = workoutSchema.safeParse({
     wodName: formData.get("wodName"),
     score: formData.get("score"),
+    rounds: formData.get("rounds"),
+    reps: formData.get("reps"),
     unit: formData.get("unit"),
     intensity: formData.get("intensity"),
     description: formData.get("description"),
@@ -90,7 +92,9 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     where: { id },
     data: {
       wodName: data.wodName,
-      score: data.score,
+      score: data.unit === "ROUNDS_REPS" ? null : (data.score ?? null),
+      rounds: data.unit === "ROUNDS_REPS" ? data.rounds : null,
+      reps: data.unit === "ROUNDS_REPS" ? data.reps : null,
       unit: data.unit,
       intensity: data.intensity,
       description: data.description ?? null,
