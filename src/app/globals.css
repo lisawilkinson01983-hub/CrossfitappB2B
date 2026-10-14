@@ -17,9 +17,9 @@
      them distinct. Dark-mode values for all of these live in the `.dark`
      block further down, which only ever redefines a token already declared
      here, never introduces one. */
-  --color-b2b-page: #f1f0ed;
+  --color-b2b-page: #e9e6df;
   --color-b2b-bg: #ffffff;
-  --color-b2b-card: #f5f4f2;
+  --color-b2b-card: #ffffff;
   --color-b2b-ink: #232223;
 
   /* Primary accent (buttons, links, highlights) — the logo's gold. */
