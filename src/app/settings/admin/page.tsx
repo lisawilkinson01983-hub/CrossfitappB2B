@@ -14,9 +14,10 @@ export default async function AdminSettingsPage() {
   const me = await prisma.user.findUnique({ where: { id: session.user.id }, select: { isAdmin: true } });
   if (!me?.isAdmin) notFound();
 
-  const [openReportCount, pendingVerificationCount] = await Promise.all([
+  const [openReportCount, pendingVerificationCount, pendingEventClaimCount] = await Promise.all([
     prisma.report.count({ where: { status: "OPEN" } }),
     prisma.user.count({ where: { accountType: "AFFILIATE", verificationRequestedAt: { not: null }, verifiedAt: null } }),
+    prisma.event.count({ where: { claimRequestedById: { not: null } } }),
   ]);
 
   return (
@@ -34,6 +35,7 @@ export default async function AdminSettingsPage() {
               label="Verification requests"
               count={pendingVerificationCount}
             />
+            <AdminLink href="/admin/event-claims" label="Event claim requests" count={pendingEventClaimCount} />
             <AdminLink href="/admin/notices" label="Send a notice" />
             <AdminLink href="/admin/brand-access" label="Box 2 Box profile access" />
             {/* A plain <a>, not AdminLink/next/link — it's a file download, not a page. */}

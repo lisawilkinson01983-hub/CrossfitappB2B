@@ -82,6 +82,14 @@ export async function POST(req: Request) {
     // delete, and these rows are anonymized in place, not deleted.
     prisma.gym.updateMany({ where: { claimedById: { in: userIds } }, data: { claimedById: null } }),
 
+    // Same for an event claim (see Event.claimedById) and any claim request
+    // still outstanding (Event.claimRequestedById) — same reasoning.
+    prisma.event.updateMany({ where: { claimedById: { in: userIds } }, data: { claimedById: null } }),
+    prisma.event.updateMany({
+      where: { claimRequestedById: { in: userIds } },
+      data: { claimRequestedById: null, claimRequestedAt: null },
+    }),
+
     // Drop any shared-profile toggle (see ProfileAccess) in either
     // direction: grants this account received onto someone else's profile,
     // and grants it gave others onto one of its own (now-anonymized)

@@ -51,6 +51,8 @@ export function notificationText(n: NotificationView): string {
       return "reported something for review";
     case "AFFILIATE_VERIFICATION_REQUESTED":
       return "requested verification as an affiliate owner";
+    case "EVENT_CLAIM_REQUESTED":
+      return `requested to claim "${n.event?.name ?? "an event"}"`;
     case "TEAMMATE_REQUEST_MATCH":
       return `posted a teammate request matching your search for "${n.event?.name ?? "an event"}"`;
     case "TEAMMATE_SEARCH_MATCH":
@@ -101,6 +103,8 @@ export function notificationHref(n: NotificationView, viewerId: string): string 
       return "/reports/review";
     case "AFFILIATE_VERIFICATION_REQUESTED":
       return "/admin/verification-requests";
+    case "EVENT_CLAIM_REQUESTED":
+      return "/admin/event-claims";
     case "TEAMMATE_REQUEST_MATCH":
     case "TEAMMATE_SEARCH_MATCH":
     case "EVENT_INVITE":

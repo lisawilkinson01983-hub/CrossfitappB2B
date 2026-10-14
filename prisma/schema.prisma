@@ -129,6 +129,10 @@ enum NotificationType {
   // EventNoticeCommentReaction) — separate from the simpler COMMENT_REACTION
   // on a main-feed Comment.
   EVENT_NOTICE_COMMENT_REACTION
+  // An AFFILIATE account requested to be recognised as an event's editor
+  // (see Event.claimRequestedById) — sent to every admin, same pattern as
+  // AFFILIATE_VERIFICATION_REQUESTED/EVENT_SUBMITTED/GYM_SUBMITTED.
+  EVENT_CLAIM_REQUESTED
 }
 
 enum EventStatus {
@@ -456,6 +460,8 @@ model User {
   submittedEvents      Event[]              @relation("EventSubmissions")
   submittedGyms        Gym[]                @relation("GymSubmissions")
   claimedGym           Gym?                 @relation("GymClaim")
+  claimedEvent         Event?               @relation("EventClaim")
+  requestedEventClaims Event[]              @relation("EventClaimRequests")
   // Other Accounts granted a toggle onto this profile — see ProfileAccess.
   sharedWithAccounts   ProfileAccess[]
   eventParticipations  EventParticipant[]
@@ -468,7 +474,7 @@ model User {
   eventTeammateAlerts  EventTeammateAlert[]
   eventInvitesReceived EventInvite[]        @relation("EventInvitesReceived")
   eventInvitesSent     EventInvite[]        @relation("EventInvitesSent")
-  eventWorkoutPhotos   EventWorkoutPhoto[]
+  eventWorkouts        EventWorkout[]
 
   blocksMade     Block[] @relation("BlocksMade")
   blocksReceived Block[] @relation("BlocksReceived")
@@ -1053,6 +1059,26 @@ model Event {
   // event feeds exist.
   source String @default("manual")
 
+  // Any AFFILIATE can request to be recognised as this event's
+  // affiliate-side editor (e.g. an event pulled in or submitted by someone
+  // else, that's actually theirs) — see "Claim this event" on the event
+  // page and /api/events/[id]/claim. Both null means no request outstanding;
+  // claimRequestedAt set with claimedById still null means pending admin
+  // review (see /admin/event-claims). Only one request can be outstanding
+  // at a time; a second request is rejected until the first is resolved.
+  claimRequestedById String?
+  claimRequestedBy   User?     @relation("EventClaimRequests", fields: [claimRequestedById], references: [id], onDelete: SetNull)
+  claimRequestedAt   DateTime?
+
+  // Set once an admin approves a claim request — this affiliate becomes an
+  // additional editor alongside the event's existing organizer
+  // (createdBy/submittedBy), rather than replacing them (see isOrganizer
+  // checks in PATCH /api/events/[id] and the edit page). Cleared (not left
+  // dangling) if that profile's account is ever deleted — see
+  // /api/account/delete.
+  claimedById String? @unique
+  claimedBy   User?   @relation("EventClaim", fields: [claimedById], references: [id], onDelete: SetNull)
+
   createdAt DateTime @default(now())
 
   participants   EventParticipant[]
@@ -1063,7 +1089,7 @@ model Event {
   notifications  Notification[]
   teammateAlerts EventTeammateAlert[]
   invites        EventInvite[]
-  workoutPhotos  EventWorkoutPhoto[]
+  workouts       EventWorkout[]
 
   @@index([date])
 }
@@ -1185,22 +1211,29 @@ model EventNotice {
   @@index([eventId])
 }
 
-// A photo in an event's "Workouts" carousel (see its own page section) —
-// e.g. a poster of the released competition workouts. Deliberately separate
-// from EventNotice: this is the event's own curated gallery, not a chat
-// message, so it's added/removed by the organizer rather than appearing in
-// the Notice Board feed.
-model EventWorkoutPhoto {
+// One of an event's numbered workouts (typically 3-5 per competition) — shown
+// as a "1" "2" "3"... button on the event page, each opening its own page
+// with Title/Standards/Workflow in separate sections. Deliberately separate
+// from EventNotice: this is the event's own curated workout breakdown, not a
+// chat message, so it's authored by the organizer/claiming affiliate/admin
+// rather than appearing in the Message Board feed.
+model EventWorkout {
   id      String @id @default(cuid())
   eventId String
   event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  userId  String
+  userId  String // whoever authored/last touched this entry — bookkeeping, not a display byline.
   user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  photo String // served path (see src/lib/uploads.ts)
+  // Display order and the "1"/"2"/"3" button label — unique per event.
+  number Int
+
+  title     String
+  standards String? // movement standards / rep scheme text
+  workflow  String? // the actual workout (time cap, rounds, rest, etc.)
 
   createdAt DateTime @default(now())
 
+  @@unique([eventId, number])
   @@index([eventId])
 }
 

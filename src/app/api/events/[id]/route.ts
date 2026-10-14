@@ -5,23 +5,24 @@ import { prisma } from "@/lib/prisma";
 import { eventEditSchema } from "@/lib/validation";
 import { PhotoUploadError, savePhotoUpload } from "@/lib/uploads";
 import { parseFormData } from "@/lib/http";
+import { canEditEvent } from "@/lib/eventVisibility";
 
-/** Admin-only direct edit of an existing event — unlike /api/events/submit, this never touches status/source/moderation fields. */
+/** Direct edit of an existing event's own details — admin always, or (once a claim is approved, see Event.claimedById) the claiming affiliate and the event's organizer. Unlike /api/events/submit, this never touches status/source/moderation fields. */
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
 
-  const me = await prisma.user.findUnique({ where: { id: session.user.id }, select: { isAdmin: true } });
-  if (!me?.isAdmin) {
-    return NextResponse.json({ error: "Not authorized" }, { status: 403 });
-  }
-
   const { id } = await params;
   const existing = await prisma.event.findUnique({ where: { id } });
   if (!existing) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  const me = await prisma.user.findUnique({ where: { id: session.user.id }, select: { isAdmin: true } });
+  if (!canEditEvent(existing, session.user.id, !!me?.isAdmin)) {
+    return NextResponse.json({ error: "Not authorized" }, { status: 403 });
   }
 
   const formData = await parseFormData(req);

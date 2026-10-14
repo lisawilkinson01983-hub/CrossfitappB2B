@@ -319,6 +319,15 @@ export const reactionSchema = z.object({
   emoji: z.enum(REACTION_EMOJIS),
 });
 
+// One of an event's numbered workouts (see EventWorkout) — standards/workflow
+// are optional since a title-only placeholder ("workout not released yet")
+// is a reasonable thing to post ahead of the competition.
+export const eventWorkoutSchema = z.object({
+  title: z.string().trim().min(1, "Give this workout a title").max(100),
+  standards: z.preprocess(emptyToUndefined, z.string().trim().max(2000).optional()),
+  workflow: z.preprocess(emptyToUndefined, z.string().trim().max(2000).optional()),
+});
+
 export const teammateRequestSchema = z.object({
   quantity: z.coerce.number().int().min(1).max(20),
   gender: z.enum(TEAMMATE_GENDERS),

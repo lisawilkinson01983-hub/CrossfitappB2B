@@ -5,10 +5,11 @@ import { prisma } from "@/lib/prisma";
 import { NavBar } from "@/components/NavBar";
 import { SectionCard } from "@/components/SectionCard";
 import { EventSubmitForm } from "@/components/EventSubmitForm";
-import { EventWorkoutsCarousel } from "@/components/EventWorkoutsCarousel";
+import { EventWorkoutsEditor } from "@/components/EventWorkoutsEditor";
 import { DeleteEventButton } from "@/components/DeleteEventButton";
 import { parseJsonArray } from "@/lib/labels";
 import { BackLink } from "@/components/BackLink";
+import { canEditEvent } from "@/lib/eventVisibility";
 import type { EventDivisionOption, EventGenderCategoryOption, EventTeamFormatOption } from "@/lib/validation";
 
 function toDateInputValue(date: Date | null): string {
@@ -24,15 +25,16 @@ export default async function EditEventPage({ params }: { params: Promise<{ id: 
   const { id } = await params;
   const event = await prisma.event.findUnique({
     where: { id },
-    include: { workoutPhotos: { orderBy: { createdAt: "asc" }, select: { id: true, photo: true, userId: true } } },
+    include: { workouts: { orderBy: { number: "asc" } } },
   });
   if (!event) notFound();
 
-  const isOrganizer = event.createdById === session.user.id || event.submittedById === session.user.id;
-  // The full event-details form (name, date, location, etc.) stays
-  // admin-only, as it always has been — only the Workout posters section
-  // below is opened up to the organizer themself.
-  if (!me?.isAdmin && !isOrganizer) notFound();
+  // The full event-details form (name, date, location, etc.) and the
+  // structured workouts manager both open up to the organizer and a claiming
+  // affiliate once a claim is approved (see Event.claimedById,
+  // canEditEvent) — before that, both stay admin-only, as the form always
+  // has been.
+  if (!canEditEvent(event, session.user.id, !!me?.isAdmin)) notFound();
 
   return (
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
@@ -40,45 +42,37 @@ export default async function EditEventPage({ params }: { params: Promise<{ id: 
 
       <BackLink href={`/events/${event.id}`} className="mt-6">Back to event</BackLink>
 
-      {me?.isAdmin && (
-        <div className="mt-4">
-          <SectionCard title={`Edit "${event.name}"`}>
-            <EventSubmitForm
-              mode="edit"
-              eventId={event.id}
-              initial={{
-                name: event.name,
-                date: toDateInputValue(event.date),
-                endDate: toDateInputValue(event.endDate),
-                isOnline: event.isOnline,
-                location: event.location ?? "",
-                websiteUrl: event.websiteUrl ?? "",
-                description: event.description ?? "",
-                division: parseJsonArray<EventDivisionOption>(event.division),
-                teamFormat: parseJsonArray<EventTeamFormatOption>(event.teamFormat),
-                genderCategory: parseJsonArray<EventGenderCategoryOption>(event.genderCategory),
-                photo: event.photo,
-                eventKind: event.eventKind ?? "",
-                eventKindOther: event.eventKindOther ?? "",
-              }}
-            />
-          </SectionCard>
-        </div>
-      )}
+      <div className="mt-4">
+        <SectionCard title={`Edit "${event.name}"`}>
+          <EventSubmitForm
+            mode="edit"
+            eventId={event.id}
+            initial={{
+              name: event.name,
+              date: toDateInputValue(event.date),
+              endDate: toDateInputValue(event.endDate),
+              isOnline: event.isOnline,
+              location: event.location ?? "",
+              websiteUrl: event.websiteUrl ?? "",
+              description: event.description ?? "",
+              division: parseJsonArray<EventDivisionOption>(event.division),
+              teamFormat: parseJsonArray<EventTeamFormatOption>(event.teamFormat),
+              genderCategory: parseJsonArray<EventGenderCategoryOption>(event.genderCategory),
+              photo: event.photo,
+              eventKind: event.eventKind ?? "",
+              eventKindOther: event.eventKindOther ?? "",
+            }}
+          />
+        </SectionCard>
+      </div>
 
       <div className="mt-4">
-        <SectionCard title="Workout posters">
+        <SectionCard title="Workouts">
           <p className="mb-3 text-sm text-b2b-ink/50">
-            Posted here show up in the "Workouts" carousel on the event page — e.g. a poster of the released
-            competition workouts.
+            Shown as numbered buttons on the event page — each opens its own page with Title, Standards, and
+            Workflow.
           </p>
-          <EventWorkoutsCarousel
-            eventId={event.id}
-            photos={event.workoutPhotos}
-            currentUserId={session.user.id}
-            canAdd
-            isOrganizerOrAdmin
-          />
+          <EventWorkoutsEditor eventId={event.id} workouts={event.workouts} />
         </SectionCard>
       </div>
 

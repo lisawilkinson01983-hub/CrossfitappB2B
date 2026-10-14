@@ -31,3 +31,24 @@ export async function assertEventVisible(
 export function eventVisibilityWhere(_userId: string): Prisma.EventWhereInput {
   return { isPrivate: false, status: "APPROVED" };
 }
+
+/**
+ * Whether `userId` can edit this event's own details (the full
+ * EventSubmitForm) and its numbered workouts (see EventWorkout) — always an
+ * admin; otherwise only once a claim has been approved (see
+ * Event.claimedById, /api/events/[id]/claim), at which point the claiming
+ * affiliate AND the event's original organizer (createdBy/submittedBy) both
+ * get editor access, rather than the claim replacing the organizer. Before
+ * any claim is approved, editing stays admin-only — same as it always has
+ * been (see PATCH /api/events/[id]'s own doc comment).
+ */
+export function canEditEvent(
+  event: { createdById: string; submittedById: string | null; claimedById: string | null },
+  userId: string,
+  isAdmin: boolean
+): boolean {
+  if (isAdmin) return true;
+  if (!event.claimedById) return false;
+  const isOrganizer = event.createdById === userId || event.submittedById === userId;
+  return isOrganizer || event.claimedById === userId;
+}

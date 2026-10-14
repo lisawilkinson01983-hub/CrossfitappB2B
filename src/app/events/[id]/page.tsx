@@ -7,12 +7,13 @@ import { NavBar } from "@/components/NavBar";
 import { SectionCard } from "@/components/SectionCard";
 import { Avatar } from "@/components/Avatar";
 import { EventEngagementButtons } from "@/components/EventEngagementButtons";
-import { EventWorkoutsCarousel } from "@/components/EventWorkoutsCarousel";
+import { EventWorkoutButtons } from "@/components/EventWorkoutButtons";
 import { EventPlatformBadge } from "@/components/EventPlatformBadge";
 import { CollapsibleText } from "@/components/CollapsibleText";
 import { InviteToEventForm } from "@/components/InviteToEventForm";
 import { MessageAttendeesButton } from "@/components/MessageAttendeesButton";
 import { ShareEventButton } from "@/components/ShareEventButton";
+import { ClaimEventButton } from "@/components/ClaimEventButton";
 import { BackLink } from "@/components/BackLink";
 import { EditIcon } from "@/components/EditIcon";
 import { parseJsonArray, eventKindLabel, isCompetitionEvent } from "@/lib/labels";
@@ -32,7 +33,7 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
 
   const { id } = await params;
 
-  const me = await prisma.user.findUnique({ where: { id: session.user.id }, select: { isAdmin: true } });
+  const me = await prisma.user.findUnique({ where: { id: session.user.id }, select: { isAdmin: true, accountType: true } });
 
   const event = await prisma.event.findUnique({
     where: { id },
@@ -44,13 +45,23 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
       // Only the count is needed here — the notices themselves are rendered
       // on the dedicated Notice Board page.
       notices: { select: { id: true } },
-      workoutPhotos: { orderBy: { createdAt: "asc" }, select: { id: true, photo: true, userId: true } },
+      workouts: { orderBy: { number: "asc" }, select: { number: true, title: true } },
     },
   });
   if (!event) notFound();
   if (!(await assertEventVisible(event, session.user.id))) notFound();
 
   const isOrganizer = event.createdById === session.user.id || event.submittedById === session.user.id;
+  // Whether to offer "Claim this event" — any affiliate not already the
+  // organizer or the current claimant, as long as nobody else has claimed it
+  // (see Event.claimedById/claimRequestedById, /api/events/[id]/claim).
+  const hasPendingClaimFromMe = event.claimRequestedById === session.user.id;
+  const canOfferClaim =
+    me?.accountType === "AFFILIATE" &&
+    !isOrganizer &&
+    event.claimedById !== session.user.id &&
+    !event.claimedById &&
+    !event.claimRequestedById;
   const gymOptions = event.isPrivate && isOrganizer
     ? (await prisma.gym.findMany({ where: { status: "APPROVED" }, select: { name: true }, orderBy: { name: "asc" } })).map(
         (g) => g.name
@@ -88,7 +99,7 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
 
       <div className="mt-6 flex items-center justify-between">
         <BackLink href="/discover?view=events">Back to events</BackLink>
-        {(isOrganizer || me?.isAdmin) && (
+        {(isOrganizer || event.claimedById === session.user.id || me?.isAdmin) && (
           <Link
             href={`/events/${event.id}/edit`}
             className="inline-flex items-center gap-1.5 text-sm text-b2b-purple hover:underline"
@@ -138,6 +149,10 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
                   </Link>
                 </p>
               )}
+              {hasPendingClaimFromMe && (
+                <p className="mt-1 text-xs text-b2b-ink/40">Your claim request is pending admin review.</p>
+              )}
+              {canOfferClaim && <div className="mt-2"><ClaimEventButton eventId={event.id} /></div>}
             </div>
             <EventEngagementButtons
               eventId={event.id}
@@ -238,12 +253,7 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
 
       <div className="mt-6">
         <SectionCard title="Workouts">
-          <EventWorkoutsCarousel
-            eventId={event.id}
-            photos={event.workoutPhotos}
-            currentUserId={session.user.id}
-            readOnly
-          />
+          <EventWorkoutButtons eventId={event.id} workouts={event.workouts} />
         </SectionCard>
       </div>
     </main>
