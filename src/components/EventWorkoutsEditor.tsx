@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState, type ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 
 export type EventWorkoutEditData = {
   id: string;
@@ -10,12 +11,13 @@ export type EventWorkoutEditData = {
   workout: string | null;
   standards: string | null;
   workflow: string | null;
+  photo: string | null;
 };
 
 /**
  * The event edit page's "Workouts" manager — add/edit/delete the numbered
- * entries shown as "1" "2" "3"... buttons on the event page (see
- * EventWorkoutButtons). Available to whoever canEditEvent() lets onto this
+ * entries shown on the event's dedicated Workouts page (see
+ * EventWorkoutsList). Available to whoever canEditEvent() lets onto this
  * page at all (admin, organizer, or claiming affiliate — see the page's own
  * gate), not just admins.
  */
@@ -26,16 +28,8 @@ export function EventWorkoutsEditor({ eventId, workouts }: { eventId: string; wo
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  async function submit(
-    url: string,
-    method: "POST" | "PATCH",
-    data: { number: string; title: string; workout: string; standards: string; workflow: string }
-  ) {
-    const res = await fetch(url, {
-      method,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
-    });
+  async function submit(url: string, method: "POST" | "PATCH", formData: FormData) {
+    const res = await fetch(url, { method, body: formData });
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
       setError(body.error ?? "Something went wrong. Please try again.");
@@ -65,9 +59,19 @@ export function EventWorkoutsEditor({ eventId, workouts }: { eventId: string; wo
           className="flex items-center justify-between gap-3 rounded-lg border border-b2b-purple/10 bg-b2b-bg px-3.5 py-2.5"
         >
           <div className="flex min-w-0 items-center gap-3">
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-b2b-pink/30 bg-b2b-pink/10 font-display text-sm leading-none text-b2b-pink">
-              {workout.number}
-            </span>
+            {workout.photo ? (
+              <Image
+                src={workout.photo}
+                alt=""
+                width={32}
+                height={32}
+                className="h-8 w-8 shrink-0 rounded-lg object-cover"
+              />
+            ) : (
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-b2b-pink/30 bg-b2b-pink/10 font-display text-sm leading-none text-b2b-pink">
+                {workout.number}
+              </span>
+            )}
             <span className="truncate text-sm font-medium text-b2b-ink">{workout.title}</span>
           </div>
           <div className="flex shrink-0 items-center gap-3">
@@ -109,10 +113,11 @@ export function EventWorkoutsEditor({ eventId, workouts }: { eventId: string; wo
             workout: "",
             standards: "",
             workflow: "",
+            photo: null,
           }}
           onClose={() => setAdding(false)}
-          onSubmit={async (data) => {
-            const ok = await submit(`/api/events/${eventId}/workouts`, "POST", data);
+          onSubmit={async (formData) => {
+            const ok = await submit(`/api/events/${eventId}/workouts`, "POST", formData);
             if (ok) setAdding(false);
             return ok;
           }}
@@ -128,10 +133,11 @@ export function EventWorkoutsEditor({ eventId, workouts }: { eventId: string; wo
             workout: editingWorkout.workout ?? "",
             standards: editingWorkout.standards ?? "",
             workflow: editingWorkout.workflow ?? "",
+            photo: editingWorkout.photo,
           }}
           onClose={() => setEditingId(null)}
-          onSubmit={async (data) => {
-            const ok = await submit(`/api/event-workouts/${editingWorkout.id}`, "PATCH", data);
+          onSubmit={async (formData) => {
+            const ok = await submit(`/api/event-workouts/${editingWorkout.id}`, "PATCH", formData);
             if (ok) setEditingId(null);
             return ok;
           }}
@@ -141,7 +147,9 @@ export function EventWorkoutsEditor({ eventId, workouts }: { eventId: string; wo
   );
 }
 
-/** A 5-field (number/title/workout/standards/workflow) variant of the shared EditModal popout, used for both adding and editing a workout entry. */
+type WorkoutFields = { number: string; title: string; workout: string; standards: string; workflow: string; photo: string | null };
+
+/** A 5-field (number/title/workout/standards/workflow) + poster variant of the shared EditModal popout, used for both adding and editing a workout entry. */
 function WorkoutFieldsModal({
   title,
   initial,
@@ -149,19 +157,32 @@ function WorkoutFieldsModal({
   onSubmit,
 }: {
   title: string;
-  initial: { number: string; title: string; workout: string; standards: string; workflow: string };
+  initial: WorkoutFields;
   onClose: () => void;
-  onSubmit: (data: {
-    number: string;
-    title: string;
-    workout: string;
-    standards: string;
-    workflow: string;
-  }) => Promise<boolean>;
+  onSubmit: (formData: FormData) => Promise<boolean>;
 }) {
   const [fields, setFields] = useState(initial);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(initial.photo);
+  const [removePhoto, setRemovePhoto] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  function handlePhotoChange(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setPhotoFile(file);
+    setPhotoPreview(URL.createObjectURL(file));
+    setRemovePhoto(false);
+  }
+
+  function handleRemovePhoto() {
+    setPhotoFile(null);
+    setPhotoPreview(null);
+    setRemovePhoto(true);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
@@ -178,6 +199,35 @@ function WorkoutFieldsModal({
 
         <div className="mt-3 flex flex-col gap-3">
           {error && <p className="text-sm text-red-600">{error}</p>}
+
+          <div className="flex flex-col gap-1.5">
+            <span className="text-xs font-semibold uppercase tracking-wide text-b2b-ink/50">
+              Poster <span className="font-normal normal-case text-b2b-ink/40">(optional)</span>
+            </span>
+            <p className="text-xs text-b2b-ink/40">
+              Shown as the header on this workout's page, and as the card image when browsing workouts as a carousel.
+            </p>
+            <div className="flex items-center gap-3">
+              {photoPreview ? (
+                <Image src={photoPreview} alt="" width={64} height={64} className="h-16 w-16 rounded-lg object-cover" />
+              ) : (
+                <div className="flex h-16 w-16 items-center justify-center rounded-lg border border-dashed border-b2b-purple/25 text-[10px] text-b2b-ink/35">
+                  No poster
+                </div>
+              )}
+              <div className="flex flex-col gap-1.5">
+                <label className="cursor-pointer rounded-full border border-b2b-purple/20 px-3 py-1.5 text-xs font-medium text-b2b-ink/70 hover:border-b2b-pink/40 hover:text-b2b-pink">
+                  {photoPreview ? "Change poster" : "Add poster"}
+                  <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={handlePhotoChange} className="hidden" />
+                </label>
+                {photoPreview && (
+                  <button type="button" onClick={handleRemovePhoto} className="text-xs font-medium text-red-600 hover:underline">
+                    Remove poster
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
 
           <div className="flex gap-3">
             <label className="flex w-20 shrink-0 flex-col gap-1">
@@ -242,7 +292,15 @@ function WorkoutFieldsModal({
               onClick={async () => {
                 setSaving(true);
                 setError(null);
-                const ok = await onSubmit(fields);
+                const formData = new FormData();
+                formData.set("number", fields.number);
+                formData.set("title", fields.title);
+                formData.set("workout", fields.workout);
+                formData.set("standards", fields.standards);
+                formData.set("workflow", fields.workflow);
+                if (photoFile) formData.set("photo", photoFile);
+                if (removePhoto) formData.set("removePhoto", "on");
+                const ok = await onSubmit(formData);
                 setSaving(false);
                 if (!ok) setError("Something went wrong. Please try again.");
               }}

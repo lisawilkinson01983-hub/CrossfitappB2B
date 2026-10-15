@@ -7,9 +7,11 @@ import { prisma } from "@/lib/prisma";
 import { NavBar } from "@/components/NavBar";
 import { Avatar } from "@/components/Avatar";
 import { EventEngagementButtons } from "@/components/EventEngagementButtons";
-import { EventWorkoutButtons } from "@/components/EventWorkoutButtons";
 import { EventPlatformBadge } from "@/components/EventPlatformBadge";
 import { EventTabs } from "@/components/EventTabs";
+import { EventWorkoutsList } from "@/components/EventWorkoutsList";
+import { ListOrCarousel } from "@/components/ListOrCarousel";
+import { SwipeCardList, type SwipeCardItem } from "@/components/SwipeCardList";
 import { CollapsibleText } from "@/components/CollapsibleText";
 import { InviteToEventForm } from "@/components/InviteToEventForm";
 import { MessageAttendeesButton } from "@/components/MessageAttendeesButton";
@@ -51,11 +53,12 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
       createdBy: { select: { id: true, name: true, photo: true } },
       participants: { select: { userId: true } },
       interests: { where: { userId: session.user.id }, select: { id: true } },
+      // Only the count is needed here for notices — they're rendered on the
+      // dedicated Message Board page. Workouts are rendered in full, right
+      // in the Overview section below.
       _count: { select: { interests: true } },
-      // Only the count is needed here — the notices themselves are rendered
-      // on the dedicated Message Board page.
       notices: { select: { id: true } },
-      workouts: { orderBy: { number: "asc" }, select: { number: true, title: true } },
+      workouts: { orderBy: { number: "asc" }, select: { number: true, title: true, photo: true } },
     },
   });
   if (!event) notFound();
@@ -104,6 +107,14 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
   // get dropped/renamed here.
   const isPrivateSocial = event.isPrivate && !isCompetitionEvent(event);
 
+  const workoutCarouselItems: SwipeCardItem[] = event.workouts.map((workout) => ({
+    id: String(workout.number),
+    image: workout.photo,
+    initial: String(workout.number),
+    title: `${workout.number}. ${workout.title}`,
+    href: `/events/${event.id}/workouts/${workout.number}`,
+  }));
+
   const overviewContent = (
     <div className="flex flex-col gap-4">
       {event.description && <CollapsibleText text={event.description} className="text-sm text-b2b-ink/70" />}
@@ -119,6 +130,15 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
             </span>
           ))}
         </div>
+      )}
+
+      {event.workouts.length > 0 && (
+        <ListOrCarousel
+          label={`${event.workouts.length} ${event.workouts.length === 1 ? "workout" : "workouts"}`}
+          defaultView="list"
+          list={<EventWorkoutsList eventId={event.id} workouts={event.workouts} />}
+          carousel={<SwipeCardList items={workoutCarouselItems} emptyMessage="Check back soon." hideHeader />}
+        />
       )}
 
       {event.websiteUrl && (
@@ -149,8 +169,6 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
       )}
     </div>
   );
-
-  const workoutsContent = <EventWorkoutButtons eventId={event.id} workouts={event.workouts} />;
 
   return (
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
@@ -247,26 +265,27 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
           isCompetition={isCompetitionEvent(event)}
         />
 
-        <div className="grid grid-cols-3 divide-x divide-b2b-purple/10 rounded-2xl border border-b2b-purple/10 bg-b2b-card py-3">
-          <Link href={`/events/${event.id}/participants`} className="flex flex-col items-center gap-0.5 hover:opacity-80">
+        <div className="grid grid-cols-2 gap-2">
+          <Link
+            href={`/events/${event.id}/participants`}
+            className="flex flex-col items-center gap-0.5 rounded-2xl border border-b2b-purple/10 bg-b2b-card py-3 hover:border-b2b-pink/30"
+          >
             <span className="font-display text-2xl text-b2b-pink">{event.participants.length}</span>
             <span className="text-[10px] font-semibold uppercase tracking-wide text-b2b-ink/45">
               {isPrivateSocial ? "Attendees" : "Athletes"}
             </span>
           </Link>
-          <Link href={`/events/${event.id}/interested`} className="flex flex-col items-center gap-0.5 hover:opacity-80">
+          <Link
+            href={`/events/${event.id}/interested`}
+            className="flex flex-col items-center gap-0.5 rounded-2xl border border-b2b-purple/10 bg-b2b-card py-3 hover:border-b2b-pink/30"
+          >
             <span className="font-display text-2xl text-b2b-pink">{event._count.interests}</span>
             <span className="text-[10px] font-semibold uppercase tracking-wide text-b2b-ink/45">Interested</span>
           </Link>
-          <div className="flex flex-col items-center gap-0.5">
-            <span className="font-display text-2xl text-b2b-pink">{event.workouts.length}</span>
-            <span className="text-[10px] font-semibold uppercase tracking-wide text-b2b-ink/45">Workouts</span>
-          </div>
         </div>
 
         <EventTabs
           overview={overviewContent}
-          workouts={workoutsContent}
           findTeamHref={isPrivateSocial ? null : `/events/${event.id}/find-teammate`}
           noticesHref={`/events/${event.id}/notices`}
           noticesCount={chatMessageCount}

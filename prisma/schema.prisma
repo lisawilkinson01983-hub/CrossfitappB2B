@@ -1232,12 +1232,13 @@ model EventNotice {
   @@index([eventId])
 }
 
-// One of an event's numbered workouts (typically 3-5 per competition) — shown
-// as a "1" "2" "3"... button on the event page, each opening its own page
-// with Title/Standards/Workflow in separate sections. Deliberately separate
-// from EventNotice: this is the event's own curated workout breakdown, not a
-// chat message, so it's authored by the organizer/claiming affiliate/admin
-// rather than appearing in the Message Board feed.
+// One of an event's numbered workouts (typically 3-5 per competition) —
+// shown as a numbered list ("1. Title", "2. Title"...) in the event page's
+// Overview section, each opening its own page with Title/Standards/Workflow
+// in separate sections. Deliberately separate from EventNotice: this is the
+// event's own curated workout breakdown, not a chat message, so it's
+// authored by the organizer/claiming affiliate/admin rather than appearing
+// in the Message Board feed.
 model EventWorkout {
   id      String @id @default(cuid())
   eventId String
@@ -1252,6 +1253,13 @@ model EventWorkout {
   workout   String? // the movements/reps/load prescription, e.g. "21-15-9 Thrusters (42.5/30kg) and Pull-ups"
   standards String? // movement standards — what counts as a valid rep, depth, lockout, etc.
   workflow  String? // format/structure — time cap, rounds, rest, scoring
+
+  // An optional poster for this specific workout — served path (see
+  // src/lib/uploads.ts), same as every other photo field. Shown as the
+  // header banner on this workout's own page, and as the card image when
+  // browsing the event's workouts as a swipeable carousel (see
+  // SwipeCardList) rather than the plain numbered list.
+  photo String?
 
   createdAt DateTime @default(now())
 

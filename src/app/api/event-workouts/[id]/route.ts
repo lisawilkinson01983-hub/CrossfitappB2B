@@ -4,8 +4,10 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { eventWorkoutSchema } from "@/lib/validation";
 import { canEditEvent } from "@/lib/eventVisibility";
+import { PhotoUploadError, savePhotoUpload } from "@/lib/uploads";
+import { parseFormData } from "@/lib/http";
 
-/** Edits a numbered workout's number/title/workout/standards/workflow — admin, organizer, or claiming affiliate only. */
+/** Edits a numbered workout's number/title/workout/standards/workflow/poster — admin, organizer, or claiming affiliate only. */
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
@@ -26,8 +28,18 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     return NextResponse.json({ error: "Not authorized" }, { status: 403 });
   }
 
-  const body = await req.json().catch(() => null);
-  const parsed = eventWorkoutSchema.safeParse(body);
+  const formData = await parseFormData(req);
+  if (!formData) {
+    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+  }
+
+  const parsed = eventWorkoutSchema.safeParse({
+    number: formData.get("number"),
+    title: formData.get("title"),
+    workout: formData.get("workout"),
+    standards: formData.get("standards"),
+    workflow: formData.get("workflow"),
+  });
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
   }
@@ -45,6 +57,24 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     }
   }
 
+  // Photo: a new file replaces it, "removePhoto" clears it, otherwise it's
+  // left exactly as it was — same "pick one" tri-state as every other photo
+  // edit in the app.
+  let photoPath: string | null | undefined = undefined;
+  const photoFile = formData.get("photo");
+  if (photoFile instanceof File && photoFile.size > 0) {
+    try {
+      photoPath = await savePhotoUpload(photoFile, session.user.id);
+    } catch (err) {
+      if (err instanceof PhotoUploadError) {
+        return NextResponse.json({ error: err.message }, { status: 400 });
+      }
+      throw err;
+    }
+  } else if (formData.get("removePhoto") === "on") {
+    photoPath = null;
+  }
+
   const workout = await prisma.eventWorkout.update({
     where: { id },
     data: {
@@ -53,6 +83,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       workout: parsed.data.workout ?? null,
       standards: parsed.data.standards ?? null,
       workflow: parsed.data.workflow ?? null,
+      ...(photoPath !== undefined ? { photo: photoPath } : {}),
     },
   });
 
