@@ -206,7 +206,9 @@ export async function ProfileDetails({
         <div className="px-5 py-5">
           {showEmail && <p className="text-sm text-b2b-ink/50">{accountEmail}</p>}
 
-          {!isOwner && actions && <div className="flex items-center gap-2">{actions}</div>}
+          {!isOwner && actions && (
+            <div className={`flex items-center gap-2 ${showEmail ? "mt-3" : ""}`}>{actions}</div>
+          )}
 
           {isAffiliate && user.website && (
             <a
@@ -241,7 +243,7 @@ export async function ProfileDetails({
               </div>
             ))}
 
-          {belowActions}
+          {belowActions && <div className="mt-4 border-t border-b2b-purple/10 pt-4">{belowActions}</div>}
 
           <div className="mt-4 flex border-t border-b2b-purple/10 pt-4">
             <Link href={`/profile/${user.id}/connections?tab=followers`} className="flex-1 text-center">

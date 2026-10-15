@@ -10,8 +10,7 @@ import { SectionCard } from "@/components/SectionCard";
 import { WorkoutCard } from "@/components/WorkoutCard";
 import { FollowButton, type FollowStatus } from "@/components/FollowButton";
 import { MessageButton } from "@/components/MessageButton";
-import { BlockMuteControls } from "@/components/BlockMuteControls";
-import { ReportButton } from "@/components/ReportButton";
+import { ProfileMoreMenu } from "@/components/ProfileMoreMenu";
 import { ExpandableHeroPhoto } from "@/components/ExpandableHeroPhoto";
 import { LOOKING_FOR_LABELS, parseLookingFor, showsSingleBadge } from "@/lib/labels";
 
@@ -90,22 +89,19 @@ export default async function UserProfilePage({
             </ExpandableHeroPhoto>
 
             <SectionCard>
-              <div className="flex flex-col items-center gap-3 text-center">
+              <div className="flex flex-col gap-3">
                 <div className="flex items-center gap-2">
-                  <MessageButton targetUserId={user.id} />
-                  <FollowButton targetUserId={user.id} initialStatus={followStatus} />
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <BlockMuteControls
+                  <MessageButton targetUserId={user.id} fullWidth />
+                  <FollowButton targetUserId={user.id} initialStatus={followStatus} fullWidth />
+                  <ProfileMoreMenu
                     targetUserId={user.id}
+                    targetName={user.name}
                     initialBlocked={Boolean(blockRow)}
                     initialMuted={Boolean(muteRow)}
                   />
-                  <ReportButton targetType="USER" targetId={user.id} />
                 </div>
 
-                <p className="max-w-xs text-sm text-b2b-ink/50">
+                <p className="border-t border-b2b-purple/10 pt-3 text-center text-sm text-b2b-ink/50">
                   This account is private. Follow {user.name} to see their profile, PBs and workouts.
                 </p>
               </div>
@@ -122,26 +118,22 @@ export default async function UserProfilePage({
               workoutCount={workoutCount}
               actions={
                 <>
-                  <MessageButton targetUserId={user.id} />
-                  <FollowButton targetUserId={user.id} initialStatus={followStatus} />
+                  <MessageButton targetUserId={user.id} fullWidth />
+                  <FollowButton targetUserId={user.id} initialStatus={followStatus} fullWidth />
+                  <ProfileMoreMenu
+                    targetUserId={user.id}
+                    targetName={user.name}
+                    initialBlocked={Boolean(blockRow)}
+                    initialMuted={Boolean(muteRow)}
+                  />
                 </>
               }
               belowActions={
-                <>
-                  <div className="flex items-center gap-3">
-                    <BlockMuteControls
-                      targetUserId={user.id}
-                      initialBlocked={Boolean(blockRow)}
-                      initialMuted={Boolean(muteRow)}
-                    />
-                    <ReportButton targetType="USER" targetId={user.id} />
-                  </div>
-                  {sharedLookingFor.length > 0 && (
-                    <p className="text-sm text-b2b-pink">
-                      You're both looking for {sharedLookingFor.map((tag) => LOOKING_FOR_LABELS[tag]).join(" & ")}
-                    </p>
-                  )}
-                </>
+                sharedLookingFor.length > 0 ? (
+                  <p className="rounded-lg bg-b2b-pink/10 px-3 py-2 text-sm text-b2b-pink-dark">
+                    You're both looking for {sharedLookingFor.map((tag) => LOOKING_FOR_LABELS[tag]).join(" & ")}
+                  </p>
+                ) : null
               }
             />
 
