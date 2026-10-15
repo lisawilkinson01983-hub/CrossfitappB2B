@@ -8,6 +8,7 @@ import { WorkoutCard } from "@/components/WorkoutCard";
 import { NavBar } from "@/components/NavBar";
 import { SectionCard } from "@/components/SectionCard";
 import { SectionOnboarding } from "@/components/SectionOnboarding";
+import { CollapsibleSearch } from "@/components/CollapsibleSearch";
 import { WORKOUT_INTENSITY_LABELS } from "@/lib/labels";
 import { WORKOUT_INTENSITIES, type WorkoutIntensityOption } from "@/lib/validation";
 
@@ -54,6 +55,7 @@ export default async function WorkoutsPage({
       <NavBar />
 
       <div className="mt-6 flex flex-col gap-6">
+        <CollapsibleSearch label="Search workouts by name or notes" defaultOpen={!!q || !!intensity}>
         <SectionCard>
           <form method="GET" className="flex flex-col gap-4">
             <div>
@@ -100,6 +102,7 @@ export default async function WorkoutsPage({
             </div>
           </form>
         </SectionCard>
+        </CollapsibleSearch>
 
         <SectionCard
           title="My workouts"

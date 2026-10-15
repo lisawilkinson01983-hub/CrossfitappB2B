@@ -8,6 +8,7 @@ import { SectionCard } from "@/components/SectionCard";
 import { SwipeCardList, type SwipeCardItem } from "@/components/SwipeCardList";
 import { MessageButton } from "@/components/MessageButton";
 import { OpenLevelBadge } from "@/components/OpenLevelBadge";
+import { CollapsibleSearch } from "@/components/CollapsibleSearch";
 import { GENDER_LABELS, LEVEL_LABELS, isCompetitionEvent, parseLevels } from "@/lib/labels";
 import { GENDERS, LEVELS } from "@/lib/validation";
 import { assertEventVisible } from "@/lib/eventVisibility";
@@ -91,6 +92,7 @@ export default async function EventParticipantsPage({
       <BackLink href={`/events/${event.id}`} className="mt-6">Back to {event.name}</BackLink>
 
       <div className="mt-4 flex flex-col gap-4">
+        <CollapsibleSearch label={`Search ${noun}s by name`} defaultOpen={hasFilters}>
         <SectionCard>
           <p className="text-sm text-b2b-ink/50">
             {isPrivateSocial ? "Everyone going" : "Everyone competing"} in {event.name} — browse below, search by
@@ -161,6 +163,7 @@ export default async function EventParticipantsPage({
             </Link>
           )}
         </SectionCard>
+        </CollapsibleSearch>
 
         <SwipeCardList
           items={items}

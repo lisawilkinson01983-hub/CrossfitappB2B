@@ -15,6 +15,7 @@ import { UNAFFILIATED } from "@/lib/gyms";
 import { DISTANCE_RANGES, distanceMiles, ensureUserAreaCoords } from "@/lib/geocode";
 import { SectionCard } from "@/components/SectionCard";
 import { SearchFilters } from "@/components/SearchFilters";
+import { CollapsibleSearch } from "@/components/CollapsibleSearch";
 import { SwipeCardList, type SwipeCardItem } from "@/components/SwipeCardList";
 import { OpenLevelBadge } from "@/components/OpenLevelBadge";
 
@@ -136,6 +137,7 @@ export async function AthletesSearch({
 
   return (
     <div className="mt-4 flex flex-col gap-6">
+      <CollapsibleSearch label="Search athletes by name" defaultOpen={!!q || activeFilterCount > 0}>
       <SectionCard>
       <form method="GET" className="flex flex-col gap-4">
         <input type="hidden" name="view" value="athletes" />
@@ -265,6 +267,7 @@ export async function AthletesSearch({
         </div>
       </form>
       </SectionCard>
+      </CollapsibleSearch>
 
       {(() => {
         const items: SwipeCardItem[] = results.map(({ user, miles }) => {
