@@ -35,6 +35,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   if (existing) {
     await prisma.eventParticipant.delete({ where: { id: existing.id } });
     await prisma.post.deleteMany({ where: { userId, linkedEventId: eventId } });
+    // The team(s) this athlete named for this event go with their
+    // participation — a teammate who separately joined and named their own
+    // team isn't affected, only the ones this athlete themself created.
+    await prisma.team.deleteMany({ where: { eventId, createdById: userId } });
   } else {
     // "I'm participating" and "I'm interested" are mutually exclusive — this
     // clears any active interest mark, but leaves its auto-generated notice
@@ -59,6 +63,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     const parsed = eventParticipateSchema.safeParse(body);
     const teammateIds = (parsed.success ? parsed.data.teammateIds : []).filter((id) => id !== userId);
     const teammateNames = parsed.success ? parsed.data.teammateNames : [];
+    const teamName = parsed.success ? parsed.data.teamName : undefined;
 
     const teammates =
       teammateIds.length > 0
@@ -67,6 +72,22 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
             select: { id: true, name: true },
           })
         : [];
+
+    // Only a NAMED team becomes a structured Team row (what the event's
+    // Teams tile/page lists) — tagging teammates without naming a team still
+    // tags them in the join post/notice below, same as always, it just
+    // doesn't get its own roster entry.
+    if (teamName) {
+      await prisma.team.create({
+        data: {
+          eventId,
+          createdById: userId,
+          name: teamName,
+          freeformMemberNames: teammateNames.length > 0 ? JSON.stringify(teammateNames) : null,
+          members: { create: [userId, ...teammates.map((t) => t.id)].map((memberId) => ({ userId: memberId })) },
+        },
+      });
+    }
 
     const teamTags = [
       ...teammates.map((t) => `@[${t.name}](${t.id})`),

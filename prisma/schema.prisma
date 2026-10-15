@@ -481,6 +481,8 @@ model User {
   eventInvitesSent            EventInvite[]                @relation("EventInvitesSent")
   eventWorkouts               EventWorkout[]
   eventWorkoutReactions       EventWorkoutReaction[]
+  teamsCreated                Team[]                        @relation("TeamsCreated")
+  teamMemberships             TeamMember[]
 
   blocksMade     Block[] @relation("BlocksMade")
   blocksReceived Block[] @relation("BlocksReceived")
@@ -1111,6 +1113,7 @@ model Event {
   teammateAlerts EventTeammateAlert[]
   invites        EventInvite[]
   workouts       EventWorkout[]
+  teams          Team[]
 
   @@index([date])
 }
@@ -1147,6 +1150,53 @@ model EventParticipant {
 
   @@unique([userId, eventId])
   @@index([eventId])
+}
+
+// A named team competing together at an event — created alongside the
+// "I'm participating" join when the athlete names one in the teammate-tag
+// prompt (see EventEngagementButtons, POST /api/events/[id]/participate).
+// Deliberately a real structured record, not just the plain-text "Competing
+// with my team: ..." tag that same join already posts to the feed/Message
+// Board — this is what the event's Teams tile/page lists, with real
+// clickable members. Deleted along with the creator's participation if they
+// un-join (same cleanup as their join post).
+model Team {
+  id      String @id @default(cuid())
+  eventId String
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  name String
+
+  createdById String
+  createdBy   User   @relation("TeamsCreated", fields: [createdById], references: [id], onDelete: Cascade)
+
+  members TeamMember[]
+
+  // Teammates not on Box 2 Box, tagged by plain name in the same prompt —
+  // JSON-encoded array, same "platform members are rows, the rest are just
+  // names" split as the join post's own teammateIds/teammateNames.
+  freeformMemberNames String?
+
+  createdAt DateTime @default(now())
+
+  @@index([eventId])
+}
+
+// One registered athlete on a Team — the creator is included as a member
+// row too (not just the teammates they tagged), so the member list is
+// complete on its own.
+model TeamMember {
+  id     String @id @default(cuid())
+  teamId String
+  team   Team   @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([teamId, userId])
+  @@index([teamId])
+  @@index([userId])
 }
 
 // "I'm interested" (looking for a team) is tracked separately from actually

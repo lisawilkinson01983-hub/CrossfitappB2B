@@ -37,12 +37,12 @@ export function EventEngagementButtons({
   const [busy, setBusy] = useState<"participate" | "interested" | null>(null);
   const [showTeamPrompt, setShowTeamPrompt] = useState(false);
 
-  async function joinEvent(teammateIds: string[], teammateNames: string[] = []) {
+  async function joinEvent(teammateIds: string[], teammateNames: string[] = [], teamName?: string) {
     setBusy("participate");
     const res = await fetch(`/api/events/${eventId}/participate`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ teammateIds, teammateNames }),
+      body: JSON.stringify({ teammateIds, teammateNames, teamName }),
     });
     setBusy(null);
     setShowTeamPrompt(false);
@@ -118,9 +118,10 @@ function TeamTagPrompt({
 }: {
   busy: boolean;
   onSkip: () => void;
-  onConfirm: (teammateIds: string[], teammateNames: string[]) => void;
+  onConfirm: (teammateIds: string[], teammateNames: string[], teamName: string) => void;
   onCancel: () => void;
 }) {
+  const [teamName, setTeamName] = useState("");
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<UserOption[]>([]);
   const [teammates, setTeammates] = useState<UserOption[]>([]);
@@ -182,6 +183,21 @@ function TeamTagPrompt({
           Add your teammates and they'll be tagged in your feed post and the event's Message Board — or skip if
           you're going solo.
         </p>
+
+        <label className="mt-3 flex flex-col gap-1">
+          <span className="text-xs font-medium text-b2b-ink/50">Team name (optional)</span>
+          <input
+            type="text"
+            value={teamName}
+            onChange={(e) => setTeamName(e.target.value)}
+            placeholder="e.g. Iron Wolves"
+            maxLength={60}
+            className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-b2b-pink focus:outline-none"
+          />
+          <span className="text-xs text-b2b-ink/40">
+            Named teams show up on the event's Teams list, alongside their roster.
+          </span>
+        </label>
 
         {(teammates.length > 0 || freeformNames.length > 0) && (
           <div className="mt-3 flex flex-wrap gap-2">
@@ -288,11 +304,11 @@ function TeamTagPrompt({
           </button>
           <button
             type="button"
-            onClick={() => onConfirm(teammates.map((t) => t.id), freeformNames)}
+            onClick={() => onConfirm(teammates.map((t) => t.id), freeformNames, teamName.trim())}
             disabled={busy}
             className="rounded bg-b2b-pink px-3 py-1.5 text-sm font-medium text-white hover:bg-b2b-pink-dark disabled:opacity-50"
           >
-            {busy ? "Joining..." : totalTagged > 0 ? "Add team & join" : "I'm in!"}
+            {busy ? "Joining..." : totalTagged > 0 || teamName.trim() ? "Add team & join" : "I'm in!"}
           </button>
         </div>
       </div>

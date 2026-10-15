@@ -56,7 +56,7 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
       // Only the count is needed here for notices — they're rendered on the
       // dedicated Message Board page. Workouts are rendered in full, right
       // in the Overview section below.
-      _count: { select: { interests: true } },
+      _count: { select: { interests: true, teams: true } },
       notices: { select: { id: true } },
       workouts: { orderBy: { number: "asc" }, select: { number: true, title: true, photo: true } },
     },
@@ -265,7 +265,7 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
           isCompetition={isCompetitionEvent(event)}
         />
 
-        <div className="grid grid-cols-2 gap-2">
+        <div className={`grid gap-2 ${isPrivateSocial ? "grid-cols-2" : "grid-cols-3"}`}>
           <Link
             href={`/events/${event.id}/participants`}
             className="flex flex-col items-center gap-0.5 rounded-2xl border border-b2b-purple/10 bg-b2b-card py-3 hover:border-b2b-pink/30"
@@ -282,6 +282,15 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
             <span className="font-display text-2xl text-b2b-pink">{event._count.interests}</span>
             <span className="text-[10px] font-semibold uppercase tracking-wide text-b2b-ink/45">Interested</span>
           </Link>
+          {!isPrivateSocial && (
+            <Link
+              href={`/events/${event.id}/teams`}
+              className="flex flex-col items-center gap-0.5 rounded-2xl border border-b2b-purple/10 bg-b2b-card py-3 hover:border-b2b-pink/30"
+            >
+              <span className="font-display text-2xl text-b2b-pink">{event._count.teams}</span>
+              <span className="text-[10px] font-semibold uppercase tracking-wide text-b2b-ink/45">Teams</span>
+            </Link>
+          )}
         </div>
 
         <EventTabs

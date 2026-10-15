@@ -515,6 +515,10 @@ export const eventParticipateSchema = z.object({
   // A teammate who isn't on Box 2 Box yet — tagged by plain name rather than
   // a profile link, alongside teammateIds above.
   teammateNames: z.array(z.string().trim().min(1).max(60)).max(20).optional().default([]),
+  // Optional — naming a team (or just tagging teammates without one) both
+  // create a Team row; skipping both stays a solo join (see
+  // POST /api/events/[id]/participate).
+  teamName: z.preprocess(emptyToUndefined, z.string().trim().max(60).optional()),
 });
 
 export const messageSchema = z
