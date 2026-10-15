@@ -5,13 +5,12 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NavBar } from "@/components/NavBar";
 import { SectionCard } from "@/components/SectionCard";
-import { Avatar } from "@/components/Avatar";
+import { SwipeCardList, type SwipeCardItem } from "@/components/SwipeCardList";
 import { MessageButton } from "@/components/MessageButton";
-import { GENDER_LABELS, LEVEL_LABELS, parseLevels, showsSingleBadge } from "@/lib/labels";
+import { GENDER_LABELS, LEVEL_LABELS, parseLevels } from "@/lib/labels";
 import { GENDERS, LEVELS } from "@/lib/validation";
 import { assertEventVisible } from "@/lib/eventVisibility";
 import { BackLink } from "@/components/BackLink";
-import { LevelTags } from "@/components/LevelTags";
 
 // "Prefer not to disclose" is a profile-level privacy choice, not a search filter.
 const SEARCHABLE_GENDERS = GENDERS.filter((g) => g !== "PREFER_NOT_TO_DISCLOSE");
@@ -69,9 +68,8 @@ export default async function EventInterestedPage({
               name: true,
               photo: true,
               levels: true,
+              area: true,
               affiliateGym: true,
-              isSingle: true,
-              showSingleBadge: true,
             },
           },
         },
@@ -159,40 +157,23 @@ export default async function EventInterestedPage({
           )}
         </SectionCard>
 
-        <SectionCard
-          title={`${event.interests.length} ${event.interests.length === 1 ? "athlete" : "athletes"} interested`}
-        >
-          {event.interests.length === 0 ? (
-            <p className="text-b2b-ink/40">
-              {hasFilters ? "No one matching those filters yet." : "No one's marked interested yet — check back later."}
-            </p>
-          ) : (
-            <div className="flex flex-col gap-3">
-              {event.interests.map((interest) => (
-                <div key={interest.id} className="flex items-center justify-between gap-3">
-                  <Link href={`/profile/${interest.user.id}`} className="flex min-w-0 flex-1 items-center gap-3">
-                    <Avatar
-                      photo={interest.user.photo}
-                      name={interest.user.name}
-                      size={40}
-                      showSingleBadge={showsSingleBadge(interest.user)}
-                    />
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-medium">
-                        {interest.user.name}
-                        <LevelTags levels={parseLevels(interest.user.levels)} className="ml-2" />
-                      </p>
-                      {interest.user.affiliateGym && (
-                        <p className="truncate text-xs text-b2b-ink/40">{interest.user.affiliateGym}</p>
-                      )}
-                    </div>
-                  </Link>
-                  <MessageButton targetUserId={interest.user.id} compact />
-                </div>
-              ))}
-            </div>
+        <SwipeCardList
+          items={event.interests.map(
+            (interest): SwipeCardItem => ({
+              id: interest.user.id,
+              image: interest.user.photo,
+              initial: interest.user.name.charAt(0),
+              title: interest.user.name,
+              badges: parseLevels(interest.user.levels).map((lvl) => LEVEL_LABELS[lvl]),
+              subtitle: [interest.user.area, interest.user.affiliateGym].filter(Boolean).join(" · ") || null,
+              href: `/profile/${interest.user.id}`,
+              action: <MessageButton targetUserId={interest.user.id} />,
+              compactAction: <MessageButton targetUserId={interest.user.id} compact />,
+            })
           )}
-        </SectionCard>
+          emptyMessage={hasFilters ? "No one matching those filters yet." : "No one's marked interested yet — check back later."}
+          label={`${event.interests.length} ${event.interests.length === 1 ? "athlete" : "athletes"} interested`}
+        />
       </div>
     </main>
   );

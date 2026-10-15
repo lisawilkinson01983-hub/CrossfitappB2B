@@ -5,24 +5,59 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NavBar } from "@/components/NavBar";
 import { SectionCard } from "@/components/SectionCard";
-import { Avatar } from "@/components/Avatar";
-import { showsSingleBadge, isCompetitionEvent } from "@/lib/labels";
+import { SwipeCardList, type SwipeCardItem } from "@/components/SwipeCardList";
+import { MessageButton } from "@/components/MessageButton";
+import { GENDER_LABELS, LEVEL_LABELS, isCompetitionEvent, parseLevels } from "@/lib/labels";
+import { GENDERS, LEVELS } from "@/lib/validation";
 import { assertEventVisible } from "@/lib/eventVisibility";
 import { BackLink } from "@/components/BackLink";
 
-export default async function EventParticipantsPage({ params }: { params: Promise<{ id: string }> }) {
+// "Prefer not to disclose" is a profile-level privacy choice, not a search filter.
+const SEARCHABLE_GENDERS = GENDERS.filter((g) => g !== "PREFER_NOT_TO_DISCLOSE");
+
+export default async function EventParticipantsPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ q?: string; level?: string; gender?: string }>;
+}) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) redirect("/login");
 
   const { id } = await params;
+  const { q: qRaw, level: levelRaw, gender: genderRaw } = await searchParams;
+  const q = typeof qRaw === "string" ? qRaw.trim() : "";
+  const level = LEVELS.find((l) => l === levelRaw);
+  const gender = SEARCHABLE_GENDERS.find((g) => g === genderRaw);
+  const hasFilters = !!q || !!level || !!gender;
 
   const event = await prisma.event.findUnique({
     where: { id },
-    include: {
+    select: {
+      id: true,
+      name: true,
+      isPrivate: true,
+      status: true,
+      eventKind: true,
+      createdById: true,
+      submittedById: true,
       participants: {
+        where: {
+          user: {
+            ...(q ? { name: { contains: q } } : {}),
+            // levels is a JSON-encoded array (see prisma/schema.prisma) —
+            // none of SCALED/INTERMEDIATE/RX is a substring of another, so
+            // "contains" safely means "has this level among theirs".
+            ...(level ? { levels: { contains: level } } : {}),
+            ...(gender ? { gender } : {}),
+          },
+        },
         orderBy: { createdAt: "asc" },
         include: {
-          user: { select: { id: true, name: true, photo: true, isSingle: true, showSingleBadge: true } },
+          user: {
+            select: { id: true, name: true, photo: true, levels: true, area: true, affiliateGym: true },
+          },
         },
       },
     },
@@ -35,38 +70,101 @@ export default async function EventParticipantsPage({ params }: { params: Promis
   const isPrivateSocial = event.isPrivate && !isCompetitionEvent(event);
   const noun = isPrivateSocial ? "attendee" : "athlete";
 
+  const items: SwipeCardItem[] = event.participants.map((p) => ({
+    id: p.user.id,
+    image: p.user.photo,
+    initial: p.user.name.charAt(0),
+    title: p.user.name,
+    badges: parseLevels(p.user.levels).map((lvl) => LEVEL_LABELS[lvl]),
+    subtitle: [p.user.area, p.user.affiliateGym].filter(Boolean).join(" · ") || null,
+    href: `/profile/${p.user.id}`,
+    action: <MessageButton targetUserId={p.user.id} />,
+    compactAction: <MessageButton targetUserId={p.user.id} compact />,
+  }));
+
   return (
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
       <NavBar />
 
       <BackLink href={`/events/${event.id}`} className="mt-6">Back to {event.name}</BackLink>
 
-      <div className="mt-4">
-        <SectionCard
-          title={`${event.participants.length} ${event.participants.length === 1 ? noun : `${noun}s`} participating`}
-        >
-          {event.participants.length === 0 ? (
-            <p className="text-b2b-ink/40">No one's joined yet — be the first!</p>
-          ) : (
-            <div className="flex flex-col gap-3">
-              {event.participants.map((p) => (
-                <Link
-                  key={p.id}
-                  href={`/profile/${p.user.id}`}
-                  className="flex items-center gap-3 hover:underline"
-                >
-                  <Avatar
-                    photo={p.user.photo}
-                    name={p.user.name}
-                    size={36}
-                    showSingleBadge={showsSingleBadge(p.user)}
-                  />
-                  <span className="text-sm font-medium">{p.user.name}</span>
-                </Link>
-              ))}
+      <div className="mt-4 flex flex-col gap-4">
+        <SectionCard>
+          <p className="text-sm text-b2b-ink/50">
+            {isPrivateSocial ? "Everyone going" : "Everyone competing"} in {event.name} — browse below, search by
+            name, or filter by ability and gender.
+          </p>
+          <form method="GET" className="mt-3 flex flex-col gap-3">
+            <div>
+              <label htmlFor="q" className="sr-only">
+                Search {noun}s by name
+              </label>
+              <input
+                id="q"
+                name="q"
+                type="text"
+                placeholder="Search by name"
+                defaultValue={q}
+                className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-b2b-pink focus:outline-none"
+              />
             </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label htmlFor="level" className="block text-xs font-medium text-b2b-ink/60">
+                  Ability
+                </label>
+                <select
+                  id="level"
+                  name="level"
+                  defaultValue={level ?? ""}
+                  className="mt-1 w-full rounded border border-gray-300 bg-b2b-card px-2 py-2 text-sm focus:border-b2b-pink focus:outline-none"
+                >
+                  <option value="">Any</option>
+                  {LEVELS.map((l) => (
+                    <option key={l} value={l}>
+                      {LEVEL_LABELS[l]}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label htmlFor="gender" className="block text-xs font-medium text-b2b-ink/60">
+                  Gender
+                </label>
+                <select
+                  id="gender"
+                  name="gender"
+                  defaultValue={gender ?? ""}
+                  className="mt-1 w-full rounded border border-gray-300 bg-b2b-card px-2 py-2 text-sm focus:border-b2b-pink focus:outline-none"
+                >
+                  <option value="">Any</option>
+                  {SEARCHABLE_GENDERS.map((g) => (
+                    <option key={g} value={g}>
+                      {GENDER_LABELS[g]}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <button
+              type="submit"
+              className="rounded bg-b2b-pink px-4 py-2 text-sm font-medium text-white hover:bg-b2b-pink-dark"
+            >
+              Search
+            </button>
+          </form>
+          {hasFilters && (
+            <Link href={`/events/${event.id}/participants`} className="mt-2 inline-block text-xs text-b2b-ink/50 hover:underline">
+              Clear filters
+            </Link>
           )}
         </SectionCard>
+
+        <SwipeCardList
+          items={items}
+          emptyMessage={hasFilters ? "No one matching those filters yet." : "No one's joined yet — be the first!"}
+          label={`${event.participants.length} ${event.participants.length === 1 ? noun : `${noun}s`} participating`}
+        />
       </div>
     </main>
   );
