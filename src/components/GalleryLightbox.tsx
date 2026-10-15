@@ -56,10 +56,17 @@ function commentsConfig(source: MediaSource): {
   }
 }
 
+const GRID_COLS = {
+  2: "grid-cols-2",
+  3: "grid-cols-3 sm:grid-cols-4",
+  4: "grid-cols-4",
+} as const;
+
 export function GalleryLightbox({
   items: initialItems,
   canEdit = false,
   layout = "strip",
+  columns = 3,
   autoOpenIndex,
   autoOpenComments = false,
 }: {
@@ -67,6 +74,8 @@ export function GalleryLightbox({
   canEdit?: boolean;
   /** "strip": fixed-width tiles in a horizontal scroller (the profile preview). "grid": fills a responsive grid (the full gallery page). */
   layout?: "strip" | "grid";
+  /** "grid" layout only — how many columns, fewer meaning bigger tiles. */
+  columns?: keyof typeof GRID_COLS;
   /** Set when arriving from a WORKOUT_COMMENT notification link (see /profile/[userId]/gallery?workout=) to open straight to that item. */
   autoOpenIndex?: number;
   autoOpenComments?: boolean;
@@ -134,9 +143,7 @@ export function GalleryLightbox({
     <>
       <div
         className={
-          layout === "grid"
-            ? "grid grid-cols-3 gap-2 sm:grid-cols-4"
-            : "flex gap-3 overflow-x-auto pb-1"
+          layout === "grid" ? `grid ${GRID_COLS[columns]} gap-2` : "flex gap-3 overflow-x-auto pb-1"
         }
       >
         {items.map((item, i) => (

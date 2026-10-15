@@ -7,43 +7,21 @@ import { NavBar } from "@/components/NavBar";
 import { ProfileDetails } from "@/components/ProfileDetails";
 import { Gallery } from "@/components/Gallery";
 import { SectionCard } from "@/components/SectionCard";
-import { Avatar } from "@/components/Avatar";
-import { WorkoutCard } from "@/components/WorkoutCard";
+import { PostCard } from "@/components/PostCard";
+import { postCardInclude, toPostCardData } from "@/lib/posts";
+import { ProfileContentTabs, type ProfileTab } from "@/components/ProfileContentTabs";
+import { ProfileEventRow } from "@/components/ProfileEventRow";
 import { IncomingFollowRequests } from "@/components/IncomingFollowRequests";
 import { GymUpdateNudge } from "@/components/GymUpdateNudge";
 import { EditIcon } from "@/components/EditIcon";
 import { OTHER_GYM } from "@/lib/gyms";
-import { formatEventDate } from "@/lib/eventDate";
 import { isCompetitionEvent } from "@/lib/labels";
 import type { Prisma } from "@prisma/client";
 
-type EventRowData = {
-  id: string;
-  photo: string | null;
-  name: string;
-  date: Date;
-  endDate: Date | null;
-  isOnline: boolean;
-  location: string | null;
-};
-
-function EventRow({ event }: { event: EventRowData }) {
-  return (
-    <div className="flex items-center gap-3 rounded-lg border border-b2b-purple/10 bg-b2b-bg p-3">
-      <Avatar photo={event.photo} name={event.name} size={40} />
-      <div>
-        <p className="font-medium">
-          <Link href={`/events/${event.id}`} className="hover:underline">
-            {event.name}
-          </Link>
-        </p>
-        <p className="text-sm text-b2b-ink/50">
-          {formatEventDate(event)} · {event.isOnline ? "Online" : event.location}
-        </p>
-      </div>
-    </div>
-  );
-}
+// How many entries a Posts/Workouts tab preview-loads before pointing to the
+// full post-history page — plenty for a tab people only expect a scroll's
+// worth of, not a paginated archive.
+const TAB_PREVIEW_COUNT = 10;
 
 export default async function ProfilePage() {
   const session = await getServerSession(authOptions);
@@ -68,29 +46,46 @@ export default async function ProfilePage() {
     { endDate: { gte: now } },
   ];
 
-  const [recentWorkouts, workoutCount, followerCount, followingCount, incomingRequests, participatingIn, interestedIn] =
-    await Promise.all([
-      prisma.workout.findMany({
-        where: { userId: user.id },
-        orderBy: { createdAt: "desc" },
-        take: 3,
-      }),
-      prisma.workout.count({ where: { userId: user.id } }),
-      prisma.follow.count({ where: { followingId: user.id } }),
-      prisma.follow.count({ where: { followerId: user.id } }),
-      prisma.followRequest.findMany({
-        where: { targetId: user.id, status: "PENDING" },
-        include: { requester: { select: { id: true, name: true } } },
-      }),
-      prisma.event.findMany({
-        where: { AND: [{ participants: { some: { userId: user.id } } }, { OR: notPastFilter }] },
-        orderBy: { date: "asc" },
-      }),
-      prisma.event.findMany({
-        where: { AND: [{ interests: { some: { userId: user.id } } }, { OR: notPastFilter }] },
-        orderBy: { date: "asc" },
-      }),
-    ]);
+  const [
+    workoutCount,
+    followerCount,
+    followingCount,
+    incomingRequests,
+    participatingIn,
+    interestedIn,
+    posts,
+    postsTotalCount,
+    workoutPosts,
+  ] = await Promise.all([
+    prisma.workout.count({ where: { userId: user.id } }),
+    prisma.follow.count({ where: { followingId: user.id } }),
+    prisma.follow.count({ where: { followerId: user.id } }),
+    prisma.followRequest.findMany({
+      where: { targetId: user.id, status: "PENDING" },
+      include: { requester: { select: { id: true, name: true } } },
+    }),
+    prisma.event.findMany({
+      where: { AND: [{ participants: { some: { userId: user.id } } }, { OR: notPastFilter }] },
+      orderBy: { date: "asc" },
+    }),
+    prisma.event.findMany({
+      where: { AND: [{ interests: { some: { userId: user.id } } }, { OR: notPastFilter }] },
+      orderBy: { date: "asc" },
+    }),
+    prisma.post.findMany({
+      where: { userId: user.id, sharedToFeed: true },
+      orderBy: { createdAt: "desc" },
+      take: TAB_PREVIEW_COUNT,
+      include: postCardInclude,
+    }),
+    prisma.post.count({ where: { userId: user.id, sharedToFeed: true } }),
+    prisma.post.findMany({
+      where: { userId: user.id, sharedToFeed: true, type: "WORKOUT" },
+      orderBy: { createdAt: "desc" },
+      take: TAB_PREVIEW_COUNT,
+      include: postCardInclude,
+    }),
+  ]);
   console.log(`/profile: data fetch took ${Date.now() - fetchStart}ms`);
 
   // A private non-competition event isn't a competition — split it out into
@@ -107,6 +102,96 @@ export default async function ProfilePage() {
     const typed = user.affiliateGymOther.trim().toLowerCase();
     suggestedGym = approvedGyms.find((g) => g.name.toLowerCase() === typed)?.name;
   }
+
+  const tabs: ProfileTab[] = [
+    {
+      key: "posts",
+      label: "Posts",
+      content:
+        posts.length === 0 ? (
+          <p className="text-b2b-ink/40">No posts yet.</p>
+        ) : (
+          <div className="flex flex-col gap-4">
+            {posts.map((post) => (
+              <PostCard key={post.id} currentUserId={user.id} post={toPostCardData(post, user.id)} />
+            ))}
+            {postsTotalCount > posts.length && (
+              <Link href={`/profile/${user.id}/posts`} className="text-center text-sm text-b2b-pink underline">
+                See all posts ({postsTotalCount})
+              </Link>
+            )}
+          </div>
+        ),
+    },
+  ];
+
+  if (user.accountType === "ATHLETE") {
+    tabs.push({
+      key: "workouts",
+      label: "Workouts",
+      content: (
+        <div className="flex flex-col gap-4">
+          <Link href="/workouts/new" className="self-start text-sm text-b2b-pink underline">
+            Log a workout
+          </Link>
+          {workoutPosts.length === 0 ? (
+            <p className="text-b2b-ink/40">No workouts shared yet.</p>
+          ) : (
+            workoutPosts.map((post) => (
+              <PostCard key={post.id} currentUserId={user.id} post={toPostCardData(post, user.id)} />
+            ))
+          )}
+        </div>
+      ),
+    });
+  }
+
+  tabs.push({
+    key: "comps",
+    label: "Comps",
+    content:
+      competingIn.length === 0 && attending.length === 0 && interestedIn.length === 0 ? (
+        <div className="flex flex-col items-start gap-2">
+          <p className="text-b2b-ink/40">No events added yet.</p>
+          <Link href="/discover?view=events" className="text-sm text-b2b-pink underline">
+            Browse events
+          </Link>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-5">
+          {competingIn.length > 0 && (
+            <div>
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-b2b-ink/40">Competing in</p>
+              <div className="flex flex-col gap-3">
+                {competingIn.map((event) => (
+                  <ProfileEventRow key={event.id} event={event} />
+                ))}
+              </div>
+            </div>
+          )}
+          {attending.length > 0 && (
+            <div>
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-b2b-ink/40">Attending</p>
+              <div className="flex flex-col gap-3">
+                {attending.map((event) => (
+                  <ProfileEventRow key={event.id} event={event} />
+                ))}
+              </div>
+            </div>
+          )}
+          {interestedIn.length > 0 && (
+            <div>
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-b2b-ink/40">Interested in</p>
+              <div className="flex flex-col gap-3">
+                {interestedIn.map((event) => (
+                  <ProfileEventRow key={event.id} event={event} />
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      ),
+  });
 
   return (
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
@@ -131,103 +216,15 @@ export default async function ProfilePage() {
 
         <Gallery userId={user.id} canAdd />
 
+        <SectionCard>
+          <ProfileContentTabs tabs={tabs} />
+        </SectionCard>
+
         {incomingRequests.length > 0 && (
           <SectionCard title="Follow requests">
             <IncomingFollowRequests
               requests={incomingRequests.map((r) => ({ id: r.id, requester: r.requester }))}
             />
-          </SectionCard>
-        )}
-
-        {competingIn.length === 0 && attending.length === 0 && interestedIn.length === 0 && (
-          <SectionCard
-            title="Events"
-            action={
-              <Link href="/discover?view=events" className="text-sm text-b2b-pink underline">
-                Browse events
-              </Link>
-            }
-          >
-            <p className="text-b2b-ink/40">No events added yet.</p>
-          </SectionCard>
-        )}
-
-        {competingIn.length > 0 && (
-          <SectionCard
-            title="Competing in"
-            action={
-              <Link href="/discover?view=events" className="text-sm text-b2b-pink underline">
-                Browse events
-              </Link>
-            }
-          >
-            <div className="flex flex-col gap-3">
-              {competingIn.map((event) => (
-                <EventRow key={event.id} event={event} />
-              ))}
-            </div>
-          </SectionCard>
-        )}
-
-        {attending.length > 0 && (
-          <SectionCard
-            title="Attending"
-            action={
-              <Link href="/discover?view=events" className="text-sm text-b2b-pink underline">
-                Browse events
-              </Link>
-            }
-          >
-            <div className="flex flex-col gap-3">
-              {attending.map((event) => (
-                <EventRow key={event.id} event={event} />
-              ))}
-            </div>
-          </SectionCard>
-        )}
-
-        {interestedIn.length > 0 && (
-          <SectionCard
-            title="Interested in"
-            action={
-              <Link href="/discover?view=events" className="text-sm text-b2b-pink underline">
-                Browse events
-              </Link>
-            }
-          >
-            <div className="flex flex-col gap-3">
-              {interestedIn.map((event) => (
-                <EventRow key={event.id} event={event} />
-              ))}
-            </div>
-          </SectionCard>
-        )}
-
-        {user.accountType === "ATHLETE" && (
-          <SectionCard
-            title="Workout history"
-            action={
-              <div className="flex gap-3 text-sm">
-                <Link href="/workouts/new" className="text-b2b-pink underline">
-                  Log a workout
-                </Link>
-                {recentWorkouts.length > 0 && (
-                  <Link href="/workouts" className="text-b2b-pink underline">
-                    View all
-                  </Link>
-                )}
-              </div>
-            }
-          >
-            {recentWorkouts.length ? (
-              <div className="flex flex-col gap-3">
-                {recentWorkouts.map((workout) => (
-                  <WorkoutCard key={workout.id} workout={workout} />
-                ))}
-              </div>
-            ) : (
-              <p className="text-b2b-ink/40">No workouts logged yet.</p>
-            )}
           </SectionCard>
         )}
       </div>

@@ -18,7 +18,6 @@ import { SectionCard } from "@/components/SectionCard";
 import { ExpandableHeroPhoto } from "@/components/ExpandableHeroPhoto";
 import { OpenLevelBadge } from "@/components/OpenLevelBadge";
 import { PbCardBody } from "@/components/PbCardBody";
-import { ProfilePosts } from "@/components/ProfilePosts";
 import { GymBookingButtons } from "@/components/GymBookingButtons";
 import { prisma } from "@/lib/prisma";
 import { isSiteAccountEmail } from "@/lib/siteAccount";
@@ -278,8 +277,6 @@ export async function ProfileDetails({
         </div>
         </div>
       </div>
-
-      <ProfilePosts userId={user.id} isOwner={isOwner} />
 
       {!isAffiliate && (
         <SectionCard
