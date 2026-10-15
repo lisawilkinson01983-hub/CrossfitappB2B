@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { MoreIcon } from "@/components/MoreIcon";
 import { ReportButton } from "@/components/ReportButton";
@@ -46,17 +47,28 @@ export function ProfileMoreMenu({
   targetName,
   initialBlocked,
   initialMuted,
+  // "overlay": a bare icon (no border/background) for sitting inside a
+  // SwipeCardList cornerAction slot, which already supplies its own
+  // backdrop circle — see Discover's carousel cards.
+  variant = "default",
 }: {
   targetUserId: string;
   targetName: string;
   initialBlocked: boolean;
   initialMuted: boolean;
+  variant?: "default" | "overlay";
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [blocked, setBlocked] = useState(initialBlocked);
   const [muted, setMuted] = useState(initialMuted);
   const [busy, setBusy] = useState<"block" | "mute" | null>(null);
+  // Portal the sheet straight to <body> — this trigger can sit inside a
+  // transformed/overflow-hidden ancestor (a SwipeCardList carousel card),
+  // which would otherwise clip a plain `fixed` overlay to that ancestor's
+  // box instead of the viewport.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   async function toggleMute() {
     setBusy("mute");
@@ -88,9 +100,13 @@ export function ProfileMoreMenu({
         type="button"
         onClick={() => setOpen(true)}
         aria-label="More options"
-        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-b2b-purple/15 text-b2b-ink/60 hover:bg-b2b-bg"
+        className={
+          variant === "overlay"
+            ? "flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-black/30 text-white backdrop-blur-sm hover:bg-black/50"
+            : "flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-b2b-purple/15 text-b2b-ink/60 hover:bg-b2b-bg"
+        }
       >
-        <MoreIcon className="h-[17px] w-[17px]" />
+        <MoreIcon className={variant === "overlay" ? "h-3.5 w-3.5" : "h-[17px] w-[17px]"} />
       </button>
 
       {/* Mounted unconditionally — its own report dialog has to survive us
@@ -99,7 +115,9 @@ export function ProfileMoreMenu({
         targetType="USER"
         targetId={targetUserId}
         renderTrigger={(openReport) =>
-          open && (
+          open &&
+          mounted &&
+          createPortal(
             <div
               className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 sm:items-center"
               onClick={() => setOpen(false)}
@@ -131,7 +149,8 @@ export function ProfileMoreMenu({
                   Cancel
                 </button>
               </div>
-            </div>
+            </div>,
+            document.body
           )
         }
       />

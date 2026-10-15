@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { FollowButton, type FollowStatus } from "@/components/FollowButton";
-import { BlockMuteControls } from "@/components/BlockMuteControls";
+import { ProfileMoreMenu } from "@/components/ProfileMoreMenu";
 import { GENDERS, LEVELS, LOOKING_FOR_OPTIONS, type LookingForOption } from "@/lib/validation";
 import {
   GENDER_LABELS,
@@ -288,11 +288,15 @@ export async function AthletesSearch({
                 .filter(Boolean)
                 .join(" · ") || null,
             href: `/profile/${user.id}`,
-            action: (
-              <div className="flex flex-col items-center gap-1.5">
-                <FollowButton targetUserId={user.id} initialStatus={status} />
-                <BlockMuteControls targetUserId={user.id} initialBlocked={false} initialMuted={myMutedIds.has(user.id)} />
-              </div>
+            action: <FollowButton targetUserId={user.id} initialStatus={status} />,
+            cornerAction: (
+              <ProfileMoreMenu
+                targetUserId={user.id}
+                targetName={user.name}
+                initialBlocked={false}
+                initialMuted={myMutedIds.has(user.id)}
+                variant="overlay"
+              />
             ),
           };
         });

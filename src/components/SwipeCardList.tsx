@@ -278,7 +278,10 @@ export function SwipeCardList({
                 </div>
 
                 {active.cornerAction && (
-                  <div className="absolute right-3 top-3 rounded-full bg-black/35 p-1.5 backdrop-blur-sm">
+                  <div
+                    className="absolute right-3 top-3 rounded-full bg-black/35 p-1.5 backdrop-blur-sm"
+                    onPointerDown={(e) => e.stopPropagation()}
+                  >
                     {active.cornerAction}
                   </div>
                 )}

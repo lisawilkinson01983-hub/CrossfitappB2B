@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect, notFound } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -68,15 +69,24 @@ export default async function ConversationPage({
         </div>
       ) : (
         <div className="mt-3 flex items-center gap-3">
-          <Avatar
-            photo={others[0]?.photo ?? null}
-            name={displayName}
-            size={40}
-            showSingleBadge={others[0] ? showsSingleBadge(others[0]) : false}
-          />
-          <div className="min-w-0">
-            <h1 className="truncate text-xl font-bold">{displayName}</h1>
-          </div>
+          {others[0] && !others[0].deletedAt ? (
+            <Link href={`/profile/${others[0].id}`} className="flex min-w-0 items-center gap-3">
+              <Avatar
+                photo={others[0].photo}
+                name={displayName}
+                size={40}
+                showSingleBadge={showsSingleBadge(others[0])}
+              />
+              <h1 className="truncate text-xl font-bold hover:underline">{displayName}</h1>
+            </Link>
+          ) : (
+            <>
+              <Avatar photo={others[0]?.photo ?? null} name={displayName} size={40} showSingleBadge={false} />
+              <div className="min-w-0">
+                <h1 className="truncate text-xl font-bold">{displayName}</h1>
+              </div>
+            </>
+          )}
         </div>
       )}
 
