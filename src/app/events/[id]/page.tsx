@@ -1,20 +1,21 @@
 import Link from "next/link";
+import Image from "next/image";
 import { redirect, notFound } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NavBar } from "@/components/NavBar";
-import { SectionCard } from "@/components/SectionCard";
 import { Avatar } from "@/components/Avatar";
 import { EventEngagementButtons } from "@/components/EventEngagementButtons";
 import { EventWorkoutButtons } from "@/components/EventWorkoutButtons";
 import { EventPlatformBadge } from "@/components/EventPlatformBadge";
+import { EventTabs } from "@/components/EventTabs";
 import { CollapsibleText } from "@/components/CollapsibleText";
 import { InviteToEventForm } from "@/components/InviteToEventForm";
 import { MessageAttendeesButton } from "@/components/MessageAttendeesButton";
 import { ShareEventButton } from "@/components/ShareEventButton";
 import { ClaimEventButton } from "@/components/ClaimEventButton";
-import { BackLink } from "@/components/BackLink";
+import { BackIcon } from "@/components/BackIcon";
 import { EditIcon } from "@/components/EditIcon";
 import { parseJsonArray, eventKindLabel, isCompetitionEvent } from "@/lib/labels";
 import { formatEventDate } from "@/lib/eventDate";
@@ -26,6 +27,15 @@ import {
   EVENT_GENDER_CATEGORY_LABELS,
 } from "@/lib/labels";
 import type { EventDivisionOption, EventTeamFormatOption, EventGenderCategoryOption } from "@/lib/validation";
+
+// Shown behind the hero photo while it loads, and in place of it when the
+// event has none — the same gold-stripe-on-ink pattern as the swipeable
+// cards elsewhere (see SwipeCardList's NO_PHOTO_PATTERN), so a photo-less
+// event still reads as "on brand" rather than a broken image.
+const NO_PHOTO_PATTERN = {
+  backgroundImage:
+    "repeating-linear-gradient(135deg, rgba(184,132,42,0.22) 0px, rgba(184,132,42,0.22) 2px, transparent 2px, transparent 18px)",
+};
 
 export default async function EventPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
@@ -43,7 +53,7 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
       interests: { where: { userId: session.user.id }, select: { id: true } },
       _count: { select: { interests: true } },
       // Only the count is needed here — the notices themselves are rendered
-      // on the dedicated Notice Board page.
+      // on the dedicated Message Board page.
       notices: { select: { id: true } },
       workouts: { orderBy: { number: "asc" }, select: { number: true, title: true } },
     },
@@ -62,6 +72,7 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
     event.claimedById !== session.user.id &&
     !event.claimedById &&
     !event.claimRequestedById;
+  const canEdit = isOrganizer || event.claimedById === session.user.id || me?.isAdmin;
   const gymOptions = event.isPrivate && isOrganizer
     ? (await prisma.gym.findMany({ where: { status: "APPROVED" }, select: { name: true }, orderBy: { name: "asc" } })).map(
         (g) => g.name
@@ -72,7 +83,7 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
   const isParticipating = participantIds.has(session.user.id);
   const isInterested = event.interests.length > 0;
 
-  // Every notice — search or free text — shows up on the shared notice board.
+  // Every notice — search or free text — shows up on the shared message board.
   const chatMessageCount = event.notices.length;
 
   const division = parseJsonArray<EventDivisionOption>(event.division);
@@ -93,168 +104,173 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
   // get dropped/renamed here.
   const isPrivateSocial = event.isPrivate && !isCompetitionEvent(event);
 
+  const overviewContent = (
+    <div className="flex flex-col gap-4">
+      {event.description && <CollapsibleText text={event.description} className="text-sm text-b2b-ink/70" />}
+
+      {categoryTags.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {categoryTags.map((tag) => (
+            <span
+              key={tag}
+              className="rounded-full border border-b2b-purple/20 px-2.5 py-0.5 text-xs text-b2b-ink/60"
+            >
+              {tag}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {event.websiteUrl && (
+        <a
+          href={event.websiteUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="block rounded-xl border-[1.5px] border-b2b-pink px-4 py-3 text-center text-sm font-bold text-b2b-pink hover:bg-b2b-pink/5"
+        >
+          Visit event website &#8599;
+        </a>
+      )}
+
+      {!event.isPrivate && (
+        <ShareEventButton
+          eventId={event.id}
+          className="w-full rounded-xl border border-b2b-purple/20 px-4 py-3 text-center text-sm font-semibold text-b2b-ink/60 hover:bg-b2b-bg"
+        />
+      )}
+
+      {event.isPrivate && isOrganizer && (
+        <div className="flex flex-col gap-3">
+          {event.participants.some((p) => p.userId !== session.user.id) && (
+            <MessageAttendeesButton eventId={event.id} />
+          )}
+          <InviteToEventForm eventId={event.id} gymOptions={gymOptions} />
+        </div>
+      )}
+    </div>
+  );
+
+  const workoutsContent = <EventWorkoutButtons eventId={event.id} workouts={event.workouts} />;
+
   return (
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
       <NavBar />
 
-      <div className="mt-6 flex items-center justify-between">
-        <BackLink href="/discover?view=events">Back to events</BackLink>
-        {(isOrganizer || event.claimedById === session.user.id || me?.isAdmin) && (
-          <Link
-            href={`/events/${event.id}/edit`}
-            className="inline-flex items-center gap-1.5 text-sm text-b2b-purple hover:underline"
-          >
-            <EditIcon className="h-4 w-4 shrink-0" />
-            {me?.isAdmin ? "Edit event" : "Event settings"}
-          </Link>
-        )}
-      </div>
+      <div className="relative -mx-4 mt-6 h-[260px] overflow-hidden sm:-mx-0 sm:rounded-2xl">
+        <div className="absolute inset-0 bg-b2b-ink" style={event.photo ? undefined : NO_PHOTO_PATTERN}>
+          {event.photo ? (
+            <Image src={event.photo} alt="" fill sizes="(min-width: 640px) 640px, 100vw" className="object-cover" />
+          ) : (
+            <span className="absolute -bottom-6 -right-2 font-display text-[11rem] leading-none text-b2b-pink/25">
+              {event.name.charAt(0).toUpperCase()}
+            </span>
+          )}
+        </div>
 
-      <div className="relative mt-4">
+        <div className="absolute left-3 top-3 z-10">
+          <Link
+            href="/discover?view=events"
+            aria-label="Back to events"
+            className="flex h-9 w-9 items-center justify-center rounded-full bg-black/35 text-white backdrop-blur-sm hover:bg-black/50"
+          >
+            <BackIcon className="h-[18px] w-[18px]" />
+          </Link>
+        </div>
+
         {eventPlatform && (
           <div className="absolute right-3 top-3 z-10">
             <EventPlatformBadge platform={eventPlatform} />
           </div>
         )}
-        <SectionCard>
-          <div className="flex flex-col items-center gap-3 text-center">
-            <Avatar photo={event.photo} name={event.name} size={112} />
-            <div>
-              <p className="text-xl font-semibold">
-                {event.name}
-                {event.isPrivate && (
-                  <span className="ml-2 rounded-full bg-b2b-purple/10 px-2 py-0.5 text-xs text-b2b-purple">
-                    🔒 Private
-                  </span>
-                )}
-                {kindLabel && (
-                  <span className="ml-2 rounded-full bg-b2b-purple/10 px-2 py-0.5 text-xs text-b2b-purple">
-                    {kindLabel}
-                  </span>
-                )}
-                {event.tag && (
-                  <span className="ml-2 rounded-full bg-b2b-purple/10 px-2 py-0.5 text-xs text-b2b-purple">
-                    {event.tag}
-                  </span>
-                )}
-              </p>
-              <p className="mt-1 text-sm text-b2b-ink/50">
-                {formatEventDate(event)} · {event.isOnline ? "Online" : event.location}
-              </p>
-              {event.createdBy && (
-                <p className="mt-1 text-xs text-b2b-ink/40">
+
+        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/40 to-transparent px-5 pb-4 pt-14 text-left">
+          <div className="flex flex-wrap gap-1.5">
+            {event.isPrivate && (
+              <span className="rounded-full bg-white/15 px-2.5 py-0.5 text-[11px] font-semibold text-white backdrop-blur-sm">
+                🔒 Private
+              </span>
+            )}
+            {kindLabel && (
+              <span className="rounded-full bg-white/15 px-2.5 py-0.5 text-[11px] font-semibold text-white backdrop-blur-sm">
+                {kindLabel}
+              </span>
+            )}
+            {event.tag && (
+              <span className="rounded-full bg-white/15 px-2.5 py-0.5 text-[11px] font-semibold text-white backdrop-blur-sm">
+                {event.tag}
+              </span>
+            )}
+          </div>
+          <h1 className="mt-1.5 font-display text-3xl leading-tight text-white drop-shadow-sm">{event.name}</h1>
+          <p className="mt-1 text-sm text-white/85">
+            {formatEventDate(event)} · {event.isOnline ? "Online" : event.location}
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-5 flex flex-col gap-5">
+        <div className="flex items-start justify-between gap-3">
+          {event.createdBy ? (
+            <div className="flex items-center gap-2">
+              <Avatar photo={event.createdBy.photo} name={event.createdBy.name} size={26} />
+              <div>
+                <p className="text-xs text-b2b-ink/50">
                   Organized by{" "}
-                  <Link href={`/profile/${event.createdBy.id}`} className="font-medium text-b2b-ink/60 hover:underline">
+                  <Link href={`/profile/${event.createdBy.id}`} className="font-semibold text-b2b-ink/70 hover:underline">
                     {event.createdBy.name}
                   </Link>
                 </p>
-              )}
-              {hasPendingClaimFromMe && (
-                <p className="mt-1 text-xs text-b2b-ink/40">Your claim request is pending admin review.</p>
-              )}
-              {canOfferClaim && <div className="mt-2"><ClaimEventButton eventId={event.id} /></div>}
+                {hasPendingClaimFromMe && (
+                  <p className="text-xs text-b2b-ink/40">Your claim request is pending admin review.</p>
+                )}
+                {canOfferClaim && <ClaimEventButton eventId={event.id} />}
+              </div>
             </div>
-            <EventEngagementButtons
-              eventId={event.id}
-              initialParticipating={isParticipating}
-              initialInterested={isInterested}
-              isCompetition={isCompetitionEvent(event)}
-            />
-
-            {/* The two things someone's most likely here to do — given equal
-                weight so neither gets missed, and placed right after the
-                engagement toggle since they matter more than the stats
-                below. */}
-            <div className="flex w-full flex-col gap-2">
-              {!isPrivateSocial && (
-                <Link
-                  href={`/events/${event.id}/find-teammate`}
-                  className="rounded-xl bg-b2b-pink px-4 py-3 text-center text-sm font-bold text-white hover:bg-b2b-pink-dark"
-                >
-                  Find a teammate
-                </Link>
-              )}
-              <Link
-                href={`/events/${event.id}/notices`}
-                className="rounded-xl bg-b2b-pink px-4 py-3 text-center text-sm font-bold text-white hover:bg-b2b-pink-dark"
-              >
-                Message Board{chatMessageCount > 0 ? ` · ${chatMessageCount} new` : ""}
-              </Link>
-            </div>
-
-            {/* Quick stats + utilities, kept small so they don't compete with
-                the two CTAs above. */}
-            <div className="flex w-full flex-wrap items-center justify-center gap-2">
-              <Link
-                href={`/events/${event.id}/participants`}
-                className="inline-flex items-center gap-1.5 rounded-full border border-gray-300 bg-b2b-card px-3.5 py-2 text-xs font-semibold text-b2b-ink hover:bg-b2b-bg"
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2" />
-                  <circle cx="10" cy="7" r="4" />
-                  <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-                  <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-                </svg>
-                {event.participants.length} {isPrivateSocial ? "attendees" : "athletes"}
-              </Link>
-              <Link
-                href={`/events/${event.id}/interested`}
-                className="inline-flex items-center gap-1.5 rounded-full border border-gray-300 bg-b2b-card px-3.5 py-2 text-xs font-semibold text-b2b-ink hover:bg-b2b-bg"
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-                </svg>
-                {event._count.interests} interested
-              </Link>
-              {!event.isPrivate && (
-                <ShareEventButton
-                  eventId={event.id}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-gray-300 bg-b2b-card px-3.5 py-2 text-xs font-semibold text-b2b-ink hover:bg-b2b-bg"
-                />
-              )}
-            </div>
-          </div>
-
-          {event.description && (
-            <CollapsibleText text={event.description} className="mt-4 text-sm text-b2b-ink/70" />
+          ) : (
+            <div />
           )}
-
-          {categoryTags.length > 0 && (
-            <div className="mt-3 flex flex-wrap justify-center gap-1">
-              {categoryTags.map((tag) => (
-                <span key={tag} className="rounded-full bg-b2b-purple/10 px-2 py-0.5 text-xs text-b2b-purple">
-                  {tag}
-                </span>
-              ))}
-            </div>
-          )}
-
-          {event.websiteUrl && (
-            <a
-              href={event.websiteUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-4 block rounded-xl bg-b2b-pink px-4 py-3 text-center text-sm font-bold text-white hover:bg-b2b-pink-dark"
+          {canEdit && (
+            <Link
+              href={`/events/${event.id}/edit`}
+              aria-label={me?.isAdmin ? "Edit event" : "Event settings"}
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-b2b-purple/20 text-b2b-purple hover:border-b2b-pink/40 hover:text-b2b-pink"
             >
-              Register
-            </a>
+              <EditIcon className="h-4 w-4" />
+            </Link>
           )}
+        </div>
 
-          {event.isPrivate && isOrganizer && (
-            <div className="mt-4 flex flex-col gap-3">
-              {event.participants.some((p) => p.userId !== session.user.id) && (
-                <MessageAttendeesButton eventId={event.id} />
-              )}
-              <InviteToEventForm eventId={event.id} gymOptions={gymOptions} />
-            </div>
-          )}
-        </SectionCard>
-      </div>
+        <EventEngagementButtons
+          eventId={event.id}
+          initialParticipating={isParticipating}
+          initialInterested={isInterested}
+          isCompetition={isCompetitionEvent(event)}
+        />
 
-      <div className="mt-6">
-        <SectionCard title="Workouts">
-          <EventWorkoutButtons eventId={event.id} workouts={event.workouts} />
-        </SectionCard>
+        <div className="grid grid-cols-3 divide-x divide-b2b-purple/10 rounded-2xl border border-b2b-purple/10 bg-b2b-card py-3">
+          <Link href={`/events/${event.id}/participants`} className="flex flex-col items-center gap-0.5 hover:opacity-80">
+            <span className="font-display text-2xl text-b2b-pink">{event.participants.length}</span>
+            <span className="text-[10px] font-semibold uppercase tracking-wide text-b2b-ink/45">
+              {isPrivateSocial ? "Attendees" : "Athletes"}
+            </span>
+          </Link>
+          <Link href={`/events/${event.id}/interested`} className="flex flex-col items-center gap-0.5 hover:opacity-80">
+            <span className="font-display text-2xl text-b2b-pink">{event._count.interests}</span>
+            <span className="text-[10px] font-semibold uppercase tracking-wide text-b2b-ink/45">Interested</span>
+          </Link>
+          <div className="flex flex-col items-center gap-0.5">
+            <span className="font-display text-2xl text-b2b-pink">{event.workouts.length}</span>
+            <span className="text-[10px] font-semibold uppercase tracking-wide text-b2b-ink/45">Workouts</span>
+          </div>
+        </div>
+
+        <EventTabs
+          overview={overviewContent}
+          workouts={workoutsContent}
+          findTeamHref={isPrivateSocial ? null : `/events/${event.id}/find-teammate`}
+          noticesHref={`/events/${event.id}/notices`}
+          noticesCount={chatMessageCount}
+        />
       </div>
     </main>
   );
