@@ -12,7 +12,7 @@ import { FollowButton, type FollowStatus } from "@/components/FollowButton";
 import { MessageButton } from "@/components/MessageButton";
 import { BlockMuteControls } from "@/components/BlockMuteControls";
 import { ReportButton } from "@/components/ReportButton";
-import { ExpandableAvatar } from "@/components/ExpandableAvatar";
+import { ExpandableHeroPhoto } from "@/components/ExpandableHeroPhoto";
 import { LOOKING_FOR_LABELS, parseLookingFor, showsSingleBadge } from "@/lib/labels";
 
 export default async function UserProfilePage({
@@ -74,38 +74,43 @@ export default async function UserProfilePage({
 
       <div className="mt-6 flex flex-col gap-6">
         {isLockedOut ? (
-          <SectionCard>
-            <div className="flex flex-col items-center gap-3 text-center">
-              <ExpandableAvatar
-                photo={user.photo}
-                name={user.name}
-                size={112}
-                showSingleBadge={showsSingleBadge(user)}
-              />
-              <p className="text-xl font-semibold">
-                {user.name}
-                <span className="ml-2 align-middle text-sm font-normal text-b2b-ink/50">🔒 Private</span>
-              </p>
-
-              <div className="flex items-center gap-2">
-                <MessageButton targetUserId={user.id} />
-                <FollowButton targetUserId={user.id} initialStatus={followStatus} />
+          <div className="flex flex-col gap-4">
+            <ExpandableHeroPhoto photo={user.photo} name={user.name}>
+              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent px-6 pb-6 pt-16">
+                <p className="flex flex-wrap items-center gap-1.5 font-display text-2xl leading-tight text-white drop-shadow-sm">
+                  {user.name}
+                  {showsSingleBadge(user) && (
+                    <span title="Single" className="text-base">
+                      💚
+                    </span>
+                  )}
+                  <span className="text-sm font-normal text-white/70">🔒 Private</span>
+                </p>
               </div>
+            </ExpandableHeroPhoto>
 
-              <div className="flex items-center gap-3">
-                <BlockMuteControls
-                  targetUserId={user.id}
-                  initialBlocked={Boolean(blockRow)}
-                  initialMuted={Boolean(muteRow)}
-                />
-                <ReportButton targetType="USER" targetId={user.id} />
+            <SectionCard>
+              <div className="flex flex-col items-center gap-3 text-center">
+                <div className="flex items-center gap-2">
+                  <MessageButton targetUserId={user.id} />
+                  <FollowButton targetUserId={user.id} initialStatus={followStatus} />
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <BlockMuteControls
+                    targetUserId={user.id}
+                    initialBlocked={Boolean(blockRow)}
+                    initialMuted={Boolean(muteRow)}
+                  />
+                  <ReportButton targetType="USER" targetId={user.id} />
+                </div>
+
+                <p className="max-w-xs text-sm text-b2b-ink/50">
+                  This account is private. Follow {user.name} to see their profile, PBs and workouts.
+                </p>
               </div>
-
-              <p className="max-w-xs text-sm text-b2b-ink/50">
-                This account is private. Follow {user.name} to see their profile, PBs and workouts.
-              </p>
-            </div>
-          </SectionCard>
+            </SectionCard>
+          </div>
         ) : (
           <>
             <ProfileDetails

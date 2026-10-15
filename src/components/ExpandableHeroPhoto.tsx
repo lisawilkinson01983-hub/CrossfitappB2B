@@ -9,11 +9,12 @@ const NO_PHOTO_PATTERN = {
 };
 
 /**
- * The profile page's full-bleed photo header — the same "big photo, tap to
- * view full-screen" interaction as ExpandableAvatar, just sized as a hero
- * banner instead of a small circle. `children` renders as a sibling on top
- * of the photo (back/edit icons, the bottom gradient scrim, the level
- * badge) so none of that fights the photo's own click target.
+ * The profile page's photo header — a standalone rounded card (not an
+ * edge-to-edge bleed), the same "big photo, tap to view full-screen"
+ * interaction as ExpandableAvatar just sized as a hero. `children` renders
+ * as a sibling on top of the photo (back/edit icons, the bottom gradient
+ * scrim, the level badge) so none of that fights the photo's own click
+ * target.
  */
 export function ExpandableHeroPhoto({
   photo,
@@ -36,7 +37,7 @@ export function ExpandableHeroPhoto({
   }, [open]);
 
   return (
-    <div className="relative -mx-4 h-[420px] overflow-hidden bg-b2b-ink sm:-mx-0 sm:rounded-t-2xl">
+    <div className="relative h-[420px] overflow-hidden rounded-2xl bg-b2b-ink shadow-md shadow-b2b-purple/10">
       {photo ? (
         <button
           type="button"

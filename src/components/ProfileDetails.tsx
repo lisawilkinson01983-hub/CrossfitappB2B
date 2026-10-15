@@ -74,11 +74,6 @@ export async function ProfileDetails({
   belowActions?: ReactNode;
   isOwner?: boolean;
 }) {
-  const crossfitSince =
-    user.crossfitSinceYear != null
-      ? `${user.crossfitSinceMonth ? MONTH_NAMES[user.crossfitSinceMonth - 1] + " " : ""}${user.crossfitSinceYear}`
-      : null;
-
   const displayedPbFields = parseDisplayedPbs(user.displayedPbs);
   const displayedPbSet = new Set(displayedPbFields);
   const pbs = displayedPbFields
@@ -138,15 +133,16 @@ export async function ProfileDetails({
       )
     );
   }
-  if (crossfitSince && !isSiteAccount) {
-    metaParts.push(
-      <span key="since">{isAffiliate ? `Established ${crossfitSince}` : `CrossFitting since ${crossfitSince}`}</span>
-    );
+  // Only for an AFFILIATE (a gym's founding date) — dropped for an athlete's
+  // own "CrossFitting since" line, which just cluttered the hero card.
+  if (isAffiliate && !isSiteAccount && user.crossfitSinceYear != null) {
+    const established = `${user.crossfitSinceMonth ? MONTH_NAMES[user.crossfitSinceMonth - 1] + " " : ""}${user.crossfitSinceYear}`;
+    metaParts.push(<span key="since">Established {established}</span>);
   }
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="overflow-hidden rounded-2xl border border-b2b-purple/10 bg-b2b-card shadow-sm shadow-b2b-purple/5">
+      <div className="flex flex-col gap-4">
         <ExpandableHeroPhoto photo={user.photo} name={user.name}>
           {user.status && (
             <div
@@ -163,47 +159,50 @@ export async function ProfileDetails({
             </div>
           )}
 
-          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent px-5 pb-5 pt-16">
-            <div className="flex items-end justify-between gap-3">
-              <div className="min-w-0">
-                <p className="flex flex-wrap items-center gap-1.5 font-display text-2xl leading-tight text-white drop-shadow-sm">
-                  {user.name}
-                  {isVerifiedAffiliate && <VerifiedTick />}
-                  {showSingleBadge && (
-                    <span title="Single" className="text-base">
-                      💚
-                    </span>
-                  )}
-                  {user.isPrivate && <span className="text-sm font-normal text-white/70">🔒 Private</span>}
-                </p>
-                {metaParts.length > 0 && (
-                  <p className="mt-1 text-sm text-white/75">
-                    {metaParts.map((part, i) => (
-                      <span key={i}>
-                        {i > 0 && " · "}
-                        {part}
-                      </span>
-                    ))}
-                  </p>
+          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent px-6 pb-6 pt-16">
+            {/* pr-20 reserves room for the level badge, anchored separately
+                below in the hero's own bottom-right corner, so name/meta
+                text never wraps underneath it. */}
+            <div className="pr-20">
+              <p className="flex flex-wrap items-center gap-1.5 font-display text-2xl leading-tight text-white drop-shadow-sm">
+                {user.name}
+                {isVerifiedAffiliate && <VerifiedTick />}
+                {showSingleBadge && (
+                  <span title="Single" className="text-base">
+                    💚
+                  </span>
                 )}
-              </div>
-              {!isSiteAccount && !isAffiliate && user.openLevel != null && (
-                <div className="shrink-0 shadow-lg">
-                  <OpenLevelBadge level={user.openLevel} size="lg" />
+                {user.isPrivate && <span className="text-sm font-normal text-white/70">🔒 Private</span>}
+              </p>
+              {metaParts.length > 0 && (
+                <p className="mt-1 text-sm text-white/75">
+                  {metaParts.map((part, i) => (
+                    <span key={i}>
+                      {i > 0 && " · "}
+                      {part}
+                    </span>
+                  ))}
+                </p>
+              )}
+              {(abilityLabels.length > 0 || ageLabel) && (
+                <div className="mt-2.5 flex flex-wrap gap-1.5">
+                  {abilityLabels.map((label) => (
+                    <HeroChip key={label} label={label} />
+                  ))}
+                  {ageLabel && <HeroChip label={ageLabel} />}
                 </div>
               )}
             </div>
-            {(abilityLabels.length > 0 || ageLabel) && (
-              <div className="mt-2.5 flex flex-wrap gap-1.5">
-                {abilityLabels.map((label) => (
-                  <HeroChip key={label} label={label} />
-                ))}
-                {ageLabel && <HeroChip label={ageLabel} />}
-              </div>
-            )}
           </div>
+
+          {!isSiteAccount && !isAffiliate && user.openLevel != null && (
+            <div className="absolute bottom-5 right-5 shadow-lg">
+              <OpenLevelBadge level={user.openLevel} size="lg" />
+            </div>
+          )}
         </ExpandableHeroPhoto>
 
+        <div className="overflow-hidden rounded-2xl border border-b2b-purple/10 bg-b2b-card shadow-sm shadow-b2b-purple/5">
         <div className="px-5 py-5">
           {showEmail && <p className="text-sm text-b2b-ink/50">{accountEmail}</p>}
 
@@ -274,6 +273,7 @@ export async function ProfileDetails({
           )}
 
           {user.bio && <p className="mt-4 max-w-sm text-sm italic text-b2b-ink/70">&ldquo;{user.bio}&rdquo;</p>}
+        </div>
         </div>
       </div>
 
