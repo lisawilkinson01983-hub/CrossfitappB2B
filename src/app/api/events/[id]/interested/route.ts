@@ -73,9 +73,6 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
 
   if (existing) {
     await prisma.eventInterest.delete({ where: { id: existing.id } });
-    if (existing.noticeId) {
-      await prisma.eventNotice.delete({ where: { id: existing.noticeId } }).catch(() => {});
-    }
   } else {
     // "I'm interested" and "I'm participating" are mutually exclusive —
     // marking interest after already joining un-joins the event first.
@@ -87,18 +84,13 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
       await prisma.post.deleteMany({ where: { userId, linkedEventId: eventId } });
     }
 
+    await prisma.eventInterest.create({ data: { userId, eventId } });
+
     // A private non-competition event (social, or anything else that isn't a
-    // competition) has no "team" to look for — skip the auto-posted
-    // notice-board message that exists purely for teammate matching on
-    // competitions.
+    // competition) has no "team" to look for — skip the teammate-match
+    // notification that exists purely for competitions.
     const isPrivateSocial = event.isPrivate && !isCompetitionEvent(event);
-    if (isPrivateSocial) {
-      await prisma.eventInterest.create({ data: { userId, eventId } });
-    } else {
-      const notice = await prisma.eventNotice.create({
-        data: { eventId, userId, text: `I'm looking for a team for ${event.name}!` },
-      });
-      await prisma.eventInterest.create({ data: { userId, eventId, noticeId: notice.id } });
+    if (!isPrivateSocial) {
       await notifyMatchingTeammateRequests(eventId, userId);
     }
   }
