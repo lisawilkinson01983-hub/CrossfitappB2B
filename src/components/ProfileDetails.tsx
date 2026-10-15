@@ -39,7 +39,7 @@ function HeroChip({ label }: { label: string }) {
   );
 }
 
-function VerifiedTick() {
+export function VerifiedTick() {
   return (
     <span
       title="Verified affiliate"
