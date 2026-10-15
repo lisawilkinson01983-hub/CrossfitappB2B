@@ -23,7 +23,9 @@ export type SwipeCardItem = {
   compactAction?: ReactNode;
   // A small icon-only control (e.g. admin edit) shown top-right of the card and the list row.
   cornerAction?: ReactNode;
-  // A small badge (e.g. OpenLevelBadge) shown top-left of the carousel card and inline in the list row.
+  // A small badge (e.g. OpenLevelBadge) shown top-left of the carousel card.
+  // Carousel only — a 44px list row has no room to spell the word out, so
+  // it's deliberately omitted there.
   cornerBadge?: ReactNode;
 };
 
@@ -191,12 +193,7 @@ export function SwipeCardList({
           {items.map((item, i) => {
             const rowContent = (
               <>
-                <div className="relative shrink-0">
-                  <Avatar photo={item.image} name={item.title} size={44} />
-                  {item.cornerBadge && (
-                    <div className="absolute -bottom-1 -right-1">{item.cornerBadge}</div>
-                  )}
-                </div>
+                <Avatar photo={item.image} name={item.title} size={44} />
                 <div className="min-w-0">
                   <p className="truncate text-sm font-semibold">
                     {item.title}

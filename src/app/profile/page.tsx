@@ -122,15 +122,9 @@ export default async function ProfilePage() {
           followingCount={followingCount}
           workoutCount={workoutCount}
           actions={
-            <>
-              <Link
-                href="/profile/edit"
-                aria-label="Edit profile"
-                className="text-b2b-pink hover:text-b2b-pink-dark"
-              >
-                <EditIcon className="h-5 w-5" />
-              </Link>
-            </>
+            <Link href="/profile/edit" aria-label="Edit profile" className="text-white hover:text-white/80">
+              <EditIcon className="h-4 w-4" />
+            </Link>
           }
           belowActions={suggestedGym && <GymUpdateNudge suggestedGym={suggestedGym} />}
         />
