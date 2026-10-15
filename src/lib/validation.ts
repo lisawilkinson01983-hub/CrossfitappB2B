@@ -523,6 +523,9 @@ export const eventParticipateSchema = z.object({
   // create a Team row; skipping both stays a solo join (see
   // POST /api/events/[id]/participate).
   teamName: z.preprocess(emptyToUndefined, z.string().trim().max(60).optional()),
+  // Join an already-named team instead of creating a new one — mutually
+  // exclusive with teamName/teammateIds/teammateNames above (see the route).
+  teamId: z.preprocess(emptyToUndefined, z.string().optional()),
 });
 
 export const messageSchema = z

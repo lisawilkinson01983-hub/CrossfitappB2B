@@ -82,6 +82,10 @@ export function notificationText(n: NotificationView): string {
         : "reacted to your message board comment";
     case "EVENT_WORKOUT_REACTION":
       return n.emoji ? `reacted ${n.emoji} to a workout you posted` : "reacted to a workout you posted";
+    case "EVENT_TEAM_ADDED":
+      return `added you to their team for "${n.event?.name ?? "an event"}" — you're marked as participating`;
+    case "EVENT_TEAM_JOINED":
+      return `joined your team for "${n.event?.name ?? "an event"}"`;
     case "MENTION":
       return n.storyId ? "tagged you in their story" : "mentioned you";
     default:
@@ -113,6 +117,9 @@ export function notificationHref(n: NotificationView, viewerId: string): string 
     case "EVENT_INVITE":
     case "EVENT_PARTICIPANT_JOINED":
       return `/events/${n.event?.id ?? ""}`;
+    case "EVENT_TEAM_ADDED":
+    case "EVENT_TEAM_JOINED":
+      return `/events/${n.event?.id ?? ""}/teams`;
     case "EVENT_NOTICE_COMMENT":
     case "EVENT_NOTICE_COMMENT_REACTION":
       return `/events/${n.event?.id ?? ""}/notices`;

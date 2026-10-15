@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Avatar } from "@/components/Avatar";
 
@@ -37,12 +37,12 @@ export function EventEngagementButtons({
   const [busy, setBusy] = useState<"participate" | "interested" | null>(null);
   const [showTeamPrompt, setShowTeamPrompt] = useState(false);
 
-  async function joinEvent(teammateIds: string[], teammateNames: string[] = [], teamName?: string) {
+  async function joinEvent(teammateIds: string[], teammateNames: string[] = [], teamName?: string, teamId?: string) {
     setBusy("participate");
     const res = await fetch(`/api/events/${eventId}/participate`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ teammateIds, teammateNames, teamName }),
+      body: JSON.stringify({ teammateIds, teammateNames, teamName, teamId }),
     });
     setBusy(null);
     setShowTeamPrompt(false);
@@ -98,9 +98,11 @@ export function EventEngagementButtons({
 
       {showTeamPrompt && (
         <TeamTagPrompt
+          eventId={eventId}
           busy={busy === "participate"}
           onSkip={() => joinEvent([])}
           onConfirm={joinEvent}
+          onJoinTeam={(teamId) => joinEvent([], [], undefined, teamId)}
           onCancel={() => setShowTeamPrompt(false)}
         />
       )}
@@ -110,15 +112,27 @@ export function EventEngagementButtons({
 
 const MAX_TEAMMATES = 20;
 
+type ExistingTeam = {
+  id: string;
+  name: string;
+  members: UserOption[];
+  freeformNames: string[];
+  joinedByMe: boolean;
+};
+
 function TeamTagPrompt({
+  eventId,
   busy,
   onSkip,
   onConfirm,
+  onJoinTeam,
   onCancel,
 }: {
+  eventId: string;
   busy: boolean;
   onSkip: () => void;
   onConfirm: (teammateIds: string[], teammateNames: string[], teamName: string) => void;
+  onJoinTeam: (teamId: string) => void;
   onCancel: () => void;
 }) {
   const [teamName, setTeamName] = useState("");
@@ -127,7 +141,27 @@ function TeamTagPrompt({
   const [teammates, setTeammates] = useState<UserOption[]>([]);
   const [freeformNames, setFreeformNames] = useState<string[]>([]);
   const [freeformInput, setFreeformInput] = useState("");
+  const [existingTeams, setExistingTeams] = useState<ExistingTeam[]>([]);
+  const [joiningTeamId, setJoiningTeamId] = useState<string | null>(null);
   const requestId = useRef(0);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`/api/events/${eventId}/teams`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((body) => {
+        if (!cancelled && body) setExistingTeams(body.teams.filter((t: ExistingTeam) => !t.joinedByMe));
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [eventId]);
+
+  function handleJoinTeam(teamId: string) {
+    setJoiningTeamId(teamId);
+    onJoinTeam(teamId);
+  }
 
   const totalTagged = teammates.length + freeformNames.length;
 
@@ -176,7 +210,7 @@ function TeamTagPrompt({
         role="dialog"
         aria-modal="true"
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-sm rounded-xl bg-b2b-card p-5 shadow-lg"
+        className="max-h-[85vh] w-full max-w-sm overflow-y-auto rounded-xl bg-b2b-card p-5 shadow-lg"
       >
         <p className="text-base font-semibold text-b2b-ink">Tag your team?</p>
         <p className="mt-1 text-sm text-b2b-ink/60">
@@ -184,8 +218,49 @@ function TeamTagPrompt({
           you're going solo.
         </p>
 
+        {existingTeams.length > 0 && (
+          <div className="mt-3 flex flex-col gap-2">
+            <span className="text-xs font-medium text-b2b-ink/50">
+              Already on one of these teams? Add yourself instead of starting a new one.
+            </span>
+            {existingTeams.map((team) => (
+              <div
+                key={team.id}
+                className="flex items-center justify-between gap-2 rounded-lg border border-b2b-purple/10 bg-b2b-bg px-3 py-2"
+              >
+                <div className="flex min-w-0 items-center gap-2">
+                  <div className="flex shrink-0">
+                    {team.members.map((m, i) => (
+                      <div key={m.id} className={i > 0 ? "-ml-2" : ""}>
+                        <Avatar photo={m.photo} name={m.name} size={26} />
+                      </div>
+                    ))}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium text-b2b-ink">{team.name}</p>
+                    <p className="truncate text-xs text-b2b-ink/50">
+                      {[...team.members.map((m) => m.name), ...team.freeformNames].join(", ")}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleJoinTeam(team.id)}
+                  disabled={busy}
+                  className="shrink-0 rounded-lg bg-b2b-pink px-3 py-1.5 text-xs font-semibold text-white hover:bg-b2b-pink-dark disabled:opacity-50"
+                >
+                  {busy && joiningTeamId === team.id ? "Joining..." : "Join"}
+                </button>
+              </div>
+            ))}
+            <div className="my-1 border-t border-b2b-purple/10" />
+          </div>
+        )}
+
         <label className="mt-3 flex flex-col gap-1">
-          <span className="text-xs font-medium text-b2b-ink/50">Team name (optional)</span>
+          <span className="text-xs font-medium text-b2b-ink/50">
+            {existingTeams.length > 0 ? "Or start a new team (optional)" : "Team name (optional)"}
+          </span>
           <input
             type="text"
             value={teamName}

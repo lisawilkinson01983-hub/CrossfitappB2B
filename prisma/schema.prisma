@@ -138,6 +138,14 @@ enum NotificationType {
   // EventWorkout entry (EventWorkout.userId), same pattern as
   // COMMENT_REACTION/EVENT_NOTICE_COMMENT_REACTION.
   EVENT_WORKOUT_REACTION
+  // Someone was tagged as a teammate while a NEW named team was being
+  // created (see POST /api/events/[id]/participate) — sent to the tagged
+  // platform teammate, who's also auto-marked as participating at the same
+  // time, so they don't find out about either secondhand.
+  EVENT_TEAM_ADDED
+  // Someone joined an ALREADY-named team instead of starting a new one (see
+  // the same route) — sent to that team's other existing members.
+  EVENT_TEAM_JOINED
 }
 
 enum EventStatus {
