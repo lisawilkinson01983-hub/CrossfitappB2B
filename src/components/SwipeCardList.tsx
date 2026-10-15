@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, type ReactNode, type PointerEvent as ReactPointerEvent } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { Avatar } from "@/components/Avatar";
 
 export type SwipeCardItem = {
@@ -46,6 +47,7 @@ export function SwipeCardList({
   emptyMessage,
   label,
   defaultView = "carousel",
+  hideHeader = false,
 }: {
   items: SwipeCardItem[];
   emptyMessage: string;
@@ -53,10 +55,15 @@ export function SwipeCardList({
   // interested") — a plain string, not a formatter function: this component
   // is rendered from server components that pass items down as props, and a
   // closure can't cross that boundary the way a string can.
-  label: string;
+  label?: string;
   defaultView?: "carousel" | "list";
+  // Skip the label + its own List/Carousel toggle and always render the
+  // carousel — for a page that supplies its own bespoke list view and wraps
+  // this in ListOrCarousel instead, sharing one toggle between the two.
+  hideHeader?: boolean;
 }) {
-  const [view, setView] = useState<"carousel" | "list">(defaultView);
+  const router = useRouter();
+  const [view, setView] = useState<"carousel" | "list">(hideHeader ? "carousel" : defaultView);
   const [index, setIndex] = useState(0);
   const cardRef = useRef<HTMLDivElement>(null);
   const drag = useRef({ startX: 0, dx: 0, dragging: false });
@@ -137,7 +144,9 @@ export function SwipeCardList({
     drag.current.dragging = false;
     const dx = drag.current.dx;
     if (Math.abs(dx) < TAP_THRESHOLD) {
-      snapBack();
+      // Barely moved — treat it as a tap on the card, not a swipe attempt.
+      if (active.href) router.push(active.href);
+      else snapBack();
       return;
     }
     if (dx <= -DRAG_THRESHOLD && canNext) goNext();
@@ -149,61 +158,76 @@ export function SwipeCardList({
 
   return (
     <div>
-      <div className="flex items-center justify-between">
-        <p className="text-xs font-semibold uppercase tracking-wide text-b2b-ink/45">{label}</p>
-        <div className="flex rounded-full bg-b2b-purple/10 p-1">
-          <button
-            type="button"
-            onClick={() => setView("list")}
-            className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
-              view === "list" ? "bg-b2b-pink text-white" : "text-b2b-ink/55"
-            }`}
-          >
-            List
-          </button>
-          <button
-            type="button"
-            onClick={() => setView("carousel")}
-            className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
-              view === "carousel" ? "bg-b2b-pink text-white" : "text-b2b-ink/55"
-            }`}
-          >
-            Carousel
-          </button>
+      {!hideHeader && (
+        <div className="flex items-center justify-between">
+          <p className="text-xs font-semibold uppercase tracking-wide text-b2b-ink/45">{label}</p>
+          <div className="flex rounded-full bg-b2b-purple/10 p-1">
+            <button
+              type="button"
+              onClick={() => setView("list")}
+              className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
+                view === "list" ? "bg-b2b-pink text-white" : "text-b2b-ink/55"
+              }`}
+            >
+              List
+            </button>
+            <button
+              type="button"
+              onClick={() => setView("carousel")}
+              className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
+                view === "carousel" ? "bg-b2b-pink text-white" : "text-b2b-ink/55"
+              }`}
+            >
+              Carousel
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
       {view === "list" ? (
         <div className="mt-2.5 flex flex-col gap-2">
-          {items.map((item, i) => (
-            <div key={item.id} className="rounded-xl border border-b2b-purple/10 bg-b2b-card p-3">
-              <div className="flex items-center gap-2.5">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIndex(i);
-                    setView("carousel");
-                  }}
-                  className="flex min-w-0 flex-1 items-center gap-2.5 text-left"
-                >
-                  <Avatar photo={item.image} name={item.title} size={44} />
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold">
-                      {item.title}
-                      {item.badges?.map((badge) => (
-                        <span key={badge} className="ml-1.5 text-xs font-medium text-b2b-pink">
-                          {badge}
-                        </span>
-                      ))}
-                    </p>
-                    {item.subtitle && <p className="truncate text-xs text-b2b-ink/45">{item.subtitle}</p>}
-                  </div>
-                </button>
-                {item.cornerAction}
-                {item.compactAction ?? item.action}
+          {items.map((item, i) => {
+            const rowContent = (
+              <>
+                <Avatar photo={item.image} name={item.title} size={44} />
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold">
+                    {item.title}
+                    {item.badges?.map((badge) => (
+                      <span key={badge} className="ml-1.5 text-xs font-medium text-b2b-pink">
+                        {badge}
+                      </span>
+                    ))}
+                  </p>
+                  {item.subtitle && <p className="truncate text-xs text-b2b-ink/45">{item.subtitle}</p>}
+                </div>
+              </>
+            );
+            return (
+              <div key={item.id} className="rounded-xl border border-b2b-purple/10 bg-b2b-card p-3">
+                <div className="flex items-center gap-2.5">
+                  {item.href ? (
+                    <Link href={item.href} className="flex min-w-0 flex-1 items-center gap-2.5">
+                      {rowContent}
+                    </Link>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIndex(i);
+                        setView("carousel");
+                      }}
+                      className="flex min-w-0 flex-1 items-center gap-2.5 text-left"
+                    >
+                      {rowContent}
+                    </button>
+                  )}
+                  {item.cornerAction}
+                  {item.compactAction ?? item.action}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       ) : (
         <div className="mt-3">
@@ -222,6 +246,7 @@ export function SwipeCardList({
 
             <div className="flex flex-1 items-center justify-center overflow-hidden">
               <div
+                key={active.id}
                 ref={cardRef}
                 onPointerDown={onPointerDown}
                 onPointerMove={onPointerMove}
@@ -294,7 +319,11 @@ export function SwipeCardList({
             </button>
           </div>
 
-          {active.action && <div className="mt-3 flex justify-center">{active.action}</div>}
+          {active.action && (
+            <div key={active.id} className="mt-3 flex justify-center">
+              {active.action}
+            </div>
+          )}
 
           {showDots && (
             <div className="mt-3 flex flex-wrap items-center justify-center gap-1.5" role="tablist" aria-label="Jump to card">
