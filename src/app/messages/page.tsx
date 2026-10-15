@@ -79,6 +79,7 @@ export default async function MessagesPage() {
           : "No messages yet",
         dateLabel: formatDate(sortAt, { month: "short", day: "numeric" }),
         unreadCount: unreadByConversation.get(conv.id) ?? 0,
+        otherUserId: !conv.isGroup && avatarUser ? avatarUser.id : null,
         sortAt,
         otherCount: others.length,
         hidden,

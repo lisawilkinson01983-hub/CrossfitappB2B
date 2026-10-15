@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, type PointerEvent } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Avatar } from "@/components/Avatar";
 import { GroupIcon } from "@/components/GroupIcon";
@@ -19,6 +20,9 @@ export type ConversationRowData = {
   lastMessagePreview: string;
   dateLabel: string;
   unreadCount: number;
+  // The other person's profile to link the avatar/name to — only set for a
+  // 1:1 thread (a group has no single "other" to point at).
+  otherUserId: string | null;
 };
 
 /**
@@ -114,6 +118,21 @@ export function ConversationRow({ row }: { row: ConversationRowData }) {
           ) : (
             <GroupIcon size={48} />
           )
+        ) : row.otherUserId ? (
+          <Link
+            href={`/profile/${row.otherUserId}`}
+            onClick={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.stopPropagation()}
+            className="shrink-0"
+          >
+            <Avatar
+              photo={row.photo}
+              name={row.displayName}
+              size={48}
+              showSingleBadge={row.showSingleBadge}
+              status={row.status}
+            />
+          </Link>
         ) : (
           <Avatar
             photo={row.photo}
@@ -124,7 +143,18 @@ export function ConversationRow({ row }: { row: ConversationRowData }) {
           />
         )}
         <div className="min-w-0 flex-1">
-          <p className="font-semibold">{row.displayName}</p>
+          {row.otherUserId ? (
+            <Link
+              href={`/profile/${row.otherUserId}`}
+              onClick={(e) => e.stopPropagation()}
+              onPointerDown={(e) => e.stopPropagation()}
+              className="block font-semibold hover:underline"
+            >
+              {row.displayName}
+            </Link>
+          ) : (
+            <p className="font-semibold">{row.displayName}</p>
+          )}
           <p className="truncate text-sm text-b2b-ink/50">{row.lastMessagePreview}</p>
         </div>
         <div className="flex shrink-0 flex-col items-end gap-1.5">
