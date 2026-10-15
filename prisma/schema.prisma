@@ -365,6 +365,14 @@ model User {
   crossfitSinceYear  Int?
   crossfitSinceMonth Int?
 
+  // Self-reported CrossFit Open level, 1 through 10 — the quickest read on
+  // an athlete's competitiveness, shown as a badge on every swipeable
+  // profile card (see OpenLevelBadge). Re-entered by the athlete each year
+  // once that year's Open results are in; the app has no way to verify it
+  // against the real leaderboard, so this is always self-reported, same
+  // trust level as everything else on a profile.
+  openLevel Int?
+
   // JSON-encoded array of LookingFor values, e.g. ["TEAM_MATES"]
   lookingFor String?
 

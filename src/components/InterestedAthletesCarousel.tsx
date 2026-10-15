@@ -1,4 +1,5 @@
 import { MessageButton } from "@/components/MessageButton";
+import { OpenLevelBadge } from "@/components/OpenLevelBadge";
 import { SwipeCardList, type SwipeCardItem } from "@/components/SwipeCardList";
 import { LEVEL_LABELS } from "@/lib/labels";
 import type { LevelOption } from "@/lib/validation";
@@ -8,6 +9,7 @@ export type InterestedAthlete = {
   name: string;
   photo: string | null;
   levels: LevelOption[];
+  openLevel: number | null;
   area: string | null;
   affiliateGym: string | null;
   isSingle: boolean | null;
@@ -28,6 +30,7 @@ export function InterestedAthletesCarousel({ athletes }: { athletes: InterestedA
     initial: a.name.charAt(0),
     title: a.name,
     badges: a.levels.map((lvl) => LEVEL_LABELS[lvl]),
+    cornerBadge: a.openLevel ? <OpenLevelBadge level={a.openLevel} /> : undefined,
     subtitle: [a.area, a.affiliateGym].filter(Boolean).join(" · ") || null,
     href: `/profile/${a.id}`,
     action: <MessageButton targetUserId={a.id} />,

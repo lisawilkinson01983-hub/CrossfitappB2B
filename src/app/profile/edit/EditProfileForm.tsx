@@ -38,6 +38,7 @@ type Initial = {
   affiliateGym: string;
   affiliateGymOther: string;
   levels: LevelOption[];
+  openLevel: number | null;
   crossfitSinceYear: number | "";
   crossfitSinceMonth: number | "";
   lookingFor: LookingForOption[];
@@ -83,6 +84,7 @@ export function EditProfileForm({
   const [affiliateGymOther, setAffiliateGymOther] = useState(initial.affiliateGymOther);
   const isOtherGym = affiliateGym === OTHER_GYM;
   const [levels, setLevels] = useState<LevelOption[]>(initial.levels);
+  const [openLevel, setOpenLevel] = useState(initial.openLevel ? String(initial.openLevel) : "");
   const [crossfitSinceYear, setCrossfitSinceYear] = useState(String(initial.crossfitSinceYear));
   const [crossfitSinceMonth, setCrossfitSinceMonth] = useState(String(initial.crossfitSinceMonth));
   const [lookingFor, setLookingFor] = useState<LookingForOption[]>(initial.lookingFor);
@@ -207,6 +209,7 @@ export function EditProfileForm({
       formData.set("dateOfBirth", dateOfBirth);
       formData.set("gender", gender);
       levels.forEach((v) => formData.append("levels", v));
+      formData.set("openLevel", openLevel);
       lookingFor.forEach((v) => formData.append("lookingFor", v));
       formData.set("isSingle", isSingle);
       if (showRelationshipStatus) formData.set("showRelationshipStatus", "on");
@@ -541,6 +544,31 @@ export function EditProfileForm({
             ))}
           </div>
         </fieldset>
+      )}
+
+      {isAthlete && (
+        <div>
+          <label htmlFor="openLevel" className="block text-sm font-medium">
+            Official CrossFit Open level
+          </label>
+          <p className="mt-0.5 text-xs text-b2b-ink/50">
+            Your most recent Open placement band, 1–10 (optional) — shown as a quick badge on your profile card.
+            Re-enter this each year once the new Open results are in.
+          </p>
+          <select
+            id="openLevel"
+            value={openLevel}
+            onChange={(e) => setOpenLevel(e.target.value)}
+            className="mt-1 w-full rounded border border-gray-300 bg-b2b-card px-3 py-2 focus:border-b2b-pink focus:outline-none"
+          >
+            <option value="">Not set</option>
+            {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
+              <option key={n} value={n}>
+                {n}
+              </option>
+            ))}
+          </select>
+        </div>
       )}
 
       <div>

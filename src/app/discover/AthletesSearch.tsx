@@ -16,6 +16,7 @@ import { DISTANCE_RANGES, distanceMiles, ensureUserAreaCoords } from "@/lib/geoc
 import { SectionCard } from "@/components/SectionCard";
 import { SearchFilters } from "@/components/SearchFilters";
 import { SwipeCardList, type SwipeCardItem } from "@/components/SwipeCardList";
+import { OpenLevelBadge } from "@/components/OpenLevelBadge";
 
 // "Prefer not to disclose" is a profile-level privacy choice, not a search filter.
 const SEARCHABLE_GENDERS = GENDERS.filter((g) => g !== "PREFER_NOT_TO_DISCLOSE");
@@ -89,6 +90,7 @@ export async function AthletesSearch({
       affiliateGym: true,
       lookingFor: true,
       levels: true,
+      openLevel: true,
     },
     orderBy: { name: "asc" },
   });
@@ -277,6 +279,7 @@ export async function AthletesSearch({
             initial: user.name.charAt(0),
             title: user.name,
             badges: parseLevels(user.levels).map((lvl) => LEVEL_LABELS[lvl]),
+            cornerBadge: user.openLevel ? <OpenLevelBadge level={user.openLevel} /> : undefined,
             subtitle:
               [user.affiliateGym, miles !== null ? `${miles < 1 ? "<1" : Math.round(miles)} miles away` : null]
                 .filter(Boolean)

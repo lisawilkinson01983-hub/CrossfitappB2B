@@ -217,6 +217,10 @@ export const profileSchema = z
     // profile page (see ProfileDetails).
     website: z.preprocess(emptyToUndefined, z.string().trim().url("Enter a valid website URL").optional()),
     levels: z.array(z.enum(LEVELS)).max(MAX_LEVELS, `Select up to ${MAX_LEVELS} levels`).default([]),
+    // Optional — not every athlete competes in the Open. Self-reported, 1
+    // through 10, re-entered each year once that year's results are out
+    // (see User.openLevel).
+    openLevel: z.preprocess(emptyToUndefined, z.coerce.number().int().min(1).max(10).optional()),
     crossfitSinceYear: z.preprocess(
       emptyToUndefined,
       z.coerce.number().int().min(1970).max(new Date().getFullYear()).optional()

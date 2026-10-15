@@ -23,6 +23,8 @@ export type SwipeCardItem = {
   compactAction?: ReactNode;
   // A small icon-only control (e.g. admin edit) shown top-right of the card and the list row.
   cornerAction?: ReactNode;
+  // A small badge (e.g. OpenLevelBadge) shown top-left of the carousel card and inline in the list row.
+  cornerBadge?: ReactNode;
 };
 
 const NO_PHOTO_PATTERN = {
@@ -189,7 +191,12 @@ export function SwipeCardList({
           {items.map((item, i) => {
             const rowContent = (
               <>
-                <Avatar photo={item.image} name={item.title} size={44} />
+                <div className="relative shrink-0">
+                  <Avatar photo={item.image} name={item.title} size={44} />
+                  {item.cornerBadge && (
+                    <div className="absolute -bottom-1 -right-1">{item.cornerBadge}</div>
+                  )}
+                </div>
                 <div className="min-w-0">
                   <p className="truncate text-sm font-semibold">
                     {item.title}
@@ -278,6 +285,8 @@ export function SwipeCardList({
                     {active.cornerAction}
                   </div>
                 )}
+
+                {active.cornerBadge && <div className="absolute left-3 top-3">{active.cornerBadge}</div>}
 
                 <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/45 to-transparent px-5 pb-5 pt-16 text-left">
                   <p className="text-xl font-bold leading-tight text-white drop-shadow-sm">

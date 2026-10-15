@@ -90,6 +90,7 @@ export default async function EditProfilePage() {
               affiliateGym: initialAffiliateGym,
               affiliateGymOther: initialAffiliateGymOther,
               levels: parseLevels(user.levels),
+              openLevel: user.openLevel,
               crossfitSinceYear: user.crossfitSinceYear ?? "",
               crossfitSinceMonth: user.crossfitSinceMonth ?? "",
               lookingFor: parseLookingFor(user.lookingFor),

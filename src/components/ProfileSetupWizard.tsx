@@ -25,6 +25,7 @@ export type ProfileSetupInitial = {
   affiliateGym: string;
   affiliateGymOther: string;
   levels: LevelOption[];
+  openLevel: number | null;
   lookingFor: LookingForOption[];
 };
 
@@ -69,6 +70,7 @@ export function ProfileSetupWizard({ initial }: { initial: ProfileSetupInitial }
   const debouncedGymQuery = useDebouncedValue(gymQuery, 350);
 
   const [levels, setLevels] = useState<LevelOption[]>(initial.levels);
+  const [openLevel, setOpenLevel] = useState<number | null>(initial.openLevel);
   const [lookingFor, setLookingFor] = useState<LookingForOption[]>(initial.lookingFor);
 
   const [submitting, setSubmitting] = useState(false);
@@ -175,6 +177,7 @@ export function ProfileSetupWizard({ initial }: { initial: ProfileSetupInitial }
       formData.set("name", `${firstName.trim()} ${lastName.trim()}`.trim());
       formData.set("dateOfBirth", dateOfBirth);
       for (const level of levels) formData.append("levels", level);
+      if (openLevel) formData.set("openLevel", String(openLevel));
       for (const option of lookingFor) formData.append("lookingFor", option);
     }
     formData.set("accountType", accountType);
@@ -300,7 +303,9 @@ export function ProfileSetupWizard({ initial }: { initial: ProfileSetupInitial }
           />
         )}
 
-        {step === "ability" && <AbilityStep levels={levels} onToggle={toggleLevel} />}
+        {step === "ability" && (
+          <AbilityStep levels={levels} onToggle={toggleLevel} openLevel={openLevel} onOpenLevel={setOpenLevel} />
+        )}
 
         {step === "lookingFor" && <LookingForStep lookingFor={lookingFor} onToggle={toggleLookingFor} />}
 
@@ -313,6 +318,7 @@ export function ProfileSetupWizard({ initial }: { initial: ProfileSetupInitial }
             area={area}
             gymLabel={unaffiliated ? UNAFFILIATED : showOtherGym ? otherGymName : gymSelected}
             levels={levels}
+            openLevel={openLevel}
             lookingFor={lookingFor}
             error={submitError}
             onEditStep={(targetStep) => setStepIndex(steps.indexOf(targetStep))}
@@ -690,7 +696,17 @@ function LocationStep({
   );
 }
 
-function AbilityStep({ levels, onToggle }: { levels: LevelOption[]; onToggle: (l: LevelOption) => void }) {
+function AbilityStep({
+  levels,
+  onToggle,
+  openLevel,
+  onOpenLevel,
+}: {
+  levels: LevelOption[];
+  onToggle: (l: LevelOption) => void;
+  openLevel: number | null;
+  onOpenLevel: (v: number | null) => void;
+}) {
   return (
     <div>
       <h1 className="mt-2 text-2xl">What's your level?</h1>
@@ -713,6 +729,26 @@ function AbilityStep({ levels, onToggle }: { levels: LevelOption[]; onToggle: (l
             </button>
           );
         })}
+      </div>
+
+      <h2 className="mt-8 text-base font-bold text-b2b-purple">Official CrossFit Open level (optional)</h2>
+      <p className="mt-1 text-sm text-b2b-ink/50">
+        Your most recent Open placement band, 1–10 — shown as a quick badge on your profile card. You can re-enter
+        this every year once the new Open results are in.
+      </p>
+      <div className="mt-4 flex flex-wrap gap-2">
+        {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
+          <button
+            key={n}
+            type="button"
+            onClick={() => onOpenLevel(openLevel === n ? null : n)}
+            className={`flex h-10 w-10 items-center justify-center rounded-full border-2 text-sm font-semibold transition-colors ${
+              openLevel === n ? "border-b2b-pink bg-b2b-pink text-white" : "border-gray-200 text-b2b-purple"
+            }`}
+          >
+            {n}
+          </button>
+        ))}
       </div>
     </div>
   );
@@ -759,6 +795,7 @@ function ReviewStep({
   area,
   gymLabel,
   levels,
+  openLevel,
   lookingFor,
   error,
   onEditStep,
@@ -770,6 +807,7 @@ function ReviewStep({
   area: string;
   gymLabel: string;
   levels: LevelOption[];
+  openLevel: number | null;
   lookingFor: LookingForOption[];
   error: string | null;
   onEditStep: (step: StepId) => void;
@@ -798,6 +836,7 @@ function ReviewStep({
         {accountType === "ATHLETE" && (
           <>
             <ReviewRow label="Ability" value={levels.map((l) => LEVEL_LABELS[l]).join(", ") || "—"} onEdit={() => onEditStep("ability")} />
+            <ReviewRow label="Open level" value={openLevel ? String(openLevel) : "—"} onEdit={() => onEditStep("ability")} />
             <ReviewRow
               label="Looking for"
               value={lookingFor.map((o) => LOOKING_FOR_LABELS[o]).join(", ") || "—"}

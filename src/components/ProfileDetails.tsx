@@ -16,6 +16,7 @@ import { PB_FIELDS, type PbField } from "@/lib/validation";
 import { OTHER_GYM, UNAFFILIATED } from "@/lib/gyms";
 import { SectionCard } from "@/components/SectionCard";
 import { ExpandableAvatar } from "@/components/ExpandableAvatar";
+import { OpenLevelBadge } from "@/components/OpenLevelBadge";
 import { PbCardBody } from "@/components/PbCardBody";
 import { ProfilePosts } from "@/components/ProfilePosts";
 import { GymBookingButtons } from "@/components/GymBookingButtons";
@@ -152,7 +153,7 @@ export async function ProfileDetails({
 
         <div className="px-5 pb-5">
           <div className="-mt-10 flex items-end justify-between gap-3">
-            <div className="rounded-full ring-4 ring-b2b-card" style={{ width: 84, height: 84 }}>
+            <div className="relative rounded-full ring-4 ring-b2b-card" style={{ width: 84, height: 84 }}>
               <ExpandableAvatar
                 photo={user.photo}
                 name={user.name}
@@ -161,6 +162,11 @@ export async function ProfileDetails({
                 verified={isAffiliate && user.verifiedAt != null}
                 status={user.status}
               />
+              {!isSiteAccount && !isAffiliate && user.openLevel != null && (
+                <div className="absolute -bottom-1 -right-1">
+                  <OpenLevelBadge level={user.openLevel} size="lg" />
+                </div>
+              )}
             </div>
             {actions && <div className="mb-1 flex items-center gap-2">{actions}</div>}
           </div>
