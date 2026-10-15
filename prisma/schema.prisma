@@ -211,6 +211,11 @@ model Account {
   passwordResetToken          String?   @unique
   passwordResetTokenExpiresAt DateTime?
 
+  // The most recent ActiveDay.day recorded for this account — read alongside
+  // the suspension check in the session callback so an ActiveDay row is
+  // written at most once per account per day, not on every request.
+  lastActiveDay String?
+
   createdAt DateTime @default(now())
 
   profiles            User[]
@@ -219,6 +224,22 @@ model Account {
   // switch to the shared Box 2 Box brand profile without sharing its
   // password. Separate from `profiles` above, which is actual ownership.
   sharedProfileAccess ProfileAccess[]
+  activeDays          ActiveDay[]
+}
+
+/// One row per account per day it used the app — signed in or not, since
+/// JWT sessions last weeks and LoginEvent only sees an actual password
+/// login. Feeds the daily/weekly active and retention numbers on
+/// /admin/stats. `day` is the calendar date in UK time ("YYYY-MM-DD", see
+/// src/lib/activity.ts). Days before this table existed were backfilled from
+/// existing activity by scripts/backfill-active-days.js.
+model ActiveDay {
+  accountId String
+  account   Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  day       String
+
+  @@id([accountId, day])
+  @@index([day])
 }
 
 /// Grants one Account a toggle (via /settings/profiles) onto a User profile
