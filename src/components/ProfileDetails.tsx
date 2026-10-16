@@ -21,6 +21,7 @@ import { PbCardBody } from "@/components/PbCardBody";
 import { GymBookingButtons } from "@/components/GymBookingButtons";
 import { CalendarIcon } from "@/components/CalendarIcon";
 import { DropInIcon } from "@/components/DropInIcon";
+import { GlobeIcon } from "@/components/GlobeIcon";
 import { prisma } from "@/lib/prisma";
 import { isSiteAccountEmail } from "@/lib/siteAccount";
 import { calculateAge } from "@/lib/age";
@@ -216,9 +217,10 @@ export async function ProfileDetails({
               href={user.website}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-3 inline-block rounded bg-b2b-purple px-4 py-2 text-sm font-medium text-white hover:bg-b2b-purple-dark"
+              className="mt-3 flex items-center justify-center gap-1.5 rounded-xl border border-b2b-purple/20 px-4 py-2.5 text-center text-sm font-semibold text-b2b-ink hover:bg-b2b-bg"
             >
-              🌐 Visit website
+              <GlobeIcon className="h-4 w-4 shrink-0" />
+              Website
             </a>
           )}
 
