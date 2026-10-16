@@ -6,7 +6,7 @@ import { Avatar } from "@/components/Avatar";
 import { StoryViewer } from "@/components/StoryViewer";
 import { MAX_VIDEO_SECONDS, MAX_PHOTO_BYTES, MAX_PHOTO_MB } from "@/lib/media";
 import { readVideoInfo } from "@/lib/readVideoInfo";
-import type { StoryGroup } from "@/lib/stories";
+import { MAX_STORY_TEXT_LENGTH, STORY_BACKGROUND_COLORS, type StoryGroup } from "@/lib/stories";
 import { USER_STATUS_BADGE_CLASSES, USER_STATUS_EMOJI, USER_STATUS_LABELS } from "@/lib/labels";
 import { USER_STATUSES, type UserStatusOption } from "@/lib/validation";
 import { REACTION_EMOJIS, type ReactionSummary } from "@/lib/reactions";
@@ -14,7 +14,9 @@ import { REACTION_EMOJIS, type ReactionSummary } from "@/lib/reactions";
 const MEDIA_ACCEPT = "image/jpeg,image/png,image/webp,video/mp4,video/quicktime";
 const MAX_STORY_MENTIONS = 10;
 
-type PendingStory = { file: File; previewUrl: string; isVideo: boolean; thumbnail: Blob | null };
+type PendingStory =
+  | { kind: "media"; file: File; previewUrl: string; isVideo: boolean; thumbnail: Blob | null }
+  | { kind: "text"; text: string; backgroundColor: string };
 type UserOption = { id: string; name: string; photo: string | null };
 
 export type StatusBarEntry = {
@@ -65,6 +67,7 @@ export function StoriesBar({
   const [mediaError, setMediaError] = useState<string | null>(null);
   const [posting, setPosting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [composerChoiceOpen, setComposerChoiceOpen] = useState(false);
 
   const [tagging, setTagging] = useState(false);
   const [tagQuery, setTagQuery] = useState("");
@@ -170,18 +173,24 @@ export function StoriesBar({
         setMediaError(`Videos must be ${MAX_VIDEO_SECONDS} seconds or under (this one is ${Math.round(info.duration)}s)`);
         return;
       }
-      setPending({ file, previewUrl: URL.createObjectURL(file), isVideo: true, thumbnail: info.thumbnail });
+      setPending({ kind: "media", file, previewUrl: URL.createObjectURL(file), isVideo: true, thumbnail: info.thumbnail });
     } else {
       if (file.size > MAX_PHOTO_BYTES) {
         setMediaError(`Photo must be smaller than ${MAX_PHOTO_MB}MB`);
         return;
       }
-      setPending({ file, previewUrl: URL.createObjectURL(file), isVideo: false, thumbnail: null });
+      setPending({ kind: "media", file, previewUrl: URL.createObjectURL(file), isVideo: false, thumbnail: null });
     }
   }
 
+  function openTextComposer() {
+    setComposerChoiceOpen(false);
+    setMediaError(null);
+    setPending({ kind: "text", text: "", backgroundColor: STORY_BACKGROUND_COLORS[0] });
+  }
+
   function cancelPending() {
-    if (pending) URL.revokeObjectURL(pending.previewUrl);
+    if (pending?.kind === "media") URL.revokeObjectURL(pending.previewUrl);
     setPending(null);
     setMediaError(null);
     setTagging(false);
@@ -217,13 +226,19 @@ export function StoriesBar({
 
   async function sharePending() {
     if (!pending || posting) return;
+    if (pending.kind === "text" && !pending.text.trim()) return;
     setPosting(true);
     const formData = new FormData();
-    if (pending.isVideo) {
-      formData.set("video", pending.file);
-      if (pending.thumbnail) formData.set("thumbnail", pending.thumbnail, "thumbnail.jpg");
+    if (pending.kind === "media") {
+      if (pending.isVideo) {
+        formData.set("video", pending.file);
+        if (pending.thumbnail) formData.set("thumbnail", pending.thumbnail, "thumbnail.jpg");
+      } else {
+        formData.set("photo", pending.file);
+      }
     } else {
-      formData.set("photo", pending.file);
+      formData.set("text", pending.text.trim());
+      formData.set("backgroundColor", pending.backgroundColor);
     }
     taggedUsers.forEach((u) => formData.append("mentionedUserIds", u.id));
     const res = await fetch("/api/stories", { method: "POST", body: formData });
@@ -271,7 +286,7 @@ export function StoriesBar({
 
         <button
           type="button"
-          onClick={() => (ownGroupIndex >= 0 ? openViewer(ownGroupIndex) : fileInputRef.current?.click())}
+          onClick={() => (ownGroupIndex >= 0 ? openViewer(ownGroupIndex) : setComposerChoiceOpen(true))}
           className="flex shrink-0 flex-col items-center gap-1"
         >
           <div className="relative">
@@ -284,7 +299,7 @@ export function StoriesBar({
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
-                fileInputRef.current?.click();
+                setComposerChoiceOpen(true);
               }}
               aria-label="Add to your story"
               className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full border-2 border-b2b-bg bg-b2b-pink text-xs font-bold text-white"
@@ -364,13 +379,51 @@ export function StoriesBar({
             ×
           </button>
           <div className="flex flex-1 items-center justify-center overflow-hidden">
-            {pending.isVideo ? (
-              <video src={pending.previewUrl} controls autoPlay playsInline className="max-h-full max-w-full" />
+            {pending.kind === "media" ? (
+              pending.isVideo ? (
+                <video src={pending.previewUrl} controls autoPlay playsInline className="max-h-full max-w-full" />
+              ) : (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={pending.previewUrl} alt="" className="max-h-full max-w-full object-contain" />
+              )
             ) : (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={pending.previewUrl} alt="" className="max-h-full max-w-full object-contain" />
+              <div
+                className="flex h-full w-full items-center justify-center p-8"
+                style={{ backgroundColor: pending.backgroundColor }}
+              >
+                <textarea
+                  autoFocus
+                  value={pending.text}
+                  onChange={(e) =>
+                    setPending((prev) =>
+                      prev?.kind === "text" ? { ...prev, text: e.target.value.slice(0, MAX_STORY_TEXT_LENGTH) } : prev
+                    )
+                  }
+                  placeholder="Type something..."
+                  rows={4}
+                  className="w-full resize-none bg-transparent text-center text-2xl font-semibold text-white placeholder:text-white/50 focus:outline-none"
+                />
+              </div>
             )}
           </div>
+
+          {pending.kind === "text" && (
+            <div className="flex items-center justify-center gap-2 px-4 pb-2">
+              {STORY_BACKGROUND_COLORS.map((color) => (
+                <button
+                  key={color}
+                  type="button"
+                  aria-label={`Use background color ${color}`}
+                  onClick={() => setPending((prev) => (prev?.kind === "text" ? { ...prev, backgroundColor: color } : prev))}
+                  className={`h-8 w-8 rounded-full border-2 ${
+                    pending.backgroundColor === color ? "border-white" : "border-white/20"
+                  }`}
+                  style={{ backgroundColor: color }}
+                />
+              ))}
+            </div>
+          )}
+
           <div className="p-4">
             {taggedUsers.length > 0 && (
               <div className="mb-3 flex flex-wrap gap-2">
@@ -434,10 +487,47 @@ export function StoriesBar({
             <button
               type="button"
               onClick={sharePending}
-              disabled={posting}
+              disabled={posting || (pending.kind === "text" && !pending.text.trim())}
               className="w-full rounded-full bg-b2b-pink py-3 text-sm font-semibold text-white hover:bg-b2b-pink-dark disabled:opacity-50"
             >
               {posting ? "Sharing..." : "Share to your story"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {composerChoiceOpen && (
+        <div
+          className="fixed inset-0 z-[60] flex items-end justify-center bg-black/50 sm:items-center"
+          onClick={() => setComposerChoiceOpen(false)}
+        >
+          <div
+            className="w-full max-w-sm rounded-t-2xl bg-b2b-card p-2 shadow-lg sm:rounded-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={() => {
+                setComposerChoiceOpen(false);
+                fileInputRef.current?.click();
+              }}
+              className="flex w-full items-center gap-2 rounded-lg px-4 py-3 text-left text-sm font-medium text-b2b-ink hover:bg-b2b-bg"
+            >
+              📷 Photo or video
+            </button>
+            <button
+              type="button"
+              onClick={openTextComposer}
+              className="flex w-full items-center gap-2 rounded-lg px-4 py-3 text-left text-sm font-medium text-b2b-ink hover:bg-b2b-bg"
+            >
+              🔤 Write something
+            </button>
+            <button
+              type="button"
+              onClick={() => setComposerChoiceOpen(false)}
+              className="w-full rounded-lg px-4 py-3 text-left text-sm text-b2b-ink/60 hover:bg-b2b-bg"
+            >
+              Cancel
             </button>
           </div>
         </div>

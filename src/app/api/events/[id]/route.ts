@@ -41,6 +41,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     division: formData.getAll("division"),
     teamFormat: formData.getAll("teamFormat"),
     genderCategory: formData.getAll("genderCategory"),
+    isPrivate: formData.get("isPrivate"),
     eventKind: formData.get("eventKind"),
     eventKindOther: formData.get("eventKindOther"),
   });
@@ -81,6 +82,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       teamFormat: JSON.stringify(data.teamFormat),
       genderCategory: JSON.stringify(data.genderCategory),
       photo: photoPath,
+      isPrivate: data.isPrivate,
       eventKind: data.eventKind ?? null,
       eventKindOther: data.eventKind === "OTHER" ? (data.eventKindOther ?? null) : null,
       // Location changed — the cached geocode no longer applies.

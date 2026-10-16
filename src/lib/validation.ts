@@ -542,6 +542,10 @@ export const eventEditSchema = z
     division: z.array(z.enum(EVENT_DIVISIONS)).optional().default([]),
     teamFormat: z.array(z.enum(EVENT_TEAM_FORMATS)).optional().default([]),
     genderCategory: z.array(z.enum(EVENT_GENDER_CATEGORIES)).optional().default([]),
+    // Switchable after creation too — see eventSubmissionSchema's isPrivate
+    // comment for what private means. Unlike there, going public here never
+    // requires a website (this schema stays lenient throughout).
+    isPrivate: checkboxToBoolean,
     eventKind: z.preprocess(emptyToUndefined, z.enum(EVENT_KINDS).optional()),
     eventKindOther: z.preprocess(emptyToUndefined, z.string().trim().max(100).optional()),
   })

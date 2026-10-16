@@ -95,7 +95,7 @@ export function StoryViewer({
     goPrevRef.current = goPrev;
   });
 
-  // Photo auto-advance timer — a video drives its own progress via its
+  // Photo/text auto-advance timer — a video drives its own progress via its
   // `timeupdate`/`onEnded` events instead (see the <video> below).
   useEffect(() => {
     setProgress(0);
@@ -259,10 +259,17 @@ export function StoryViewer({
                 if (el) paused ? el.pause() : el.play().catch(() => {});
               }}
             />
+          ) : story.photo ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={story.photo} alt="" className="h-full w-full object-contain" />
           ) : (
-            story.photo && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={story.photo} alt="" className="h-full w-full object-contain" />
+            story.text && (
+              <div
+                className="flex h-full w-full items-center justify-center p-8"
+                style={{ backgroundColor: story.backgroundColor ?? "#232223" }}
+              >
+                <p className="whitespace-pre-wrap text-center text-2xl font-semibold text-white">{story.text}</p>
+              </div>
             )
           )}
 

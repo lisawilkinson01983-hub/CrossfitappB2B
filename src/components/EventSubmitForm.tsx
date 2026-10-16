@@ -39,6 +39,7 @@ export type EventFormInitial = {
   photo: string | null;
   eventKind: EventKindOption | "";
   eventKindOther: string;
+  isPrivate: boolean;
 };
 
 /** Used both to submit a new event for review, and (mode="edit") for an admin editing an existing one directly. */
@@ -74,7 +75,7 @@ export function EventSubmitForm({
   const [imagePreview, setImagePreview] = useState<string | null>(initial?.photo ?? null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [isPrivate, setIsPrivate] = useState(false);
+  const [isPrivate, setIsPrivate] = useState(initial?.isPrivate ?? false);
   const [inviteQuery, setInviteQuery] = useState("");
   const [inviteResults, setInviteResults] = useState<UserOption[]>([]);
   const [invitees, setInvitees] = useState<UserOption[]>([]);
@@ -235,13 +236,11 @@ export function EventSubmitForm({
     formData.set("eventKind", eventKind);
     formData.set("eventKindOther", eventKind === "OTHER" ? eventKindOther : "");
     if (image) formData.set("image", image);
-    if (mode === "create") {
-      formData.set("isPrivate", isPrivate ? "on" : "");
-      if (isPrivate) {
-        invitees.forEach((u) => formData.append("inviteUserIds", u.id));
-        formData.set("inviteFollowers", inviteFollowers ? "on" : "");
-        formData.set("inviteAffiliateGym", inviteAffiliateGym);
-      }
+    formData.set("isPrivate", isPrivate ? "on" : "");
+    if (mode === "create" && isPrivate) {
+      invitees.forEach((u) => formData.append("inviteUserIds", u.id));
+      formData.set("inviteFollowers", inviteFollowers ? "on" : "");
+      formData.set("inviteAffiliateGym", inviteAffiliateGym);
     }
 
     const res = await fetch(mode === "edit" ? `/api/events/${eventId}` : "/api/events/submit", {
@@ -301,103 +300,108 @@ export function EventSubmitForm({
       )}
       {error && <p className="rounded bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
 
-      {mode === "create" && (
-        <div className="rounded-lg border border-b2b-purple/15 p-4">
-          <label className="flex items-center gap-2 text-sm font-medium">
-            <input type="checkbox" checked={isPrivate} onChange={(e) => setIsPrivate(e.target.checked)} />
-            Make this a private event
-          </label>
+      <div className="rounded-lg border border-b2b-purple/15 p-4">
+        <label className="flex items-center gap-2 text-sm font-medium">
+          <input type="checkbox" checked={isPrivate} onChange={(e) => setIsPrivate(e.target.checked)} />
+          Make this a private event
+        </label>
+        <p className="mt-1 text-xs text-b2b-ink/40">
+          Skips review and never appears in Discover — only the people you invite{mode === "create" ? " below" : ""}{" "}
+          can see or join it. Good for social meetups or gym-only competitions. Leave unchecked for a public event.
+        </p>
+        {mode === "edit" && (
           <p className="mt-1 text-xs text-b2b-ink/40">
-            Skips review and never appears in Discover — only the people you invite below can see or join it.
-            Good for social meetups or gym-only competitions. Leave unchecked for a public event.
+            {isPrivate
+              ? "Switching this back off makes it visible to everyone in Discover."
+              : "Switching this on hides it from Discover — invite people from the event page."}
           </p>
+        )}
 
-          {isPrivate && (
-            <div className="mt-4 flex flex-col gap-4">
-              {invitees.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {invitees.map((user) => (
-                    <span
-                      key={user.id}
-                      className="flex items-center gap-1.5 rounded-full bg-b2b-purple/10 py-1 pl-1.5 pr-2 text-sm text-b2b-purple"
+        {mode === "create" && isPrivate && (
+          <div className="mt-4 flex flex-col gap-4">
+            {invitees.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {invitees.map((user) => (
+                  <span
+                    key={user.id}
+                    className="flex items-center gap-1.5 rounded-full bg-b2b-purple/10 py-1 pl-1.5 pr-2 text-sm text-b2b-purple"
+                  >
+                    <Avatar photo={user.photo} name={user.name} size={20} />
+                    {user.name}
+                    <button
+                      type="button"
+                      onClick={() => removeInvitee(user.id)}
+                      aria-label={`Remove ${user.name}`}
+                      className="text-b2b-purple/60 hover:text-b2b-purple"
                     >
-                      <Avatar photo={user.photo} name={user.name} size={20} />
-                      {user.name}
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+
+            <div className="relative">
+              <label htmlFor="invite-search" className="block text-sm font-medium">
+                Invite individual {isNonCompetition ? "attendees" : "athletes"}
+              </label>
+              <input
+                id="invite-search"
+                type="text"
+                value={inviteQuery}
+                onChange={(e) => handleInviteQueryChange(e.target.value)}
+                placeholder="Search people by name..."
+                className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-b2b-pink focus:outline-none"
+              />
+              {inviteResults.length > 0 && (
+                <div className="absolute z-10 mt-1 w-full overflow-hidden rounded border border-gray-200 bg-b2b-card shadow-lg">
+                  {inviteResults
+                    .filter((u) => !invitees.some((s) => s.id === u.id))
+                    .map((user) => (
                       <button
+                        key={user.id}
                         type="button"
-                        onClick={() => removeInvitee(user.id)}
-                        aria-label={`Remove ${user.name}`}
-                        className="text-b2b-purple/60 hover:text-b2b-purple"
+                        onClick={() => addInvitee(user)}
+                        className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-b2b-bg"
                       >
-                        ×
+                        <Avatar photo={user.photo} name={user.name} size={28} />
+                        {user.name}
                       </button>
-                    </span>
-                  ))}
+                    ))}
                 </div>
               )}
-
-              <div className="relative">
-                <label htmlFor="invite-search" className="block text-sm font-medium">
-                  Invite individual {isNonCompetition ? "attendees" : "athletes"}
-                </label>
-                <input
-                  id="invite-search"
-                  type="text"
-                  value={inviteQuery}
-                  onChange={(e) => handleInviteQueryChange(e.target.value)}
-                  placeholder="Search people by name..."
-                  className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-b2b-pink focus:outline-none"
-                />
-                {inviteResults.length > 0 && (
-                  <div className="absolute z-10 mt-1 w-full overflow-hidden rounded border border-gray-200 bg-b2b-card shadow-lg">
-                    {inviteResults
-                      .filter((u) => !invitees.some((s) => s.id === u.id))
-                      .map((user) => (
-                        <button
-                          key={user.id}
-                          type="button"
-                          onClick={() => addInvitee(user)}
-                          className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-b2b-bg"
-                        >
-                          <Avatar photo={user.photo} name={user.name} size={28} />
-                          {user.name}
-                        </button>
-                      ))}
-                  </div>
-                )}
-              </div>
-
-              <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={inviteFollowers}
-                  onChange={(e) => setInviteFollowers(e.target.checked)}
-                />
-                Invite everyone who follows me
-              </label>
-
-              <div>
-                <label htmlFor="invite-gym" className="block text-sm font-medium">
-                  Invite everyone at a gym <span className="font-normal text-b2b-ink/40">(optional)</span>
-                </label>
-                <select
-                  id="invite-gym"
-                  value={inviteAffiliateGym}
-                  onChange={(e) => setInviteAffiliateGym(e.target.value)}
-                  className="mt-1 w-full rounded border border-gray-300 bg-b2b-card px-3 py-2 text-sm focus:border-b2b-pink focus:outline-none"
-                >
-                  <option value="">Don't invite by gym</option>
-                  {gymOptions.map((name) => (
-                    <option key={name} value={name}>
-                      {name}
-                    </option>
-                  ))}
-                </select>
-              </div>
             </div>
-          )}
-        </div>
-      )}
+
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={inviteFollowers}
+                onChange={(e) => setInviteFollowers(e.target.checked)}
+              />
+              Invite everyone who follows me
+            </label>
+
+            <div>
+              <label htmlFor="invite-gym" className="block text-sm font-medium">
+                Invite everyone at a gym <span className="font-normal text-b2b-ink/40">(optional)</span>
+              </label>
+              <select
+                id="invite-gym"
+                value={inviteAffiliateGym}
+                onChange={(e) => setInviteAffiliateGym(e.target.value)}
+                className="mt-1 w-full rounded border border-gray-300 bg-b2b-card px-3 py-2 text-sm focus:border-b2b-pink focus:outline-none"
+              >
+                <option value="">Don't invite by gym</option>
+                {gymOptions.map((name) => (
+                  <option key={name} value={name}>
+                    {name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        )}
+      </div>
 
       <div>
         <label htmlFor="name" className="block text-sm font-medium">

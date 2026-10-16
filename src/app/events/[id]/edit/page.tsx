@@ -61,6 +61,7 @@ export default async function EditEventPage({ params }: { params: Promise<{ id: 
               photo: event.photo,
               eventKind: event.eventKind ?? "",
               eventKindOther: event.eventKindOther ?? "",
+              isPrivate: event.isPrivate,
             }}
           />
         </SectionCard>

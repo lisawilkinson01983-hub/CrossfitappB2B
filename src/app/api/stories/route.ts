@@ -11,7 +11,14 @@ import {
   saveVideoThumbnailUpload,
   saveVideoUpload,
 } from "@/lib/uploads";
-import { activeStoryWhere, groupStoriesByAuthor, storyCardInclude, storyExpiresAt } from "@/lib/stories";
+import {
+  activeStoryWhere,
+  groupStoriesByAuthor,
+  MAX_STORY_TEXT_LENGTH,
+  STORY_BACKGROUND_COLORS,
+  storyCardInclude,
+  storyExpiresAt,
+} from "@/lib/stories";
 
 const MAX_STORY_MENTIONS = 10;
 
@@ -60,6 +67,8 @@ export async function POST(req: Request) {
   let photo: string | null = null;
   let video: string | null = null;
   let videoThumbnail: string | null = null;
+  let text: string | null = null;
+  let backgroundColor: string | null = null;
 
   if (videoFile instanceof File && videoFile.size > 0) {
     try {
@@ -84,7 +93,20 @@ export async function POST(req: Request) {
       throw err;
     }
   } else {
-    return NextResponse.json({ error: "Add a photo or video" }, { status: 400 });
+    const rawText = formData.get("text");
+    const trimmedText = typeof rawText === "string" ? rawText.trim() : "";
+    if (!trimmedText) {
+      return NextResponse.json({ error: "Add a photo, video, or some text" }, { status: 400 });
+    }
+    if (trimmedText.length > MAX_STORY_TEXT_LENGTH) {
+      return NextResponse.json({ error: `Text stories are limited to ${MAX_STORY_TEXT_LENGTH} characters` }, { status: 400 });
+    }
+    text = trimmedText;
+    const rawColor = formData.get("backgroundColor");
+    backgroundColor =
+      typeof rawColor === "string" && (STORY_BACKGROUND_COLORS as readonly string[]).includes(rawColor)
+        ? rawColor
+        : STORY_BACKGROUND_COLORS[0];
   }
 
   const rawMentionIds = formData.getAll("mentionedUserIds").filter((v): v is string => typeof v === "string");
@@ -104,6 +126,8 @@ export async function POST(req: Request) {
       photo,
       video,
       videoThumbnail,
+      text,
+      backgroundColor,
       createdAt: now,
       expiresAt: storyExpiresAt(now),
       mentions: { create: taggedUsers.map((u) => ({ userId: u.id })) },

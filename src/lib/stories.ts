@@ -7,6 +7,12 @@ import type { Prisma } from "@prisma/client";
 // already-posted stories.
 export const STORY_LIFESPAN_HOURS = 24;
 
+/** Max length of a text story's body — same ballpark as a status update, not an essay. */
+export const MAX_STORY_TEXT_LENGTH = 300;
+
+/** Preset backgrounds offered when writing a text story (see StoriesBar) — picked for contrast with the white text drawn over them. */
+export const STORY_BACKGROUND_COLORS = ["#232223", "#4a4a4a", "#b8842a", "#1d4ed8", "#be123c", "#047857"] as const;
+
 export function storyExpiresAt(from: Date = new Date()): Date {
   return new Date(from.getTime() + STORY_LIFESPAN_HOURS * 60 * 60 * 1000);
 }
@@ -33,6 +39,8 @@ export type StoryCardData = {
   photo: string | null;
   video: string | null;
   videoThumbnail: string | null;
+  text: string | null;
+  backgroundColor: string | null;
   createdAt: Date;
   viewedByMe: boolean;
   mentions: { id: string; name: string }[];
@@ -65,6 +73,8 @@ export function groupStoriesByAuthor(stories: StoryWithCardData[], viewerId: str
       photo: story.photo,
       video: story.video,
       videoThumbnail: story.videoThumbnail,
+      text: story.text,
+      backgroundColor: story.backgroundColor,
       createdAt: story.createdAt,
       viewedByMe,
       mentions: story.mentions.map((m) => m.user),

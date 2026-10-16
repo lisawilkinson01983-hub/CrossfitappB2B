@@ -183,8 +183,13 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       contentText = teamTags.length > 0 ? `Competing with my team: ${teamTags.join(", ")}` : null;
     }
 
+    // A private event's own page/notices/participant list are already
+    // gated on isPrivate (see eventVisibility.ts) — this join post must be
+    // kept out of the main feed and profile post lists the same way, or
+    // it'd be the one place the event's existence and name leak past
+    // whoever it's actually visible to.
     const post = await prisma.post.create({
-      data: { userId, type: "UPDATE", linkedEventId: eventId, contentText },
+      data: { userId, type: "UPDATE", linkedEventId: eventId, contentText, sharedToFeed: !event.isPrivate },
     });
 
     if (contentText) {

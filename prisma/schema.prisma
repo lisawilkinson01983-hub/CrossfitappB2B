@@ -1694,6 +1694,12 @@ model Story {
   video          String?
   videoThumbnail String?
 
+  // A pure-text story (no photo/video) — plain text shown centered over a
+  // solid background color. Mutually exclusive with photo/video; exactly one
+  // of {photo, video, text} is set (see the POST route's own validation).
+  text            String?
+  backgroundColor String? // hex, e.g. "#232223" — only meaningful when text is set
+
   createdAt DateTime @default(now())
   expiresAt DateTime
 
