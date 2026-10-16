@@ -332,6 +332,8 @@ export async function ProfileDetails({
             communityCupResults={communityCupResults}
             isOwner={isOwner}
             editorInitial={competitionStatsEditorInitial}
+            hideRecentOpen={user.hideRecentOpen}
+            hideRecentCommunityCup={user.hideRecentCommunityCup}
           />
         </SectionCard>
       )}

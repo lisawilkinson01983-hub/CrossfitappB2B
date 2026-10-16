@@ -399,6 +399,15 @@ model User {
 
   showLookingFor Boolean @default(false)
 
+  // Opt-OUT, not opt-in — opposite default from every show* flag above.
+  // The most recent OpenResult/CommunityCupResult (highest `year` in each
+  // table) is featured on the Competition Stats card by default; these
+  // only come into play once someone actively turns a banner off (see
+  // CompetitionStatsCardBody). The full year-by-year list underneath is
+  // unaffected either way.
+  hideRecentOpen          Boolean @default(false)
+  hideRecentCommunityCup  Boolean @default(false)
+
   // Governs whether new followers require approval once a follow system
   // exists; stored now so the setting has somewhere to live.
   isPrivate Boolean @default(false)
