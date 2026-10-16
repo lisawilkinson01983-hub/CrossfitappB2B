@@ -29,6 +29,7 @@ export default async function AdminSettingsPage() {
         <SectionCard title="Admin">
           <div className="flex flex-col gap-2">
             <AdminLink href="/reports/review" label="Review reports" count={openReportCount} />
+            <AdminLink href="/admin/stats" label="Stats" />
             <AdminLink href="/leaderboard" label="Activity leaderboard" />
             <AdminLink
               href="/admin/verification-requests"
