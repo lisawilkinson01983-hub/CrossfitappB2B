@@ -30,6 +30,7 @@ export default async function EventNoticesPage({ params }: { params: Promise<{ i
         include: {
           user: { select: { id: true, name: true, photo: true } },
           likes: { select: { userId: true } },
+          reactions: { select: { emoji: true, userId: true } },
           comments: {
             orderBy: { createdAt: "asc" },
             include: {
@@ -62,6 +63,7 @@ export default async function EventNoticesPage({ params }: { params: Promise<{ i
       author: notice.user,
       likeCount: notice.likes.length,
       likedByMe: notice.likes.some((l) => l.userId === session.user.id),
+      reactions: summarizeReactions(notice.reactions, session.user.id),
       comments: notice.comments.map((c) => ({
         id: c.id,
         text: c.text,

@@ -130,6 +130,10 @@ enum NotificationType {
   // Someone reacted to a comment on one of this user's PBs with an emoji
   // (see PbCommentReaction) — separate from the simpler PB_COMMENT.
   PB_COMMENT_REACTION
+  // Someone reacted to this user's event notice (message board post) with an
+  // emoji (see EventNoticeReaction) — separate from the simpler single-heart
+  // like, and from EVENT_NOTICE_COMMENT_REACTION on a comment on the notice.
+  EVENT_NOTICE_REACTION
   // Someone commented on (or replied to a comment on) this user's event
   // notice (see EventNoticeComment) — eventId below has the event, same
   // minimal deep-link as WORKOUT_COMMENT/PB_COMMENT rather than the specific
@@ -510,6 +514,7 @@ model User {
   eventPins                   EventPin[]
   eventNotices                EventNotice[]
   eventNoticeLikes            EventNoticeLike[]
+  eventNoticeReactions        EventNoticeReaction[]
   eventNoticeComments         EventNoticeComment[]
   eventNoticeCommentReactions EventNoticeCommentReaction[]
   eventTeammateAlerts         EventTeammateAlert[]
@@ -1430,8 +1435,9 @@ model EventNotice {
   // someone wrote by hand.
   interest EventInterest?
 
-  likes    EventNoticeLike[]
-  comments EventNoticeComment[]
+  likes     EventNoticeLike[]
+  comments  EventNoticeComment[]
+  reactions EventNoticeReaction[]
 
   @@index([eventId])
 }
@@ -1525,6 +1531,23 @@ model EventNoticeLike {
   createdAt DateTime @default(now())
 
   @@unique([userId, noticeId])
+  @@index([noticeId])
+}
+
+// An emoji reaction (see REACTION_EMOJIS in src/lib/validation.ts) on an
+// event notice (message board post) itself — same shape as PostReaction,
+// distinct from the simpler single-heart EventNoticeLike above.
+model EventNoticeReaction {
+  id       String      @id @default(cuid())
+  userId   String
+  user     User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  noticeId String
+  notice   EventNotice @relation(fields: [noticeId], references: [id], onDelete: Cascade)
+  emoji    String
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, noticeId, emoji])
   @@index([noticeId])
 }
 

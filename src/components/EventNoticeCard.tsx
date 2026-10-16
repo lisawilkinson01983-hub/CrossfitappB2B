@@ -5,12 +5,14 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Avatar } from "@/components/Avatar";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
-import { ReportButton } from "@/components/ReportButton";
 import { ProfileMoreMenu } from "@/components/ProfileMoreMenu";
+import { CommentActionsMenu } from "@/components/CommentActionsMenu";
 import { MentionText } from "@/components/MentionText";
 import { ExpandableImage } from "@/components/ExpandableImage";
 import { GifPicker } from "@/components/GifPicker";
 import { ReactionBar } from "@/components/ReactionBar";
+import { EmojiPicker } from "@/components/EmojiPicker";
+import { SmileyIcon } from "@/components/SmileyIcon";
 import { ComposerModal } from "@/components/ComposerModal";
 import { ComposerBar } from "@/components/ComposerBar";
 import { EditIcon } from "@/components/EditIcon";
@@ -54,6 +56,7 @@ export type EventNoticeData = {
   author: { id: string; name: string; photo: string | null };
   likeCount: number;
   likedByMe: boolean;
+  reactions: ReactionSummary[];
   comments: EventNoticeCommentData[];
 };
 
@@ -85,6 +88,9 @@ export function EventNoticeCard({
   const [liked, setLiked] = useState(notice.likedByMe);
   const [likeCount, setLikeCount] = useState(notice.likeCount);
   const [likeBusy, setLikeBusy] = useState(false);
+
+  const [noticeReactions, setNoticeReactions] = useState(notice.reactions);
+  const [noticeReactionPickerOpen, setNoticeReactionPickerOpen] = useState(false);
 
   const [showComments, setShowComments] = useState(false);
   const [comments, setComments] = useState(notice.comments);
@@ -144,6 +150,25 @@ export function EventNoticeCard({
       setLiked(body.liked);
       setLikeCount(body.count);
     }
+  }
+
+  async function toggleNoticeReaction(emoji: string) {
+    const res = await fetch(`/api/event-notices/${notice.id}/react`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ emoji }),
+    });
+    if (!res.ok) return;
+    const body: { emoji: string; reacted: boolean; reactions: { emoji: string; count: number }[] } =
+      await res.json();
+    setNoticeReactions((prev) => {
+      const prevByEmoji = new Map(prev.map((r) => [r.emoji, r.reactedByMe]));
+      return body.reactions.map((r) => ({
+        emoji: r.emoji,
+        count: r.count,
+        reactedByMe: r.emoji === body.emoji ? body.reacted : (prevByEmoji.get(r.emoji) ?? false),
+      }));
+    });
   }
 
   async function submitComment() {
@@ -422,7 +447,8 @@ export function EventNoticeCard({
               // eslint-disable-next-line @next/next/no-img-element
               <img src={comment.photo} alt="" className="mt-1 max-h-64 w-full rounded-lg object-cover" />
             )}
-            <div className="mt-0.5 flex items-center gap-3 text-xs text-b2b-ink/50">
+            <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-b2b-ink/50">
+              <ReactionBar reactions={comment.reactions} onToggle={(emoji) => toggleCommentReaction(comment.id, emoji)} />
               <button type="button" onClick={() => startReply(comment.id)} className="hover:underline">
                 Reply
               </button>
@@ -448,11 +474,8 @@ export function EventNoticeCard({
                   </button>
                 </>
               ) : (
-                <ReportButton targetType="EVENT_NOTICE_COMMENT" targetId={comment.id} className="hover:underline" />
+                <CommentActionsMenu targetType="EVENT_NOTICE_COMMENT" targetId={comment.id} />
               )}
-            </div>
-            <div className="mt-1">
-              <ReactionBar reactions={comment.reactions} onToggle={(emoji) => toggleCommentReaction(comment.id, emoji)} />
             </div>
           </div>
         )}
@@ -616,7 +639,32 @@ export function EventNoticeCard({
           <CommentIcon className="h-5 w-5" />
           {comments.length > 0 && comments.length}
         </button>
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setNoticeReactionPickerOpen((v) => !v)}
+            aria-label="React"
+            className="flex items-center gap-1 font-medium text-b2b-ink/50 hover:text-b2b-pink"
+          >
+            <SmileyIcon className="h-5 w-5" />
+          </button>
+          {noticeReactionPickerOpen && (
+            <EmojiPicker
+              onSelect={(emoji) => {
+                toggleNoticeReaction(emoji);
+                setNoticeReactionPickerOpen(false);
+              }}
+              onClose={() => setNoticeReactionPickerOpen(false)}
+            />
+          )}
+        </div>
       </div>
+
+      {noticeReactions.length > 0 && (
+        <div className="mt-2">
+          <ReactionBar reactions={noticeReactions} onToggle={toggleNoticeReaction} />
+        </div>
+      )}
 
       {showComments && (
         <div className="mt-2 flex flex-col gap-3 border-t border-b2b-purple/10 pt-2">

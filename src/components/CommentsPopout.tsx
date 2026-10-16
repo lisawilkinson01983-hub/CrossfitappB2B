@@ -2,8 +2,8 @@
 
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
-import { ReportButton } from "@/components/ReportButton";
 import { MentionText } from "@/components/MentionText";
+import { CommentActionsMenu } from "@/components/CommentActionsMenu";
 import { EditIcon } from "@/components/EditIcon";
 import { EditModal } from "@/components/EditModal";
 import { DeleteIcon } from "@/components/DeleteIcon";
@@ -385,8 +385,9 @@ export function CommentsPopout({
               // eslint-disable-next-line @next/next/no-img-element
               <img src={comment.photo} alt="" className="mt-1 max-h-56 w-full rounded-lg object-cover" />
             )}
-            <div className="mt-0.5 flex items-center gap-3 text-xs text-b2b-ink/40">
+            <div className="mt-1.5 flex flex-wrap items-center gap-3 text-xs text-b2b-ink/40">
               <span>{formatDateTime(comment.createdAt)}</span>
+              <ReactionBar reactions={comment.reactions} onToggle={(emoji) => toggleReaction(comment.id, emoji)} />
               <button type="button" onClick={() => startReply(comment.id)} className="hover:underline">
                 Reply
               </button>
@@ -410,11 +411,8 @@ export function CommentsPopout({
                   </button>
                 </>
               ) : (
-                <ReportButton targetType={reportTargetType} targetId={comment.id} className="hover:underline" />
+                <CommentActionsMenu targetType={reportTargetType} targetId={comment.id} />
               )}
-            </div>
-            <div className="mt-1.5">
-              <ReactionBar reactions={comment.reactions} onToggle={(emoji) => toggleReaction(comment.id, emoji)} />
             </div>
           </div>
         )}

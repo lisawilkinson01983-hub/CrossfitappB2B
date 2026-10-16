@@ -82,6 +82,10 @@ export function notificationText(n: NotificationView): string {
       return n.emoji ? `reacted ${n.emoji} to your PB comment` : "reacted to your PB comment";
     case "EVENT_PARTICIPANT_JOINED":
       return `is participating in "${n.event?.name ?? "your event"}"`;
+    case "EVENT_NOTICE_REACTION":
+      return n.emoji
+        ? `reacted ${n.emoji} to your message board post for "${n.event?.name ?? "an event"}"`
+        : `reacted to your message board post for "${n.event?.name ?? "an event"}"`;
     case "EVENT_NOTICE_COMMENT":
       return `commented on the message board for "${n.event?.name ?? "an event"}"`;
     case "EVENT_NOTICE_COMMENT_REACTION":
@@ -130,6 +134,7 @@ export function notificationHref(n: NotificationView, viewerId: string): string 
       return `/events/${n.event?.id ?? ""}/teams`;
     case "EVENT_NOTICE_COMMENT":
     case "EVENT_NOTICE_COMMENT_REACTION":
+    case "EVENT_NOTICE_REACTION":
       return `/events/${n.event?.id ?? ""}/notices`;
     case "EVENT_WORKOUT_REACTION":
       return n.eventWorkout

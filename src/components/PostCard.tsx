@@ -18,8 +18,8 @@ import { PostMediaCarousel } from "@/components/PostMediaCarousel";
 import { MentionText } from "@/components/MentionText";
 import { MentionTextarea } from "@/components/MentionTextarea";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
-import { ReportButton } from "@/components/ReportButton";
 import { ProfileMoreMenu } from "@/components/ProfileMoreMenu";
+import { CommentActionsMenu } from "@/components/CommentActionsMenu";
 import { WorkoutDescriptionToggle } from "@/components/WorkoutDescriptionToggle";
 import { ReactionBar } from "@/components/ReactionBar";
 import { EmojiPicker } from "@/components/EmojiPicker";
@@ -663,7 +663,7 @@ export function PostCard({
               // eslint-disable-next-line @next/next/no-img-element
               <img src={comment.photo} alt="" className="mt-1 max-h-64 w-full rounded-lg object-cover" />
             )}
-            <div className="mt-0.5 flex items-center gap-3 text-xs text-b2b-ink/50">
+            <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-b2b-ink/50">
               <button
                 type="button"
                 onClick={() => toggleCommentLike(comment.id)}
@@ -673,6 +673,7 @@ export function PostCard({
                 <LikeIcon className="h-3.5 w-3.5" filled={comment.likedByMe} />
                 {comment.likeCount > 0 && comment.likeCount}
               </button>
+              <ReactionBar reactions={comment.reactions} onToggle={(emoji) => toggleCommentReaction(comment.id, emoji)} />
               <button type="button" onClick={() => startReply(comment.id)} className="hover:underline">
                 Reply
               </button>
@@ -698,11 +699,8 @@ export function PostCard({
                   </button>
                 </>
               ) : (
-                <ReportButton targetType="COMMENT" targetId={comment.id} className="hover:underline" />
+                <CommentActionsMenu targetType="COMMENT" targetId={comment.id} />
               )}
-            </div>
-            <div className="mt-1">
-              <ReactionBar reactions={comment.reactions} onToggle={(emoji) => toggleCommentReaction(comment.id, emoji)} />
             </div>
           </div>
         )}
