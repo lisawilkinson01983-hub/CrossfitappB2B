@@ -1,0 +1,27 @@
+{
+  "appId": "social.box2box.app",
+  "appName": "Box 2 Box",
+  "webDir": "www",
+  "server": {
+    "url": "https://box2box.social",
+    "cleartext": false,
+    "errorPath": "offline.html"
+  },
+  "appendUserAgent": "Box2BoxApp",
+  "backgroundColor": "#e9e6df",
+  "ios": {
+    "contentInset": "never",
+    "limitsNavigationsToAppBoundDomains": false
+  },
+  "android": {
+    "allowMixedContent": false
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 1200,
+      "launchAutoHide": true,
+      "backgroundColor": "#e9e6df",
+      "showSpinner": false
+    }
+  }
+}
