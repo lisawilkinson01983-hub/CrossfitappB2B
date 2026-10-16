@@ -1,0 +1,86 @@
+# Cloud builds of the Box 2 Box store apps (the native shell in mobile/,
+# which loads https://box2box.social — see mobile/README.md).
+#
+# Codemagic (codemagic.io) reads this file from the repo root. Each
+# workflow is started by hand from the Codemagic dashboard: the shell only
+# needs rebuilding when something native changes (icon, splash, plugins,
+# permissions) — ordinary app changes go live on Railway without a new
+# store build.
+#
+# The names below in <angle brackets> are set up once in the Codemagic UI
+# (see mobile/README.md, "Codemagic setup"); nothing secret lives in git.
+
+workflows:
+  ios-testflight:
+    name: iOS → TestFlight
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    integrations:
+      # Teams → Integrations → App Store Connect: the API key's name.
+      app_store_connect: Box 2 Box App Store Connect
+    environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: social.box2box.app
+      vars:
+        # App Store Connect → the app → App Information → Apple ID (numeric).
+        APP_STORE_APPLE_ID: "0000000000"
+      node: 22
+      xcode: latest
+    scripts:
+      - name: Install dependencies
+        script: cd mobile && npm ci
+      - name: Sync Capacitor
+        script: cd mobile && npx cap sync ios
+      - name: Set up code signing
+        script: xcode-project use-profiles --project mobile/ios/App/App.xcodeproj
+      - name: Build ipa
+        script: |
+          # One higher than the latest TestFlight build (1 for the very first).
+          LATEST=$(app-store-connect get-latest-testflight-build-number "$APP_STORE_APPLE_ID" || echo 0)
+          xcode-project build-ipa \
+            --project mobile/ios/App/App.xcodeproj \
+            --scheme App \
+            --archive-xcargs "CURRENT_PROJECT_VERSION=$((LATEST + 1))"
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
+
+  android-play-internal:
+    name: Android → Google Play (internal testing)
+    instance_type: linux_x2
+    max_build_duration: 60
+    environment:
+      android_signing:
+        # Team settings → Code signing identities → Android keystores: the
+        # upload keystore's reference name.
+        - box2box_upload_keystore
+      groups:
+        # Environment variable group holding GCLOUD_SERVICE_ACCOUNT_CREDENTIALS
+        # (the Google Play service account JSON).
+        - google_play
+      node: 22
+      java: 21
+    scripts:
+      - name: Install dependencies
+        script: cd mobile && npm ci
+      - name: Sync Capacitor
+        script: cd mobile && npx cap sync android
+      - name: Build app bundle
+        script: |
+          # One higher than the latest build on any Play track (1 for the
+          # very first, which has to be uploaded by hand — see README).
+          LATEST=$(google-play get-latest-build-number --package-name social.box2box.app || echo 0)
+          cd mobile/android
+          ./gradlew bundleRelease -PversionCode=$((LATEST + 1))
+    artifacts:
+      - mobile/android/app/build/outputs/**/*.aab
+    publishing:
+      google_play:
+        credentials: $GCLOUD_SERVICE_ACCOUNT_CREDENTIALS
+        track: internal
+        submit_as_draft: true
