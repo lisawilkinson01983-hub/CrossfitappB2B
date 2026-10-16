@@ -13,6 +13,9 @@ import { ProfileMoreMenu } from "@/components/ProfileMoreMenu";
 import { bookingMailto, findVerifiedGymOwner } from "@/lib/gymPages";
 import { BackLink } from "@/components/BackLink";
 import { EditIcon } from "@/components/EditIcon";
+import { GlobeIcon } from "@/components/GlobeIcon";
+import { CalendarIcon } from "@/components/CalendarIcon";
+import { DropInIcon } from "@/components/DropInIcon";
 
 export default async function GymPage({ params }: { params: Promise<{ name: string }> }) {
   const session = await getServerSession(authOptions);
@@ -124,53 +127,63 @@ export default async function GymPage({ params }: { params: Promise<{ name: stri
               </div>
             )}
 
-            <div className={`flex flex-wrap gap-2 ${gym.claimedBy && !isOwnGym ? "mt-4 border-t border-b2b-purple/10 pt-4" : ""}`}>
+            <div className={`flex flex-col gap-2 ${gym.claimedBy && !isOwnGym ? "mt-4 border-t border-b2b-purple/10 pt-4" : ""}`}>
               <Link
                 href={`/discover?gym=${encodeURIComponent(gym.name)}`}
-                className="rounded-xl bg-b2b-pink px-4 py-2.5 text-sm font-semibold text-white hover:bg-b2b-pink-dark"
+                className="rounded-xl bg-b2b-pink px-4 py-2.5 text-center text-sm font-semibold text-white hover:bg-b2b-pink-dark"
               >
                 Browse athletes at {gym.name}
               </Link>
 
-              {gym.claimedBy && (
-                <Link
-                  href={`/profile/${gym.claimedBy.id}`}
-                  className="rounded-xl border border-b2b-purple/20 px-4 py-2.5 text-sm font-semibold text-b2b-ink hover:bg-b2b-bg"
-                >
-                  {isOwnGym ? "View your profile" : "View full profile"}
-                </Link>
+              {(gym.claimedBy || gym.website) && (
+                <div className="flex gap-2">
+                  {gym.claimedBy && (
+                    <Link
+                      href={`/profile/${gym.claimedBy.id}`}
+                      className="flex-1 rounded-xl border border-b2b-purple/20 px-4 py-2.5 text-center text-sm font-semibold text-b2b-ink hover:bg-b2b-bg"
+                    >
+                      {isOwnGym ? "View your profile" : "View full profile"}
+                    </Link>
+                  )}
+                  {gym.website && (
+                    <a
+                      href={gym.website}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-b2b-purple/20 px-4 py-2.5 text-center text-sm font-semibold text-b2b-ink hover:bg-b2b-bg"
+                    >
+                      <GlobeIcon className="h-4 w-4 shrink-0" />
+                      Website
+                    </a>
+                  )}
+                </div>
               )}
 
-              {gym.website && (
-                <a
-                  href={gym.website}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="rounded-xl bg-b2b-purple px-4 py-2.5 text-sm font-semibold text-white hover:bg-b2b-purple-dark"
-                >
-                  🌐 Visit website
-                </a>
+              {canBook && (
+                <div className="rounded-2xl border border-b2b-pink/20 bg-b2b-pink/5 p-3.5">
+                  <p className="mb-2.5 text-xs font-semibold uppercase tracking-wide text-b2b-pink-dark">Book a session</p>
+                  {gym.bookingEmail ? (
+                    <div className="flex gap-2">
+                      <a
+                        href={bookingMailto(gym.bookingEmail, "Intro Session", gym.name)}
+                        className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border-[1.5px] border-b2b-pink bg-b2b-card px-3 py-2.5 text-sm font-semibold text-b2b-pink-dark hover:bg-b2b-pink/10"
+                      >
+                        <CalendarIcon className="h-4 w-4 shrink-0" />
+                        Intro Session
+                      </a>
+                      <a
+                        href={bookingMailto(gym.bookingEmail, "Drop-in", gym.name)}
+                        className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border-[1.5px] border-b2b-pink bg-b2b-card px-3 py-2.5 text-sm font-semibold text-b2b-pink-dark hover:bg-b2b-pink/10"
+                      >
+                        <DropInIcon className="h-4 w-4 shrink-0" />
+                        Drop-in
+                      </a>
+                    </div>
+                  ) : (
+                    <GymBookingButtons gymId={gym.id} />
+                  )}
+                </div>
               )}
-
-              {canBook &&
-                (gym.bookingEmail ? (
-                  <>
-                    <a
-                      href={bookingMailto(gym.bookingEmail, "Intro Session", gym.name)}
-                      className="rounded-xl bg-b2b-purple px-4 py-2.5 text-sm font-semibold text-white hover:bg-b2b-purple-dark"
-                    >
-                      Book an Intro Session
-                    </a>
-                    <a
-                      href={bookingMailto(gym.bookingEmail, "Drop-in", gym.name)}
-                      className="rounded-xl bg-b2b-purple px-4 py-2.5 text-sm font-semibold text-white hover:bg-b2b-purple-dark"
-                    >
-                      Book a Drop-in
-                    </a>
-                  </>
-                ) : (
-                  <GymBookingButtons gymId={gym.id} />
-                ))}
             </div>
 
             {gym.claimedBy && (

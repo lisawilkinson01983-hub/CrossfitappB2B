@@ -19,6 +19,8 @@ import { ExpandableHeroPhoto } from "@/components/ExpandableHeroPhoto";
 import { OpenLevelBadge } from "@/components/OpenLevelBadge";
 import { PbCardBody } from "@/components/PbCardBody";
 import { GymBookingButtons } from "@/components/GymBookingButtons";
+import { CalendarIcon } from "@/components/CalendarIcon";
+import { DropInIcon } from "@/components/DropInIcon";
 import { prisma } from "@/lib/prisma";
 import { isSiteAccountEmail } from "@/lib/siteAccount";
 import { calculateAge } from "@/lib/age";
@@ -220,27 +222,31 @@ export async function ProfileDetails({
             </a>
           )}
 
-          {isVerifiedOwnerHere &&
-            (gymPage!.bookingEmail ? (
-              <div className="mt-3 flex flex-wrap gap-2">
-                <a
-                  href={bookingMailto(gymPage!.bookingEmail, "Intro Session", gymPage!.name)}
-                  className="rounded bg-b2b-purple px-4 py-2 text-sm font-medium text-white hover:bg-b2b-purple-dark"
-                >
-                  Book an Intro Session
-                </a>
-                <a
-                  href={bookingMailto(gymPage!.bookingEmail, "Drop-in", gymPage!.name)}
-                  className="rounded bg-b2b-purple px-4 py-2 text-sm font-medium text-white hover:bg-b2b-purple-dark"
-                >
-                  Book a Drop-in
-                </a>
-              </div>
-            ) : (
-              <div className="mt-3">
+          {isVerifiedOwnerHere && (
+            <div className="mt-3 rounded-2xl border border-b2b-pink/20 bg-b2b-pink/5 p-3.5">
+              <p className="mb-2.5 text-xs font-semibold uppercase tracking-wide text-b2b-pink-dark">Book a session</p>
+              {gymPage!.bookingEmail ? (
+                <div className="flex gap-2">
+                  <a
+                    href={bookingMailto(gymPage!.bookingEmail, "Intro Session", gymPage!.name)}
+                    className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border-[1.5px] border-b2b-pink bg-b2b-card px-3 py-2.5 text-sm font-semibold text-b2b-pink-dark hover:bg-b2b-pink/10"
+                  >
+                    <CalendarIcon className="h-4 w-4 shrink-0" />
+                    Intro Session
+                  </a>
+                  <a
+                    href={bookingMailto(gymPage!.bookingEmail, "Drop-in", gymPage!.name)}
+                    className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border-[1.5px] border-b2b-pink bg-b2b-card px-3 py-2.5 text-sm font-semibold text-b2b-pink-dark hover:bg-b2b-pink/10"
+                  >
+                    <DropInIcon className="h-4 w-4 shrink-0" />
+                    Drop-in
+                  </a>
+                </div>
+              ) : (
                 <GymBookingButtons gymId={gymPage!.id} />
-              </div>
-            ))}
+              )}
+            </div>
+          )}
 
           {belowActions && <div className="mt-4 border-t border-b2b-purple/10 pt-4">{belowActions}</div>}
 
