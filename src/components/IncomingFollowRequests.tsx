@@ -42,7 +42,7 @@ export function IncomingFollowRequests({ requests }: { requests: RequestItem[] }
               type="button"
               onClick={() => respond(req.id, "decline")}
               disabled={busyId === req.id}
-              className="rounded bg-b2b-ink px-2 py-1 text-xs font-medium text-white disabled:opacity-50"
+              className="rounded bg-b2b-ink px-2 py-1 text-xs font-medium text-b2b-bg disabled:opacity-50"
             >
               Decline
             </button>

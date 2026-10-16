@@ -190,7 +190,7 @@ function EventChatComposerModal({ eventId, onClose }: { eventId: string; onClose
                 type="button"
                 onClick={clearMedia}
                 aria-label="Remove attachment"
-                className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-b2b-ink/70 text-sm text-white hover:bg-b2b-ink"
+                className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-b2b-ink/70 text-sm text-b2b-bg hover:bg-b2b-ink"
               >
                 ×
               </button>

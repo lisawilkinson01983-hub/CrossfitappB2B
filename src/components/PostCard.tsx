@@ -628,7 +628,7 @@ export function PostCard({
           type="button"
           onClick={() => setPopped(false)}
           aria-label="Close"
-          className="absolute -right-2 -top-2 flex h-8 w-8 items-center justify-center rounded-full bg-b2b-ink text-lg text-white shadow hover:bg-b2b-ink/80"
+          className="absolute -right-2 -top-2 flex h-8 w-8 items-center justify-center rounded-full bg-b2b-ink text-lg text-b2b-bg shadow hover:bg-b2b-ink/80"
         >
           ×
         </button>

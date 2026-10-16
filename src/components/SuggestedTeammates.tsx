@@ -22,7 +22,7 @@ function MatchRing({ score }: { score: number }) {
       style={{ background: `conic-gradient(#B8842A 0% ${score}%, rgba(255,255,255,0.3) ${score}% 100%)` }}
     >
       <div className="flex h-[30px] w-[30px] items-center justify-center rounded-full bg-b2b-ink">
-        <span className="font-display text-[10px] leading-none text-white">{score}%</span>
+        <span className="font-display text-[10px] leading-none text-b2b-bg">{score}%</span>
       </div>
     </div>
   );

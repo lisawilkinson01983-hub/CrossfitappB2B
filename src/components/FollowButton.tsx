@@ -51,7 +51,7 @@ export function FollowButton({
         type="button"
         onClick={unfollowOrCancel}
         disabled={busy}
-        className={`whitespace-nowrap ${shapeClass} bg-b2b-ink font-medium text-white hover:opacity-90 disabled:opacity-50 ${sizeClass}`}
+        className={`whitespace-nowrap ${shapeClass} bg-b2b-ink font-medium text-b2b-bg hover:opacity-90 disabled:opacity-50 ${sizeClass}`}
       >
         {busy ? "..." : "Unfollow"}
       </button>

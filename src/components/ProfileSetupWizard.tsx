@@ -341,7 +341,7 @@ export function ProfileSetupWizard({ initial }: { initial: ProfileSetupInitial }
             type="button"
             onClick={goNext}
             disabled={!canAdvance}
-            className="w-full rounded-xl bg-b2b-ink py-4 text-base font-bold text-white disabled:opacity-35"
+            className="w-full rounded-xl bg-b2b-ink py-4 text-base font-bold text-b2b-bg disabled:opacity-35"
           >
             Continue
           </button>
@@ -477,8 +477,8 @@ function BasicsStep({
               <circle cx="12" cy="13" r="3.5" />
             </svg>
           )}
-          <span className="absolute -right-0.5 -bottom-0.5 flex h-7 w-7 items-center justify-center rounded-full border-[3px] border-white bg-b2b-ink">
-            <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2.5} strokeLinecap="round" className="h-3 w-3">
+          <span className="absolute -right-0.5 -bottom-0.5 flex h-7 w-7 items-center justify-center rounded-full border-[3px] border-white bg-b2b-ink text-b2b-bg">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" className="h-3 w-3">
               <path d="M12 5v14M5 12h14" />
             </svg>
           </span>
