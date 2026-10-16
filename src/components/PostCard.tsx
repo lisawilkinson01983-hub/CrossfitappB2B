@@ -19,6 +19,7 @@ import { MentionText } from "@/components/MentionText";
 import { MentionTextarea } from "@/components/MentionTextarea";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { ReportButton } from "@/components/ReportButton";
+import { ProfileMoreMenu } from "@/components/ProfileMoreMenu";
 import { WorkoutDescriptionToggle } from "@/components/WorkoutDescriptionToggle";
 import { ReactionBar } from "@/components/ReactionBar";
 import { GifPicker } from "@/components/GifPicker";
@@ -707,10 +708,13 @@ export function PostCard({
             </button>
           </div>
         ) : (
-          <ReportButton
-            targetType="POST"
-            targetId={post.id}
-            className="shrink-0 text-xs text-b2b-ink/50 hover:underline"
+          <ProfileMoreMenu
+            targetUserId={headerUser.id}
+            targetName={headerUser.name}
+            initialBlocked={false}
+            initialMuted={false}
+            reportTargetType="POST"
+            reportTargetId={post.id}
           />
         )}
       </div>
@@ -771,10 +775,13 @@ export function PostCard({
                 </button>
               </div>
             ) : (
-              <ReportButton
-                targetType="POST"
-                targetId={post.id}
-                className="shrink-0 text-xs text-b2b-ink/50 hover:underline"
+              <ProfileMoreMenu
+                targetUserId={post.author.id}
+                targetName={post.author.name}
+                initialBlocked={false}
+                initialMuted={false}
+                reportTargetType="POST"
+                reportTargetId={post.id}
               />
             )}
           </div>

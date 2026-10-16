@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Avatar } from "@/components/Avatar";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { ReportButton } from "@/components/ReportButton";
+import { ProfileMoreMenu } from "@/components/ProfileMoreMenu";
 import { MentionText } from "@/components/MentionText";
 import { MentionTextarea } from "@/components/MentionTextarea";
 import { ExpandableImage } from "@/components/ExpandableImage";
@@ -552,7 +553,16 @@ export function EventNoticeCard({
             </button>
           </div>
         )}
-        {!isOwn && <ReportButton targetType="EVENT_NOTICE" targetId={notice.id} />}
+        {!isOwn && (
+          <ProfileMoreMenu
+            targetUserId={notice.author.id}
+            targetName={notice.author.name}
+            initialBlocked={false}
+            initialMuted={false}
+            reportTargetType="EVENT_NOTICE"
+            reportTargetId={notice.id}
+          />
+        )}
       </div>
       {notice.teammateRequests.length > 0 && (
         <div className="mt-3 flex flex-col items-start gap-1">

@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { MoreIcon } from "@/components/MoreIcon";
 import { ReportButton } from "@/components/ReportButton";
+import type { ReportTargetTypeOption } from "@/lib/validation";
 
 function MuteIcon({ className = "h-4 w-4" }: { className?: string }) {
   return (
@@ -38,15 +39,21 @@ function ReportIcon({ className = "h-4 w-4" }: { className?: string }) {
 const ROW_CLASS = "flex w-full items-center gap-2.5 rounded-lg px-4 py-3 text-left text-sm font-medium hover:bg-b2b-bg disabled:opacity-50";
 
 /**
- * The profile page's "..." — tucks Mute/Block/Report behind the same
- * sliding bottom-sheet already shipped for stories (see StoryViewer's
- * moreOpen sheet), instead of three text links competing with Message/Follow.
+ * The "..." that tucks Mute/Block/Report behind the same sliding bottom-sheet
+ * already shipped for stories (see StoryViewer's moreOpen sheet), instead of
+ * text links competing with other actions. Mute/Block always act on
+ * `targetUserId` (the profile, or a post/notice's author); the Report
+ * defaults to reporting that same user, but a caller showing this on a post
+ * or notice passes `reportTargetType`/`reportTargetId` so the report is filed
+ * against the content itself (e.g. targetType "POST"), not its author.
  */
 export function ProfileMoreMenu({
   targetUserId,
   targetName,
   initialBlocked,
   initialMuted,
+  reportTargetType = "USER",
+  reportTargetId = targetUserId,
   // "overlay": a bare icon (no border/background) for sitting inside a
   // SwipeCardList cornerAction slot, which already supplies its own
   // backdrop circle — see Discover's carousel cards.
@@ -56,6 +63,8 @@ export function ProfileMoreMenu({
   targetName: string;
   initialBlocked: boolean;
   initialMuted: boolean;
+  reportTargetType?: ReportTargetTypeOption;
+  reportTargetId?: string;
   variant?: "default" | "overlay";
 }) {
   const router = useRouter();
@@ -112,8 +121,8 @@ export function ProfileMoreMenu({
       {/* Mounted unconditionally — its own report dialog has to survive us
           closing this sheet when "Report" is tapped (see renderTrigger below). */}
       <ReportButton
-        targetType="USER"
-        targetId={targetUserId}
+        targetType={reportTargetType}
+        targetId={reportTargetId}
         renderTrigger={(openReport) =>
           open &&
           mounted &&
