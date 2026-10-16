@@ -1,4 +1,5 @@
 import { LegalPageLayout, LegalSection } from "@/components/LegalPageLayout";
+import { CONTACT_EMAIL } from "@/lib/contact";
 
 export default function PrivacyPage() {
   return (
@@ -65,7 +66,12 @@ export default function PrivacyPage() {
             account doesn't erase someone else's conversation history — this is the same approach
             most messaging apps use.
           </li>
-          <li>To request a copy of your data, or ask us to delete something this page doesn't cover, contact us using the details below.</li>
+          <li>To request a copy of your data, or ask us to delete something this page doesn't cover, email{" "}
+            <a href={`mailto:${CONTACT_EMAIL}`} className="text-b2b-pink underline">
+              {CONTACT_EMAIL}
+            </a>
+            .
+          </li>
         </ul>
       </LegalSection>
 
@@ -84,7 +90,7 @@ export default function PrivacyPage() {
       </LegalSection>
 
       <LegalSection title="8. Contact">
-        <p>Questions about this policy, or a data request? Reach out via the contact details on our website.</p>
+        <p>Questions about this policy, or a data request? Email us at <a href={`mailto:${CONTACT_EMAIL}`} className="text-b2b-pink underline">{CONTACT_EMAIL}</a>.</p>
       </LegalSection>
     </LegalPageLayout>
   );

@@ -5,6 +5,7 @@ import { authOptions } from "@/lib/auth";
 import { NavBar } from "@/components/NavBar";
 import { SectionCard } from "@/components/SectionCard";
 import { BackLink } from "@/components/BackLink";
+import { CONTACT_EMAIL } from "@/lib/contact";
 
 export default async function LegalSettingsPage() {
   const session = await getServerSession(authOptions);
@@ -28,6 +29,14 @@ export default async function LegalSettingsPage() {
               Community Guidelines
             </Link>
           </div>
+        </SectionCard>
+      </div>
+
+      <div className="mt-4">
+        <SectionCard title="Contact us">
+          <p className="text-sm text-b2b-ink/70">
+            Questions, feedback, or a problem with your account? Email <a href={`mailto:${CONTACT_EMAIL}`} className="text-b2b-pink underline">{CONTACT_EMAIL}</a>.
+          </p>
         </SectionCard>
       </div>
     </main>

@@ -1,4 +1,5 @@
 import { LegalPageLayout, LegalSection } from "@/components/LegalPageLayout";
+import { CONTACT_EMAIL } from "@/lib/contact";
 
 export default function GuidelinesPage() {
   return (
@@ -51,6 +52,10 @@ export default function GuidelinesPage() {
           You can report a post, comment, message, event notice, or profile directly from the app
           — look for the "Report" option next to the content. Our moderators review reports and
           take action when something breaks these guidelines.
+        </p>
+        <p>
+          For anything you can&apos;t report in the app, or if you&apos;re worried about someone&apos;s
+          safety, email <a href={`mailto:${CONTACT_EMAIL}`} className="text-b2b-pink underline">{CONTACT_EMAIL}</a>. If someone is in immediate danger, call 999.
         </p>
       </LegalSection>
     </LegalPageLayout>
