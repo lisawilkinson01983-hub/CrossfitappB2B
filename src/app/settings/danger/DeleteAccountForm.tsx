@@ -28,6 +28,7 @@ export function DeleteAccountForm() {
       return;
     }
 
+    // The delete itself removed this phone's push registration.
     await signOut({ callbackUrl: "/start" });
   }
 

@@ -72,6 +72,33 @@ running inside the store app (see `src/lib/nativeApp.ts`).
   upload it in Play Console → Testing → Internal testing → Create release. Later builds
   upload automatically.
 
+## Push notifications
+
+Every in-app notification (likes, comments, follows, event invites…) and every direct
+message is also sent as a push to the person's phones — see `src/lib/pushDelivery.ts`.
+The app asks for permission after sign-in and registers the phone against the active
+profile (`src/components/NativePush.tsx` → `/api/push/devices`). Nothing is sent until the
+credentials below are set in **Railway → Variables**.
+
+**iPhone (Apple Push Notification service)**
+1. developer.apple.com → Certificates, Identifiers & Profiles → **Identifiers** →
+   `social.box2box.app` → tick **Push Notifications** → Save.
+2. **Keys** → **+** → name it *Box 2 Box push*, tick **Apple Push Notifications service
+   (APNs)** → Continue → Register → **Download** the `.p8` file (it can only be downloaded
+   once — keep it safe). Note the **Key ID**, and your **Team ID** (Membership details).
+3. Railway variables: `APNS_KEY` = the whole contents of the `.p8` file, `APNS_KEY_ID`,
+   `APNS_TEAM_ID`.
+
+**Android (Firebase Cloud Messaging)** — free
+1. https://console.firebase.google.com → **Add project** → *Box 2 Box* (Google Analytics
+   not needed).
+2. Add an **Android app** with package name `social.box2box.app` → download
+   **google-services.json** → either commit it as `mobile/android/app/google-services.json`
+   or store it base64-encoded as `GOOGLE_SERVICES_JSON` in Codemagic's `google_play`
+   group. Then run a new Android build.
+3. Project settings → **Service accounts** → **Generate new private key** → Railway
+   variable `FCM_SERVICE_ACCOUNT` = the downloaded JSON.
+
 ## Making native changes
 
 Requires Node 22. From this folder:
