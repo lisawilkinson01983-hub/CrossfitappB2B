@@ -3,6 +3,15 @@
 // a dynamic import so the SDK is never pulled into the middleware/server
 // bundle at all when it's unconfigured.
 export async function register() {
+  // Push delivery (src/lib/pushDelivery.ts) needs Node's http2, so it's
+  // loaded here — server start-up, Node runtime only — and handed to the
+  // Prisma hook in src/lib/prisma.ts, rather than imported by prisma.ts,
+  // which client bundles can reach.
+  if (process.env.NEXT_RUNTIME === "nodejs" && (process.env.APNS_KEY || process.env.FCM_SERVICE_ACCOUNT)) {
+    const { deliverPendingPushes } = await import("./lib/pushDelivery");
+    (globalThis as { __b2bDeliverPushes?: () => Promise<void> }).__b2bDeliverPushes = deliverPendingPushes;
+  }
+
   if (!process.env.SENTRY_DSN) return;
 
   const Sentry = await import("@sentry/nextjs");

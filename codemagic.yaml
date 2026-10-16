@@ -70,6 +70,14 @@ workflows:
         script: cd mobile && npm ci
       - name: Sync Capacitor
         script: cd mobile && npx cap sync android
+      - name: Firebase config (push notifications)
+        script: |
+          # Either commit mobile/android/app/google-services.json, or store it
+          # base64-encoded as GOOGLE_SERVICES_JSON in the google_play group.
+          if [ -n "$GOOGLE_SERVICES_JSON" ]; then
+            echo "$GOOGLE_SERVICES_JSON" | base64 --decode > mobile/android/app/google-services.json
+          fi
+          [ -s mobile/android/app/google-services.json ] || echo "WARNING: no google-services.json - Android push notifications won't work"
       - name: Build app bundle
         script: |
           # One higher than the latest build on any Play track (1 for the

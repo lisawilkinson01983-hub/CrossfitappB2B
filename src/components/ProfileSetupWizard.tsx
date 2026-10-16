@@ -16,6 +16,7 @@ import {
   type CommunityCupResultRow,
   type OpenResultRow,
 } from "@/components/CompetitionStatsEditor";
+import { unregisterNativePush } from "@/components/NativePush";
 
 type AccountType = "ATHLETE" | "AFFILIATE";
 
@@ -256,7 +257,7 @@ export function ProfileSetupWizard({ initial }: { initial: ProfileSetupInitial }
         <div className="flex-1 text-center">
           <Image src="/logo-mark.png" alt="Box 2 Box" width={26} height={26} className="mx-auto" priority />
         </div>
-        <button type="button" onClick={() => signOut({ callbackUrl: "/login" })} className="shrink-0 text-xs text-b2b-ink/40 hover:underline">
+        <button type="button" onClick={async () => { await unregisterNativePush(); signOut({ callbackUrl: "/login" }); }} className="shrink-0 text-xs text-b2b-ink/40 hover:underline">
           Log out
         </button>
       </div>
