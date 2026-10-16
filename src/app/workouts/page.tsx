@@ -34,6 +34,7 @@ export default async function WorkoutsPage({
     prisma.workout.findMany({
       where,
       orderBy: [{ pinned: "desc" }, { createdAt: "desc" }],
+      include: { partners: { select: { user: { select: { id: true, name: true } } } } },
     }),
     prisma.user.findUnique({ where: { id: session.user.id }, select: { hasSeenWorkoutsTour: true } }),
   ]);
@@ -122,7 +123,12 @@ export default async function WorkoutsPage({
           ) : (
             <div className="flex flex-col gap-4">
               {workouts.map((workout) => (
-                <WorkoutCard key={workout.id} workout={workout} showDelete showPin />
+                <WorkoutCard
+                  key={workout.id}
+                  workout={{ ...workout, partners: workout.partners.map((p) => p.user) }}
+                  showDelete
+                  showPin
+                />
               ))}
             </div>
           )}

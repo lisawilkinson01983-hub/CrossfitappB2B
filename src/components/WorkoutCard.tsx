@@ -25,6 +25,7 @@ type WorkoutCardData = {
   sharedToFeed: boolean;
   pinned?: boolean;
   createdAt: Date;
+  partners?: { id: string; name: string }[];
 };
 
 export function WorkoutCard({
@@ -82,6 +83,20 @@ export function WorkoutCard({
 
       {workout.description && <WorkoutDescriptionToggle description={workout.description} />}
       {workout.notes && <p className="mt-2 text-sm text-gray-700">{workout.notes}</p>}
+
+      {workout.partners && workout.partners.length > 0 && (
+        <p className="mt-2 text-xs text-b2b-ink/50">
+          With{" "}
+          {workout.partners.map((p, i) => (
+            <span key={p.id}>
+              {i > 0 && (i === workout.partners!.length - 1 ? " and " : ", ")}
+              <Link href={`/profile/${p.id}`} className="font-medium text-b2b-pink hover:underline">
+                {p.name}
+              </Link>
+            </span>
+          ))}
+        </p>
+      )}
 
       {workout.photo && (
         <Image

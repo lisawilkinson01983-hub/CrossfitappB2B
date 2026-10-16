@@ -12,6 +12,8 @@ import {
 } from "@/lib/uploads";
 import { parseFormData } from "@/lib/http";
 
+const MAX_WORKOUT_PARTNERS = 10;
+
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
@@ -74,6 +76,16 @@ export async function POST(req: Request) {
 
   const data = parsed.data;
 
+  const rawPartnerIds = formData.getAll("partnerUserIds").filter((v): v is string => typeof v === "string");
+  const candidatePartnerIds = Array.from(new Set(rawPartnerIds)).filter((id) => id !== session.user.id);
+  const partners =
+    candidatePartnerIds.length > 0
+      ? await prisma.user.findMany({
+          where: { id: { in: candidatePartnerIds.slice(0, MAX_WORKOUT_PARTNERS) } },
+          select: { id: true },
+        })
+      : [];
+
   const workout = await prisma.workout.create({
     data: {
       userId: session.user.id,
@@ -90,8 +102,20 @@ export async function POST(req: Request) {
       photo: photoPath ?? null,
       video: videoPath ?? null,
       videoThumbnail: videoThumbnailPath,
+      partners: { create: partners.map((p) => ({ userId: p.id })) },
     },
   });
+
+  if (partners.length > 0) {
+    await prisma.notification.createMany({
+      data: partners.map((p) => ({
+        userId: p.id,
+        actorId: session.user.id,
+        type: "WORKOUT_PARTNER_TAGGED" as const,
+        workoutId: workout.id,
+      })),
+    });
+  }
 
   if (data.sharedToFeed) {
     // contentText is just the notes — the wodName/score/intensity summary

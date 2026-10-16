@@ -167,6 +167,10 @@ enum NotificationType {
   // already-signed-up Account (see /api/account/add-profile) — that's an
   // existing member, not a new one.
   NEW_USER_SIGNUP
+  // Someone tagged this user as a training partner on a workout they logged
+  // (see WorkoutPartner) — workoutId below has the workout, owned by the
+  // actor (not the recipient), so it deep-links to the actor's gallery.
+  WORKOUT_PARTNER_TAGGED
 }
 
 enum EventStatus {
@@ -564,6 +568,7 @@ model User {
 
   workoutComments         WorkoutComment[]
   workoutCommentReactions WorkoutCommentReaction[]
+  workoutPartnerTags      WorkoutPartner[]
   pbCommentsReceived      PbComment[]              @relation("PbCommentsReceived")
   pbCommentsWritten       PbComment[]              @relation("PbCommentsWritten")
   pbCommentReactions      PbCommentReaction[]
@@ -681,8 +686,25 @@ model Workout {
   posts         Post[]
   comments      WorkoutComment[]
   notifications Notification[]
+  partners      WorkoutPartner[]
 
   @@index([userId])
+}
+
+// Someone tagged as a training partner on this workout (see the "Tag
+// workout partners" step when logging one) — shown as a "with ..." line on
+// the workout card, and triggers a WORKOUT_PARTNER_TAGGED notification to
+// that person. Same shape/pattern as StoryMention.
+model WorkoutPartner {
+  id        String  @id @default(cuid())
+  workoutId String
+  workout   Workout @relation(fields: [workoutId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([workoutId, userId])
+  @@index([workoutId])
 }
 
 model Post {

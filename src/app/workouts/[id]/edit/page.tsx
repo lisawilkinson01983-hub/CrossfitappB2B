@@ -11,7 +11,10 @@ export default async function EditWorkoutPage({ params }: { params: Promise<{ id
   if (!session?.user?.id) redirect("/login");
 
   const { id } = await params;
-  const workout = await prisma.workout.findUnique({ where: { id } });
+  const workout = await prisma.workout.findUnique({
+    where: { id },
+    include: { partners: { select: { user: { select: { id: true, name: true, photo: true } } } } },
+  });
   if (!workout || workout.userId !== session.user.id) notFound();
 
   return (
@@ -35,6 +38,7 @@ export default async function EditWorkoutPage({ params }: { params: Promise<{ id
               photo: workout.photo,
               video: workout.video,
               videoThumbnail: workout.videoThumbnail,
+              partners: workout.partners.map((p) => p.user),
             }}
           />
         </SectionCard>

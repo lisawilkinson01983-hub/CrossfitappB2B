@@ -100,6 +100,8 @@ export function notificationText(n: NotificationView): string {
       return `joined your team for "${n.event?.name ?? "an event"}"`;
     case "NEW_USER_SIGNUP":
       return "just signed up for Box 2 Box";
+    case "WORKOUT_PARTNER_TAGGED":
+      return "tagged you as a workout partner";
     case "MENTION":
       return n.storyId ? "tagged you in their story" : "mentioned you";
     default:
@@ -153,6 +155,11 @@ export function notificationHref(n: NotificationView, viewerId: string): string 
     case "FOLLOW":
     case "NEW_USER_SIGNUP":
       return `/profile/${n.actor.id}`;
+    // Unlike WORKOUT_COMMENT (always on the viewer's own workout), the
+    // workout here belongs to whoever tagged this user — deep-link to
+    // their gallery, not the viewer's own.
+    case "WORKOUT_PARTNER_TAGGED":
+      return `/profile/${n.actor.id}/gallery${n.workoutId ? `?workout=${n.workoutId}` : ""}`;
     case "MENTION":
       if (n.storyId) return `/feed?story=${n.storyId}`;
       if (n.event) return `/events/${n.event.id}/notices`;
