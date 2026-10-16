@@ -1,6 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import { DeleteIcon } from "@/components/DeleteIcon";
+import { COMPETITION_DIVISIONS, OTHER_DIVISION } from "@/lib/competitionDivisions";
 
 export type OpenResultRow = {
   key: string;
@@ -59,6 +61,55 @@ function RemoveButton({ onClick, label }: { onClick: () => void; label: string }
     >
       <DeleteIcon className="h-3.5 w-3.5" />
     </button>
+  );
+}
+
+// A division typed before this dropdown existed (or something outside the
+// preset list, e.g. an affiliate-only Community Cup category) still needs
+// somewhere to live — same "Other, type your own" escape hatch as the gym
+// picker (see OTHER_GYM).
+function DivisionField({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const isPreset = COMPETITION_DIVISIONS.includes(value);
+  // Local, not derived from `value` alone — picking "Other" clears the
+  // stored division back to "" (so an abandoned Other row still drops out
+  // of the payload like any other empty row), but the text box needs to
+  // stay open while that happens rather than snapping back to the select.
+  const [otherMode, setOtherMode] = useState(value !== "" && !isPreset);
+  const selectValue = otherMode ? OTHER_DIVISION : isPreset ? value : "";
+
+  return (
+    <div>
+      <select
+        value={selectValue}
+        onChange={(e) => {
+          if (e.target.value === OTHER_DIVISION) {
+            setOtherMode(true);
+            onChange("");
+          } else {
+            setOtherMode(false);
+            onChange(e.target.value);
+          }
+        }}
+        className={FIELD_CLASS}
+      >
+        <option value="">Select a division</option>
+        {COMPETITION_DIVISIONS.map((d) => (
+          <option key={d} value={d}>
+            {d}
+          </option>
+        ))}
+        <option value={OTHER_DIVISION}>Other</option>
+      </select>
+      {otherMode && (
+        <input
+          type="text"
+          placeholder="Type your division"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className={`${FIELD_CLASS} mt-1.5`}
+        />
+      )}
+    </div>
   );
 }
 
@@ -124,13 +175,7 @@ export function CompetitionStatsEditor({
               </div>
               <div className="mt-2">
                 <label className={LABEL_CLASS}>Division</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Women (40-44)"
-                  value={row.division}
-                  onChange={(e) => updateOpenRow(row.key, { division: e.target.value })}
-                  className={FIELD_CLASS}
-                />
+                <DivisionField value={row.division} onChange={(v) => updateOpenRow(row.key, { division: v })} />
               </div>
               <div className="mt-2 flex gap-2">
                 <div className="flex-1">
@@ -180,28 +225,20 @@ export function CompetitionStatsEditor({
                 <YearField value={row.year} onChange={(v) => updateCupRow(row.key, { year: v })} />
                 <RemoveButton onClick={() => removeCupRow(row.key)} label="Remove this year" />
               </div>
-              <div className="mt-2 flex gap-2">
-                <div className="flex-1">
-                  <label className={LABEL_CLASS}>Division</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Women"
-                    value={row.division}
-                    onChange={(e) => updateCupRow(row.key, { division: e.target.value })}
-                    className={FIELD_CLASS}
-                  />
-                </div>
-                <div className="flex-1">
-                  <label className={LABEL_CLASS}>Rank</label>
-                  <input
-                    type="number"
-                    inputMode="numeric"
-                    placeholder="e.g. 213"
-                    value={row.rank}
-                    onChange={(e) => updateCupRow(row.key, { rank: e.target.value })}
-                    className={FIELD_CLASS}
-                  />
-                </div>
+              <div className="mt-2">
+                <label className={LABEL_CLASS}>Division</label>
+                <DivisionField value={row.division} onChange={(v) => updateCupRow(row.key, { division: v })} />
+              </div>
+              <div className="mt-2">
+                <label className={LABEL_CLASS}>Rank</label>
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  placeholder="e.g. 213"
+                  value={row.rank}
+                  onChange={(e) => updateCupRow(row.key, { rank: e.target.value })}
+                  className={FIELD_CLASS}
+                />
               </div>
               <div className="mt-2">
                 <label className={LABEL_CLASS}>Competition</label>

@@ -23,6 +23,13 @@ import { OTHER_GYM } from "@/lib/gyms";
 import { COUNTRIES, type Country } from "@/lib/countries";
 import { AvatarCropper } from "@/components/AvatarCropper";
 import { calculateAge } from "@/lib/age";
+import {
+  CompetitionStatsEditor,
+  communityCupResultRowsToPayload,
+  openResultRowsToPayload,
+  type CommunityCupResultRow,
+  type OpenResultRow,
+} from "@/components/CompetitionStatsEditor";
 
 type Initial = {
   name: string;
@@ -62,10 +69,14 @@ export function EditProfileForm({
   initial,
   gymOptions,
   accountTypeLocked,
+  initialOpenResults,
+  initialCommunityCupResults,
 }: {
   initial: Initial;
   gymOptions: string[];
   accountTypeLocked: boolean;
+  initialOpenResults: OpenResultRow[];
+  initialCommunityCupResults: CommunityCupResultRow[];
 }) {
   const router = useRouter();
 
@@ -103,6 +114,40 @@ export function EditProfileForm({
     PB_FIELDS.some((field) => !initial.displayedPbs.includes(field) && initial.pbs[field] !== "")
   );
   const atMaxDisplayedPbs = displayedPbs.length >= MAX_DISPLAYED_PBS;
+
+  // Saved independently of the rest of this form (its own button below),
+  // same as how the profile page's own "Competition stats" card saves —
+  // one shared PATCH route, see CompetitionStatsQuickEditor.
+  const [openResults, setOpenResults] = useState<OpenResultRow[]>(initialOpenResults);
+  const [communityCupResults, setCommunityCupResults] = useState<CommunityCupResultRow[]>(initialCommunityCupResults);
+  const [competitionStatsSaving, setCompetitionStatsSaving] = useState(false);
+  const [competitionStatsError, setCompetitionStatsError] = useState<string | null>(null);
+  const [competitionStatsSaved, setCompetitionStatsSaved] = useState(false);
+
+  async function handleSaveCompetitionStats() {
+    setCompetitionStatsError(null);
+    setCompetitionStatsSaved(false);
+    setCompetitionStatsSaving(true);
+
+    const res = await fetch("/api/profile/competition-stats", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        openResults: openResultRowsToPayload(openResults),
+        communityCupResults: communityCupResultRowsToPayload(communityCupResults),
+      }),
+    });
+    setCompetitionStatsSaving(false);
+
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      setCompetitionStatsError(body.error ?? "Something went wrong. Please try again.");
+      return;
+    }
+
+    setCompetitionStatsSaved(true);
+    router.refresh();
+  }
 
   function addDisplayedPb(field: PbField) {
     setDisplayedPbs((prev) => (prev.includes(field) || prev.length >= MAX_DISPLAYED_PBS ? prev : [...prev, field]));
@@ -622,6 +667,34 @@ export function EditProfileForm({
                 })}
               </div>
             )}
+          </fieldset>
+
+          <fieldset className="rounded-xl border border-b2b-purple/10 p-3.5">
+            <legend className="px-1 text-sm font-medium">Competition stats</legend>
+            <p className="mt-0.5 text-xs text-b2b-ink/50">
+              CrossFit Open and Community Cup results, one row per year. Saved separately from the rest of this
+              form — use the button below, not Save profile.
+            </p>
+            <div className="mt-3">
+              <CompetitionStatsEditor
+                openResults={openResults}
+                onOpenResultsChange={setOpenResults}
+                communityCupResults={communityCupResults}
+                onCommunityCupResultsChange={setCommunityCupResults}
+              />
+            </div>
+            {competitionStatsError && <p className="mt-3 text-sm text-red-600">{competitionStatsError}</p>}
+            <div className="mt-3 flex items-center gap-3">
+              <button
+                type="button"
+                onClick={handleSaveCompetitionStats}
+                disabled={competitionStatsSaving}
+                className="rounded bg-b2b-pink px-4 py-2 text-sm font-medium text-white hover:bg-b2b-pink-dark disabled:opacity-50"
+              >
+                {competitionStatsSaving ? "Saving..." : "Save competition stats"}
+              </button>
+              {competitionStatsSaved && <span className="text-sm text-green-700">Saved.</span>}
+            </div>
           </fieldset>
 
           <fieldset>

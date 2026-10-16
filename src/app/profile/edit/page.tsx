@@ -26,6 +26,14 @@ export default async function EditProfilePage() {
   ]);
   if (!user) redirect("/login");
 
+  const [openResults, communityCupResults] =
+    user.accountType === "ATHLETE"
+      ? await Promise.all([
+          prisma.openResult.findMany({ where: { userId: user.id }, orderBy: { year: "desc" } }),
+          prisma.communityCupResult.findMany({ where: { userId: user.id }, orderBy: { year: "desc" } }),
+        ])
+      : [[], []];
+
   // First-time setup happens in the wizard now — this page is only for
   // editing an already-complete profile.
   if (!isProfileSetupComplete(user)) redirect("/profile/setup");
@@ -104,6 +112,20 @@ export default async function EditProfilePage() {
               >,
               displayedPbs: parseDisplayedPbs(user.displayedPbs),
             }}
+            initialOpenResults={openResults.map((r) => ({
+              key: r.id,
+              year: String(r.year),
+              division: r.division,
+              overallRank: r.overallRank != null ? String(r.overallRank) : "",
+              countryRank: r.countryRank != null ? String(r.countryRank) : "",
+            }))}
+            initialCommunityCupResults={communityCupResults.map((r) => ({
+              key: r.id,
+              year: String(r.year),
+              division: r.division,
+              rank: r.rank != null ? String(r.rank) : "",
+              competition: r.competition ?? "",
+            }))}
           />
         </SectionCard>
       </div>
