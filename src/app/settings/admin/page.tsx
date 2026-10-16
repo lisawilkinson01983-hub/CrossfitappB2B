@@ -14,11 +14,13 @@ export default async function AdminSettingsPage() {
   const me = await prisma.user.findUnique({ where: { id: session.user.id }, select: { isAdmin: true } });
   if (!me?.isAdmin) notFound();
 
-  const [openReportCount, pendingVerificationCount, pendingEventClaimCount] = await Promise.all([
-    prisma.report.count({ where: { status: "OPEN" } }),
-    prisma.user.count({ where: { accountType: "AFFILIATE", verificationRequestedAt: { not: null }, verifiedAt: null } }),
-    prisma.event.count({ where: { claimRequestedById: { not: null } } }),
-  ]);
+  const [openReportCount, pendingVerificationCount, pendingEventClaimCount, leakedPrivateEventPostCount] =
+    await Promise.all([
+      prisma.report.count({ where: { status: "OPEN" } }),
+      prisma.user.count({ where: { accountType: "AFFILIATE", verificationRequestedAt: { not: null }, verifiedAt: null } }),
+      prisma.event.count({ where: { claimRequestedById: { not: null } } }),
+      prisma.post.count({ where: { sharedToFeed: true, linkedEvent: { isPrivate: true } } }),
+    ]);
 
   return (
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
@@ -40,6 +42,11 @@ export default async function AdminSettingsPage() {
             <AdminLink href="/admin/notices" label="Send a notice" />
             <AdminLink href="/admin/brand-access" label="Box 2 Box profile access" />
             <AdminLink href="/admin/cleanup-deleted" label="Clean up deleted users' content" />
+            <AdminLink
+              href="/admin/hide-private-event-posts"
+              label="Hide private-event posts from the feed"
+              count={leakedPrivateEventPostCount}
+            />
             {/* A plain <a>, not AdminLink/next/link — it's a file download, not a page. */}
             <a
               href="/api/admin/backup"
