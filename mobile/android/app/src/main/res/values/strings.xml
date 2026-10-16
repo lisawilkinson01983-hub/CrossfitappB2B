@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Box 2 Box</string>
+    <string name="title_activity_main">Box 2 Box</string>
+    <string name="package_name">social.box2box.app</string>
+    <string name="custom_url_scheme">social.box2box.app</string>
+</resources>

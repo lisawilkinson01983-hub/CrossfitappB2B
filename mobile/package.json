@@ -1,0 +1,21 @@
+{
+  "name": "box2box-mobile",
+  "private": true,
+  "description": "Native iOS/Android shell for Box 2 Box — loads https://box2box.social (see capacitor.config.ts and README.md).",
+  "scripts": {
+    "sync": "cap sync",
+    "assets": "capacitor-assets generate --ios --android --iconBackgroundColor '#ffffff' --splashBackgroundColor '#e9e6df'"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.5.3",
+    "@capacitor/app": "^8.1.2",
+    "@capacitor/core": "^8.5.3",
+    "@capacitor/ios": "^8.5.3",
+    "@capacitor/splash-screen": "^8.0.2",
+    "@capacitor/status-bar": "^8.0.4"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^8.5.3"
+  }
+}

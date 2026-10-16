@@ -1,8 +1,11 @@
 import Link from "next/link";
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { Logo } from "@/components/Logo";
 import { OpenInstalledApp } from "./OpenInstalledApp";
+import { isNativeAppUserAgent } from "@/lib/nativeApp";
 
 // The page testers are sent to (Settings → Invite Friends links here). The
 // app is installed first and signed up for inside it, not in the browser:
@@ -13,6 +16,9 @@ export default async function InstallPage({ searchParams }: { searchParams: Prom
   const code = ref && /^[A-Za-z0-9]{4,12}$/.test(ref) ? ref.toUpperCase() : null;
   const session = await getServerSession(authOptions);
   const appTarget = session?.user?.id ? "/feed" : code ? `/signup?ref=${code}` : "/start";
+
+  // Already inside the store app — nothing to install.
+  if (isNativeAppUserAgent((await headers()).get("user-agent"))) redirect(appTarget);
 
   return (
     <main className="mx-auto max-w-md px-4 pb-16 pt-8">
