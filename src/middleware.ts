@@ -39,15 +39,24 @@ function checkSitePassword(req: NextRequest): NextResponse | null {
 // app chrome — never worth forcing a refetch on every request.
 const CACHEABLE_PREFIXES = ["/media/", "/icon.png", "/apple-icon.png", "/manifest.webmanifest"];
 
-// Once the app has its own domain, sends anyone still on the Railway-issued
-// address (old links, invite links, home-screen icons added before the
-// switch) to the same page on CANONICAL_HOST, e.g. "box2box.social". Only
-// *.up.railway.app is redirected, so local dev and the real domain are
-// never affected; unset CANONICAL_HOST and nothing changes.
+// Keeps the whole app on one address, CANONICAL_HOST (e.g. "box2box.social"):
+// anyone on the Railway-issued *.up.railway.app address (old links, invite
+// links, home-screen icons added before the switch) or on www. is sent to
+// the same page there. One address matters for the home-screen app — on
+// iPhone, landing on a different host than the icon was added from (say
+// www. after a login redirect) drops it out of full-screen mode into a
+// browser bar. Local dev is never affected; unset CANONICAL_HOST and
+// nothing changes.
 function redirectToCanonicalHost(req: NextRequest): NextResponse | null {
   const canonical = process.env.CANONICAL_HOST;
-  const host = (req.headers.get("x-forwarded-host") ?? req.headers.get("host") ?? "").split(",")[0].trim();
-  if (!canonical || !host.endsWith(".up.railway.app")) return null;
+  const host = (req.headers.get("x-forwarded-host") ?? req.headers.get("host") ?? "")
+    .split(",")[0]
+    .trim()
+    .toLowerCase()
+    .replace(/:\d+$/, "");
+  if (!canonical) return null;
+  const isAlias = host.endsWith(".up.railway.app") || host === `www.${canonical.toLowerCase()}`;
+  if (!isAlias) return null;
   const url = new URL(req.nextUrl.pathname + req.nextUrl.search, `https://${canonical}`);
   return NextResponse.redirect(url, 308);
 }
