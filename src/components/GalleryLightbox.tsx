@@ -29,6 +29,7 @@ function commentsConfig(source: MediaSource): {
   postUrl: string;
   patchUrlFor: (id: string) => string;
   deleteUrlFor: (id: string) => string;
+  reactUrlFor: (id: string) => string;
   reportTargetType: ReportTargetTypeOption;
 } {
   switch (source.kind) {
@@ -40,6 +41,7 @@ function commentsConfig(source: MediaSource): {
         postUrl: url,
         patchUrlFor: (id) => `/api/comments/${id}`,
         deleteUrlFor: (id) => `/api/comments/${id}`,
+        reactUrlFor: (id) => `/api/comments/${id}/react`,
         reportTargetType: "COMMENT",
       };
     }
@@ -50,6 +52,7 @@ function commentsConfig(source: MediaSource): {
         postUrl: url,
         patchUrlFor: (id) => `/api/workout-comments/${id}`,
         deleteUrlFor: (id) => `/api/workout-comments/${id}`,
+        reactUrlFor: (id) => `/api/workout-comments/${id}/react`,
         reportTargetType: "WORKOUT_COMMENT",
       };
     }

@@ -2,7 +2,6 @@ import { z } from "zod";
 import { OTHER_GYM, UNAFFILIATED } from "./gyms";
 import { COUNTRIES } from "./countries";
 import { isValidDateOfBirth } from "./age";
-import { REACTION_EMOJIS } from "./reactions";
 
 export const LEVELS = ["SCALED", "INTERMEDIATE", "RX"] as const;
 export type LevelOption = (typeof LEVELS)[number];
@@ -367,8 +366,12 @@ export const commentSchema = z
     path: ["text"],
   });
 
+// Any single emoji (including multi-codepoint ZWJ/skin-tone sequences) from
+// the full EmojiPicker, not just the fixed REACTION_EMOJIS shortlist — bounded
+// in length rather than restricted to an enum, since the picker now offers
+// hundreds of options (see src/lib/emoji.ts).
 export const reactionSchema = z.object({
-  emoji: z.enum(REACTION_EMOJIS),
+  emoji: z.string().trim().min(1).max(8),
 });
 
 // One of an event's numbered workouts (see EventWorkout) — standards/workflow

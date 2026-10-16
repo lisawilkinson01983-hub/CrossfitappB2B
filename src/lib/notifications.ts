@@ -44,6 +44,10 @@ export function notificationText(n: NotificationView): string {
       return "liked your comment";
     case "COMMENT_REACTION":
       return n.emoji ? `reacted ${n.emoji} to your comment` : "reacted to your comment";
+    case "POST_REACTION":
+      return n.emoji
+        ? `reacted ${n.emoji} to your ${n.post ? postContentLabel(n.post) : "post"}`
+        : `reacted to your ${n.post ? postContentLabel(n.post) : "post"}`;
     case "EVENT_SUBMITTED":
       return `submitted "${n.event?.name ?? "an event"}" for review`;
     case "GYM_SUBMITTED":
@@ -68,10 +72,14 @@ export function notificationText(n: NotificationView): string {
       return n.emoji ? `reacted ${n.emoji} to your status` : "reacted to your status";
     case "WORKOUT_COMMENT":
       return "commented on your workout";
+    case "WORKOUT_COMMENT_REACTION":
+      return n.emoji ? `reacted ${n.emoji} to your workout comment` : "reacted to your workout comment";
     case "PB_COMMENT":
       return n.pbField && n.pbField in PB_LABELS
         ? `commented on your ${PB_LABELS[n.pbField as PbField]} PB`
         : "commented on your PB";
+    case "PB_COMMENT_REACTION":
+      return n.emoji ? `reacted ${n.emoji} to your PB comment` : "reacted to your PB comment";
     case "EVENT_PARTICIPANT_JOINED":
       return `is participating in "${n.event?.name ?? "your event"}"`;
     case "EVENT_NOTICE_COMMENT":
@@ -128,8 +136,10 @@ export function notificationHref(n: NotificationView, viewerId: string): string 
         ? `/events/${n.eventWorkout.eventId}/workouts/${n.eventWorkout.number}`
         : "/feed";
     case "WORKOUT_COMMENT":
+    case "WORKOUT_COMMENT_REACTION":
       return `/profile/${viewerId}/gallery${n.workoutId ? `?workout=${n.workoutId}` : ""}`;
     case "PB_COMMENT":
+    case "PB_COMMENT_REACTION":
       return `/profile/${viewerId}/pbs${n.pbField ? `?field=${n.pbField}` : ""}`;
     case "STATUS_REACTION":
       return "/feed";
