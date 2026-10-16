@@ -2,6 +2,7 @@ import type { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { prisma } from "./prisma";
+import { recordActiveDay } from "./activity";
 import { checkRateLimit, getClientIp } from "./rateLimit";
 
 export const authOptions: NextAuthOptions = {
@@ -85,11 +86,16 @@ export const authOptions: NextAuthOptions = {
       // out.
       const profile = await prisma.user.findUnique({
         where: { id: token.id as string },
-        select: { accountId: true, account: { select: { suspendedAt: true, deletedAt: true } } },
+        select: {
+          accountId: true,
+          account: { select: { suspendedAt: true, deletedAt: true, lastActiveDay: true } },
+        },
       });
       if (!profile?.account || profile.account.suspendedAt || profile.account.deletedAt) {
         return { ...session, user: undefined } as unknown as typeof session;
       }
+      // Feeds the active-member numbers on /admin/stats.
+      if (profile.accountId) recordActiveDay(profile.accountId, profile.account.lastActiveDay);
       if (session.user) {
         session.user.id = token.id as string;
         // Falls back to this profile's own accountId for a token signed

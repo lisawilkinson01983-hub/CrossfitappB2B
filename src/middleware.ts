@@ -39,7 +39,23 @@ function checkSitePassword(req: NextRequest): NextResponse | null {
 // app chrome — never worth forcing a refetch on every request.
 const CACHEABLE_PREFIXES = ["/media/", "/icon.png", "/apple-icon.png", "/manifest.webmanifest"];
 
+// Once the app has its own domain, sends anyone still on the Railway-issued
+// address (old links, invite links, home-screen icons added before the
+// switch) to the same page on CANONICAL_HOST, e.g. "box2box.social". Only
+// *.up.railway.app is redirected, so local dev and the real domain are
+// never affected; unset CANONICAL_HOST and nothing changes.
+function redirectToCanonicalHost(req: NextRequest): NextResponse | null {
+  const canonical = process.env.CANONICAL_HOST;
+  const host = (req.headers.get("x-forwarded-host") ?? req.headers.get("host") ?? "").split(",")[0].trim();
+  if (!canonical || !host.endsWith(".up.railway.app")) return null;
+  const url = new URL(req.nextUrl.pathname + req.nextUrl.search, `https://${canonical}`);
+  return NextResponse.redirect(url, 308);
+}
+
 export async function middleware(req: NextRequest) {
+  const canonicalRedirect = redirectToCanonicalHost(req);
+  if (canonicalRedirect) return canonicalRedirect;
+
   const gateResponse = checkSitePassword(req);
   if (gateResponse) return gateResponse;
 
