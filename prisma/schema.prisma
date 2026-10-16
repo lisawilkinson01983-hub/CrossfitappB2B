@@ -160,6 +160,13 @@ enum NotificationType {
   // Someone joined an ALREADY-named team instead of starting a new one (see
   // the same route) — sent to that team's other existing members.
   EVENT_TEAM_JOINED
+  // A brand new account signed up (see POST /api/signup) — sent to every
+  // admin, same "sent to every admin" pattern as EVENT_SUBMITTED/
+  // GYM_SUBMITTED/REPORT_SUBMITTED/AFFILIATE_VERIFICATION_REQUESTED/
+  // EVENT_CLAIM_REQUESTED. Not sent for an additional profile added to an
+  // already-signed-up Account (see /api/account/add-profile) — that's an
+  // existing member, not a new one.
+  NEW_USER_SIGNUP
 }
 
 enum EventStatus {

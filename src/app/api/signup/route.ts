@@ -73,8 +73,25 @@ export async function POST(req: Request) {
   });
 
   await addWelcomeFriend(user.id);
+  await notifyAdminsOfSignup(user.id);
 
   return NextResponse.json({ ok: true });
+}
+
+/** Lets every admin know a brand new account just joined — same "sent to every admin" pattern as event/gym submissions. */
+async function notifyAdminsOfSignup(newUserId: string) {
+  const admins = await prisma.user.findMany({ where: { isAdmin: true }, select: { id: true } });
+  if (admins.length === 0) return;
+
+  await prisma.notification.createMany({
+    data: admins
+      .filter((admin) => admin.id !== newUserId)
+      .map((admin) => ({
+        userId: admin.id,
+        actorId: newUserId,
+        type: "NEW_USER_SIGNUP" as const,
+      })),
+  });
 }
 
 /**

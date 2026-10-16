@@ -98,6 +98,8 @@ export function notificationText(n: NotificationView): string {
       return `added you to their team for "${n.event?.name ?? "an event"}" — you're marked as participating`;
     case "EVENT_TEAM_JOINED":
       return `joined your team for "${n.event?.name ?? "an event"}"`;
+    case "NEW_USER_SIGNUP":
+      return "just signed up for Box 2 Box";
     case "MENTION":
       return n.storyId ? "tagged you in their story" : "mentioned you";
     default:
@@ -149,6 +151,7 @@ export function notificationHref(n: NotificationView, viewerId: string): string 
     case "STATUS_REACTION":
       return "/feed";
     case "FOLLOW":
+    case "NEW_USER_SIGNUP":
       return `/profile/${n.actor.id}`;
     case "MENTION":
       if (n.storyId) return `/feed?story=${n.storyId}`;
