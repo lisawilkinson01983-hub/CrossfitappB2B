@@ -1,4 +1,5 @@
 import { LegalPageLayout, LegalSection } from "@/components/LegalPageLayout";
+import { CONTACT_EMAIL } from "@/lib/contact";
 
 export default function TermsPage() {
   return (
@@ -96,7 +97,7 @@ export default function TermsPage() {
       </LegalSection>
 
       <LegalSection title="10. Contact">
-        <p>Questions about these terms? Reach out via the contact details on our website.</p>
+        <p>Questions about these terms? Email us at <a href={`mailto:${CONTACT_EMAIL}`} className="text-b2b-pink underline">{CONTACT_EMAIL}</a>.</p>
       </LegalSection>
     </LegalPageLayout>
   );
