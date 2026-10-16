@@ -120,20 +120,14 @@ export default async function FeedPage({
         </SectionCard>
       </div>
 
-      {initialPosts.length === 0 ? (
-        <p className="mt-6 text-b2b-ink/50">
-          No posts yet — be the first to share something, or share a workout from your log.
-        </p>
-      ) : (
-        <FeedPostList
-          initialPosts={initialPosts}
-          initialCursor={page.length > 0 ? page[page.length - 1].id : null}
-          initialHasMore={hasMore}
-          currentUserId={session.user.id}
-          highlightPostId={highlightPostId}
-          highlightCommentId={highlightCommentId}
-        />
-      )}
+      <FeedPostList
+        initialPosts={initialPosts}
+        initialCursor={page.length > 0 ? page[page.length - 1].id : null}
+        initialHasMore={hasMore}
+        currentUserId={session.user.id}
+        highlightPostId={highlightPostId}
+        highlightCommentId={highlightCommentId}
+      />
     </main>
   );
 }
