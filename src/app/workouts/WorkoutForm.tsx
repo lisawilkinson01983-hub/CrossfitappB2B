@@ -20,6 +20,7 @@ import {
   type NamedWorkout,
 } from "@/lib/wodDatabase";
 import { Avatar } from "@/components/Avatar";
+import type { GymWodSuggestion } from "@/lib/gymSuggestion";
 
 type Attachment = { kind: "photo" | "video"; file: File; thumbnail?: Blob | null };
 type UserOption = { id: string; name: string; photo: string | null };
@@ -70,11 +71,25 @@ const BLANK_INITIAL: Initial = {
   partners: [],
 };
 
-/** Used both to log a new workout and to edit an existing one — pass workoutId + initial to edit. */
-export function WorkoutForm({ workoutId, initial }: { workoutId?: string; initial?: Initial }) {
+/**
+ * Used both to log a new workout and to edit an existing one — pass
+ * workoutId + initial to edit. `gymSuggestion` (new-workout page only — see
+ * getGymWodSuggestion) offers today's already-logged gym WOD as a one-tap
+ * fill, so a second person from the same box doesn't have to retype it.
+ */
+export function WorkoutForm({
+  workoutId,
+  initial,
+  gymSuggestion = null,
+}: {
+  workoutId?: string;
+  initial?: Initial;
+  gymSuggestion?: GymWodSuggestion | null;
+}) {
   const router = useRouter();
   const isEditing = Boolean(workoutId);
   const start = initial ?? BLANK_INITIAL;
+  const [suggestionVisible, setSuggestionVisible] = useState(!!gymSuggestion && !isEditing);
 
   const initialTime = start.unit === "TIME" ? splitTime(start.score ?? "") : ["", "", ""];
 
@@ -149,10 +164,19 @@ export function WorkoutForm({ workoutId, initial }: { workoutId?: string; initia
 
   function handleWodNameChange(value: string) {
     setWodName(value);
+    setSuggestionVisible(false);
     const match = WOD_DATABASE_BY_NAME.get(value.trim().toLowerCase());
     if (match && (!description.trim() || description === autoFilledDescription)) {
       fillDescriptionFromWod(match);
     }
+  }
+
+  function applyGymSuggestion() {
+    if (!gymSuggestion) return;
+    setWodName(gymSuggestion.wodName);
+    setDescription(gymSuggestion.description);
+    setAutoFilledDescription(gymSuggestion.description);
+    setSuggestionVisible(false);
   }
 
   async function handleFileChange(kind: "photo" | "video", e: ChangeEvent<HTMLInputElement>) {
@@ -231,6 +255,33 @@ export function WorkoutForm({ workoutId, initial }: { workoutId?: string; initia
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-5">
       {error && <p className="rounded bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
+
+      {suggestionVisible && gymSuggestion && (
+        <div className="rounded-lg border border-b2b-pink/30 bg-b2b-pink/5 p-3">
+          <p className="text-sm font-medium text-b2b-ink">
+            {gymSuggestion.authorName.split(" ")[0]} already logged today's WOD from your gym
+          </p>
+          <p className="mt-1 line-clamp-2 text-sm text-b2b-ink/60">
+            <span className="font-medium">{gymSuggestion.wodName}</span> — {gymSuggestion.description}
+          </p>
+          <div className="mt-2 flex items-center gap-3">
+            <button
+              type="button"
+              onClick={applyGymSuggestion}
+              className="rounded-full bg-b2b-pink px-3 py-1.5 text-xs font-semibold text-white hover:bg-b2b-pink-dark"
+            >
+              Use this — just add my score
+            </button>
+            <button
+              type="button"
+              onClick={() => setSuggestionVisible(false)}
+              className="text-xs text-b2b-ink/50 hover:underline"
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
+      )}
 
       <div>
         <label htmlFor="wodName" className="block text-sm font-medium">
