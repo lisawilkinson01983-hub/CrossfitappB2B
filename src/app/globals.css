@@ -50,11 +50,24 @@
 
   --color-b2b-purple: #b5b2ac;
   --color-b2b-purple-dark: #8f8c86;
+
+  /* The logo PNGs (see Logo.tsx) are flat charcoal+gold artwork with no
+     theme awareness baked in — invert+hue-rotate(180deg) flips the
+     near-black charcoal to near-white (a no-op on hue, since it's
+     desaturated) and rotates the gold most of the way back to its original
+     hue after inversion, so it still reads as gold instead of turning blue. */
+  --logo-filter: invert(1) hue-rotate(180deg);
 }
 
 body {
   background-color: var(--color-b2b-page);
   color: var(--color-b2b-ink);
+}
+
+/* See --logo-filter above — a no-op in light mode (the var is only set
+   inside .dark), so this never needs its own light/dark branching. */
+.logo-img {
+  filter: var(--logo-filter, none);
 }
 
 /* Tailwind's preflight leaves these transparent; this app never sets an
