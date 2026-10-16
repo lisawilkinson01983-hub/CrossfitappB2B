@@ -177,7 +177,7 @@ export const resetPasswordSchema = z.object({
 export const checkboxToBoolean = z.preprocess((v) => v === "on" || v === true, z.boolean());
 
 /** A three-way Yes/No/unanswered select, sent as "true" | "false" | "". */
-const optionalYesNo = z.preprocess(
+export const optionalYesNo = z.preprocess(
   emptyToUndefined,
   z
     .enum(["true", "false"])
@@ -278,6 +278,40 @@ export const pbEditSchema = z.object({
     .max(MAX_DISPLAYED_PBS, `You can display up to ${MAX_DISPLAYED_PBS} PBs`)
     .default([]),
 });
+
+// Used by the "Ability" edit-profile page (level, Open badge, CrossFitting
+// since) — split out of profileSchema the same way pbEditSchema already is,
+// so this section can save on its own without the rest of the profile form.
+export const abilityEditSchema = z
+  .object({
+    levels: z.array(z.enum(LEVELS)).max(MAX_LEVELS, `Select up to ${MAX_LEVELS} levels`).default([]),
+    openLevel: z.preprocess(emptyToUndefined, z.coerce.number().int().min(1).max(10).optional()),
+    crossfitSinceYear: z.preprocess(
+      emptyToUndefined,
+      z.coerce.number().int().min(1970).max(new Date().getFullYear()).optional()
+    ),
+    crossfitSinceMonth: z.preprocess(emptyToUndefined, z.coerce.number().int().min(1).max(12).optional()),
+  })
+  .superRefine((data, ctx) => {
+    if (data.levels.length === 0) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Select a level", path: ["levels"] });
+    }
+  });
+
+// Used by the "Interested in" edit-profile page (search tags + relationship
+// status) — same split-out-of-profileSchema pattern as abilityEditSchema.
+export const interestedInEditSchema = z
+  .object({
+    lookingFor: z.array(z.enum(LOOKING_FOR_OPTIONS)).default([]),
+    isSingle: optionalYesNo,
+    showRelationshipStatus: checkboxToBoolean,
+    showSingleBadge: checkboxToBoolean,
+  })
+  .superRefine((data, ctx) => {
+    if (data.lookingFor.length === 0) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Choose at least one", path: ["lookingFor"] });
+    }
+  });
 
 // A generous ceiling rather than a real limit — CrossFit's Open dates back
 // to 2011, and this just needs to reject obvious garbage, not police which
