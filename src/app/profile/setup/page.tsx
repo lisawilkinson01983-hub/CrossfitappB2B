@@ -33,6 +33,7 @@ export default async function ProfileSetupPage() {
         affiliateGym: user.affiliateGym ?? "",
         affiliateGymOther: user.affiliateGymOther ?? "",
         levels: parseLevels(user.levels),
+        openLevel: user.openLevel,
         lookingFor: parseLookingFor(user.lookingFor),
       }}
     />

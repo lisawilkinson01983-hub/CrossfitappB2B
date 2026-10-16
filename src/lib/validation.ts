@@ -2,7 +2,6 @@ import { z } from "zod";
 import { OTHER_GYM, UNAFFILIATED } from "./gyms";
 import { COUNTRIES } from "./countries";
 import { isValidDateOfBirth } from "./age";
-import { REACTION_EMOJIS } from "./reactions";
 
 export const LEVELS = ["SCALED", "INTERMEDIATE", "RX"] as const;
 export type LevelOption = (typeof LEVELS)[number];
@@ -217,6 +216,10 @@ export const profileSchema = z
     // profile page (see ProfileDetails).
     website: z.preprocess(emptyToUndefined, z.string().trim().url("Enter a valid website URL").optional()),
     levels: z.array(z.enum(LEVELS)).max(MAX_LEVELS, `Select up to ${MAX_LEVELS} levels`).default([]),
+    // Optional — not every athlete competes in the Open. Self-reported, 1
+    // through 10, re-entered each year once that year's results are out
+    // (see User.openLevel).
+    openLevel: z.preprocess(emptyToUndefined, z.coerce.number().int().min(1).max(10).optional()),
     crossfitSinceYear: z.preprocess(
       emptyToUndefined,
       z.coerce.number().int().min(1970).max(new Date().getFullYear()).optional()
@@ -276,6 +279,45 @@ export const pbEditSchema = z.object({
     .default([]),
 });
 
+// A generous ceiling rather than a real limit — CrossFit's Open dates back
+// to 2011, and this just needs to reject obvious garbage, not police which
+// years actually had an Open.
+const competitionYear = z.coerce.number().int().min(2000).max(2100);
+const optionalPositiveInt = z.preprocess(emptyToUndefined, z.coerce.number().int().positive().optional());
+// Free text, not an enum — the Open's own gender/age divisions (and the
+// Community Cup's) don't map onto this app's Gender/Level fields and change
+// year to year, so it's entered and displayed exactly as typed.
+const competitionDivision = z.string().trim().min(1, "Division is required").max(60);
+const optionalCompetitionText = z.preprocess(emptyToUndefined, z.string().trim().max(60).optional());
+
+// Used by the signup wizard's optional "Competition stats" step and its
+// Settings → Edit profile twin (see CompetitionStatsEditor) — one PATCH
+// wholesale-replaces a user's rows for both tables at once, same pattern as
+// pbEditSchema's displayedPbs above.
+export const competitionStatsSchema = z.object({
+  openResults: z
+    .array(
+      z.object({
+        year: competitionYear,
+        division: competitionDivision,
+        overallRank: optionalPositiveInt,
+        countryRank: optionalPositiveInt,
+      })
+    )
+    .max(30),
+  communityCupResults: z
+    .array(
+      z.object({
+        year: competitionYear,
+        division: competitionDivision,
+        rank: optionalPositiveInt,
+        competition: optionalCompetitionText,
+      })
+    )
+    .max(30),
+});
+export type CompetitionStatsInput = z.infer<typeof competitionStatsSchema>;
+
 // Rounds/reps are their own fields (not packed into `score`) only for the
 // ROUNDS_REPS unit; every other unit keeps using the free-text `score`.
 export const workoutSchema = z
@@ -324,8 +366,12 @@ export const commentSchema = z
     path: ["text"],
   });
 
+// Any single emoji (including multi-codepoint ZWJ/skin-tone sequences) from
+// the full EmojiPicker, not just the fixed REACTION_EMOJIS shortlist — bounded
+// in length rather than restricted to an enum, since the picker now offers
+// hundreds of options (see src/lib/emoji.ts).
 export const reactionSchema = z.object({
-  emoji: z.enum(REACTION_EMOJIS),
+  emoji: z.string().trim().min(1).max(8),
 });
 
 // One of an event's numbered workouts (see EventWorkout) — standards/workflow
@@ -519,6 +565,9 @@ export const eventParticipateSchema = z.object({
   // create a Team row; skipping both stays a solo join (see
   // POST /api/events/[id]/participate).
   teamName: z.preprocess(emptyToUndefined, z.string().trim().max(60).optional()),
+  // Join an already-named team instead of creating a new one — mutually
+  // exclusive with teamName/teammateIds/teammateNames above (see the route).
+  teamId: z.preprocess(emptyToUndefined, z.string().optional()),
 });
 
 export const messageSchema = z

@@ -439,7 +439,7 @@ export function ChatThread({
         <div ref={bottomRef} />
       </div>
 
-      <div className="fixed inset-x-0 bottom-16 z-10 border-t border-b2b-purple/15 bg-b2b-bg">
+      <div className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-10 border-t border-b2b-purple/15 bg-b2b-bg">
         <div className="mx-auto max-w-2xl px-4 pt-2">
           {replyingTo && (
             <div className="flex items-center justify-between gap-2 rounded-t-lg border border-b-0 border-b2b-purple/15 bg-b2b-bg px-3 py-1.5">

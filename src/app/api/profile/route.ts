@@ -33,6 +33,7 @@ export async function PATCH(req: Request) {
     affiliateGymOther: formData.get("affiliateGymOther"),
     website: formData.get("website"),
     levels: formData.getAll("levels"),
+    openLevel: formData.get("openLevel"),
     crossfitSinceYear: formData.get("crossfitSinceYear"),
     crossfitSinceMonth: formData.get("crossfitSinceMonth"),
     lookingFor: formData.getAll("lookingFor"),
@@ -66,19 +67,6 @@ export async function PATCH(req: Request) {
   if (photo instanceof File && photo.size > 0) {
     try {
       photoPath = await savePhotoUpload(photo, session.user.id, { square: true });
-    } catch (err) {
-      if (err instanceof PhotoUploadError) {
-        return NextResponse.json({ error: err.message }, { status: 400 });
-      }
-      throw err;
-    }
-  }
-
-  let bannerPhotoPath: string | undefined;
-  const bannerPhoto = formData.get("bannerPhoto");
-  if (bannerPhoto instanceof File && bannerPhoto.size > 0) {
-    try {
-      bannerPhotoPath = await savePhotoUpload(bannerPhoto, session.user.id, { square: false });
     } catch (err) {
       if (err instanceof PhotoUploadError) {
         return NextResponse.json({ error: err.message }, { status: 400 });
@@ -169,6 +157,7 @@ export async function PATCH(req: Request) {
       affiliateGymOther: data.affiliateGym === OTHER_GYM ? data.affiliateGymOther : null,
       website: data.accountType === "AFFILIATE" ? (data.website ?? null) : null,
       levels: JSON.stringify(data.levels ?? []),
+      openLevel: data.accountType === "ATHLETE" ? (data.openLevel ?? null) : null,
       ...verificationFields,
       crossfitSinceYear: data.crossfitSinceYear ?? null,
       crossfitSinceMonth: data.crossfitSinceMonth ?? null,
@@ -182,7 +171,6 @@ export async function PATCH(req: Request) {
       ...pbData,
       displayedPbs: JSON.stringify(data.displayedPbs ?? []),
       ...(photoPath ? { photo: photoPath } : {}),
-      ...(bannerPhotoPath ? { bannerPhoto: bannerPhotoPath } : {}),
     },
   });
 

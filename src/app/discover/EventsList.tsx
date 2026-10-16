@@ -8,6 +8,7 @@ import { distanceMiles, ensureUserAreaCoords, ensureEventCoords, DISTANCE_RANGES
 import { formatEventDate } from "@/lib/eventDate";
 import { SearchSuggestInput } from "@/components/SearchSuggestInput";
 import { SearchFilters } from "@/components/SearchFilters";
+import { CollapsibleSearch } from "@/components/CollapsibleSearch";
 import { eventVisibilityWhere } from "@/lib/eventVisibility";
 import { isCompetitionEvent } from "@/lib/labels";
 import { EditIcon } from "@/components/EditIcon";
@@ -104,6 +105,7 @@ export async function EventsList({
         )}
       </div>
 
+      <CollapsibleSearch label="Search events by name or area" defaultOpen={!!q || activeFilterCount > 0}>
       <SectionCard>
         <form method="GET" className="flex flex-col gap-4">
           <input type="hidden" name="view" value="events" />
@@ -185,6 +187,7 @@ export async function EventsList({
           check the event hasn't already been created to avoid duplication.
         </p>
       </SectionCard>
+      </CollapsibleSearch>
 
       {visibleEvents.length === 0 ? (
         <p className="text-b2b-ink/50">No events match those filters.</p>

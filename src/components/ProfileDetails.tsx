@@ -1,9 +1,7 @@
 import Link from "next/link";
-import Image from "next/image";
 import type { ReactNode } from "react";
 import type { User } from "@prisma/client";
 import {
-  LEVEL_BADGE_CLASSES,
   LEVEL_LABELS,
   MONTH_NAMES,
   NEUTRAL_BADGE_CLASSES,
@@ -11,14 +9,20 @@ import {
   parseDisplayedPbs,
   parseLevels,
   showsSingleBadge,
+  USER_STATUS_EMOJI,
+  USER_STATUS_LABELS,
 } from "@/lib/labels";
 import { PB_FIELDS, type PbField } from "@/lib/validation";
 import { OTHER_GYM, UNAFFILIATED } from "@/lib/gyms";
 import { SectionCard } from "@/components/SectionCard";
-import { ExpandableAvatar } from "@/components/ExpandableAvatar";
+import { ExpandableHeroPhoto } from "@/components/ExpandableHeroPhoto";
+import { OpenLevelBadge } from "@/components/OpenLevelBadge";
 import { PbCardBody } from "@/components/PbCardBody";
-import { ProfilePosts } from "@/components/ProfilePosts";
+import { CompetitionStatsCardBody } from "@/components/CompetitionStatsCardBody";
 import { GymBookingButtons } from "@/components/GymBookingButtons";
+import { CalendarIcon } from "@/components/CalendarIcon";
+import { DropInIcon } from "@/components/DropInIcon";
+import { GlobeIcon } from "@/components/GlobeIcon";
 import { prisma } from "@/lib/prisma";
 import { isSiteAccountEmail } from "@/lib/siteAccount";
 import { calculateAge } from "@/lib/age";
@@ -26,6 +30,30 @@ import { bookingMailto } from "@/lib/gymPages";
 
 function Badge({ label, className }: { label: string; className: string }) {
   return <span className={`rounded-full px-3 py-1 text-xs font-medium ${className}`}>{label}</span>;
+}
+
+// A small glass chip over the hero photo — the same treatment the swipe
+// carousel cards already use for ability badges (see SwipeCardList).
+function HeroChip({ label }: { label: string }) {
+  return (
+    <span className="rounded-full bg-white/15 px-2.5 py-0.5 text-[11px] font-semibold text-white ring-1 ring-inset ring-white/25 backdrop-blur-sm">
+      {label}
+    </span>
+  );
+}
+
+export function VerifiedTick() {
+  return (
+    <span
+      title="Verified affiliate"
+      className="inline-flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full"
+      style={{ backgroundColor: "#e0a83a" }}
+    >
+      <svg viewBox="0 0 24 24" fill="none" className="h-[62%] w-[62%]">
+        <path d="M5 12.5 10 17 19 7" stroke="white" strokeWidth={3.2} strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    </span>
+  );
 }
 
 export async function ProfileDetails({
@@ -49,11 +77,6 @@ export async function ProfileDetails({
   belowActions?: ReactNode;
   isOwner?: boolean;
 }) {
-  const crossfitSince =
-    user.crossfitSinceYear != null
-      ? `${user.crossfitSinceMonth ? MONTH_NAMES[user.crossfitSinceMonth - 1] + " " : ""}${user.crossfitSinceYear}`
-      : null;
-
   const displayedPbFields = parseDisplayedPbs(user.displayedPbs);
   const displayedPbSet = new Set(displayedPbFields);
   const pbs = displayedPbFields
@@ -66,6 +89,29 @@ export async function ProfileDetails({
   };
 
   const isAffiliate = user.accountType === "AFFILIATE";
+
+  const [openResults, communityCupResults] = isAffiliate
+    ? [[], []]
+    : await Promise.all([
+        prisma.openResult.findMany({ where: { userId: user.id }, orderBy: { year: "desc" } }),
+        prisma.communityCupResult.findMany({ where: { userId: user.id }, orderBy: { year: "desc" } }),
+      ]);
+  const competitionStatsEditorInitial = {
+    openResults: openResults.map((r) => ({
+      key: r.id,
+      year: String(r.year),
+      division: r.division,
+      overallRank: r.overallRank != null ? String(r.overallRank) : "",
+      countryRank: r.countryRank != null ? String(r.countryRank) : "",
+    })),
+    communityCupResults: communityCupResults.map((r) => ({
+      key: r.id,
+      year: String(r.year),
+      division: r.division,
+      rank: r.rank != null ? String(r.rank) : "",
+      competition: r.competition ?? "",
+    })),
+  };
   // The brand account (see src/lib/siteAccount.ts) had to fill in area/gym/
   // ability/CrossFitting-since to get through profile setup like any other
   // account, but none of that means anything on its own profile page.
@@ -90,16 +136,10 @@ export async function ProfileDetails({
   // findVerifiedGymOwner). Never on your own profile: you can't book at your
   // own gym.
   const isVerifiedOwnerHere = isAffiliate && !isOwner && gymPage?.claimedById === user.id;
+  const isVerifiedAffiliate = isAffiliate && user.verifiedAt != null;
 
-  const abilityBadges: ReactNode[] = isSiteAccount
-    ? []
-    : parseLevels(user.levels).map((level) => (
-        <Badge key={`level-${level}`} label={LEVEL_LABELS[level]} className={LEVEL_BADGE_CLASSES[level]} />
-      ));
-  const ageBadge =
-    user.showAge && user.dateOfBirth != null ? (
-      <Badge label={`${calculateAge(user.dateOfBirth)} yrs`} className={NEUTRAL_BADGE_CLASSES} />
-    ) : null;
+  const abilityLabels = isSiteAccount ? [] : parseLevels(user.levels).map((level) => LEVEL_LABELS[level]);
+  const ageLabel = user.showAge && user.dateOfBirth != null ? `${calculateAge(user.dateOfBirth)} yrs` : null;
   // Gender and "looking for" are deliberately never rendered here — both are
   // kept purely for search/discovery matching (see /discover), not shown on
   // the profile itself.
@@ -111,7 +151,7 @@ export async function ProfileDetails({
   if (affiliateGymDisplay && !isSiteAccount && !isAffiliate) {
     metaParts.push(
       gymHref ? (
-        <Link key="gym" href={gymHref} className="text-b2b-pink underline">
+        <Link key="gym" href={gymHref} className="text-white underline decoration-white/40 hover:decoration-white">
           {affiliateGymDisplay}
         </Link>
       ) : (
@@ -119,106 +159,122 @@ export async function ProfileDetails({
       )
     );
   }
-  if (crossfitSince && !isSiteAccount) {
-    metaParts.push(
-      <span key="since">{isAffiliate ? `Established ${crossfitSince}` : `CrossFitting since ${crossfitSince}`}</span>
-    );
+  // Only for an AFFILIATE (a gym's founding date) — dropped for an athlete's
+  // own "CrossFitting since" line, which just cluttered the hero card.
+  if (isAffiliate && !isSiteAccount && user.crossfitSinceYear != null) {
+    const established = `${user.crossfitSinceMonth ? MONTH_NAMES[user.crossfitSinceMonth - 1] + " " : ""}${user.crossfitSinceYear}`;
+    metaParts.push(<span key="since">Established {established}</span>);
   }
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="overflow-hidden rounded-2xl border border-b2b-purple/10 bg-b2b-card shadow-sm shadow-b2b-purple/5">
-        <div
-          className="relative h-48 bg-b2b-ink"
-          style={
-            user.bannerPhoto
-              ? undefined
-              : {
-                  backgroundImage:
-                    "repeating-linear-gradient(135deg, rgba(184,132,42,0.14) 0px, rgba(184,132,42,0.14) 2px, transparent 2px, transparent 18px)",
-                }
-          }
-        >
-          {user.bannerPhoto && (
-            <Image
-              src={user.bannerPhoto}
-              alt=""
-              fill
-              sizes="(min-width: 640px) 640px, 100vw"
-              className="object-cover"
-            />
-          )}
-        </div>
-
-        <div className="px-5 pb-5">
-          <div className="-mt-10 flex items-end justify-between gap-3">
-            <div className="rounded-full ring-4 ring-b2b-card" style={{ width: 84, height: 84 }}>
-              <ExpandableAvatar
-                photo={user.photo}
-                name={user.name}
-                size={84}
-                showSingleBadge={showSingleBadge}
-                verified={isAffiliate && user.verifiedAt != null}
-                status={user.status}
-              />
+      <div className="flex flex-col gap-4">
+        <ExpandableHeroPhoto photo={user.photo} name={user.name}>
+          {user.status && (
+            <div
+              title={USER_STATUS_LABELS[user.status]}
+              className="absolute left-3 top-3 flex h-9 items-center gap-1 rounded-full bg-black/35 px-2.5 text-sm backdrop-blur-sm"
+            >
+              {USER_STATUS_EMOJI[user.status]}
             </div>
-            {actions && <div className="mb-1 flex items-center gap-2">{actions}</div>}
+          )}
+
+          {isOwner && actions && (
+            <div className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-black/35 text-white backdrop-blur-sm">
+              {actions}
+            </div>
+          )}
+
+          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent px-6 pb-6 pt-16">
+            {/* pr-20 reserves room for the level badge, anchored separately
+                below in the hero's own bottom-right corner, so name/meta
+                text never wraps underneath it. */}
+            <div className="pr-20">
+              <p className="flex flex-wrap items-center gap-1.5 font-display text-2xl leading-tight text-white drop-shadow-sm">
+                {user.name}
+                {isVerifiedAffiliate && <VerifiedTick />}
+                {showSingleBadge && (
+                  <span title="Single" className="text-base">
+                    💚
+                  </span>
+                )}
+                {user.isPrivate && <span className="text-sm font-normal text-white/70">🔒 Private</span>}
+              </p>
+              {metaParts.length > 0 && (
+                <p className="mt-1 text-sm text-white/75">
+                  {metaParts.map((part, i) => (
+                    <span key={i}>
+                      {i > 0 && " · "}
+                      {part}
+                    </span>
+                  ))}
+                </p>
+              )}
+              {(abilityLabels.length > 0 || ageLabel) && (
+                <div className="mt-2.5 flex flex-wrap gap-1.5">
+                  {abilityLabels.map((label) => (
+                    <HeroChip key={label} label={label} />
+                  ))}
+                  {ageLabel && <HeroChip label={ageLabel} />}
+                </div>
+              )}
+            </div>
           </div>
 
-          <div className="mt-3">
-            <p className="flex flex-wrap items-center gap-2 text-xl font-semibold">
-              {user.name}
-              {user.isPrivate && (
-                <span className="text-sm font-normal text-b2b-ink/50">🔒 Private</span>
-              )}
-            </p>
-            {showEmail && <p className="text-sm text-b2b-ink/50">{accountEmail}</p>}
-            {metaParts.length > 0 && (
-              <p className="mt-0.5 text-sm text-b2b-ink/50">
-                {metaParts.map((part, i) => (
-                  <span key={i}>
-                    {i > 0 && " · "}
-                    {part}
-                  </span>
-                ))}
-              </p>
-            )}
-          </div>
+          {!isSiteAccount && !isAffiliate && user.openLevel != null && (
+            <div className="absolute bottom-5 right-5 shadow-lg">
+              <OpenLevelBadge level={user.openLevel} size="lg" />
+            </div>
+          )}
+        </ExpandableHeroPhoto>
+
+        <div className="overflow-hidden rounded-2xl border border-b2b-purple/10 bg-b2b-card shadow-sm shadow-b2b-purple/5">
+        <div className="px-5 py-5">
+          {showEmail && <p className="text-sm text-b2b-ink/50">{accountEmail}</p>}
+
+          {!isOwner && actions && (
+            <div className={`flex items-center gap-2 ${showEmail ? "mt-3" : ""}`}>{actions}</div>
+          )}
 
           {isAffiliate && user.website && (
             <a
               href={user.website}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-3 inline-block rounded bg-b2b-purple px-4 py-2 text-sm font-medium text-white hover:bg-b2b-purple-dark"
+              className="mt-3 flex items-center justify-center gap-1.5 rounded-xl border border-b2b-purple/20 px-4 py-2.5 text-center text-sm font-semibold text-b2b-ink hover:bg-b2b-bg"
             >
-              🌐 Visit website
+              <GlobeIcon className="h-4 w-4 shrink-0" />
+              Website
             </a>
           )}
 
-          {isVerifiedOwnerHere &&
-            (gymPage!.bookingEmail ? (
-              <div className="mt-3 flex flex-wrap gap-2">
-                <a
-                  href={bookingMailto(gymPage!.bookingEmail, "Intro Session", gymPage!.name)}
-                  className="rounded bg-b2b-purple px-4 py-2 text-sm font-medium text-white hover:bg-b2b-purple-dark"
-                >
-                  Book an Intro Session
-                </a>
-                <a
-                  href={bookingMailto(gymPage!.bookingEmail, "Drop-in", gymPage!.name)}
-                  className="rounded bg-b2b-purple px-4 py-2 text-sm font-medium text-white hover:bg-b2b-purple-dark"
-                >
-                  Book a Drop-in
-                </a>
-              </div>
-            ) : (
-              <div className="mt-3">
+          {isVerifiedOwnerHere && (
+            <div className="mt-3 rounded-2xl border border-b2b-pink/20 bg-b2b-pink/5 p-3.5">
+              <p className="mb-2.5 text-xs font-semibold uppercase tracking-wide text-b2b-pink-dark">Book a session</p>
+              {gymPage!.bookingEmail ? (
+                <div className="flex gap-2">
+                  <a
+                    href={bookingMailto(gymPage!.bookingEmail, "Intro Session", gymPage!.name)}
+                    className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border-[1.5px] border-b2b-pink bg-b2b-card px-3 py-2.5 text-sm font-semibold text-b2b-pink-dark hover:bg-b2b-pink/10"
+                  >
+                    <CalendarIcon className="h-4 w-4 shrink-0" />
+                    Intro Session
+                  </a>
+                  <a
+                    href={bookingMailto(gymPage!.bookingEmail, "Drop-in", gymPage!.name)}
+                    className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border-[1.5px] border-b2b-pink bg-b2b-card px-3 py-2.5 text-sm font-semibold text-b2b-pink-dark hover:bg-b2b-pink/10"
+                  >
+                    <DropInIcon className="h-4 w-4 shrink-0" />
+                    Drop-in
+                  </a>
+                </div>
+              ) : (
                 <GymBookingButtons gymId={gymPage!.id} />
-              </div>
-            ))}
+              )}
+            </div>
+          )}
 
-          {belowActions}
+          {belowActions && <div className="mt-4 border-t border-b2b-purple/10 pt-4">{belowActions}</div>}
 
           <div className="mt-4 flex border-t border-b2b-purple/10 pt-4">
             <Link href={`/profile/${user.id}/connections?tab=followers`} className="flex-1 text-center">
@@ -240,13 +296,6 @@ export async function ProfileDetails({
             )}
           </div>
 
-          {abilityBadges.length > 0 && (
-            <div className="mt-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-b2b-ink/40">Ability</p>
-              <div className="mt-1.5 flex flex-wrap gap-2">{abilityBadges}</div>
-            </div>
-          )}
-
           {showRelationshipStatus && (
             <div className="mt-4">
               <p className="text-xs font-semibold uppercase tracking-wide text-b2b-ink/40">Relationship Status</p>
@@ -256,13 +305,10 @@ export async function ProfileDetails({
             </div>
           )}
 
-          {ageBadge && <div className="mt-4 flex flex-wrap gap-2">{ageBadge}</div>}
-
           {user.bio && <p className="mt-4 max-w-sm text-sm italic text-b2b-ink/70">&ldquo;{user.bio}&rdquo;</p>}
         </div>
+        </div>
       </div>
-
-      <ProfilePosts userId={user.id} isOwner={isOwner} />
 
       {!isAffiliate && (
         <SectionCard
@@ -276,6 +322,19 @@ export async function ProfileDetails({
           }
         >
           <PbCardBody pbs={pbs} isOwner={isOwner} editorInitial={pbEditorInitial} />
+        </SectionCard>
+      )}
+
+      {!isAffiliate && (
+        <SectionCard title="Competition stats">
+          <CompetitionStatsCardBody
+            openResults={openResults}
+            communityCupResults={communityCupResults}
+            isOwner={isOwner}
+            editorInitial={competitionStatsEditorInitial}
+            hideRecentOpen={user.hideRecentOpen}
+            hideRecentCommunityCup={user.hideRecentCommunityCup}
+          />
         </SectionCard>
       )}
     </div>

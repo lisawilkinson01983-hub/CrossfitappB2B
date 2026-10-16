@@ -115,11 +115,25 @@ enum NotificationType {
   // Someone reacted to this user's comment with an emoji (see
   // CommentReaction) — separate from the simpler COMMENT_LIKE heart.
   COMMENT_REACTION
+  // Someone reacted to this user's post with an emoji (see PostReaction) —
+  // same pattern as COMMENT_REACTION, but on the post itself rather than a
+  // comment on it; separate from the simpler single-heart LIKE.
+  POST_REACTION
   // Someone commented on this user's logged workout (see WorkoutComment) —
   // reached from a gallery photo/video sourced from a workout.
   WORKOUT_COMMENT
+  // Someone reacted to a comment on this user's logged workout with an emoji
+  // (see WorkoutCommentReaction) — separate from the simpler WORKOUT_COMMENT.
+  WORKOUT_COMMENT_REACTION
   // Someone commented on one of this user's PBs (see PbComment).
   PB_COMMENT
+  // Someone reacted to a comment on one of this user's PBs with an emoji
+  // (see PbCommentReaction) — separate from the simpler PB_COMMENT.
+  PB_COMMENT_REACTION
+  // Someone reacted to this user's event notice (message board post) with an
+  // emoji (see EventNoticeReaction) — separate from the simpler single-heart
+  // like, and from EVENT_NOTICE_COMMENT_REACTION on a comment on the notice.
+  EVENT_NOTICE_REACTION
   // Someone commented on (or replied to a comment on) this user's event
   // notice (see EventNoticeComment) — eventId below has the event, same
   // minimal deep-link as WORKOUT_COMMENT/PB_COMMENT rather than the specific
@@ -138,6 +152,14 @@ enum NotificationType {
   // EventWorkout entry (EventWorkout.userId), same pattern as
   // COMMENT_REACTION/EVENT_NOTICE_COMMENT_REACTION.
   EVENT_WORKOUT_REACTION
+  // Someone was tagged as a teammate while a NEW named team was being
+  // created (see POST /api/events/[id]/participate) — sent to the tagged
+  // platform teammate, who's also auto-marked as participating at the same
+  // time, so they don't find out about either secondhand.
+  EVENT_TEAM_ADDED
+  // Someone joined an ALREADY-named team instead of starting a new one (see
+  // the same route) — sent to that team's other existing members.
+  EVENT_TEAM_JOINED
 }
 
 enum EventStatus {
@@ -386,6 +408,14 @@ model User {
   crossfitSinceYear  Int?
   crossfitSinceMonth Int?
 
+  // Self-reported CrossFit Open level, 1 through 10 — the quickest read on
+  // an athlete's competitiveness, shown as a badge on every swipeable
+  // profile card (see OpenLevelBadge). Re-entered by the athlete each year
+  // once that year's Open results are in; the app has no way to verify it
+  // against the real leaderboard, so this is always self-reported, same
+  // trust level as everything else on a profile.
+  openLevel Int?
+
   // JSON-encoded array of LookingFor values, e.g. ["TEAM_MATES"]
   lookingFor String?
 
@@ -403,6 +433,15 @@ model User {
   showSingleBadge        Boolean  @default(false)
 
   showLookingFor Boolean @default(false)
+
+  // Opt-OUT, not opt-in — opposite default from every show* flag above.
+  // The most recent OpenResult/CommunityCupResult (highest `year` in each
+  // table) is featured on the Competition Stats card by default; these
+  // only come into play once someone actively turns a banner off (see
+  // CompetitionStatsCardBody). The full year-by-year list underneath is
+  // unaffected either way.
+  hideRecentOpen          Boolean @default(false)
+  hideRecentCommunityCup  Boolean @default(false)
 
   // Governs whether new followers require approval once a follow system
   // exists; stored now so the setting has somewhere to live.
@@ -466,6 +505,7 @@ model User {
   comments         Comment[]
   commentLikes     CommentLike[]
   commentReactions CommentReaction[]
+  postReactions    PostReaction[]
   messageReactions MessageReaction[]
   stories          Story[]
   storyViews       StoryView[]
@@ -495,6 +535,7 @@ model User {
   eventPins                   EventPin[]
   eventNotices                EventNotice[]
   eventNoticeLikes            EventNoticeLike[]
+  eventNoticeReactions        EventNoticeReaction[]
   eventNoticeComments         EventNoticeComment[]
   eventNoticeCommentReactions EventNoticeCommentReaction[]
   eventTeammateAlerts         EventTeammateAlert[]
@@ -514,9 +555,11 @@ model User {
   statusReactionsReceived StatusReaction[] @relation("StatusReactionsReceived")
   statusReactionsGiven    StatusReaction[] @relation("StatusReactionsGiven")
 
-  workoutComments    WorkoutComment[]
-  pbCommentsReceived PbComment[]      @relation("PbCommentsReceived")
-  pbCommentsWritten  PbComment[]      @relation("PbCommentsWritten")
+  workoutComments         WorkoutComment[]
+  workoutCommentReactions WorkoutCommentReaction[]
+  pbCommentsReceived      PbComment[]              @relation("PbCommentsReceived")
+  pbCommentsWritten       PbComment[]              @relation("PbCommentsWritten")
+  pbCommentReactions      PbCommentReaction[]
 
   notificationsReceived Notification[] @relation("NotificationRecipient")
   notificationsSent     Notification[] @relation("NotificationActor")
@@ -527,6 +570,9 @@ model User {
   reportsReceived Report[] @relation("ReportsReceived")
 
   loginEvents LoginEvent[]
+
+  openResults         OpenResult[]
+  communityCupResults CommunityCupResult[]
 }
 
 // One row per successful login — used only to measure "days active" on the
@@ -536,6 +582,46 @@ model LoginEvent {
   id     String @id @default(cuid())
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+// A year's self-reported CrossFit Open result — entered during profile setup
+// (optional, skippable) or later from Settings → Edit profile, same editor
+// either way (see CompetitionStatsEditor). Division is free text (e.g.
+// "Women (40-44)") rather than Gender+LEVELS, since the Open's own age/
+// gender divisions don't line up with this app's level system and change
+// year to year — never parsed, just displayed as typed. Only the overall
+// and country ranks are collected (not region/affiliate) per the user's own
+// ask: those two are what matter for teammate matching.
+model OpenResult {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  year        Int
+  division    String
+  overallRank Int?
+  countryRank Int?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+// A year's self-reported Community Cup result — same optional-at-signup,
+// editable-later pattern as OpenResult above.
+model CommunityCupResult {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  year        Int
+  division    String
+  rank        Int?
+  competition String?
 
   createdAt DateTime @default(now())
 
@@ -662,6 +748,7 @@ model Post {
   likes         Like[]
   savedBy       SavedPost[]
   comments      Comment[]
+  reactions     PostReaction[]
   notifications Notification[]
 
   @@unique([userId, sharedFromId])
@@ -715,6 +802,25 @@ model Like {
   @@index([postId])
 }
 
+// An emoji reaction (see REACTION_EMOJIS in src/lib/validation.ts) on a
+// post — distinct from the simpler single-heart Like above, same shape as
+// CommentReaction. One user can leave more than one different emoji on the
+// same post, but never the same emoji twice (toggled off instead — see
+// /api/posts/[id]/react).
+model PostReaction {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  postId String
+  post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+  emoji  String
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, postId, emoji])
+  @@index([postId])
+}
+
 model Comment {
   id     String @id @default(cuid())
   userId String
@@ -735,6 +841,12 @@ model Comment {
   // provider — see src/lib/tenor.ts) — not re-hosted, just linked. A comment
   // can be GIF-only (see commentSchema's refine in src/lib/validation.ts).
   gifUrl String?
+
+  // An uploaded photo/video attachment, mutually exclusive with each other
+  // and with gifUrl — same shape as EventNoticeComment.photo/video.
+  photo          String?
+  video          String?
+  videoThumbnail String?
 
   createdAt DateTime @default(now())
 
@@ -806,8 +918,8 @@ model StatusReaction {
 
 // A comment on a logged workout — reached from a gallery photo/video sourced
 // from a workout (see src/lib/gallery.ts's "workout" MediaSource). Shown in a
-// popout rather than inline, but otherwise the same reply/edit/delete/report
-// feature set as Comment/EventNoticeComment — just no GIFs/reactions.
+// popout rather than inline, but otherwise the same reply/edit/delete/report/
+// GIF/media/reaction feature set as Comment/EventNoticeComment.
 model WorkoutComment {
   id String @id @default(cuid())
 
@@ -825,15 +937,39 @@ model WorkoutComment {
 
   text String
 
+  // Same shape as Comment.gifUrl/photo/video/videoThumbnail.
+  gifUrl         String?
+  photo          String?
+  video          String?
+  videoThumbnail String?
+
   createdAt DateTime @default(now())
+
+  reactions WorkoutCommentReaction[]
 
   @@index([workoutId])
   @@index([parentId])
 }
 
+// An emoji reaction on a WorkoutComment — same shape as CommentReaction.
+model WorkoutCommentReaction {
+  id        String         @id @default(cuid())
+  userId    String
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  commentId String
+  comment   WorkoutComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  emoji     String
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, commentId, emoji])
+  @@index([commentId])
+}
+
 // A comment on one specific PB value on someone's profile (see
 // src/lib/validation.ts's PB_FIELDS) — shown in a popout when that PB tile is
-// tapped. Same reply/edit/delete/report feature set as WorkoutComment.
+// tapped. Same reply/edit/delete/report/GIF/media/reaction feature set as
+// WorkoutComment.
 model PbComment {
   id String @id @default(cuid())
 
@@ -856,10 +992,33 @@ model PbComment {
 
   text String
 
+  // Same shape as Comment.gifUrl/photo/video/videoThumbnail.
+  gifUrl         String?
+  photo          String?
+  video          String?
+  videoThumbnail String?
+
   createdAt DateTime @default(now())
+
+  reactions PbCommentReaction[]
 
   @@index([profileUserId, field])
   @@index([parentId])
+}
+
+// An emoji reaction on a PbComment — same shape as CommentReaction.
+model PbCommentReaction {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  commentId String
+  comment   PbComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  emoji     String
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, commentId, emoji])
+  @@index([commentId])
 }
 
 model Follow {
@@ -1297,8 +1456,9 @@ model EventNotice {
   // someone wrote by hand.
   interest EventInterest?
 
-  likes    EventNoticeLike[]
-  comments EventNoticeComment[]
+  likes     EventNoticeLike[]
+  comments  EventNoticeComment[]
+  reactions EventNoticeReaction[]
 
   @@index([eventId])
 }
@@ -1392,6 +1552,23 @@ model EventNoticeLike {
   createdAt DateTime @default(now())
 
   @@unique([userId, noticeId])
+  @@index([noticeId])
+}
+
+// An emoji reaction (see REACTION_EMOJIS in src/lib/validation.ts) on an
+// event notice (message board post) itself — same shape as PostReaction,
+// distinct from the simpler single-heart EventNoticeLike above.
+model EventNoticeReaction {
+  id       String      @id @default(cuid())
+  userId   String
+  user     User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  noticeId String
+  notice   EventNotice @relation(fields: [noticeId], references: [id], onDelete: Cascade)
+  emoji    String
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, noticeId, emoji])
   @@index([noticeId])
 }
 

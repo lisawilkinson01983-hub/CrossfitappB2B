@@ -22,11 +22,18 @@ export function PbCardBody({
   return (
     <div className="flex flex-col gap-3">
       {pbs.length ? (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
           {pbs.map((pb) => (
-            <div key={pb.label} className="rounded-lg border border-b2b-purple/10 bg-b2b-bg px-3 py-2">
-              <p className="text-xs text-b2b-ink/50">{pb.label}</p>
-              <p className="mt-0.5 text-lg font-semibold text-b2b-ink">{pb.value}</p>
+            <div key={pb.label} className="overflow-hidden rounded-xl border border-b2b-purple/10">
+              <div className="bg-b2b-ink px-2.5 py-1.5">
+                <p className="truncate text-[10px] font-bold uppercase tracking-wide text-b2b-bg">{pb.label}</p>
+              </div>
+              <div className="px-2.5 pb-2.5 pt-2">
+                <p className="font-display text-2xl leading-none text-b2b-ink">
+                  {pb.value}
+                  <span className="ml-0.5 text-[13px] font-bold text-b2b-pink">kg</span>
+                </p>
+              </div>
             </div>
           ))}
         </div>

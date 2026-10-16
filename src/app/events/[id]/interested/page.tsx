@@ -7,6 +7,8 @@ import { NavBar } from "@/components/NavBar";
 import { SectionCard } from "@/components/SectionCard";
 import { SwipeCardList, type SwipeCardItem } from "@/components/SwipeCardList";
 import { MessageButton } from "@/components/MessageButton";
+import { OpenLevelBadge } from "@/components/OpenLevelBadge";
+import { CollapsibleSearch } from "@/components/CollapsibleSearch";
 import { GENDER_LABELS, LEVEL_LABELS, parseLevels } from "@/lib/labels";
 import { GENDERS, LEVELS } from "@/lib/validation";
 import { assertEventVisible } from "@/lib/eventVisibility";
@@ -68,6 +70,7 @@ export default async function EventInterestedPage({
               name: true,
               photo: true,
               levels: true,
+              openLevel: true,
               area: true,
               affiliateGym: true,
             },
@@ -86,6 +89,7 @@ export default async function EventInterestedPage({
       <BackLink href={`/events/${event.id}`} className="mt-6">Back to {event.name}</BackLink>
 
       <div className="mt-4 flex flex-col gap-4">
+        <CollapsibleSearch label="Search interested athletes by name" defaultOpen={hasFilters}>
         <SectionCard>
           <p className="text-sm text-b2b-ink/50">
             Athletes still looking for a team for {event.name} — browse below, search by name, or filter by ability
@@ -156,6 +160,7 @@ export default async function EventInterestedPage({
             </Link>
           )}
         </SectionCard>
+        </CollapsibleSearch>
 
         <SwipeCardList
           items={event.interests.map(
@@ -165,6 +170,7 @@ export default async function EventInterestedPage({
               initial: interest.user.name.charAt(0),
               title: interest.user.name,
               badges: parseLevels(interest.user.levels).map((lvl) => LEVEL_LABELS[lvl]),
+              cornerBadge: interest.user.openLevel ? <OpenLevelBadge level={interest.user.openLevel} /> : undefined,
               subtitle: [interest.user.area, interest.user.affiliateGym].filter(Boolean).join(" · ") || null,
               href: `/profile/${interest.user.id}`,
               action: <MessageButton targetUserId={interest.user.id} />,

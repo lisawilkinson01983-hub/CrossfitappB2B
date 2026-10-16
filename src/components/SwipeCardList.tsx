@@ -23,6 +23,10 @@ export type SwipeCardItem = {
   compactAction?: ReactNode;
   // A small icon-only control (e.g. admin edit) shown top-right of the card and the list row.
   cornerAction?: ReactNode;
+  // A small badge (e.g. OpenLevelBadge) shown top-left of the carousel card.
+  // Carousel only — a 44px list row has no room to spell the word out, so
+  // it's deliberately omitted there.
+  cornerBadge?: ReactNode;
 };
 
 const NO_PHOTO_PATTERN = {
@@ -274,10 +278,15 @@ export function SwipeCardList({
                 </div>
 
                 {active.cornerAction && (
-                  <div className="absolute right-3 top-3 rounded-full bg-black/35 p-1.5 backdrop-blur-sm">
+                  <div
+                    className="absolute right-3 top-3 rounded-full bg-black/35 p-1.5 backdrop-blur-sm"
+                    onPointerDown={(e) => e.stopPropagation()}
+                  >
                     {active.cornerAction}
                   </div>
                 )}
+
+                {active.cornerBadge && <div className="absolute left-3 top-3">{active.cornerBadge}</div>}
 
                 <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/45 to-transparent px-5 pb-5 pt-16 text-left">
                   <p className="text-xl font-bold leading-tight text-white drop-shadow-sm">

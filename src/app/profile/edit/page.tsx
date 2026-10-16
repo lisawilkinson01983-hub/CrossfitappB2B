@@ -26,6 +26,14 @@ export default async function EditProfilePage() {
   ]);
   if (!user) redirect("/login");
 
+  const [openResults, communityCupResults] =
+    user.accountType === "ATHLETE"
+      ? await Promise.all([
+          prisma.openResult.findMany({ where: { userId: user.id }, orderBy: { year: "desc" } }),
+          prisma.communityCupResult.findMany({ where: { userId: user.id }, orderBy: { year: "desc" } }),
+        ])
+      : [[], []];
+
   // First-time setup happens in the wizard now — this page is only for
   // editing an already-complete profile.
   if (!isProfileSetupComplete(user)) redirect("/profile/setup");
@@ -73,7 +81,6 @@ export default async function EditProfilePage() {
             initial={{
               name: user.name,
               photo: user.photo,
-              bannerPhoto: user.bannerPhoto,
               accountType: user.accountType,
               website: user.website ?? "",
               verificationRequested: user.verificationRequestedAt != null && user.verifiedAt == null,
@@ -90,6 +97,7 @@ export default async function EditProfilePage() {
               affiliateGym: initialAffiliateGym,
               affiliateGymOther: initialAffiliateGymOther,
               levels: parseLevels(user.levels),
+              openLevel: user.openLevel,
               crossfitSinceYear: user.crossfitSinceYear ?? "",
               crossfitSinceMonth: user.crossfitSinceMonth ?? "",
               lookingFor: parseLookingFor(user.lookingFor),
@@ -104,6 +112,20 @@ export default async function EditProfilePage() {
               >,
               displayedPbs: parseDisplayedPbs(user.displayedPbs),
             }}
+            initialOpenResults={openResults.map((r) => ({
+              key: r.id,
+              year: String(r.year),
+              division: r.division,
+              overallRank: r.overallRank != null ? String(r.overallRank) : "",
+              countryRank: r.countryRank != null ? String(r.countryRank) : "",
+            }))}
+            initialCommunityCupResults={communityCupResults.map((r) => ({
+              key: r.id,
+              year: String(r.year),
+              division: r.division,
+              rank: r.rank != null ? String(r.rank) : "",
+              competition: r.competition ?? "",
+            }))}
           />
         </SectionCard>
       </div>

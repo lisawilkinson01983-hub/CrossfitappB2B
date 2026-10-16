@@ -6,6 +6,7 @@ import { SectionCard } from "@/components/SectionCard";
 import { DISTANCE_RANGES, distanceMiles, ensureUserAreaCoords, geocode } from "@/lib/geocode";
 import { SearchSuggestInput } from "@/components/SearchSuggestInput";
 import { SearchFilters } from "@/components/SearchFilters";
+import { CollapsibleSearch } from "@/components/CollapsibleSearch";
 import { FollowButton, type FollowStatus } from "@/components/FollowButton";
 import { EditIcon } from "@/components/EditIcon";
 import { SwipeCardList, type SwipeCardItem } from "@/components/SwipeCardList";
@@ -192,6 +193,7 @@ export async function AffiliatesList({
         )}
       </div>
 
+      <CollapsibleSearch label="Search by gym name or area" defaultOpen={!!q || activeFilterCount > 0}>
       <SectionCard>
         <form method="GET" className="flex flex-col gap-4">
           <input type="hidden" name="view" value="affiliates" />
@@ -252,6 +254,7 @@ export async function AffiliatesList({
           check the affiliate hasn't already been added to avoid duplication.
         </p>
       </SectionCard>
+      </CollapsibleSearch>
 
       {(() => {
         const items: SwipeCardItem[] = visibleGyms.map(({ gym, miles }) => {

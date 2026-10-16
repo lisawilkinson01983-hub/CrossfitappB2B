@@ -2,10 +2,12 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { CalendarIcon } from "@/components/CalendarIcon";
+import { DropInIcon } from "@/components/DropInIcon";
 
 const LABELS = {
-  intro: "Book an Intro Session",
-  dropin: "Book a Drop-in",
+  intro: { short: "Intro Session", full: "Book an Intro Session", Icon: CalendarIcon },
+  dropin: { short: "Drop-in", full: "Book a Drop-in", Icon: DropInIcon },
 } as const;
 type BookingType = keyof typeof LABELS;
 
@@ -34,19 +36,27 @@ export function GymBookingButtons({ gymId }: { gymId: string }) {
   }
 
   return (
-    <div className="flex flex-col items-center gap-2">
-      <div className="flex flex-wrap justify-center gap-2">
-        {(Object.keys(LABELS) as BookingType[]).map((type) => (
-          <button
-            key={type}
-            type="button"
-            onClick={() => handleClick(type)}
-            disabled={busyType !== null}
-            className="rounded bg-b2b-purple px-4 py-2 text-sm font-medium text-white hover:bg-b2b-purple-dark disabled:opacity-50"
-          >
-            {busyType === type ? "Sending…" : LABELS[type]}
-          </button>
-        ))}
+    <div className="flex flex-col gap-2">
+      <div className="flex gap-2">
+        {(Object.keys(LABELS) as BookingType[]).map((type) => {
+          const { short, Icon } = LABELS[type];
+          return (
+            <button
+              key={type}
+              type="button"
+              onClick={() => handleClick(type)}
+              disabled={busyType !== null}
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border-[1.5px] border-b2b-pink bg-b2b-card px-3 py-2.5 text-sm font-semibold text-b2b-pink-dark hover:bg-b2b-pink/10 disabled:opacity-50"
+            >
+              {busyType === type ? "Sending…" : (
+                <>
+                  <Icon className="h-4 w-4 shrink-0" />
+                  {short}
+                </>
+              )}
+            </button>
+          );
+        })}
       </div>
       {error && <p className="text-sm text-red-600">{error}</p>}
     </div>

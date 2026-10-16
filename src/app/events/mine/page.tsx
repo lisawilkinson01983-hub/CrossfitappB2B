@@ -6,6 +6,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NavBar } from "@/components/NavBar";
 import { SectionCard } from "@/components/SectionCard";
+import { CollapsibleSearch } from "@/components/CollapsibleSearch";
 import { SectionOnboarding } from "@/components/SectionOnboarding";
 import { Avatar } from "@/components/Avatar";
 import { PinButton } from "@/components/PinButton";
@@ -141,6 +142,7 @@ export default async function MyEventsPage({
       </div>
 
       <div className="mt-4 flex flex-col gap-6">
+        <CollapsibleSearch label="Search my events by name or area" defaultOpen={!!q}>
         <SectionCard>
           <form method="GET" className="flex flex-col gap-3">
             <input type="hidden" name="tab" value={tab} />
@@ -173,6 +175,7 @@ export default async function MyEventsPage({
             </div>
           </form>
         </SectionCard>
+        </CollapsibleSearch>
 
         {visibleEvents.length === 0 ? (
           <p className="text-b2b-ink/50">

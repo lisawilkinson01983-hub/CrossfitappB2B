@@ -1,18 +1,20 @@
 "use client";
 
-import { useRef, useState, type ChangeEvent, type FormEvent } from "react";
+import { useRef, useState, type ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Avatar } from "@/components/Avatar";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
-import { ReportButton } from "@/components/ReportButton";
+import { ProfileMoreMenu } from "@/components/ProfileMoreMenu";
+import { CommentActionsMenu } from "@/components/CommentActionsMenu";
 import { MentionText } from "@/components/MentionText";
-import { MentionTextarea } from "@/components/MentionTextarea";
 import { ExpandableImage } from "@/components/ExpandableImage";
 import { GifPicker } from "@/components/GifPicker";
 import { ReactionBar } from "@/components/ReactionBar";
-import { AttachmentMenu } from "@/components/AttachmentMenu";
-import { SendIcon } from "@/components/SendIcon";
+import { EmojiPicker } from "@/components/EmojiPicker";
+import { SmileyIcon } from "@/components/SmileyIcon";
+import { ComposerModal } from "@/components/ComposerModal";
+import { ComposerBar } from "@/components/ComposerBar";
 import { EditIcon } from "@/components/EditIcon";
 import { DeleteIcon } from "@/components/DeleteIcon";
 import { EditModal } from "@/components/EditModal";
@@ -54,6 +56,7 @@ export type EventNoticeData = {
   author: { id: string; name: string; photo: string | null };
   likeCount: number;
   likedByMe: boolean;
+  reactions: ReactionSummary[];
   comments: EventNoticeCommentData[];
 };
 
@@ -62,9 +65,6 @@ export type EventNoticeEntry = {
   isOwn: boolean;
   isAuthorParticipating: boolean;
 };
-
-const textareaClass =
-  "flex-1 resize-none rounded border border-gray-300 px-2 py-1.5 text-sm focus:border-b2b-pink focus:outline-none";
 
 export function EventNoticeCard({
   notice,
@@ -89,8 +89,12 @@ export function EventNoticeCard({
   const [likeCount, setLikeCount] = useState(notice.likeCount);
   const [likeBusy, setLikeBusy] = useState(false);
 
+  const [noticeReactions, setNoticeReactions] = useState(notice.reactions);
+  const [noticeReactionPickerOpen, setNoticeReactionPickerOpen] = useState(false);
+
   const [showComments, setShowComments] = useState(false);
   const [comments, setComments] = useState(notice.comments);
+  const [commentComposerOpen, setCommentComposerOpen] = useState(false);
   const [commentText, setCommentText] = useState("");
   const [commentBusy, setCommentBusy] = useState(false);
   const [commentGifPickerOpen, setCommentGifPickerOpen] = useState(false);
@@ -148,8 +152,26 @@ export function EventNoticeCard({
     }
   }
 
-  async function submitComment(e: FormEvent) {
-    e.preventDefault();
+  async function toggleNoticeReaction(emoji: string) {
+    const res = await fetch(`/api/event-notices/${notice.id}/react`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ emoji }),
+    });
+    if (!res.ok) return;
+    const body: { emoji: string; reacted: boolean; reactions: { emoji: string; count: number }[] } =
+      await res.json();
+    setNoticeReactions((prev) => {
+      const prevByEmoji = new Map(prev.map((r) => [r.emoji, r.reactedByMe]));
+      return body.reactions.map((r) => ({
+        emoji: r.emoji,
+        count: r.count,
+        reactedByMe: r.emoji === body.emoji ? body.reacted : (prevByEmoji.get(r.emoji) ?? false),
+      }));
+    });
+  }
+
+  async function submitComment() {
     if (!commentText.trim() || commentBusy) return;
     setCommentBusy(true);
     const res = await fetch(`/api/event-notices/${notice.id}/comments`, {
@@ -162,6 +184,7 @@ export function EventNoticeCard({
       const body = await res.json();
       setComments((prev) => [...prev, { ...body.comment, isMine: true }]);
       setCommentText("");
+      setCommentComposerOpen(false);
     }
   }
 
@@ -175,6 +198,7 @@ export function EventNoticeCard({
     if (res.ok) {
       const body = await res.json();
       setComments((prev) => [...prev, { ...body.comment, isMine: true }]);
+      setCommentComposerOpen(false);
     }
   }
 
@@ -220,6 +244,7 @@ export function EventNoticeCard({
     const body = await res.json();
     setComments((prev) => [...prev, { ...body.comment, isMine: true }]);
     setCommentText("");
+    setCommentComposerOpen(false);
   }
 
   function startReply(commentId: string) {
@@ -422,7 +447,8 @@ export function EventNoticeCard({
               // eslint-disable-next-line @next/next/no-img-element
               <img src={comment.photo} alt="" className="mt-1 max-h-64 w-full rounded-lg object-cover" />
             )}
-            <div className="mt-0.5 flex items-center gap-3 text-xs text-b2b-ink/50">
+            <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-b2b-ink/50">
+              <ReactionBar reactions={comment.reactions} onToggle={(emoji) => toggleCommentReaction(comment.id, emoji)} />
               <button type="button" onClick={() => startReply(comment.id)} className="hover:underline">
                 Reply
               </button>
@@ -448,63 +474,43 @@ export function EventNoticeCard({
                   </button>
                 </>
               ) : (
-                <ReportButton targetType="EVENT_NOTICE_COMMENT" targetId={comment.id} className="hover:underline" />
+                <CommentActionsMenu targetType="EVENT_NOTICE_COMMENT" targetId={comment.id} />
               )}
-            </div>
-            <div className="mt-1">
-              <ReactionBar reactions={comment.reactions} onToggle={(emoji) => toggleCommentReaction(comment.id, emoji)} />
             </div>
           </div>
         )}
 
-        {isReplying && (
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              submitReply(comment.id);
-            }}
-            className="relative mt-1 flex flex-col gap-1"
-          >
-            {replyMediaError && <p className="text-xs text-red-600">{replyMediaError}</p>}
-            <div className="flex gap-2">
-              <input
-                ref={replyMediaInputRef}
-                type="file"
-                accept={MEDIA_ACCEPT}
-                onChange={(e) => handleReplyMediaChange(comment.id, e)}
-                className="hidden"
+        <input
+          ref={replyMediaInputRef}
+          type="file"
+          accept={MEDIA_ACCEPT}
+          onChange={(e) => handleReplyMediaChange(comment.id, e)}
+          className="hidden"
+        />
+        <ComposerModal
+          open={isReplying}
+          onClose={() => setReplyingToId(null)}
+          title={`Reply to ${comment.author.name}`}
+          value={replyText}
+          onChange={setReplyText}
+          onSubmit={() => submitReply(comment.id)}
+          submitting={replyBusy}
+          submitLabel="Reply"
+          placeholder={`Reply to ${comment.author.name}...`}
+          error={replyMediaError}
+          attachmentItems={[
+            { key: "media", label: "📷 Photo / Video", onClick: () => replyMediaInputRef.current?.click() },
+            { key: "gif", label: "GIF", onClick: () => setReplyGifPickerOpen(true) },
+          ]}
+          gifPicker={
+            replyGifPickerOpen && (
+              <GifPicker
+                onSelect={(url) => sendReplyGif(comment.id, url)}
+                onClose={() => setReplyGifPickerOpen(false)}
               />
-              <AttachmentMenu
-                items={[
-                  { key: "media", label: "📷 Photo / Video", onClick: () => replyMediaInputRef.current?.click() },
-                  { key: "gif", label: "GIF", onClick: () => setReplyGifPickerOpen(true) },
-                ]}
-              />
-              {replyGifPickerOpen && (
-                <GifPicker
-                  onSelect={(url) => sendReplyGif(comment.id, url)}
-                  onClose={() => setReplyGifPickerOpen(false)}
-                />
-              )}
-              <MentionTextarea
-                rows={1}
-                value={replyText}
-                onChange={setReplyText}
-                placeholder={`Reply to ${comment.author.name}...`}
-                className={textareaClass}
-                autoFocus
-              />
-              <button
-                type="submit"
-                disabled={replyBusy || !replyText.trim()}
-                aria-label="Send reply"
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-b2b-pink text-white hover:bg-b2b-pink-dark disabled:opacity-50"
-              >
-                <SendIcon className="h-4 w-4" />
-              </button>
-            </div>
-          </form>
-        )}
+            )
+          }
+        />
 
         {replies.map((reply) => renderComment(reply, depth + 1))}
       </div>
@@ -552,7 +558,16 @@ export function EventNoticeCard({
             </button>
           </div>
         )}
-        {!isOwn && <ReportButton targetType="EVENT_NOTICE" targetId={notice.id} />}
+        {!isOwn && (
+          <ProfileMoreMenu
+            targetUserId={notice.author.id}
+            targetName={notice.author.name}
+            initialBlocked={false}
+            initialMuted={false}
+            reportTargetType="EVENT_NOTICE"
+            reportTargetId={notice.id}
+          />
+        )}
       </div>
       {notice.teammateRequests.length > 0 && (
         <div className="mt-3 flex flex-col items-start gap-1">
@@ -624,47 +639,64 @@ export function EventNoticeCard({
           <CommentIcon className="h-5 w-5" />
           {comments.length > 0 && comments.length}
         </button>
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setNoticeReactionPickerOpen((v) => !v)}
+            aria-label="React"
+            className="flex items-center gap-1 font-medium text-b2b-ink/50 hover:text-b2b-pink"
+          >
+            <SmileyIcon className="h-5 w-5" />
+          </button>
+          {noticeReactionPickerOpen && (
+            <EmojiPicker
+              onSelect={(emoji) => {
+                toggleNoticeReaction(emoji);
+                setNoticeReactionPickerOpen(false);
+              }}
+              onClose={() => setNoticeReactionPickerOpen(false)}
+            />
+          )}
+        </div>
       </div>
+
+      {noticeReactions.length > 0 && (
+        <div className="mt-2">
+          <ReactionBar reactions={noticeReactions} onToggle={toggleNoticeReaction} />
+        </div>
+      )}
 
       {showComments && (
         <div className="mt-2 flex flex-col gap-3 border-t border-b2b-purple/10 pt-2">
           {topLevelComments.map((c) => renderComment(c, 0))}
-          <form onSubmit={submitComment} className="relative flex flex-col gap-1">
-            {commentMediaError && <p className="text-xs text-red-600">{commentMediaError}</p>}
-            <div className="flex gap-2">
-              <input
-                ref={commentMediaInputRef}
-                type="file"
-                accept={MEDIA_ACCEPT}
-                onChange={handleCommentMediaChange}
-                className="hidden"
-              />
-              <AttachmentMenu
-                items={[
-                  { key: "media", label: "📷 Photo / Video", onClick: () => commentMediaInputRef.current?.click() },
-                  { key: "gif", label: "GIF", onClick: () => setCommentGifPickerOpen(true) },
-                ]}
-              />
-              {commentGifPickerOpen && (
+          <ComposerBar placeholder="Add a comment..." onClick={() => setCommentComposerOpen(true)} />
+          <input
+            ref={commentMediaInputRef}
+            type="file"
+            accept={MEDIA_ACCEPT}
+            onChange={handleCommentMediaChange}
+            className="hidden"
+          />
+          <ComposerModal
+            open={commentComposerOpen}
+            onClose={() => setCommentComposerOpen(false)}
+            title="Add a comment"
+            value={commentText}
+            onChange={setCommentText}
+            onSubmit={submitComment}
+            submitting={commentBusy}
+            placeholder="Add a comment..."
+            error={commentMediaError}
+            attachmentItems={[
+              { key: "media", label: "📷 Photo / Video", onClick: () => commentMediaInputRef.current?.click() },
+              { key: "gif", label: "GIF", onClick: () => setCommentGifPickerOpen(true) },
+            ]}
+            gifPicker={
+              commentGifPickerOpen && (
                 <GifPicker onSelect={sendCommentGif} onClose={() => setCommentGifPickerOpen(false)} />
-              )}
-              <MentionTextarea
-                rows={1}
-                value={commentText}
-                onChange={setCommentText}
-                placeholder="Add a comment..."
-                className={textareaClass}
-              />
-              <button
-                type="submit"
-                disabled={commentBusy || !commentText.trim()}
-                aria-label="Post comment"
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-b2b-pink text-white hover:bg-b2b-pink-dark disabled:opacity-50"
-              >
-                <SendIcon className="h-4 w-4" />
-              </button>
-            </div>
-          </form>
+              )
+            }
+          />
         </div>
       )}
 

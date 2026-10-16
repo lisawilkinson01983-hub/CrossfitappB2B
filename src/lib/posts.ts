@@ -48,6 +48,7 @@ const postContentInclude = {
     select: { id: true, kind: true, url: true, thumbnail: true },
   },
   likes: { select: { userId: true } },
+  reactions: { select: { emoji: true, userId: true } },
   savedBy: { select: { userId: true } },
   comments: {
     orderBy: { createdAt: "asc" },
@@ -126,11 +127,15 @@ export function toPostCardData(post: PostWithCardData, currentUserId: string): P
     linkedEventWorkout: original.linkedEventWorkout,
     likeCount: original.likes.length,
     likedByMe: original.likes.some((like) => like.userId === currentUserId),
+    reactions: summarizeReactions(original.reactions, currentUserId),
     savedByMe: original.savedBy.some((save) => save.userId === currentUserId),
     comments: original.comments.map((comment) => ({
       id: comment.id,
       text: comment.text,
       gifUrl: comment.gifUrl,
+      photo: comment.photo,
+      video: comment.video,
+      videoThumbnail: comment.videoThumbnail,
       createdAt: comment.createdAt,
       author: comment.user,
       parentId: comment.parentId,

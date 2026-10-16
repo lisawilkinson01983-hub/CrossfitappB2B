@@ -9,6 +9,13 @@ import { BackIcon } from "@/components/BackIcon";
 import { LEVELS, LOOKING_FOR_OPTIONS, MAX_LEVELS, type LevelOption, type LookingForOption } from "@/lib/validation";
 import { LEVEL_LABELS, LOOKING_FOR_LABELS } from "@/lib/labels";
 import { OTHER_GYM, UNAFFILIATED } from "@/lib/gyms";
+import {
+  CompetitionStatsEditor,
+  communityCupResultRowsToPayload,
+  openResultRowsToPayload,
+  type CommunityCupResultRow,
+  type OpenResultRow,
+} from "@/components/CompetitionStatsEditor";
 
 type AccountType = "ATHLETE" | "AFFILIATE";
 
@@ -25,10 +32,11 @@ export type ProfileSetupInitial = {
   affiliateGym: string;
   affiliateGymOther: string;
   levels: LevelOption[];
+  openLevel: number | null;
   lookingFor: LookingForOption[];
 };
 
-const ATHLETE_STEPS = ["type", "basics", "location", "ability", "lookingFor", "review"] as const;
+const ATHLETE_STEPS = ["type", "basics", "location", "ability", "competitionStats", "lookingFor", "review"] as const;
 const AFFILIATE_STEPS = ["type", "basics", "location", "review"] as const;
 type StepId = (typeof ATHLETE_STEPS)[number];
 
@@ -69,7 +77,14 @@ export function ProfileSetupWizard({ initial }: { initial: ProfileSetupInitial }
   const debouncedGymQuery = useDebouncedValue(gymQuery, 350);
 
   const [levels, setLevels] = useState<LevelOption[]>(initial.levels);
+  const [openLevel, setOpenLevel] = useState<number | null>(initial.openLevel);
   const [lookingFor, setLookingFor] = useState<LookingForOption[]>(initial.lookingFor);
+
+  // Fully optional and skippable — empty by default rather than seeded with
+  // one blank row, so "nothing here" reads as "skipped" rather than "an
+  // empty row waiting to be deleted".
+  const [openResultRows, setOpenResultRows] = useState<OpenResultRow[]>([]);
+  const [communityCupResultRows, setCommunityCupResultRows] = useState<CommunityCupResultRow[]>([]);
 
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -175,6 +190,7 @@ export function ProfileSetupWizard({ initial }: { initial: ProfileSetupInitial }
       formData.set("name", `${firstName.trim()} ${lastName.trim()}`.trim());
       formData.set("dateOfBirth", dateOfBirth);
       for (const level of levels) formData.append("levels", level);
+      if (openLevel) formData.set("openLevel", String(openLevel));
       for (const option of lookingFor) formData.append("lookingFor", option);
     }
     formData.set("accountType", accountType);
@@ -200,6 +216,19 @@ export function ProfileSetupWizard({ initial }: { initial: ProfileSetupInitial }
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ section: "welcome" }),
     }).catch(() => {});
+
+    const openResults = openResultRowsToPayload(openResultRows);
+    const communityCupResults = communityCupResultRowsToPayload(communityCupResultRows);
+    if (openResults.length || communityCupResults.length) {
+      // Best-effort — the profile itself is already created, so a hiccup
+      // here shouldn't block onboarding; the same data can be re-entered
+      // from Settings → Edit profile.
+      fetch("/api/profile/competition-stats", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ openResults, communityCupResults }),
+      }).catch(() => {});
+    }
 
     router.push("/feed");
     router.refresh();
@@ -300,7 +329,18 @@ export function ProfileSetupWizard({ initial }: { initial: ProfileSetupInitial }
           />
         )}
 
-        {step === "ability" && <AbilityStep levels={levels} onToggle={toggleLevel} />}
+        {step === "ability" && (
+          <AbilityStep levels={levels} onToggle={toggleLevel} openLevel={openLevel} onOpenLevel={setOpenLevel} />
+        )}
+
+        {step === "competitionStats" && (
+          <CompetitionStatsStep
+            openResults={openResultRows}
+            onOpenResultsChange={setOpenResultRows}
+            communityCupResults={communityCupResultRows}
+            onCommunityCupResultsChange={setCommunityCupResultRows}
+          />
+        )}
 
         {step === "lookingFor" && <LookingForStep lookingFor={lookingFor} onToggle={toggleLookingFor} />}
 
@@ -313,7 +353,11 @@ export function ProfileSetupWizard({ initial }: { initial: ProfileSetupInitial }
             area={area}
             gymLabel={unaffiliated ? UNAFFILIATED : showOtherGym ? otherGymName : gymSelected}
             levels={levels}
+            openLevel={openLevel}
             lookingFor={lookingFor}
+            competitionStatsCount={
+              openResultRowsToPayload(openResultRows).length + communityCupResultRowsToPayload(communityCupResultRows).length
+            }
             error={submitError}
             onEditStep={(targetStep) => setStepIndex(steps.indexOf(targetStep))}
           />
@@ -331,14 +375,25 @@ export function ProfileSetupWizard({ initial }: { initial: ProfileSetupInitial }
             {submitting ? "Creating…" : "Create my profile"}
           </button>
         ) : (
-          <button
-            type="button"
-            onClick={goNext}
-            disabled={!canAdvance}
-            className="w-full rounded-xl bg-b2b-ink py-4 text-base font-bold text-white disabled:opacity-35"
-          >
-            Continue
-          </button>
+          <>
+            {step === "competitionStats" && (
+              <button
+                type="button"
+                onClick={goNext}
+                className="mb-2.5 block w-full text-center text-sm text-b2b-ink/50 underline"
+              >
+                Skip for now — I'll add this later
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={goNext}
+              disabled={!canAdvance}
+              className="w-full rounded-xl bg-b2b-ink py-4 text-base font-bold text-b2b-bg disabled:opacity-35"
+            >
+              Continue
+            </button>
+          </>
         )}
       </div>
     </div>
@@ -471,8 +526,8 @@ function BasicsStep({
               <circle cx="12" cy="13" r="3.5" />
             </svg>
           )}
-          <span className="absolute -right-0.5 -bottom-0.5 flex h-7 w-7 items-center justify-center rounded-full border-[3px] border-white bg-b2b-ink">
-            <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2.5} strokeLinecap="round" className="h-3 w-3">
+          <span className="absolute -right-0.5 -bottom-0.5 flex h-7 w-7 items-center justify-center rounded-full border-[3px] border-white bg-b2b-ink text-b2b-bg">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" className="h-3 w-3">
               <path d="M12 5v14M5 12h14" />
             </svg>
           </span>
@@ -690,7 +745,17 @@ function LocationStep({
   );
 }
 
-function AbilityStep({ levels, onToggle }: { levels: LevelOption[]; onToggle: (l: LevelOption) => void }) {
+function AbilityStep({
+  levels,
+  onToggle,
+  openLevel,
+  onOpenLevel,
+}: {
+  levels: LevelOption[];
+  onToggle: (l: LevelOption) => void;
+  openLevel: number | null;
+  onOpenLevel: (v: number | null) => void;
+}) {
   return (
     <div>
       <h1 className="mt-2 text-2xl">What's your level?</h1>
@@ -713,6 +778,56 @@ function AbilityStep({ levels, onToggle }: { levels: LevelOption[]; onToggle: (l
             </button>
           );
         })}
+      </div>
+
+      <h2 className="mt-8 text-base font-bold text-b2b-purple">Official CrossFit Open level (optional)</h2>
+      <p className="mt-1 text-sm text-b2b-ink/50">
+        Your most recent Open placement band, 1–10 — shown as a quick badge on your profile card. You can re-enter
+        this every year once the new Open results are in.
+      </p>
+      <div className="mt-4 flex flex-wrap gap-2">
+        {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
+          <button
+            key={n}
+            type="button"
+            onClick={() => onOpenLevel(openLevel === n ? null : n)}
+            className={`flex h-10 w-10 items-center justify-center rounded-full border-2 text-sm font-semibold transition-colors ${
+              openLevel === n ? "border-b2b-pink bg-b2b-pink text-white" : "border-gray-200 text-b2b-purple"
+            }`}
+          >
+            {n}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function CompetitionStatsStep({
+  openResults,
+  onOpenResultsChange,
+  communityCupResults,
+  onCommunityCupResultsChange,
+}: {
+  openResults: OpenResultRow[];
+  onOpenResultsChange: (rows: OpenResultRow[]) => void;
+  communityCupResults: CommunityCupResultRow[];
+  onCommunityCupResultsChange: (rows: CommunityCupResultRow[]) => void;
+}) {
+  return (
+    <div>
+      <h1 className="mt-2 text-2xl">Competition stats</h1>
+      <p className="mt-2 text-sm text-b2b-ink/50">
+        Got CrossFit Open or Community Cup results? Adding them helps us match you with teammates at a similar
+        level — totally optional, and you can always come back to this from Settings → Edit profile.
+      </p>
+      <div className="mt-6">
+        <CompetitionStatsEditor
+          openResults={openResults}
+          onOpenResultsChange={onOpenResultsChange}
+          communityCupResults={communityCupResults}
+          onCommunityCupResultsChange={onCommunityCupResultsChange}
+        />
       </div>
     </div>
   );
@@ -759,7 +874,9 @@ function ReviewStep({
   area,
   gymLabel,
   levels,
+  openLevel,
   lookingFor,
+  competitionStatsCount,
   error,
   onEditStep,
 }: {
@@ -770,7 +887,9 @@ function ReviewStep({
   area: string;
   gymLabel: string;
   levels: LevelOption[];
+  openLevel: number | null;
   lookingFor: LookingForOption[];
+  competitionStatsCount: number;
   error: string | null;
   onEditStep: (step: StepId) => void;
 }) {
@@ -798,6 +917,12 @@ function ReviewStep({
         {accountType === "ATHLETE" && (
           <>
             <ReviewRow label="Ability" value={levels.map((l) => LEVEL_LABELS[l]).join(", ") || "—"} onEdit={() => onEditStep("ability")} />
+            <ReviewRow label="Open level" value={openLevel ? String(openLevel) : "—"} onEdit={() => onEditStep("ability")} />
+            <ReviewRow
+              label="Competition stats"
+              value={competitionStatsCount > 0 ? `${competitionStatsCount} added` : "Skipped"}
+              onEdit={() => onEditStep("competitionStats")}
+            />
             <ReviewRow
               label="Looking for"
               value={lookingFor.map((o) => LOOKING_FOR_LABELS[o]).join(", ") || "—"}

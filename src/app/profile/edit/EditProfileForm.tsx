@@ -23,11 +23,17 @@ import { OTHER_GYM } from "@/lib/gyms";
 import { COUNTRIES, type Country } from "@/lib/countries";
 import { AvatarCropper } from "@/components/AvatarCropper";
 import { calculateAge } from "@/lib/age";
+import {
+  CompetitionStatsEditor,
+  communityCupResultRowsToPayload,
+  openResultRowsToPayload,
+  type CommunityCupResultRow,
+  type OpenResultRow,
+} from "@/components/CompetitionStatsEditor";
 
 type Initial = {
   name: string;
   photo: string | null;
-  bannerPhoto: string | null;
   accountType: AccountTypeOption;
   website: string;
   bio: string;
@@ -38,6 +44,7 @@ type Initial = {
   affiliateGym: string;
   affiliateGymOther: string;
   levels: LevelOption[];
+  openLevel: number | null;
   crossfitSinceYear: number | "";
   crossfitSinceMonth: number | "";
   lookingFor: LookingForOption[];
@@ -62,10 +69,14 @@ export function EditProfileForm({
   initial,
   gymOptions,
   accountTypeLocked,
+  initialOpenResults,
+  initialCommunityCupResults,
 }: {
   initial: Initial;
   gymOptions: string[];
   accountTypeLocked: boolean;
+  initialOpenResults: OpenResultRow[];
+  initialCommunityCupResults: CommunityCupResultRow[];
 }) {
   const router = useRouter();
 
@@ -83,6 +94,7 @@ export function EditProfileForm({
   const [affiliateGymOther, setAffiliateGymOther] = useState(initial.affiliateGymOther);
   const isOtherGym = affiliateGym === OTHER_GYM;
   const [levels, setLevels] = useState<LevelOption[]>(initial.levels);
+  const [openLevel, setOpenLevel] = useState(initial.openLevel ? String(initial.openLevel) : "");
   const [crossfitSinceYear, setCrossfitSinceYear] = useState(String(initial.crossfitSinceYear));
   const [crossfitSinceMonth, setCrossfitSinceMonth] = useState(String(initial.crossfitSinceMonth));
   const [lookingFor, setLookingFor] = useState<LookingForOption[]>(initial.lookingFor);
@@ -103,6 +115,40 @@ export function EditProfileForm({
   );
   const atMaxDisplayedPbs = displayedPbs.length >= MAX_DISPLAYED_PBS;
 
+  // Saved independently of the rest of this form (its own button below),
+  // same as how the profile page's own "Competition stats" card saves —
+  // one shared PATCH route, see CompetitionStatsQuickEditor.
+  const [openResults, setOpenResults] = useState<OpenResultRow[]>(initialOpenResults);
+  const [communityCupResults, setCommunityCupResults] = useState<CommunityCupResultRow[]>(initialCommunityCupResults);
+  const [competitionStatsSaving, setCompetitionStatsSaving] = useState(false);
+  const [competitionStatsError, setCompetitionStatsError] = useState<string | null>(null);
+  const [competitionStatsSaved, setCompetitionStatsSaved] = useState(false);
+
+  async function handleSaveCompetitionStats() {
+    setCompetitionStatsError(null);
+    setCompetitionStatsSaved(false);
+    setCompetitionStatsSaving(true);
+
+    const res = await fetch("/api/profile/competition-stats", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        openResults: openResultRowsToPayload(openResults),
+        communityCupResults: communityCupResultRowsToPayload(communityCupResults),
+      }),
+    });
+    setCompetitionStatsSaving(false);
+
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      setCompetitionStatsError(body.error ?? "Something went wrong. Please try again.");
+      return;
+    }
+
+    setCompetitionStatsSaved(true);
+    router.refresh();
+  }
+
   function addDisplayedPb(field: PbField) {
     setDisplayedPbs((prev) => (prev.includes(field) || prev.length >= MAX_DISPLAYED_PBS ? prev : [...prev, field]));
   }
@@ -117,11 +163,6 @@ export function EditProfileForm({
   // already-cropped result.
   const [cropSource, setCropSource] = useState<string | null>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
-
-  const [bannerFile, setBannerFile] = useState<File | null>(null);
-  const [bannerPreview, setBannerPreview] = useState<string | null>(initial.bannerPhoto);
-  const [bannerCropSource, setBannerCropSource] = useState<string | null>(null);
-  const bannerInputRef = useRef<HTMLInputElement>(null);
 
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -159,25 +200,6 @@ export function EditProfileForm({
     setPhotoPreview(URL.createObjectURL(blob));
   }
 
-  function handleBannerChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0] ?? null;
-    if (file) setBannerCropSource(URL.createObjectURL(file));
-    e.target.value = "";
-  }
-
-  function handleBannerCropCancel() {
-    if (bannerCropSource) URL.revokeObjectURL(bannerCropSource);
-    setBannerCropSource(null);
-  }
-
-  function handleBannerCropped(blob: Blob) {
-    if (bannerCropSource) URL.revokeObjectURL(bannerCropSource);
-    setBannerCropSource(null);
-    const file = new File([blob], "banner.jpg", { type: "image/jpeg" });
-    setBannerFile(file);
-    setBannerPreview(URL.createObjectURL(blob));
-  }
-
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
@@ -207,6 +229,7 @@ export function EditProfileForm({
       formData.set("dateOfBirth", dateOfBirth);
       formData.set("gender", gender);
       levels.forEach((v) => formData.append("levels", v));
+      formData.set("openLevel", openLevel);
       lookingFor.forEach((v) => formData.append("lookingFor", v));
       formData.set("isSingle", isSingle);
       if (showRelationshipStatus) formData.set("showRelationshipStatus", "on");
@@ -220,7 +243,6 @@ export function EditProfileForm({
     }
     if (isPrivate) formData.set("isPrivate", "on");
     if (photoFile) formData.set("photo", photoFile);
-    if (bannerFile) formData.set("bannerPhoto", bannerFile);
 
     const res = await fetch("/api/profile", { method: "PATCH", body: formData });
 
@@ -240,17 +262,6 @@ export function EditProfileForm({
     <form onSubmit={handleSubmit} className="flex flex-col gap-5">
       {cropSource && (
         <AvatarCropper imageSrc={cropSource} onCancel={handleCropCancel} onCropped={handleCropped} />
-      )}
-      {bannerCropSource && (
-        <AvatarCropper
-          imageSrc={bannerCropSource}
-          onCancel={handleBannerCropCancel}
-          onCropped={handleBannerCropped}
-          aspect={2.5}
-          cropShape="rect"
-          outputWidth={1200}
-          outputHeight={480}
-        />
       )}
 
       {error && <p className="rounded bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
@@ -292,6 +303,7 @@ export function EditProfileForm({
 
       <div>
         <label className="block text-sm font-medium">Photo</label>
+        <p className="mt-0.5 text-xs text-b2b-ink/50">The full-width photo at the top of your profile.</p>
         <div className="mt-2 flex items-center gap-4">
           {photoPreview ? (
             <Image
@@ -318,39 +330,6 @@ export function EditProfileForm({
             className="rounded-full border border-b2b-purple/20 px-3 py-1.5 text-sm font-medium text-b2b-ink/60 hover:border-b2b-pink hover:text-b2b-pink"
           >
             📷 Change photo
-          </button>
-        </div>
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium">Profile banner</label>
-        <p className="mt-0.5 text-xs text-b2b-ink/50">The wide cover image behind your profile photo. Optional.</p>
-        <div className="mt-2">
-          {bannerPreview ? (
-            <Image
-              src={bannerPreview}
-              alt="Banner preview"
-              width={380}
-              height={152}
-              unoptimized={bannerPreview.startsWith("blob:")}
-              className="h-32 w-full max-w-sm rounded-lg object-cover"
-            />
-          ) : (
-            <div className="h-32 w-full max-w-sm rounded-lg bg-b2b-ink" />
-          )}
-          <input
-            ref={bannerInputRef}
-            type="file"
-            accept="image/jpeg,image/png,image/webp"
-            onChange={handleBannerChange}
-            className="hidden"
-          />
-          <button
-            type="button"
-            onClick={() => bannerInputRef.current?.click()}
-            className="mt-2 rounded-full border border-b2b-purple/20 px-3 py-1.5 text-sm font-medium text-b2b-ink/60 hover:border-b2b-pink hover:text-b2b-pink"
-          >
-            🖼️ {bannerPreview ? "Change banner" : "Add banner"}
           </button>
         </div>
       </div>
@@ -543,6 +522,31 @@ export function EditProfileForm({
         </fieldset>
       )}
 
+      {isAthlete && (
+        <div>
+          <label htmlFor="openLevel" className="block text-sm font-medium">
+            Official CrossFit Open level
+          </label>
+          <p className="mt-0.5 text-xs text-b2b-ink/50">
+            Your most recent Open placement band, 1–10 (optional) — shown as a quick badge on your profile card.
+            Re-enter this each year once the new Open results are in.
+          </p>
+          <select
+            id="openLevel"
+            value={openLevel}
+            onChange={(e) => setOpenLevel(e.target.value)}
+            className="mt-1 w-full rounded border border-gray-300 bg-b2b-card px-3 py-2 focus:border-b2b-pink focus:outline-none"
+          >
+            <option value="">Not set</option>
+            {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
+              <option key={n} value={n}>
+                {n}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
       <div>
         <span className="block text-sm font-medium">{isAthlete ? "CrossFitting since" : "Established"}</span>
         <div className="mt-1 grid grid-cols-2 gap-4">
@@ -663,6 +667,34 @@ export function EditProfileForm({
                 })}
               </div>
             )}
+          </fieldset>
+
+          <fieldset className="rounded-xl border border-b2b-purple/10 p-3.5">
+            <legend className="px-1 text-sm font-medium">Competition stats</legend>
+            <p className="mt-0.5 text-xs text-b2b-ink/50">
+              CrossFit Open and Community Cup results, one row per year. Saved separately from the rest of this
+              form — use the button below, not Save profile.
+            </p>
+            <div className="mt-3">
+              <CompetitionStatsEditor
+                openResults={openResults}
+                onOpenResultsChange={setOpenResults}
+                communityCupResults={communityCupResults}
+                onCommunityCupResultsChange={setCommunityCupResults}
+              />
+            </div>
+            {competitionStatsError && <p className="mt-3 text-sm text-red-600">{competitionStatsError}</p>}
+            <div className="mt-3 flex items-center gap-3">
+              <button
+                type="button"
+                onClick={handleSaveCompetitionStats}
+                disabled={competitionStatsSaving}
+                className="rounded bg-b2b-pink px-4 py-2 text-sm font-medium text-white hover:bg-b2b-pink-dark disabled:opacity-50"
+              >
+                {competitionStatsSaving ? "Saving..." : "Save competition stats"}
+              </button>
+              {competitionStatsSaved && <span className="text-sm text-green-700">Saved.</span>}
+            </div>
           </fieldset>
 
           <fieldset>

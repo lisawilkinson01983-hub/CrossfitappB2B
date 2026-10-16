@@ -4,7 +4,7 @@ import { GalleryLightbox } from "@/components/GalleryLightbox";
 import { AddMediaButton } from "@/components/AddMediaButton";
 import { getGalleryItems } from "@/lib/gallery";
 
-const GALLERY_PREVIEW_LIMIT = 9;
+const GALLERY_PREVIEW_LIMIT = 6;
 
 /** A limited, most-recent-first strip of a user's uploaded photos/videos, pulled from their posts and logged workouts. */
 export async function Gallery({ userId, canAdd = false }: { userId: string; canAdd?: boolean }) {
@@ -30,6 +30,8 @@ export async function Gallery({ userId, canAdd = false }: { userId: string; canA
         <GalleryLightbox
           items={items.map(({ key, type, url, thumbnail, source }) => ({ key, type, url, thumbnail, source }))}
           canEdit={canAdd}
+          layout="grid"
+          columns={2}
         />
       )}
     </SectionCard>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -18,12 +18,15 @@ import { PostMediaCarousel } from "@/components/PostMediaCarousel";
 import { MentionText } from "@/components/MentionText";
 import { MentionTextarea } from "@/components/MentionTextarea";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
-import { ReportButton } from "@/components/ReportButton";
+import { ProfileMoreMenu } from "@/components/ProfileMoreMenu";
+import { CommentActionsMenu } from "@/components/CommentActionsMenu";
 import { WorkoutDescriptionToggle } from "@/components/WorkoutDescriptionToggle";
 import { ReactionBar } from "@/components/ReactionBar";
+import { EmojiPicker } from "@/components/EmojiPicker";
+import { SmileyIcon } from "@/components/SmileyIcon";
 import { GifPicker } from "@/components/GifPicker";
-import { AttachmentMenu } from "@/components/AttachmentMenu";
-import { SendIcon } from "@/components/SendIcon";
+import { ComposerModal } from "@/components/ComposerModal";
+import { ComposerBar } from "@/components/ComposerBar";
 import { EditIcon } from "@/components/EditIcon";
 import { DeleteIcon } from "@/components/DeleteIcon";
 import { EditModal } from "@/components/EditModal";
@@ -34,11 +37,16 @@ import { SaveIcon } from "@/components/SaveIcon";
 import { formatEventDate } from "@/lib/eventDate";
 import { formatDateTime } from "@/lib/dates";
 import type { ReactionSummary } from "@/lib/reactions";
+import { readVideoInfo } from "@/lib/readVideoInfo";
+import { MAX_VIDEO_SECONDS, MAX_PHOTO_BYTES, MAX_PHOTO_MB } from "@/lib/media";
 
 export type CommentData = {
   id: string;
   text: string;
   gifUrl: string | null;
+  photo: string | null;
+  video: string | null;
+  videoThumbnail: string | null;
   createdAt: Date;
   author: { id: string; name: string };
   parentId: string | null;
@@ -132,12 +140,12 @@ export type PostCardData = {
   } | null;
   likeCount: number;
   likedByMe: boolean;
+  reactions: ReactionSummary[];
   savedByMe: boolean;
   comments: CommentData[];
 };
 
-const textareaClass =
-  "flex-1 resize-none rounded border border-gray-300 px-2 py-1.5 text-sm focus:border-b2b-pink focus:outline-none";
+const MEDIA_ACCEPT = "image/jpeg,image/png,image/webp,video/mp4,video/quicktime";
 
 export function PostCard({
   post,
@@ -161,6 +169,9 @@ export function PostCard({
   const [liked, setLiked] = useState(post.likedByMe);
   const [likeCount, setLikeCount] = useState(post.likeCount);
   const [likeBusy, setLikeBusy] = useState(false);
+
+  const [postReactions, setPostReactions] = useState(post.reactions);
+  const [postReactionPickerOpen, setPostReactionPickerOpen] = useState(false);
 
   const [saved, setSaved] = useState(post.savedByMe);
   const [saveBusy, setSaveBusy] = useState(false);
@@ -189,10 +200,15 @@ export function PostCard({
   const [replyingToId, setReplyingToId] = useState<string | null>(null);
   const [replyText, setReplyText] = useState("");
   const [replyBusy, setReplyBusy] = useState(false);
+  const [commentComposerOpen, setCommentComposerOpen] = useState(false);
   const [commentGifPickerOpen, setCommentGifPickerOpen] = useState(false);
+  const [commentMediaError, setCommentMediaError] = useState<string | null>(null);
+  const commentMediaInputRef = useRef<HTMLInputElement>(null);
   const [commentDeleteTargetId, setCommentDeleteTargetId] = useState<string | null>(null);
   const [commentDeleting, setCommentDeleting] = useState(false);
   const [replyGifPickerOpen, setReplyGifPickerOpen] = useState(false);
+  const [replyMediaError, setReplyMediaError] = useState<string | null>(null);
+  const replyMediaInputRef = useRef<HTMLInputElement>(null);
 
   const [deleting, setDeleting] = useState(false);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
@@ -236,6 +252,25 @@ export function PostCard({
       setLiked(body.liked);
       setLikeCount(body.count);
     }
+  }
+
+  async function togglePostReaction(emoji: string) {
+    const res = await fetch(`/api/posts/${post.id}/react`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ emoji }),
+    });
+    if (!res.ok) return;
+    const body: { emoji: string; reacted: boolean; reactions: { emoji: string; count: number }[] } =
+      await res.json();
+    setPostReactions((prev) => {
+      const prevByEmoji = new Map(prev.map((r) => [r.emoji, r.reactedByMe]));
+      return body.reactions.map((r) => ({
+        emoji: r.emoji,
+        count: r.count,
+        reactedByMe: r.emoji === body.emoji ? body.reacted : (prevByEmoji.get(r.emoji) ?? false),
+      }));
+    });
   }
 
   async function toggleSave() {
@@ -330,8 +365,7 @@ export function PostCard({
     }
   }
 
-  async function submitComment(e: FormEvent) {
-    e.preventDefault();
+  async function submitComment() {
     if (!commentText.trim() || commentBusy) return;
     setCommentBusy(true);
     const res = await fetch(`/api/posts/${post.id}/comments`, {
@@ -344,12 +378,14 @@ export function PostCard({
       const body = await res.json();
       setComments((prev) => [...prev, body.comment]);
       setCommentText("");
+      setCommentComposerOpen(false);
     }
   }
 
   function startReply(commentId: string) {
     setReplyingToId((prev) => (prev === commentId ? null : commentId));
     setReplyText("");
+    setReplyMediaError(null);
   }
 
   async function submitReply(parentId: string) {
@@ -413,6 +449,7 @@ export function PostCard({
     if (res.ok) {
       const body = await res.json();
       setComments((prev) => [...prev, body.comment]);
+      setCommentComposerOpen(false);
     }
   }
 
@@ -428,6 +465,97 @@ export function PostCard({
       setComments((prev) => [...prev, body.comment]);
       setReplyingToId(null);
     }
+  }
+
+  async function handleCommentMediaChange(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file || commentBusy) return;
+
+    setCommentMediaError(null);
+    const formData = new FormData();
+    formData.set("text", commentText);
+    const isVideo = file.type.startsWith("video/");
+
+    if (isVideo) {
+      let info;
+      try {
+        info = await readVideoInfo(file);
+      } catch {
+        info = null;
+      }
+      if (info && info.duration > MAX_VIDEO_SECONDS + 0.5) {
+        setCommentMediaError(`Videos must be ${MAX_VIDEO_SECONDS} seconds or under (this one is ${Math.round(info.duration)}s)`);
+        return;
+      }
+      formData.set("video", file);
+      if (info?.thumbnail) formData.set("thumbnail", info.thumbnail, "thumbnail.jpg");
+    } else {
+      if (file.size > MAX_PHOTO_BYTES) {
+        setCommentMediaError(`Photo must be smaller than ${MAX_PHOTO_MB}MB`);
+        return;
+      }
+      formData.set("photo", file);
+    }
+
+    setCommentBusy(true);
+    const res = await fetch(`/api/posts/${post.id}/comments`, { method: "POST", body: formData });
+    setCommentBusy(false);
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      setCommentMediaError(body.error ?? "Couldn't post that. Please try again.");
+      return;
+    }
+    const body = await res.json();
+    setComments((prev) => [...prev, body.comment]);
+    setCommentText("");
+    setCommentComposerOpen(false);
+  }
+
+  async function handleReplyMediaChange(parentId: string, e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file || replyBusy) return;
+
+    setReplyMediaError(null);
+    const formData = new FormData();
+    formData.set("text", replyText);
+    formData.set("parentId", parentId);
+    const isVideo = file.type.startsWith("video/");
+
+    if (isVideo) {
+      let info;
+      try {
+        info = await readVideoInfo(file);
+      } catch {
+        info = null;
+      }
+      if (info && info.duration > MAX_VIDEO_SECONDS + 0.5) {
+        setReplyMediaError(`Videos must be ${MAX_VIDEO_SECONDS} seconds or under (this one is ${Math.round(info.duration)}s)`);
+        return;
+      }
+      formData.set("video", file);
+      if (info?.thumbnail) formData.set("thumbnail", info.thumbnail, "thumbnail.jpg");
+    } else {
+      if (file.size > MAX_PHOTO_BYTES) {
+        setReplyMediaError(`Photo must be smaller than ${MAX_PHOTO_MB}MB`);
+        return;
+      }
+      formData.set("photo", file);
+    }
+
+    setReplyBusy(true);
+    const res = await fetch(`/api/posts/${post.id}/comments`, { method: "POST", body: formData });
+    setReplyBusy(false);
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      setReplyMediaError(body.error ?? "Couldn't post that. Please try again.");
+      return;
+    }
+    const body = await res.json();
+    setComments((prev) => [...prev, body.comment]);
+    setReplyText("");
+    setReplyingToId(null);
   }
 
   async function toggleCommentReaction(commentId: string, emoji: string) {
@@ -517,13 +645,25 @@ export function PostCard({
           <div className="text-sm">
             <p>
               <span className="font-semibold">{comment.author.name}</span>{" "}
-              {!comment.gifUrl && <MentionText text={comment.text} className="text-gray-800" />}
+              {comment.text && <MentionText text={comment.text} className="text-gray-800" />}
             </p>
             {comment.gifUrl && (
               // eslint-disable-next-line @next/next/no-img-element -- external, unsized GIF from Tenor
               <img src={comment.gifUrl} alt="" className="mt-1 max-h-48 rounded-lg object-cover" />
             )}
-            <div className="mt-0.5 flex items-center gap-3 text-xs text-b2b-ink/50">
+            {comment.video && (
+              <video
+                src={comment.video}
+                controls
+                poster={comment.videoThumbnail ?? undefined}
+                className="mt-1 max-h-64 w-full rounded-lg"
+              />
+            )}
+            {comment.photo && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={comment.photo} alt="" className="mt-1 max-h-64 w-full rounded-lg object-cover" />
+            )}
+            <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-b2b-ink/50">
               <button
                 type="button"
                 onClick={() => toggleCommentLike(comment.id)}
@@ -533,12 +673,13 @@ export function PostCard({
                 <LikeIcon className="h-3.5 w-3.5" filled={comment.likedByMe} />
                 {comment.likeCount > 0 && comment.likeCount}
               </button>
+              <ReactionBar reactions={comment.reactions} onToggle={(emoji) => toggleCommentReaction(comment.id, emoji)} />
               <button type="button" onClick={() => startReply(comment.id)} className="hover:underline">
                 Reply
               </button>
               {comment.author.id === currentUserId ? (
                 <>
-                  {!comment.gifUrl && (
+                  {!comment.gifUrl && !comment.photo && !comment.video && (
                     <button
                       type="button"
                       onClick={() => startEditComment(comment.id, comment.text)}
@@ -558,50 +699,43 @@ export function PostCard({
                   </button>
                 </>
               ) : (
-                <ReportButton targetType="COMMENT" targetId={comment.id} className="hover:underline" />
+                <CommentActionsMenu targetType="COMMENT" targetId={comment.id} />
               )}
-            </div>
-            <div className="mt-1">
-              <ReactionBar reactions={comment.reactions} onToggle={(emoji) => toggleCommentReaction(comment.id, emoji)} />
             </div>
           </div>
         )}
 
-        {isReplying && (
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              submitReply(comment.id);
-            }}
-            className="relative mt-1 flex gap-2"
-          >
-            <AttachmentMenu
-              items={[{ key: "gif", label: "GIF", onClick: () => setReplyGifPickerOpen(true) }]}
-            />
-            {replyGifPickerOpen && (
+        <input
+          ref={replyMediaInputRef}
+          type="file"
+          accept={MEDIA_ACCEPT}
+          onChange={(e) => handleReplyMediaChange(comment.id, e)}
+          className="hidden"
+        />
+        <ComposerModal
+          open={isReplying}
+          onClose={() => setReplyingToId(null)}
+          title={`Reply to ${comment.author.name}`}
+          value={replyText}
+          onChange={setReplyText}
+          onSubmit={() => submitReply(comment.id)}
+          submitting={replyBusy}
+          submitLabel="Reply"
+          placeholder={`Reply to ${comment.author.name}...`}
+          error={replyMediaError}
+          attachmentItems={[
+            { key: "media", label: "📷 Photo / Video", onClick: () => replyMediaInputRef.current?.click() },
+            { key: "gif", label: "GIF", onClick: () => setReplyGifPickerOpen(true) },
+          ]}
+          gifPicker={
+            replyGifPickerOpen && (
               <GifPicker
                 onSelect={(url) => sendReplyGif(comment.id, url)}
                 onClose={() => setReplyGifPickerOpen(false)}
               />
-            )}
-            <MentionTextarea
-              rows={1}
-              value={replyText}
-              onChange={setReplyText}
-              placeholder={`Reply to ${comment.author.name}...`}
-              className={textareaClass}
-              autoFocus
-            />
-            <button
-              type="submit"
-              disabled={replyBusy || !replyText.trim()}
-              aria-label="Send reply"
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-b2b-pink text-white hover:bg-b2b-pink-dark disabled:opacity-50"
-            >
-              <SendIcon className="h-4 w-4" />
-            </button>
-          </form>
-        )}
+            )
+          }
+        />
 
         {replies.map((reply) => renderComment(reply, depth + 1))}
       </div>
@@ -628,7 +762,7 @@ export function PostCard({
           type="button"
           onClick={() => setPopped(false)}
           aria-label="Close"
-          className="absolute -right-2 -top-2 flex h-8 w-8 items-center justify-center rounded-full bg-b2b-ink text-lg text-white shadow hover:bg-b2b-ink/80"
+          className="absolute -right-2 -top-2 flex h-8 w-8 items-center justify-center rounded-full bg-b2b-ink text-lg text-b2b-bg shadow hover:bg-b2b-ink/80"
         >
           ×
         </button>
@@ -707,10 +841,13 @@ export function PostCard({
             </button>
           </div>
         ) : (
-          <ReportButton
-            targetType="POST"
-            targetId={post.id}
-            className="shrink-0 text-xs text-b2b-ink/50 hover:underline"
+          <ProfileMoreMenu
+            targetUserId={headerUser.id}
+            targetName={headerUser.name}
+            initialBlocked={false}
+            initialMuted={false}
+            reportTargetType="POST"
+            reportTargetId={post.id}
           />
         )}
       </div>
@@ -771,10 +908,13 @@ export function PostCard({
                 </button>
               </div>
             ) : (
-              <ReportButton
-                targetType="POST"
-                targetId={post.id}
-                className="shrink-0 text-xs text-b2b-ink/50 hover:underline"
+              <ProfileMoreMenu
+                targetUserId={post.author.id}
+                targetName={post.author.name}
+                initialBlocked={false}
+                initialMuted={false}
+                reportTargetType="POST"
+                reportTargetId={post.id}
               />
             )}
           </div>
@@ -971,6 +1111,25 @@ export function PostCard({
               {shareCount > 0 && shareCount}
             </button>
           )}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setPostReactionPickerOpen((v) => !v)}
+              aria-label="React"
+              className="flex items-center gap-1 font-medium text-gray-600 hover:text-b2b-pink"
+            >
+              <SmileyIcon className="h-5 w-5" />
+            </button>
+            {postReactionPickerOpen && (
+              <EmojiPicker
+                onSelect={(emoji) => {
+                  togglePostReaction(emoji);
+                  setPostReactionPickerOpen(false);
+                }}
+                onClose={() => setPostReactionPickerOpen(false)}
+              />
+            )}
+          </div>
         </div>
         <button
           type="button"
@@ -983,32 +1142,43 @@ export function PostCard({
         </button>
       </div>
 
+      {postReactions.length > 0 && (
+        <div className="mt-3">
+          <ReactionBar reactions={postReactions} onToggle={togglePostReaction} />
+        </div>
+      )}
+
       {showComments && (
         <div className="mt-3 flex flex-col gap-3 border-t border-gray-100 pt-3">
           {topLevelComments.map((c) => renderComment(c, 0))}
-          <form onSubmit={submitComment} className="relative mt-1 flex gap-2">
-            <AttachmentMenu
-              items={[{ key: "gif", label: "GIF", onClick: () => setCommentGifPickerOpen(true) }]}
-            />
-            {commentGifPickerOpen && (
-              <GifPicker onSelect={sendCommentGif} onClose={() => setCommentGifPickerOpen(false)} />
-            )}
-            <MentionTextarea
-              rows={1}
-              value={commentText}
-              onChange={setCommentText}
-              placeholder="Add a comment..."
-              className={textareaClass}
-            />
-            <button
-              type="submit"
-              disabled={commentBusy || !commentText.trim()}
-              aria-label="Post comment"
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-b2b-pink text-white hover:bg-b2b-pink-dark disabled:opacity-50"
-            >
-              <SendIcon className="h-4 w-4" />
-            </button>
-          </form>
+          <ComposerBar placeholder="Add a comment..." onClick={() => setCommentComposerOpen(true)} />
+          <input
+            ref={commentMediaInputRef}
+            type="file"
+            accept={MEDIA_ACCEPT}
+            onChange={handleCommentMediaChange}
+            className="hidden"
+          />
+          <ComposerModal
+            open={commentComposerOpen}
+            onClose={() => setCommentComposerOpen(false)}
+            title="Add a comment"
+            value={commentText}
+            onChange={setCommentText}
+            onSubmit={submitComment}
+            submitting={commentBusy}
+            placeholder="Add a comment..."
+            error={commentMediaError}
+            attachmentItems={[
+              { key: "media", label: "📷 Photo / Video", onClick: () => commentMediaInputRef.current?.click() },
+              { key: "gif", label: "GIF", onClick: () => setCommentGifPickerOpen(true) },
+            ]}
+            gifPicker={
+              commentGifPickerOpen && (
+                <GifPicker onSelect={sendCommentGif} onClose={() => setCommentGifPickerOpen(false)} />
+              )
+            }
+          />
         </div>
       )}
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useState, type FormEvent, type ReactNode } from "react";
 import { InfoDialog } from "@/components/InfoDialog";
 import { REPORT_REASON_LABELS, REPORT_TARGET_LABELS } from "@/lib/labels";
 import { REPORT_REASONS, type ReportReasonOption, type ReportTargetTypeOption } from "@/lib/validation";
@@ -14,10 +14,13 @@ export function ReportButton({
   targetType,
   targetId,
   className = "text-xs text-b2b-ink/50 hover:underline",
+  renderTrigger,
 }: {
   targetType: ReportTargetTypeOption;
   targetId: string;
   className?: string;
+  /** Swap the default text link for a custom-styled trigger (e.g. a menu row) — gets the dialog's own `open` function to call. */
+  renderTrigger?: (open: () => void) => ReactNode;
 }) {
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState<ReportReasonOption | null>(null);
@@ -57,9 +60,13 @@ export function ReportButton({
 
   return (
     <>
-      <button type="button" onClick={() => setOpen(true)} className={className}>
-        Report
-      </button>
+      {renderTrigger ? (
+        renderTrigger(() => setOpen(true))
+      ) : (
+        <button type="button" onClick={() => setOpen(true)} className={className}>
+          Report
+        </button>
+      )}
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={close}>

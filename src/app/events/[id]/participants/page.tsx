@@ -7,6 +7,8 @@ import { NavBar } from "@/components/NavBar";
 import { SectionCard } from "@/components/SectionCard";
 import { SwipeCardList, type SwipeCardItem } from "@/components/SwipeCardList";
 import { MessageButton } from "@/components/MessageButton";
+import { OpenLevelBadge } from "@/components/OpenLevelBadge";
+import { CollapsibleSearch } from "@/components/CollapsibleSearch";
 import { GENDER_LABELS, LEVEL_LABELS, isCompetitionEvent, parseLevels } from "@/lib/labels";
 import { GENDERS, LEVELS } from "@/lib/validation";
 import { assertEventVisible } from "@/lib/eventVisibility";
@@ -56,7 +58,7 @@ export default async function EventParticipantsPage({
         orderBy: { createdAt: "asc" },
         include: {
           user: {
-            select: { id: true, name: true, photo: true, levels: true, area: true, affiliateGym: true },
+            select: { id: true, name: true, photo: true, levels: true, openLevel: true, area: true, affiliateGym: true },
           },
         },
       },
@@ -76,6 +78,7 @@ export default async function EventParticipantsPage({
     initial: p.user.name.charAt(0),
     title: p.user.name,
     badges: parseLevels(p.user.levels).map((lvl) => LEVEL_LABELS[lvl]),
+    cornerBadge: p.user.openLevel ? <OpenLevelBadge level={p.user.openLevel} /> : undefined,
     subtitle: [p.user.area, p.user.affiliateGym].filter(Boolean).join(" · ") || null,
     href: `/profile/${p.user.id}`,
     action: <MessageButton targetUserId={p.user.id} />,
@@ -89,6 +92,7 @@ export default async function EventParticipantsPage({
       <BackLink href={`/events/${event.id}`} className="mt-6">Back to {event.name}</BackLink>
 
       <div className="mt-4 flex flex-col gap-4">
+        <CollapsibleSearch label={`Search ${noun}s by name`} defaultOpen={hasFilters}>
         <SectionCard>
           <p className="text-sm text-b2b-ink/50">
             {isPrivateSocial ? "Everyone going" : "Everyone competing"} in {event.name} — browse below, search by
@@ -159,6 +163,7 @@ export default async function EventParticipantsPage({
             </Link>
           )}
         </SectionCard>
+        </CollapsibleSearch>
 
         <SwipeCardList
           items={items}

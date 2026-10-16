@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { FollowButton, type FollowStatus } from "@/components/FollowButton";
-import { BlockMuteControls } from "@/components/BlockMuteControls";
+import { ProfileMoreMenu } from "@/components/ProfileMoreMenu";
 import { GENDERS, LEVELS, LOOKING_FOR_OPTIONS, type LookingForOption } from "@/lib/validation";
 import {
   GENDER_LABELS,
@@ -15,7 +15,9 @@ import { UNAFFILIATED } from "@/lib/gyms";
 import { DISTANCE_RANGES, distanceMiles, ensureUserAreaCoords } from "@/lib/geocode";
 import { SectionCard } from "@/components/SectionCard";
 import { SearchFilters } from "@/components/SearchFilters";
+import { CollapsibleSearch } from "@/components/CollapsibleSearch";
 import { SwipeCardList, type SwipeCardItem } from "@/components/SwipeCardList";
+import { OpenLevelBadge } from "@/components/OpenLevelBadge";
 
 // "Prefer not to disclose" is a profile-level privacy choice, not a search filter.
 const SEARCHABLE_GENDERS = GENDERS.filter((g) => g !== "PREFER_NOT_TO_DISCLOSE");
@@ -89,6 +91,7 @@ export async function AthletesSearch({
       affiliateGym: true,
       lookingFor: true,
       levels: true,
+      openLevel: true,
     },
     orderBy: { name: "asc" },
   });
@@ -134,6 +137,7 @@ export async function AthletesSearch({
 
   return (
     <div className="mt-4 flex flex-col gap-6">
+      <CollapsibleSearch label="Search athletes by name" defaultOpen={!!q || activeFilterCount > 0}>
       <SectionCard>
       <form method="GET" className="flex flex-col gap-4">
         <input type="hidden" name="view" value="athletes" />
@@ -263,6 +267,7 @@ export async function AthletesSearch({
         </div>
       </form>
       </SectionCard>
+      </CollapsibleSearch>
 
       {(() => {
         const items: SwipeCardItem[] = results.map(({ user, miles }) => {
@@ -277,16 +282,21 @@ export async function AthletesSearch({
             initial: user.name.charAt(0),
             title: user.name,
             badges: parseLevels(user.levels).map((lvl) => LEVEL_LABELS[lvl]),
+            cornerBadge: user.openLevel ? <OpenLevelBadge level={user.openLevel} /> : undefined,
             subtitle:
               [user.affiliateGym, miles !== null ? `${miles < 1 ? "<1" : Math.round(miles)} miles away` : null]
                 .filter(Boolean)
                 .join(" · ") || null,
             href: `/profile/${user.id}`,
-            action: (
-              <div className="flex flex-col items-center gap-1.5">
-                <FollowButton targetUserId={user.id} initialStatus={status} />
-                <BlockMuteControls targetUserId={user.id} initialBlocked={false} initialMuted={myMutedIds.has(user.id)} />
-              </div>
+            action: <FollowButton targetUserId={user.id} initialStatus={status} />,
+            cornerAction: (
+              <ProfileMoreMenu
+                targetUserId={user.id}
+                targetName={user.name}
+                initialBlocked={false}
+                initialMuted={myMutedIds.has(user.id)}
+                variant="overlay"
+              />
             ),
           };
         });
