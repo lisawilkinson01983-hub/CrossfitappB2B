@@ -41,23 +41,21 @@ export async function POST(req: Request) {
   const unusablePasswordHash = await bcrypt.hash(crypto.randomBytes(32).toString("hex"), 10);
 
   await prisma.$transaction([
-    // Redact rather than delete — keeps thread structure intact for replies
-    // and likes left by other people, and avoids Comment's/EventNoticeComment's
-    // self-referencing cascade wiping out someone else's reply to this user.
-    prisma.comment.updateMany({ where: { userId: { in: userIds } }, data: { text: "[deleted]" } }),
-    prisma.eventNoticeComment.updateMany({ where: { userId: { in: userIds } }, data: { text: "[deleted]" } }),
-    prisma.eventNotice.updateMany({
-      where: { userId: { in: userIds }, text: { not: null } },
-      data: { text: "[deleted]" },
-    }),
-    // Same redact-don't-delete treatment for a comment this account left on
-    // someone else's workout or PB — their thread stays intact.
-    prisma.workoutComment.updateMany({ where: { userId: { in: userIds } }, data: { text: "[deleted]" } }),
-    prisma.pbComment.updateMany({ where: { userId: { in: userIds } }, data: { text: "[deleted]" } }),
-    // Comments left ON this account's own PBs have nothing left to attach to
-    // once its PB values are cleared below — unlike a workout/post, there's
-    // no row for them to cascade from, so they're removed explicitly.
-    prisma.pbComment.deleteMany({ where: { profileUserId: { in: userIds } } }),
+    // Fully removed, not just redacted — comments/notices this account left
+    // on other people's content disappear outright, including this
+    // account's own event notices (message board posts), which cascades
+    // every comment/like/reaction underneath them (even ones from other
+    // people — there's nothing left for those to attach to once the notice
+    // itself is gone). Comment's/EventNoticeComment's/WorkoutComment's own
+    // self-referencing reply chain cascades the same way: deleting a
+    // deleted account's comment also removes any reply chain under it.
+    prisma.comment.deleteMany({ where: { userId: { in: userIds } } }),
+    prisma.eventNoticeComment.deleteMany({ where: { userId: { in: userIds } } }),
+    prisma.eventNotice.deleteMany({ where: { userId: { in: userIds } } }),
+    prisma.workoutComment.deleteMany({ where: { userId: { in: userIds } } }),
+    // Both directions: comments this account wrote on someone else's PB,
+    // and comments anyone left on this account's own PBs.
+    prisma.pbComment.deleteMany({ where: { OR: [{ userId: { in: userIds } }, { profileUserId: { in: userIds } }] } }),
 
     // Purely personal content and join records — safe to remove outright.
     prisma.commentLike.deleteMany({ where: { userId: { in: userIds } } }),
