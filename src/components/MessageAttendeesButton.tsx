@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-/** Shown to a private event's organizer — starts (or reopens) the group chat with everyone currently marked as attending. */
+/** Shown to a private or social event's organizer — starts (or reopens) the group chat with everyone currently marked as attending. */
 export function MessageAttendeesButton({ eventId }: { eventId: string }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
@@ -31,7 +31,7 @@ export function MessageAttendeesButton({ eventId }: { eventId: string }) {
         disabled={busy}
         className="text-sm text-b2b-pink underline disabled:opacity-50"
       >
-        {busy ? "Opening..." : "Message attendees"}
+        {busy ? "Opening..." : "Create group chat"}
       </button>
       {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
     </div>

@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { assertEventVisible } from "@/lib/eventVisibility";
 import { eventParticipateSchema } from "@/lib/validation";
 import { notifyMentions } from "@/lib/notify";
+import { addToConversation } from "@/lib/conversations";
 
 /** A freeform teammate name could itself contain "@[Name](id)" syntax — neutralize it so it can never resolve to a real mention link. */
 function escapeMentionSyntax(name: string): string {
@@ -57,6 +58,13 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     }
 
     await prisma.eventParticipant.create({ data: { userId, eventId } });
+
+    // Already has a group chat going (see /api/events/[id]/message-attendees)
+    // — anyone who joins afterward should land in it without the organizer
+    // needing to click the button again.
+    if (event.attendeesConversationId) {
+      await addToConversation(event.attendeesConversationId, [userId]);
+    }
 
     // Teammates tagged in the "I'm participating" prompt (competitions only
     // — see EventEngagementButtons): platform teammates become real
@@ -146,6 +154,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
             await prisma.eventParticipant.createMany({
               data: newParticipantIds.map((id) => ({ userId: id, eventId })),
             });
+            if (event.attendeesConversationId) {
+              await addToConversation(event.attendeesConversationId, newParticipantIds);
+            }
           }
           // Same mutual-exclusion rule as the captain's own join above.
           await prisma.eventInterest.deleteMany({ where: { eventId, userId: { in: taggedIds } } });

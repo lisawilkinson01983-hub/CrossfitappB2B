@@ -159,12 +159,12 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
         />
       )}
 
-      {event.isPrivate && isOrganizer && (
+      {isOrganizer && (event.isPrivate || event.eventKind === "SOCIAL") && (
         <div className="flex flex-col gap-3">
           {event.participants.some((p) => p.userId !== session.user.id) && (
             <MessageAttendeesButton eventId={event.id} />
           )}
-          <InviteToEventForm eventId={event.id} gymOptions={gymOptions} />
+          {event.isPrivate && <InviteToEventForm eventId={event.id} gymOptions={gymOptions} />}
         </div>
       )}
     </div>
