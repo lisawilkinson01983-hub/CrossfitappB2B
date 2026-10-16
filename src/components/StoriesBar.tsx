@@ -284,10 +284,20 @@ export function StoriesBar({
       <div className="flex gap-3 overflow-x-auto pb-1">
         <input ref={fileInputRef} type="file" accept={MEDIA_ACCEPT} onChange={handleFileChange} className="hidden" />
 
-        <button
-          type="button"
+        {/* A real <button> can't nest another <button> (invalid HTML —
+            causes a hydration error) — the "+" badge is its own button for
+            the "add to story" action, so this outer one is a div acting as
+            a button instead, for the "open your existing story" action. */}
+        <div
+          role="button"
+          tabIndex={0}
           onClick={() => (ownGroupIndex >= 0 ? openViewer(ownGroupIndex) : setComposerChoiceOpen(true))}
-          className="flex shrink-0 flex-col items-center gap-1"
+          onKeyDown={(e) => {
+            if (e.key !== "Enter" && e.key !== " ") return;
+            e.preventDefault();
+            ownGroupIndex >= 0 ? openViewer(ownGroupIndex) : setComposerChoiceOpen(true);
+          }}
+          className="flex shrink-0 cursor-pointer flex-col items-center gap-1"
         >
           <div className="relative">
             <div
@@ -308,7 +318,7 @@ export function StoriesBar({
             </button>
           </div>
           <span className="max-w-[4.5rem] truncate text-center text-xs text-b2b-ink/60">Your story</span>
-        </button>
+        </div>
 
         <button
           type="button"

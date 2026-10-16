@@ -6,7 +6,7 @@ import { Avatar } from "@/components/Avatar";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { StoryViewersList } from "@/components/StoryViewersList";
 import { LikeIcon } from "@/components/LikeIcon";
-import { ShareIcon } from "@/components/ShareIcon";
+import { SendIcon } from "@/components/SendIcon";
 import { MoreIcon } from "@/components/MoreIcon";
 import { EyeIcon } from "@/components/EyeIcon";
 import { DeleteIcon } from "@/components/DeleteIcon";
@@ -46,6 +46,7 @@ export function StoryViewer({
   const [paused, setPaused] = useState(false);
   const [replyText, setReplyText] = useState("");
   const [sending, setSending] = useState(false);
+  const [replyError, setReplyError] = useState<string | null>(null);
   const [sentFlash, setSentFlash] = useState(false);
   const [viewersOpen, setViewersOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
@@ -127,6 +128,10 @@ export function StoryViewer({
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
+      // Typing a reply (cursor movement, Escape to clear a selection, etc.)
+      // must never double as closing the viewer or skipping the story.
+      const target = e.target as HTMLElement | null;
+      if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA")) return;
       if (e.key === "Escape") onClose();
       if (e.key === "ArrowRight") goNextRef.current();
       if (e.key === "ArrowLeft") goPrevRef.current();
@@ -141,20 +146,24 @@ export function StoryViewer({
   async function sendReply(text: string, isHeart = false) {
     if (!text.trim() || sending || isOwn) return;
     setSending(true);
+    setReplyError(null);
     const res = await fetch(`/api/stories/${story!.id}/reply`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ text }),
     });
     setSending(false);
-    if (res.ok) {
-      setReplyText("");
-      setSentFlash(true);
-      setTimeout(() => setSentFlash(false), 1500);
-      if (isHeart) {
-        setJustLiked(true);
-        setTimeout(() => setJustLiked(false), 1500);
-      }
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      setReplyError(body.error ?? "Couldn't send that. Please try again.");
+      return;
+    }
+    setReplyText("");
+    setSentFlash(true);
+    setTimeout(() => setSentFlash(false), 1500);
+    if (isHeart) {
+      setJustLiked(true);
+      setTimeout(() => setJustLiked(false), 1500);
     }
   }
 
@@ -311,6 +320,12 @@ export function StoryViewer({
                 type="text"
                 value={replyText}
                 onChange={(e) => setReplyText(e.target.value)}
+                // Typing must not let the story auto-advance (or a stray
+                // arrow-key keystroke navigate it) out from under whatever's
+                // half-written — same pause the tap-and-hold gesture on the
+                // media itself already uses.
+                onFocus={() => setPaused(true)}
+                onBlur={() => setPaused(false)}
                 placeholder={`Reply to ${group.author.name.split(" ")[0]}...`}
                 className="flex-1 rounded-full border border-white/30 bg-white/10 px-4 py-2.5 text-sm text-white placeholder:text-white/50 focus:border-white/60 focus:outline-none"
               />
@@ -330,11 +345,12 @@ export function StoryViewer({
                   aria-label="Send"
                   className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-b2b-pink text-white hover:bg-b2b-pink-dark disabled:opacity-40"
                 >
-                  <ShareIcon className="h-5 w-5" />
+                  <SendIcon className="h-5 w-5" />
                 </button>
               )}
             </form>
           )}
+          {replyError && <p className="mt-1.5 text-center text-xs text-red-400">{replyError}</p>}
           {sentFlash && <p className="mt-1.5 text-center text-xs text-white/70">Sent</p>}
         </div>
       </div>
