@@ -280,6 +280,45 @@ export const pbEditSchema = z.object({
     .default([]),
 });
 
+// A generous ceiling rather than a real limit — CrossFit's Open dates back
+// to 2011, and this just needs to reject obvious garbage, not police which
+// years actually had an Open.
+const competitionYear = z.coerce.number().int().min(2000).max(2100);
+const optionalPositiveInt = z.preprocess(emptyToUndefined, z.coerce.number().int().positive().optional());
+// Free text, not an enum — the Open's own gender/age divisions (and the
+// Community Cup's) don't map onto this app's Gender/Level fields and change
+// year to year, so it's entered and displayed exactly as typed.
+const competitionDivision = z.string().trim().min(1, "Division is required").max(60);
+const optionalCompetitionText = z.preprocess(emptyToUndefined, z.string().trim().max(60).optional());
+
+// Used by the signup wizard's optional "Competition stats" step and its
+// Settings → Edit profile twin (see CompetitionStatsEditor) — one PATCH
+// wholesale-replaces a user's rows for both tables at once, same pattern as
+// pbEditSchema's displayedPbs above.
+export const competitionStatsSchema = z.object({
+  openResults: z
+    .array(
+      z.object({
+        year: competitionYear,
+        division: competitionDivision,
+        overallRank: optionalPositiveInt,
+        countryRank: optionalPositiveInt,
+      })
+    )
+    .max(30),
+  communityCupResults: z
+    .array(
+      z.object({
+        year: competitionYear,
+        division: competitionDivision,
+        rank: optionalPositiveInt,
+        competition: optionalCompetitionText,
+      })
+    )
+    .max(30),
+});
+export type CompetitionStatsInput = z.infer<typeof competitionStatsSchema>;
+
 // Rounds/reps are their own fields (not packed into `score`) only for the
 // ROUNDS_REPS unit; every other unit keeps using the free-text `score`.
 export const workoutSchema = z

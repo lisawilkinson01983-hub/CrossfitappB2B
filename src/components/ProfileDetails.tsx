@@ -18,6 +18,7 @@ import { SectionCard } from "@/components/SectionCard";
 import { ExpandableHeroPhoto } from "@/components/ExpandableHeroPhoto";
 import { OpenLevelBadge } from "@/components/OpenLevelBadge";
 import { PbCardBody } from "@/components/PbCardBody";
+import { CompetitionStatsCardBody } from "@/components/CompetitionStatsCardBody";
 import { GymBookingButtons } from "@/components/GymBookingButtons";
 import { CalendarIcon } from "@/components/CalendarIcon";
 import { DropInIcon } from "@/components/DropInIcon";
@@ -88,6 +89,29 @@ export async function ProfileDetails({
   };
 
   const isAffiliate = user.accountType === "AFFILIATE";
+
+  const [openResults, communityCupResults] = isAffiliate
+    ? [[], []]
+    : await Promise.all([
+        prisma.openResult.findMany({ where: { userId: user.id }, orderBy: { year: "desc" } }),
+        prisma.communityCupResult.findMany({ where: { userId: user.id }, orderBy: { year: "desc" } }),
+      ]);
+  const competitionStatsEditorInitial = {
+    openResults: openResults.map((r) => ({
+      key: r.id,
+      year: String(r.year),
+      division: r.division,
+      overallRank: r.overallRank != null ? String(r.overallRank) : "",
+      countryRank: r.countryRank != null ? String(r.countryRank) : "",
+    })),
+    communityCupResults: communityCupResults.map((r) => ({
+      key: r.id,
+      year: String(r.year),
+      division: r.division,
+      rank: r.rank != null ? String(r.rank) : "",
+      competition: r.competition ?? "",
+    })),
+  };
   // The brand account (see src/lib/siteAccount.ts) had to fill in area/gym/
   // ability/CrossFitting-since to get through profile setup like any other
   // account, but none of that means anything on its own profile page.
@@ -298,6 +322,17 @@ export async function ProfileDetails({
           }
         >
           <PbCardBody pbs={pbs} isOwner={isOwner} editorInitial={pbEditorInitial} />
+        </SectionCard>
+      )}
+
+      {!isAffiliate && (
+        <SectionCard title="Competition stats">
+          <CompetitionStatsCardBody
+            openResults={openResults}
+            communityCupResults={communityCupResults}
+            isOwner={isOwner}
+            editorInitial={competitionStatsEditorInitial}
+          />
         </SectionCard>
       )}
     </div>

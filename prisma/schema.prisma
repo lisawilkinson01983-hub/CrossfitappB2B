@@ -522,6 +522,9 @@ model User {
   reportsReceived Report[] @relation("ReportsReceived")
 
   loginEvents LoginEvent[]
+
+  openResults         OpenResult[]
+  communityCupResults CommunityCupResult[]
 }
 
 // One row per successful login — used only to measure "days active" on the
@@ -531,6 +534,46 @@ model LoginEvent {
   id     String @id @default(cuid())
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+// A year's self-reported CrossFit Open result — entered during profile setup
+// (optional, skippable) or later from Settings → Edit profile, same editor
+// either way (see CompetitionStatsEditor). Division is free text (e.g.
+// "Women (40-44)") rather than Gender+LEVELS, since the Open's own age/
+// gender divisions don't line up with this app's level system and change
+// year to year — never parsed, just displayed as typed. Only the overall
+// and country ranks are collected (not region/affiliate) per the user's own
+// ask: those two are what matter for teammate matching.
+model OpenResult {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  year        Int
+  division    String
+  overallRank Int?
+  countryRank Int?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+// A year's self-reported Community Cup result — same optional-at-signup,
+// editable-later pattern as OpenResult above.
+model CommunityCupResult {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  year        Int
+  division    String
+  rank        Int?
+  competition String?
 
   createdAt DateTime @default(now())
 
