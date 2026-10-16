@@ -106,6 +106,26 @@ export async function POST(req: Request) {
     },
   });
 
+  // Created before the partner notifications below so a tagged partner's
+  // notification can deep-link straight to the feed post (not just the
+  // gallery) when there is one — see postId on the notification.
+  const post = data.sharedToFeed
+    ? // contentText is just the notes — the wodName/score/intensity summary
+      // is already shown from linkedWorkout, so repeating it here would
+      // just double up the same line in the feed.
+      await prisma.post.create({
+        data: {
+          userId: session.user.id,
+          type: data.isPb ? "PR" : "WORKOUT",
+          contentText: data.notes ?? null,
+          photo: photoPath ?? null,
+          video: videoPath ?? null,
+          videoThumbnail: videoThumbnailPath,
+          linkedWorkoutId: workout.id,
+        },
+      })
+    : null;
+
   if (partners.length > 0) {
     await prisma.notification.createMany({
       data: partners.map((p) => ({
@@ -113,24 +133,8 @@ export async function POST(req: Request) {
         actorId: session.user.id,
         type: "WORKOUT_PARTNER_TAGGED" as const,
         workoutId: workout.id,
+        postId: post?.id ?? null,
       })),
-    });
-  }
-
-  if (data.sharedToFeed) {
-    // contentText is just the notes — the wodName/score/intensity summary
-    // is already shown from linkedWorkout, so repeating it here would
-    // just double up the same line in the feed.
-    await prisma.post.create({
-      data: {
-        userId: session.user.id,
-        type: data.isPb ? "PR" : "WORKOUT",
-        contentText: data.notes ?? null,
-        photo: photoPath ?? null,
-        video: videoPath ?? null,
-        videoThumbnail: videoThumbnailPath,
-        linkedWorkoutId: workout.id,
-      },
     });
   }
 

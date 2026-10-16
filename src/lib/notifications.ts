@@ -156,9 +156,12 @@ export function notificationHref(n: NotificationView, viewerId: string): string 
     case "NEW_USER_SIGNUP":
       return `/profile/${n.actor.id}`;
     // Unlike WORKOUT_COMMENT (always on the viewer's own workout), the
-    // workout here belongs to whoever tagged this user — deep-link to
-    // their gallery, not the viewer's own.
+    // workout here belongs to whoever tagged this user. If it was shared to
+    // the feed, go straight to that post (n.post is set at notification-
+    // creation time — see /api/workouts); only fall back to their gallery
+    // for a workout that was never shared, since there'd be no post to go to.
     case "WORKOUT_PARTNER_TAGGED":
+      if (n.post) return `/posts/${n.post.id}`;
       return `/profile/${n.actor.id}/gallery${n.workoutId ? `?workout=${n.workoutId}` : ""}`;
     case "MENTION":
       if (n.storyId) return `/feed?story=${n.storyId}`;
