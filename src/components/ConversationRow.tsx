@@ -143,18 +143,7 @@ export function ConversationRow({ row }: { row: ConversationRowData }) {
           />
         )}
         <div className="min-w-0 flex-1">
-          {row.otherUserId ? (
-            <Link
-              href={`/profile/${row.otherUserId}`}
-              onClick={(e) => e.stopPropagation()}
-              onPointerDown={(e) => e.stopPropagation()}
-              className="block font-semibold hover:underline"
-            >
-              {row.displayName}
-            </Link>
-          ) : (
-            <p className="font-semibold">{row.displayName}</p>
-          )}
+          <p className="font-semibold">{row.displayName}</p>
           <p className="truncate text-sm text-b2b-ink/50">{row.lastMessagePreview}</p>
         </div>
         <div className="flex shrink-0 flex-col items-end gap-1.5">
