@@ -143,6 +143,7 @@ function TeamTagPrompt({
   const [freeformInput, setFreeformInput] = useState("");
   const [existingTeams, setExistingTeams] = useState<ExistingTeam[]>([]);
   const [joiningTeamId, setJoiningTeamId] = useState<string | null>(null);
+  const [searching, setSearching] = useState(false);
   const requestId = useRef(0);
 
   useEffect(() => {
@@ -169,16 +170,25 @@ function TeamTagPrompt({
     setQuery(value);
     if (!value.trim()) {
       setResults([]);
+      setSearching(false);
       return;
     }
     const thisRequest = ++requestId.current;
+    setSearching(true);
     const res = await fetch(`/api/users/search?q=${encodeURIComponent(value.trim())}`);
     if (thisRequest !== requestId.current) return;
+    setSearching(false);
     if (res.ok) {
       const body = await res.json();
       setResults(body.users ?? []);
     }
   }
+
+  // Shown right under the search box once a search comes back empty, so
+  // "they're not on there" is an explicit answer rather than the box just
+  // going quiet — and it points straight at the manual-add field below
+  // instead of leaving that to be found by scrolling.
+  const noMatches = !searching && query.trim().length > 0 && results.length === 0;
 
   function addTeammate(user: UserOption) {
     if (totalTagged >= MAX_TEAMMATES) return;
@@ -212,7 +222,17 @@ function TeamTagPrompt({
         onClick={(e) => e.stopPropagation()}
         className="max-h-[85vh] w-full max-w-sm overflow-y-auto rounded-xl bg-b2b-card p-5 shadow-lg"
       >
-        <p className="text-base font-semibold text-b2b-ink">Tag your team?</p>
+        <div className="flex items-start justify-between gap-3">
+          <p className="text-base font-semibold text-b2b-ink">Tag your team?</p>
+          <button
+            type="button"
+            onClick={onCancel}
+            aria-label="Close"
+            className="shrink-0 rounded px-1 text-lg leading-none text-b2b-ink/40 hover:text-b2b-ink"
+          >
+            ×
+          </button>
+        </div>
         <p className="mt-1 text-sm text-b2b-ink/60">
           Add your teammates and they'll be tagged in your feed post and the event's Message Board — or skip if
           you're going solo.
@@ -337,6 +357,11 @@ function TeamTagPrompt({
                   </button>
                 ))}
             </div>
+          )}
+          {noMatches && (
+            <p className="mt-2 text-xs text-b2b-ink/50">
+              No one matched "{query.trim()}" — add their name manually below instead.
+            </p>
           )}
         </div>
 
