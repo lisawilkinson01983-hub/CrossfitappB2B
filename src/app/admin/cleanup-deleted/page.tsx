@@ -24,10 +24,11 @@ export default async function CleanupDeletedPage() {
       <div className="mt-4">
         <SectionCard title="Clean up deleted users' content">
           <p className="text-sm text-b2b-ink/70">
-            Deleting an account now fully removes everything it posted — feed posts, event message board posts, and
-            comments it left anywhere — instead of leaving a "[deleted]" placeholder behind. This runs that same
-            cleanup against every account already deleted before that change, on whichever database this button is
-            running against.
+            Deleting an account now fully removes everything it posted or left behind — feed posts, event message
+            board posts, comments, reactions, workout-partner tags, team memberships, and still-active stories —
+            instead of leaving a "Deleted User" placeholder sitting on someone else's content. This runs that same
+            cleanup against every account already deleted, on whichever database this button is running against, so
+            it also catches anything added to the list after an account was already deleted.
           </p>
           <p className="mt-2 text-sm text-b2b-ink/50">
             {deletedUserCount} deleted {deletedUserCount === 1 ? "account" : "accounts"} on this database right now.

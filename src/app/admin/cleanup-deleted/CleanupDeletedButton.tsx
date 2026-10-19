@@ -11,6 +11,22 @@ type Result = {
     eventNotices: number;
     workoutComments: number;
     pbComments: number;
+    postReactions: number;
+    commentReactions: number;
+    statusReactions: number;
+    workoutCommentReactions: number;
+    pbCommentReactions: number;
+    eventNoticeReactions: number;
+    eventNoticeCommentReactions: number;
+    eventWorkoutReactions: number;
+    messageReactions: number;
+    workoutPartnerTags: number;
+    teamMemberships: number;
+    emptyTeams: number;
+    stories: number;
+    storyMentions: number;
+    storyViews: number;
+    savedPosts: number;
   };
 };
 
@@ -69,6 +85,36 @@ export function CleanupDeletedButton() {
                 )}
                 {result.removed.workoutComments > 0 && <li>{result.removed.workoutComments} workout comments</li>}
                 {result.removed.pbComments > 0 && <li>{result.removed.pbComments} PB comments</li>}
+                {result.removed.postReactions > 0 && <li>{result.removed.postReactions} feed post reactions</li>}
+                {result.removed.commentReactions > 0 && <li>{result.removed.commentReactions} comment reactions</li>}
+                {result.removed.statusReactions > 0 && <li>{result.removed.statusReactions} status reactions</li>}
+                {result.removed.workoutCommentReactions > 0 && (
+                  <li>{result.removed.workoutCommentReactions} workout comment reactions</li>
+                )}
+                {result.removed.pbCommentReactions > 0 && (
+                  <li>{result.removed.pbCommentReactions} PB comment reactions</li>
+                )}
+                {result.removed.eventNoticeReactions > 0 && (
+                  <li>{result.removed.eventNoticeReactions} event message board reactions</li>
+                )}
+                {result.removed.eventNoticeCommentReactions > 0 && (
+                  <li>{result.removed.eventNoticeCommentReactions} event message board comment reactions</li>
+                )}
+                {result.removed.eventWorkoutReactions > 0 && (
+                  <li>{result.removed.eventWorkoutReactions} event workout reactions</li>
+                )}
+                {result.removed.messageReactions > 0 && <li>{result.removed.messageReactions} message reactions</li>}
+                {result.removed.workoutPartnerTags > 0 && (
+                  <li>{result.removed.workoutPartnerTags} workout partner tags</li>
+                )}
+                {result.removed.teamMemberships > 0 && (
+                  <li>{result.removed.teamMemberships} event team memberships</li>
+                )}
+                {result.removed.emptyTeams > 0 && <li>{result.removed.emptyTeams} now-empty event teams</li>}
+                {result.removed.stories > 0 && <li>{result.removed.stories} still-active stories</li>}
+                {result.removed.storyMentions > 0 && <li>{result.removed.storyMentions} story tags</li>}
+                {result.removed.storyViews > 0 && <li>{result.removed.storyViews} story views</li>}
+                {result.removed.savedPosts > 0 && <li>{result.removed.savedPosts} saved posts</li>}
               </ul>
             </>
           )}

@@ -4,6 +4,7 @@ import crypto from "crypto";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { removeDeletedUserContent } from "@/lib/deletedUserCleanup";
 
 /**
  * Deletes an account by anonymizing it and every profile under it, rather
@@ -40,23 +41,16 @@ export async function POST(req: Request) {
   const userIds = profiles.map((p) => p.id);
   const unusablePasswordHash = await bcrypt.hash(crypto.randomBytes(32).toString("hex"), 10);
 
-  await prisma.$transaction([
-    // Fully removed, not just redacted — comments/notices this account left
-    // on other people's content disappear outright, including this
-    // account's own event notices (message board posts), which cascades
-    // every comment/like/reaction underneath them (even ones from other
-    // people — there's nothing left for those to attach to once the notice
-    // itself is gone). Comment's/EventNoticeComment's/WorkoutComment's own
-    // self-referencing reply chain cascades the same way: deleting a
-    // deleted account's comment also removes any reply chain under it.
-    prisma.comment.deleteMany({ where: { userId: { in: userIds } } }),
-    prisma.eventNoticeComment.deleteMany({ where: { userId: { in: userIds } } }),
-    prisma.eventNotice.deleteMany({ where: { userId: { in: userIds } } }),
-    prisma.workoutComment.deleteMany({ where: { userId: { in: userIds } } }),
-    // Both directions: comments this account wrote on someone else's PB,
-    // and comments anyone left on this account's own PBs.
-    prisma.pbComment.deleteMany({ where: { OR: [{ userId: { in: userIds } }, { profileUserId: { in: userIds } }] } }),
+  // Fully removed, not just redacted — comments/notices/reactions/tags this
+  // account left anywhere (its own content, and stray reactions/tags left
+  // on someone else's still-active content alike) disappear outright. See
+  // removeDeletedUserContent's own doc comment for the full list and what's
+  // deliberately left alone instead (messages, reports, events/gyms this
+  // account created). Run as its own transaction, separate from the
+  // anonymization below, since it shares nothing with it.
+  await removeDeletedUserContent(userIds);
 
+  await prisma.$transaction([
     // Purely personal content and join records — safe to remove outright.
     prisma.commentLike.deleteMany({ where: { userId: { in: userIds } } }),
     prisma.eventNoticeLike.deleteMany({ where: { userId: { in: userIds } } }),

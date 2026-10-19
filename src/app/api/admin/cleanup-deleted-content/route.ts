@@ -2,13 +2,14 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { removeDeletedUserContent } from "@/lib/deletedUserCleanup";
 
 /**
- * Retroactively finishes the job for accounts deleted before this content
- * was switched from "redact to [deleted]" to "remove outright" (see
- * /api/account/delete) — any already-deleted (User.deletedAt set) profile's
- * leftover comments/notices still sitting around (as a "[deleted]"
- * placeholder, or just never cleaned up) get fully removed now. Safe to
+ * Retroactively finishes the job for every already-deleted (User.deletedAt
+ * set) profile — whether it was deleted before content was switched from
+ * "redact to [deleted]" to "remove outright" (see /api/account/delete), or
+ * before removeDeletedUserContent covered a given category at all (e.g. the
+ * reaction/workout-partner/team-roster/story gaps it closed later). Safe to
  * run more than once — each pass only finds what the last one left behind.
  */
 export async function POST() {
@@ -25,27 +26,7 @@ export async function POST() {
   const deletedUsers = await prisma.user.findMany({ where: { deletedAt: { not: null } }, select: { id: true } });
   const userIds = deletedUsers.map((u) => u.id);
 
-  if (userIds.length === 0) {
-    return NextResponse.json({ ok: true, deletedUserCount: 0, removed: {} });
-  }
+  const removed = await removeDeletedUserContent(userIds);
 
-  const [comments, eventNoticeComments, eventNotices, workoutComments, pbComments] = await prisma.$transaction([
-    prisma.comment.deleteMany({ where: { userId: { in: userIds } } }),
-    prisma.eventNoticeComment.deleteMany({ where: { userId: { in: userIds } } }),
-    prisma.eventNotice.deleteMany({ where: { userId: { in: userIds } } }),
-    prisma.workoutComment.deleteMany({ where: { userId: { in: userIds } } }),
-    prisma.pbComment.deleteMany({ where: { OR: [{ userId: { in: userIds } }, { profileUserId: { in: userIds } }] } }),
-  ]);
-
-  return NextResponse.json({
-    ok: true,
-    deletedUserCount: userIds.length,
-    removed: {
-      comments: comments.count,
-      eventNoticeComments: eventNoticeComments.count,
-      eventNotices: eventNotices.count,
-      workoutComments: workoutComments.count,
-      pbComments: pbComments.count,
-    },
-  });
+  return NextResponse.json({ ok: true, deletedUserCount: userIds.length, removed });
 }
