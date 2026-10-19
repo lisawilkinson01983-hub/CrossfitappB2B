@@ -335,7 +335,7 @@ export function ChatThread({
                     <button
                       type="button"
                       onClick={() => scrollToMessage(message.replyTo!.id)}
-                      className={`block w-full border-l-4 px-3 py-1.5 text-left text-xs ${
+                      className={`block w-full max-w-[220px] border-l-4 px-3 py-1.5 text-left text-xs ${
                         hasMedia || hasGif
                           ? "border-b2b-pink/50 bg-b2b-pink/5 text-b2b-ink/70"
                           : isMine
@@ -483,7 +483,7 @@ export function ChatThread({
               value={text}
               onChange={setText}
               onKeyDown={handleComposerKeyDown}
-              className="resize-none rounded-full border border-b2b-purple/15 bg-b2b-card px-4 py-2.5 focus:border-b2b-pink focus:outline-none"
+              className="resize-none rounded-3xl border border-b2b-purple/15 bg-b2b-card px-4 py-2.5 focus:border-b2b-pink focus:outline-none"
             />
             <button
               type="submit"
