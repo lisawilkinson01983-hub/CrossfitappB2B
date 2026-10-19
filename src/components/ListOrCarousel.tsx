@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import { readStoredView, storeView } from "@/lib/viewPreference";
 
 /**
  * A List/Carousel toggle that lets the caller supply its own bespoke list
@@ -24,6 +25,20 @@ export function ListOrCarousel({
 }) {
   const [view, setView] = useState<"list" | "carousel">(defaultView);
 
+  // See SwipeCardList's identical effect — restores a previously-chosen
+  // view after a navigation remounts this component, which can't happen via
+  // the initial useState value since localStorage isn't available during
+  // server rendering.
+  useEffect(() => {
+    const stored = readStoredView();
+    if (stored) setView(stored);
+  }, []);
+
+  function changeView(next: "list" | "carousel") {
+    setView(next);
+    storeView(next);
+  }
+
   return (
     <div>
       <div className="flex items-center justify-between">
@@ -31,7 +46,7 @@ export function ListOrCarousel({
         <div className="flex rounded-full bg-b2b-purple/10 p-1">
           <button
             type="button"
-            onClick={() => setView("list")}
+            onClick={() => changeView("list")}
             className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
               view === "list" ? "bg-b2b-pink text-white" : "text-b2b-ink/55"
             }`}
@@ -40,7 +55,7 @@ export function ListOrCarousel({
           </button>
           <button
             type="button"
-            onClick={() => setView("carousel")}
+            onClick={() => changeView("carousel")}
             className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
               view === "carousel" ? "bg-b2b-pink text-white" : "text-b2b-ink/55"
             }`}

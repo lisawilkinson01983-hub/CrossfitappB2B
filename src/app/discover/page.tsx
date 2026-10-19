@@ -82,14 +82,20 @@ export default async function DiscoverPage({
         </Link>
       </div>
 
+      {/* Keyed on `view` so switching tabs always fully remounts the next
+          one, rather than React reconciling two structurally similar trees
+          (every tab's search form looks much the same) and reusing a client
+          component instance in place — which otherwise let the previous
+          tab's typed search text and open/closed filter state leak into the
+          new tab instead of resetting. */}
       {view === "athletes" ? (
-        <AthletesSearch sp={sp} currentUserId={session.user.id} />
+        <AthletesSearch key="athletes" sp={sp} currentUserId={session.user.id} />
       ) : view === "events" ? (
-        <EventsList sp={sp} currentUserId={session.user.id} />
+        <EventsList key="events" sp={sp} currentUserId={session.user.id} />
       ) : view === "affiliates" ? (
-        <AffiliatesList sp={sp} currentUserId={session.user.id} />
+        <AffiliatesList key="affiliates" sp={sp} currentUserId={session.user.id} />
       ) : (
-        <TeammatesSearch sp={sp} currentUserId={session.user.id} />
+        <TeammatesSearch key="teammates" sp={sp} currentUserId={session.user.id} />
       )}
     </main>
   );

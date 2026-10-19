@@ -117,6 +117,8 @@ function PostComposerModal({ onClose, canPostWorkout }: { onClose: () => void; c
     setAttachments((prev) => prev.filter((_, i) => i !== index));
   }
 
+  const hasContent = contentText.trim().length > 0 || attachments.length > 0 || !!stagedGifUrl;
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
@@ -249,7 +251,7 @@ function PostComposerModal({ onClose, canPostWorkout }: { onClose: () => void; c
           <div className="mt-3 flex justify-end">
             <button
               type="submit"
-              disabled={submitting}
+              disabled={submitting || !hasContent}
               className="rounded bg-b2b-pink px-4 py-2 text-sm font-medium text-white hover:bg-b2b-pink-dark disabled:opacity-50"
             >
               {submitting ? "Posting..." : "Post"}

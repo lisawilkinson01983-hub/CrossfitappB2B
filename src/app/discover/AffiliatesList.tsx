@@ -198,7 +198,7 @@ export async function AffiliatesList({
         <form method="GET" className="flex flex-col gap-4">
           <input type="hidden" name="view" value="affiliates" />
           <div>
-            <label htmlFor="q" className="block text-sm font-medium">
+            <label htmlFor="q" className="sr-only">
               Search affiliates
             </label>
             <SearchSuggestInput
@@ -207,7 +207,7 @@ export async function AffiliatesList({
               name="q"
               placeholder="Search by gym name or area"
               defaultValue={q}
-              className="mt-1 w-full rounded border border-gray-300 px-3 py-2 focus:border-b2b-pink focus:outline-none"
+              className="w-full rounded border border-gray-300 px-3 py-2 focus:border-b2b-pink focus:outline-none"
             />
           </div>
           <SearchFilters activeCount={activeFilterCount} defaultOpen={activeFilterCount > 0}>

@@ -252,7 +252,16 @@ export function StoriesBar({
     loadStories();
   }
 
-  if (groups === null) return null;
+  // Deliberately NOT gated on `groups` having loaded yet: the "Your story"/
+  // "Set status" slots and everyone's status-only entries (statusEntries
+  // arrives as a prop, already known at first paint) don't need the stories
+  // fetch at all, so rendering them immediately keeps this bar's height
+  // stable from the very first paint. Returning null here until the fetch
+  // resolved used to collapse the whole bar to zero height, which shoved
+  // whatever rendered below it (the post composer) up to the top of the
+  // page for a moment before shunting it back down once stories arrived —
+  // the composer never actually moved, the bar just wasn't there yet.
+  const groupsList = groups ?? [];
 
   // Merge story authors with status-setters into one ordered strip: everyone
   // with an active story keeps their spot (unseen-first, per the stories
@@ -267,7 +276,7 @@ export function StoriesBar({
       id: g.author.id,
       name: g.author.name,
       photo: g.author.photo,
-      groupIndex: groups.findIndex((gr) => gr.author.id === g.author.id),
+      groupIndex: groupsList.findIndex((gr) => gr.author.id === g.author.id),
       hasUnseen: g.hasUnseen,
       statusEntry: statusById.get(g.author.id) ?? null,
     };
@@ -368,9 +377,9 @@ export function StoriesBar({
         })}
       </div>
 
-      {viewerStart && groups[viewerStart.groupIndex] && (
+      {viewerStart && groupsList[viewerStart.groupIndex] && (
         <StoryViewer
-          groups={groups}
+          groups={groupsList}
           startGroupIndex={viewerStart.groupIndex}
           startStoryIndex={viewerStart.storyIndex}
           currentUserId={currentUser.id}

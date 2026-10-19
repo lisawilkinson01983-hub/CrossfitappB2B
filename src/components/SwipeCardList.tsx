@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Avatar } from "@/components/Avatar";
+import { readStoredView, storeView } from "@/lib/viewPreference";
 
 export type SwipeCardItem = {
   id: string;
@@ -71,6 +72,22 @@ export function SwipeCardList({
   const [index, setIndex] = useState(0);
   const cardRef = useRef<HTMLDivElement>(null);
   const drag = useRef({ startX: 0, dx: 0, dragging: false });
+
+  // Restores a previously-chosen List/Carousel view after this component
+  // remounts from a navigation — can't be the initial useState value itself
+  // (localStorage isn't available during server rendering), so this runs
+  // once after mount instead, same as any other "restore a client-only
+  // preference" effect.
+  useEffect(() => {
+    if (hideHeader) return;
+    const stored = readStoredView();
+    if (stored) setView(stored);
+  }, [hideHeader]);
+
+  function changeView(next: "carousel" | "list") {
+    setView(next);
+    storeView(next);
+  }
 
   // Reset any leftover drag transform instantly whenever the active card
   // changes (including a dot/list jump, which skips the fly-out animation).
@@ -168,7 +185,7 @@ export function SwipeCardList({
           <div className="flex rounded-full bg-b2b-purple/10 p-1">
             <button
               type="button"
-              onClick={() => setView("list")}
+              onClick={() => changeView("list")}
               className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
                 view === "list" ? "bg-b2b-pink text-white" : "text-b2b-ink/55"
               }`}
@@ -177,7 +194,7 @@ export function SwipeCardList({
             </button>
             <button
               type="button"
-              onClick={() => setView("carousel")}
+              onClick={() => changeView("carousel")}
               className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
                 view === "carousel" ? "bg-b2b-pink text-white" : "text-b2b-ink/55"
               }`}
