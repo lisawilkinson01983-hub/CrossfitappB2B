@@ -5,6 +5,7 @@ import { signupSchema } from "@/lib/validation";
 import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
 import { generateUniqueInviteCode, isInviteOnly } from "@/lib/inviteCode";
 import { getSiteAccountId } from "@/lib/siteAccount";
+import { addUserToTeam } from "@/lib/teams";
 
 export async function POST(req: Request) {
   const rateLimit = checkRateLimit(getClientIp(req.headers), "signup", { limit: 5, windowMs: 15 * 60 * 1000 });
@@ -74,8 +75,40 @@ export async function POST(req: Request) {
 
   await addWelcomeFriend(user.id);
   await notifyAdminsOfSignup(user.id);
+  if (parsed.data.teamInviteToken) {
+    await claimTeamInviteLink(parsed.data.teamInviteToken, user.id);
+  }
 
   return NextResponse.json({ ok: true });
+}
+
+/**
+ * Turns a freeform ("not on the app yet") roster slot into a real
+ * membership the moment that exact person signs up through their own
+ * team invite link (see TeamInviteLink, TeamRosterTrigger) — an invalid,
+ * already-claimed, or otherwise stale token just means a normal signup
+ * with no team attached, same as a bad general inviteCode never blocks
+ * signup either.
+ */
+async function claimTeamInviteLink(token: string, newUserId: string) {
+  const link = await prisma.teamInviteLink.findUnique({ where: { id: token } });
+  if (!link || link.claimedAt) return;
+
+  const team = await prisma.team.findUnique({ where: { id: link.teamId } });
+  if (!team) return;
+
+  const freeformNames: string[] = team.freeformMemberNames ? JSON.parse(team.freeformMemberNames) : [];
+  const remaining = freeformNames.filter((n) => n.toLowerCase() !== link.freeformName.toLowerCase());
+
+  await prisma.team.update({
+    where: { id: team.id },
+    data: { freeformMemberNames: remaining.length > 0 ? JSON.stringify(remaining) : null },
+  });
+  await prisma.teamInviteLink.update({
+    where: { id: token },
+    data: { claimedByUserId: newUserId, claimedAt: new Date() },
+  });
+  await addUserToTeam(team.id, newUserId);
 }
 
 /** Lets every admin know a brand new account just joined — same "sent to every admin" pattern as event/gym submissions. */

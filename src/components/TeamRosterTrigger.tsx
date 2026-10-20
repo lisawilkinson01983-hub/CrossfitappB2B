@@ -322,11 +322,17 @@ function InviteSection({
       setError("Something went wrong. Please try again.");
       return;
     }
+    const body: { inviteLinks?: { name: string; token: string }[] } = await res.json();
     setFreeformInput("");
     setAddedFreeform((prev) => [...prev, trimmed]);
     router.refresh();
 
-    const link = `${origin || window.location.origin}/install?ref=${viewerInviteCode}`;
+    // The token (if one came back) turns this into a team-specific invite —
+    // signing up through it adds them straight to the roster instead of
+    // just crediting a generic referral (see POST /api/signup).
+    const token = body.inviteLinks?.find((l) => l.name === trimmed)?.token;
+    const installPath = token ? `/install?ref=${viewerInviteCode}&team=${token}` : `/install?ref=${viewerInviteCode}`;
+    const link = `${origin || window.location.origin}${installPath}`;
     const text = `${viewerName} wants to add you to their team "${teamName}" on Box 2 Box - sign up here: ${link}`;
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank", "noopener,noreferrer");
   }

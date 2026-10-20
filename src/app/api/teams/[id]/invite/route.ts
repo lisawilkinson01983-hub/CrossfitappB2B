@@ -89,6 +89,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   }
 
   let addedFreeformNames: string[] = [];
+  // One per freeform name, so signing up through it (see POST /api/signup)
+  // can turn that exact roster slot into a real membership instead of just
+  // crediting a generic referral.
+  let inviteLinks: { name: string; token: string }[] = [];
   if (newFreeformNames.length > 0) {
     const existingNames: string[] = team.freeformMemberNames ? JSON.parse(team.freeformMemberNames) : [];
     const existingLower = new Set(existingNames.map((n) => n.toLowerCase()));
@@ -98,8 +102,17 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         where: { id: teamId },
         data: { freeformMemberNames: JSON.stringify([...existingNames, ...addedFreeformNames]) },
       });
+      const createdLinks = await Promise.all(
+        addedFreeformNames.map((name) =>
+          prisma.teamInviteLink.create({
+            data: { teamId, freeformName: name, createdById: userId },
+            select: { id: true },
+          })
+        )
+      );
+      inviteLinks = addedFreeformNames.map((name, i) => ({ name, token: createdLinks[i].id }));
     }
   }
 
-  return NextResponse.json({ invitedUserIds, skippedUserIds, addedFreeformNames });
+  return NextResponse.json({ invitedUserIds, skippedUserIds, addedFreeformNames, inviteLinks });
 }

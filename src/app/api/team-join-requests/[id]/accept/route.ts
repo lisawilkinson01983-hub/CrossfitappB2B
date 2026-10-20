@@ -2,15 +2,14 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { addToConversation } from "@/lib/conversations";
+import { addUserToTeam } from "@/lib/teams";
 
 /**
  * Approves a pending TeamJoinRequest — who's allowed depends on its kind:
  * an INVITE is approved by the person who'd be joining (request.userId); a
- * REQUEST is approved by the team's creator. Either way this is the one
- * place a TeamMember row actually gets created, so it's also where the
- * subject gets marked as an event participant (if they weren't already) and
- * synced into the team's own group chat (if one exists yet).
+ * REQUEST is approved by the team's creator. Either way, the actual
+ * TeamMember-creation/participant/chat-sync/notify work is shared with the
+ * freeform-invite-link signup path (see addUserToTeam).
  */
 export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
@@ -36,49 +35,8 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
 
   const { teamId, userId: subjectId, eventId } = { teamId: request.teamId, userId: request.userId, eventId: request.team.eventId };
 
-  const existingMembers = await prisma.teamMember.findMany({
-    where: { teamId, userId: { notIn: [subjectId, viewerId] } },
-    select: { userId: true },
-  });
-
-  await prisma.$transaction([
-    prisma.teamJoinRequest.update({ where: { id }, data: { status: "ACCEPTED" } }),
-    prisma.teamMember.upsert({
-      where: { teamId_userId: { teamId, userId: subjectId } },
-      create: { teamId, userId: subjectId },
-      update: {},
-    }),
-  ]);
-
-  // Being on a team means you're competing — mark them participating if
-  // joining a team is the first thing that's happened for them on this
-  // event, same as every other way of ending up on the roster.
-  const existingParticipant = await prisma.eventParticipant.findUnique({
-    where: { userId_eventId: { userId: subjectId, eventId } },
-  });
-  if (!existingParticipant) {
-    await prisma.eventParticipant.create({ data: { userId: subjectId, eventId } });
-    await prisma.eventInterest.deleteMany({ where: { userId: subjectId, eventId } });
-    const event = await prisma.event.findUnique({ where: { id: eventId }, select: { attendeesConversationId: true } });
-    if (event?.attendeesConversationId) {
-      await addToConversation(event.attendeesConversationId, [subjectId]);
-    }
-  }
-
-  if (request.team.conversationId) {
-    await addToConversation(request.team.conversationId, [subjectId]);
-  }
-
-  if (existingMembers.length > 0) {
-    await prisma.notification.createMany({
-      data: existingMembers.map((m) => ({
-        userId: m.userId,
-        actorId: subjectId,
-        type: "EVENT_TEAM_JOINED" as const,
-        eventId,
-      })),
-    });
-  }
+  await prisma.teamJoinRequest.update({ where: { id }, data: { status: "ACCEPTED" } });
+  await addUserToTeam(teamId, subjectId, { excludeFromNotification: viewerId });
 
   // Only a REQUEST needs a confirmation sent back — an INVITE's approver IS
   // the subject, so they already know; a REQUEST's approver is the team's

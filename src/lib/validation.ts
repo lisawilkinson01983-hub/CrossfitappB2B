@@ -144,6 +144,10 @@ export const signupSchema = z.object({
     errorMap: () => ({ message: "You must confirm you're at least 18 years old" }),
   }),
   inviteCode: z.string().trim().optional(),
+  // A TeamInviteLink token from a freeform teammate's WhatsApp invite link
+  // (see TeamRosterTrigger) — an invalid/stale one is ignored at signup
+  // time, same as a bad inviteCode, so it's unvalidated here beyond shape.
+  teamInviteToken: z.string().trim().optional(),
 });
 
 /** Treat empty-string form fields as "not provided" instead of failing validation. */
@@ -421,6 +425,9 @@ export const eventWorkoutSchema = z.object({
   workout: z.preprocess(emptyToUndefined, z.string().trim().max(2000).optional()),
   standards: z.preprocess(emptyToUndefined, z.string().trim().max(2000).optional()),
   workflow: z.preprocess(emptyToUndefined, z.string().trim().max(2000).optional()),
+  scaledWorkout: z.preprocess(emptyToUndefined, z.string().trim().max(2000).optional()),
+  scaledStandards: z.preprocess(emptyToUndefined, z.string().trim().max(2000).optional()),
+  scaledWorkflow: z.preprocess(emptyToUndefined, z.string().trim().max(2000).optional()),
 });
 
 export const teammateRequestSchema = z.object({

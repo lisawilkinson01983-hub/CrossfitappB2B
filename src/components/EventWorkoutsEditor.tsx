@@ -11,6 +11,9 @@ export type EventWorkoutEditData = {
   workout: string | null;
   standards: string | null;
   workflow: string | null;
+  scaledWorkout: string | null;
+  scaledStandards: string | null;
+  scaledWorkflow: string | null;
   photo: string | null;
 };
 
@@ -113,6 +116,9 @@ export function EventWorkoutsEditor({ eventId, workouts }: { eventId: string; wo
             workout: "",
             standards: "",
             workflow: "",
+            scaledWorkout: "",
+            scaledStandards: "",
+            scaledWorkflow: "",
             photo: null,
           }}
           onClose={() => setAdding(false)}
@@ -133,6 +139,9 @@ export function EventWorkoutsEditor({ eventId, workouts }: { eventId: string; wo
             workout: editingWorkout.workout ?? "",
             standards: editingWorkout.standards ?? "",
             workflow: editingWorkout.workflow ?? "",
+            scaledWorkout: editingWorkout.scaledWorkout ?? "",
+            scaledStandards: editingWorkout.scaledStandards ?? "",
+            scaledWorkflow: editingWorkout.scaledWorkflow ?? "",
             photo: editingWorkout.photo,
           }}
           onClose={() => setEditingId(null)}
@@ -147,7 +156,17 @@ export function EventWorkoutsEditor({ eventId, workouts }: { eventId: string; wo
   );
 }
 
-type WorkoutFields = { number: string; title: string; workout: string; standards: string; workflow: string; photo: string | null };
+type WorkoutFields = {
+  number: string;
+  title: string;
+  workout: string;
+  standards: string;
+  workflow: string;
+  scaledWorkout: string;
+  scaledStandards: string;
+  scaledWorkflow: string;
+  photo: string | null;
+};
 
 /** A 5-field (number/title/workout/standards/workflow) + poster variant of the shared EditModal popout, used for both adding and editing a workout entry. */
 function WorkoutFieldsModal({
@@ -162,6 +181,7 @@ function WorkoutFieldsModal({
   onSubmit: (formData: FormData) => Promise<boolean>;
 }) {
   const [fields, setFields] = useState(initial);
+  const [division, setDivision] = useState<"rx" | "scaled">("rx");
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(initial.photo);
   const [removePhoto, setRemovePhoto] = useState(false);
@@ -252,12 +272,46 @@ function WorkoutFieldsModal({
             </label>
           </div>
 
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold uppercase tracking-wide text-b2b-ink/50">Division</span>
+            <div className="flex rounded-full bg-b2b-purple/10 p-1">
+              <button
+                type="button"
+                onClick={() => setDivision("rx")}
+                className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
+                  division === "rx" ? "bg-b2b-pink text-white" : "text-b2b-ink/55"
+                }`}
+              >
+                RX
+              </button>
+              <button
+                type="button"
+                onClick={() => setDivision("scaled")}
+                className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
+                  division === "scaled" ? "bg-b2b-pink text-white" : "text-b2b-ink/55"
+                }`}
+              >
+                Scaled
+              </button>
+            </div>
+          </div>
+          {division === "scaled" && (
+            <p className="-mt-2 text-xs text-b2b-ink/40">
+              Leave these blank to show only an RX version — the workout's page won't show a separate Scaled tab at
+              all unless at least one of these is filled in.
+            </p>
+          )}
+
           <label className="flex flex-col gap-1">
             <span className="text-xs font-semibold uppercase tracking-wide text-b2b-ink/50">Workout</span>
             <textarea
               rows={4}
-              value={fields.workout}
-              onChange={(e) => setFields((f) => ({ ...f, workout: e.target.value }))}
+              value={division === "rx" ? fields.workout : fields.scaledWorkout}
+              onChange={(e) =>
+                setFields((f) =>
+                  division === "rx" ? { ...f, workout: e.target.value } : { ...f, scaledWorkout: e.target.value }
+                )
+              }
               className="w-full resize-none rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-b2b-pink focus:outline-none"
             />
           </label>
@@ -266,8 +320,12 @@ function WorkoutFieldsModal({
             <span className="text-xs font-semibold uppercase tracking-wide text-b2b-ink/50">Standards</span>
             <textarea
               rows={3}
-              value={fields.standards}
-              onChange={(e) => setFields((f) => ({ ...f, standards: e.target.value }))}
+              value={division === "rx" ? fields.standards : fields.scaledStandards}
+              onChange={(e) =>
+                setFields((f) =>
+                  division === "rx" ? { ...f, standards: e.target.value } : { ...f, scaledStandards: e.target.value }
+                )
+              }
               className="w-full resize-none rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-b2b-pink focus:outline-none"
             />
           </label>
@@ -276,8 +334,12 @@ function WorkoutFieldsModal({
             <span className="text-xs font-semibold uppercase tracking-wide text-b2b-ink/50">Workflow</span>
             <textarea
               rows={4}
-              value={fields.workflow}
-              onChange={(e) => setFields((f) => ({ ...f, workflow: e.target.value }))}
+              value={division === "rx" ? fields.workflow : fields.scaledWorkflow}
+              onChange={(e) =>
+                setFields((f) =>
+                  division === "rx" ? { ...f, workflow: e.target.value } : { ...f, scaledWorkflow: e.target.value }
+                )
+              }
               className="w-full resize-none rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-b2b-pink focus:outline-none"
             />
           </label>
@@ -298,6 +360,9 @@ function WorkoutFieldsModal({
                 formData.set("workout", fields.workout);
                 formData.set("standards", fields.standards);
                 formData.set("workflow", fields.workflow);
+                formData.set("scaledWorkout", fields.scaledWorkout);
+                formData.set("scaledStandards", fields.scaledStandards);
+                formData.set("scaledWorkflow", fields.scaledWorkflow);
                 if (photoFile) formData.set("photo", photoFile);
                 if (removePhoto) formData.set("removePhoto", "on");
                 const ok = await onSubmit(formData);

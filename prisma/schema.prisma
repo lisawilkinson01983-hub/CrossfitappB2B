@@ -575,6 +575,8 @@ model User {
   teamMemberships             TeamMember[]
   teamJoinRequestsReceived    TeamJoinRequest[]             @relation("TeamJoinRequestSubject")
   teamJoinRequestsSent        TeamJoinRequest[]             @relation("TeamJoinRequestInitiator")
+  teamInviteLinksCreated      TeamInviteLink[]              @relation("TeamInviteLinksCreated")
+  teamInviteLinksClaimed      TeamInviteLink[]              @relation("TeamInviteLinksClaimed")
 
   blocksMade     Block[] @relation("BlocksMade")
   blocksReceived Block[] @relation("BlocksReceived")
@@ -1413,11 +1415,39 @@ model Team {
   conversationId String?
 
   joinRequests TeamJoinRequest[]
+  inviteLinks  TeamInviteLink[]
 
   createdAt DateTime @default(now())
 
   @@index([eventId])
   @@index([conversationId])
+}
+
+// One freeform (not-on-the-app) teammate's personal WhatsApp invite link
+// (see POST /api/teams/[id]/invite, TeamRosterTrigger) — its id IS the
+// link's token (?team=<id> on /install). Signing up through it (see
+// POST /api/signup) swaps that freeform roster slot for a real TeamMember
+// row instead of just crediting a generic referral. Single-use: claimedAt
+// set the moment that happens, so a link can't be redeemed twice.
+model TeamInviteLink {
+  id     String @id @default(cuid())
+  teamId String
+  team   Team   @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  // The exact freeform name this link stands in for — matched
+  // case-insensitively against Team.freeformMemberNames when claimed.
+  freeformName String
+
+  createdById String
+  createdBy   User   @relation("TeamInviteLinksCreated", fields: [createdById], references: [id], onDelete: Cascade)
+
+  claimedByUserId String?
+  claimedBy       User?     @relation("TeamInviteLinksClaimed", fields: [claimedByUserId], references: [id], onDelete: SetNull)
+  claimedAt       DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([teamId])
 }
 
 enum TeamJoinRequestKind {
@@ -1585,9 +1615,18 @@ model EventWorkout {
   number Int
 
   title     String
-  workout   String? // the movements/reps/load prescription, e.g. "21-15-9 Thrusters (42.5/30kg) and Pull-ups"
-  standards String? // movement standards — what counts as a valid rep, depth, lockout, etc.
-  workflow  String? // format/structure — time cap, rounds, rest, scoring
+  workout   String? // the RX movements/reps/load prescription, e.g. "21-15-9 Thrusters (42.5/30kg) and Pull-ups"
+  standards String? // RX movement standards — what counts as a valid rep, depth, lockout, etc.
+  workflow  String? // RX format/structure — time cap, rounds, rest, scoring
+
+  // A Scaled variant of the three fields above — optional, since plenty of
+  // workouts (or whole events) don't need a separate one. Null in all three
+  // means there's nothing to show a Scaled tab for at all (see the workout
+  // page and EventWorkoutsEditor), so an existing single-version workout
+  // never suddenly grows an empty second tab.
+  scaledWorkout   String?
+  scaledStandards String?
+  scaledWorkflow  String?
 
   // An optional poster for this specific workout — served path (see
   // src/lib/uploads.ts), same as every other photo field. Shown as the

@@ -65,6 +65,19 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       where: { id: teamId },
       data: { freeformMemberNames: remaining.length > 0 ? JSON.stringify(remaining) : null },
     });
+    // Any invite link already sent for this exact slot (see
+    // TeamRosterTrigger's WhatsApp invite) shouldn't still be able to add
+    // them back if they sign up after being removed.
+    const links = await prisma.teamInviteLink.findMany({
+      where: { teamId, claimedAt: null },
+      select: { id: true, freeformName: true },
+    });
+    const staleLinkIds = links
+      .filter((l) => l.freeformName.toLowerCase() === freeformName.toLowerCase())
+      .map((l) => l.id);
+    if (staleLinkIds.length > 0) {
+      await prisma.teamInviteLink.deleteMany({ where: { id: { in: staleLinkIds } } });
+    }
     return NextResponse.json({ ok: true });
   }
 

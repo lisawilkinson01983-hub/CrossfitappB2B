@@ -11,16 +11,22 @@ export function SignupForm({ inviteOnly }: { inviteOnly: boolean }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [inviteCode, setInviteCode] = useState("");
+  const [teamInviteToken, setTeamInviteToken] = useState<string | null>(null);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [confirmedAge, setConfirmedAge] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  // Prefills from a shared invite link (e.g. /signup?ref=ABCD1234) — plain
-  // client-side read so this component doesn't need a Suspense boundary.
+  // Prefills from a shared invite link (e.g. /signup?ref=ABCD1234&team=xyz)
+  // — plain client-side read so this component doesn't need a Suspense
+  // boundary. `team`, when present, is a TeamInviteLink token (see
+  // TeamRosterTrigger's "not on Box 2 Box yet?" WhatsApp invite) — not
+  // shown anywhere in this form, just carried through to signup silently.
   useEffect(() => {
-    const ref = new URLSearchParams(window.location.search).get("ref");
+    const params = new URLSearchParams(window.location.search);
+    const ref = params.get("ref");
     if (ref) setInviteCode(ref);
+    setTeamInviteToken(params.get("team"));
   }, []);
 
   async function handleSubmit(e: FormEvent) {
@@ -52,6 +58,7 @@ export function SignupForm({ inviteOnly }: { inviteOnly: boolean }) {
         agreedToTerms,
         confirmedAge,
         inviteCode: inviteCode.trim() || undefined,
+        teamInviteToken: teamInviteToken || undefined,
       }),
     });
 
