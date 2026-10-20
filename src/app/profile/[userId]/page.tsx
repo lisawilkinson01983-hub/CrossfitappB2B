@@ -15,6 +15,7 @@ import { FollowButton, type FollowStatus } from "@/components/FollowButton";
 import { MessageButton } from "@/components/MessageButton";
 import { ProfileMoreMenu } from "@/components/ProfileMoreMenu";
 import { ExpandableHeroPhoto } from "@/components/ExpandableHeroPhoto";
+import { BackLink } from "@/components/BackLink";
 import { LOOKING_FOR_LABELS, parseLookingFor, showsSingleBadge } from "@/lib/labels";
 import type { Prisma } from "@prisma/client";
 
@@ -191,7 +192,9 @@ export default async function UserProfilePage({
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
       <NavBar />
 
-      <div className="mt-6 flex flex-col gap-6">
+      <BackLink href="/feed" className="mt-6">Back to feed</BackLink>
+
+      <div className="mt-4 flex flex-col gap-6">
         {isLockedOut ? (
           <div className="flex flex-col gap-4">
             <ExpandableHeroPhoto photo={user.photo} name={user.name}>

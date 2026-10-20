@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { NavBar } from "@/components/NavBar";
+import { BackLink } from "@/components/BackLink";
 import { SectionCard } from "@/components/SectionCard";
 import { getGymWodSuggestion } from "@/lib/gymSuggestion";
 import { WorkoutForm } from "../WorkoutForm";
@@ -15,7 +16,8 @@ export default async function NewWorkoutPage() {
   return (
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
       <NavBar />
-      <div className="mt-6">
+      <BackLink href="/workouts" className="mt-6">Back to workouts</BackLink>
+      <div className="mt-4">
         <SectionCard title="Log a workout">
           <WorkoutForm gymSuggestion={gymSuggestion} />
         </SectionCard>

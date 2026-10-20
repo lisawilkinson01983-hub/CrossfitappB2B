@@ -8,6 +8,7 @@ import { FollowButton, type FollowStatus } from "@/components/FollowButton";
 import { MessageButton } from "@/components/MessageButton";
 import { BlockMuteControls } from "@/components/BlockMuteControls";
 import { Avatar } from "@/components/Avatar";
+import { BackLink } from "@/components/BackLink";
 import { showsSingleBadge } from "@/lib/labels";
 
 export default async function ConnectionsPage({
@@ -76,7 +77,9 @@ export default async function ConnectionsPage({
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
       <NavBar />
 
-      <h1 className="mt-6 text-2xl font-bold">{user.name}'s connections</h1>
+      <BackLink href={`/profile/${userId}`} className="mt-6">Back to profile</BackLink>
+
+      <h1 className="mt-2 text-2xl font-bold">{user.name}'s connections</h1>
 
       <div className="mt-4 flex gap-4 border-b border-gray-200 text-sm font-medium">
         <Link
