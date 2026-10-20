@@ -16,6 +16,7 @@ import { DISTANCE_RANGES, distanceMiles, ensureUserAreaCoords } from "@/lib/geoc
 import { SectionCard } from "@/components/SectionCard";
 import { SearchFilters } from "@/components/SearchFilters";
 import { CollapsibleSearch } from "@/components/CollapsibleSearch";
+import { DiscoverTabs } from "@/components/DiscoverTabs";
 import { SwipeCardList, type SwipeCardItem } from "@/components/SwipeCardList";
 import { OpenLevelBadge } from "@/components/OpenLevelBadge";
 
@@ -145,8 +146,10 @@ export async function AthletesSearch({
 
   return (
     <div className="mt-4 flex flex-col gap-4">
-      <CollapsibleSearch label="Search athletes by name" defaultOpen={!!q || activeFilterCount > 0}>
-      <SectionCard>
+      <div className="flex items-center gap-2 border-b border-gray-200 pb-0.5">
+        <DiscoverTabs active="athletes" />
+        <CollapsibleSearch label="Search athletes by name" defaultOpen={!!q || activeFilterCount > 0} variant="icon">
+        <SectionCard>
       <form method="GET" className="flex flex-col gap-4">
         <input type="hidden" name="view" value="athletes" />
         <div>
@@ -281,6 +284,7 @@ export async function AthletesSearch({
       </form>
       </SectionCard>
       </CollapsibleSearch>
+      </div>
 
       {(() => {
         const items: SwipeCardItem[] = visibleResults.map(({ user, miles }) => {

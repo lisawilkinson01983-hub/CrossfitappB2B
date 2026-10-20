@@ -13,34 +13,55 @@ import { SearchIcon } from "@/components/SearchIcon";
  * it instead marks the collapsed bar itself as "a search/filter is active"
  * with a small dot, so that's visible at a glance without forcing the
  * overlay open.
+ *
+ * `variant="icon"` swaps the labeled bar for a small round icon-only button
+ * — for Discover's tabs, where that trigger shares a row with the tabs
+ * themselves instead of getting its own line.
  */
 export function CollapsibleSearch({
   label,
   defaultOpen,
   children,
+  variant = "bar",
 }: {
-  // Shown on the collapsed bar, e.g. "Search athletes by name".
+  // Shown on the collapsed bar (or as this button's accessible name in icon
+  // variant), e.g. "Search athletes by name".
   label: string;
   defaultOpen: boolean;
   children: ReactNode;
+  variant?: "bar" | "icon";
 }) {
   const [open, setOpen] = useState(false);
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className={`flex w-full items-center gap-2 rounded-full border px-3 py-1.5 text-left text-sm ${
-          defaultOpen
-            ? "border-b2b-pink/30 bg-b2b-pink/5 text-b2b-ink/70"
-            : "border-gray-300 bg-b2b-card text-b2b-ink/45"
-        }`}
-      >
-        <SearchIcon className="h-3.5 w-3.5 shrink-0 text-b2b-ink/40" />
-        <span className="truncate">{label}</span>
-        {defaultOpen && <span className="ml-auto h-1.5 w-1.5 shrink-0 rounded-full bg-b2b-pink" />}
-      </button>
+      {variant === "icon" ? (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          aria-label={label}
+          className={`relative flex h-8 w-8 shrink-0 items-center justify-center rounded-full border ${
+            defaultOpen ? "border-b2b-pink/30 bg-b2b-pink/5" : "border-gray-300 bg-b2b-card"
+          }`}
+        >
+          <SearchIcon className="h-3.5 w-3.5 text-b2b-ink/50" />
+          {defaultOpen && <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-b2b-pink" />}
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className={`flex w-full items-center gap-2 rounded-full border px-3 py-1.5 text-left text-sm ${
+            defaultOpen
+              ? "border-b2b-pink/30 bg-b2b-pink/5 text-b2b-ink/70"
+              : "border-gray-300 bg-b2b-card text-b2b-ink/45"
+          }`}
+        >
+          <SearchIcon className="h-3.5 w-3.5 shrink-0 text-b2b-ink/40" />
+          <span className="truncate">{label}</span>
+          {defaultOpen && <span className="ml-auto h-1.5 w-1.5 shrink-0 rounded-full bg-b2b-pink" />}
+        </button>
+      )}
 
       {open && (
         <div

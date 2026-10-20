@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -53,41 +52,17 @@ export default async function DiscoverPage({
         />
       )}
       <NavBar />
-      <h1 className="mt-4 text-2xl font-bold">Discover</h1>
+      <p className="mt-3 text-xs font-bold uppercase tracking-wide text-b2b-ink/40">Discover</p>
 
-      <div className="mt-4 flex gap-4 border-b border-gray-200 text-sm font-medium">
-        <Link
-          href="/discover?view=athletes"
-          className={`pb-2 ${view === "athletes" ? "border-b-2 border-b2b-purple text-b2b-purple" : "text-gray-500"}`}
-        >
-          Athletes
-        </Link>
-        <Link
-          href="/discover?view=events"
-          className={`pb-2 ${view === "events" ? "border-b-2 border-b2b-purple text-b2b-purple" : "text-gray-500"}`}
-        >
-          Events
-        </Link>
-        <Link
-          href="/discover?view=affiliates"
-          className={`pb-2 ${view === "affiliates" ? "border-b-2 border-b2b-purple text-b2b-purple" : "text-gray-500"}`}
-        >
-          Affiliates
-        </Link>
-        <Link
-          href="/discover?view=teammates"
-          className={`pb-2 ${view === "teammates" ? "border-b-2 border-b2b-purple text-b2b-purple" : "text-gray-500"}`}
-        >
-          Teammates
-        </Link>
-      </div>
-
-      {/* Keyed on `view` so switching tabs always fully remounts the next
-          one, rather than React reconciling two structurally similar trees
-          (every tab's search form looks much the same) and reusing a client
-          component instance in place — which otherwise let the previous
-          tab's typed search text and open/closed filter state leak into the
-          new tab instead of resetting. */}
+      {/* Each tab renders its own DiscoverTabs row (see that component) —
+          sharing one row with its own search-icon trigger, rather than this
+          page drawing the tabs once above all four. Keyed on `view` so
+          switching tabs always fully remounts the next one, rather than
+          React reconciling two structurally similar trees (every tab's
+          search form looks much the same) and reusing a client component
+          instance in place — which otherwise let the previous tab's typed
+          search text and open/closed filter state leak into the new tab
+          instead of resetting. */}
       {view === "athletes" ? (
         <AthletesSearch key="athletes" sp={sp} currentUserId={session.user.id} />
       ) : view === "events" ? (

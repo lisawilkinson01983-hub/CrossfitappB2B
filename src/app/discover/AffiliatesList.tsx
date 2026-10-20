@@ -7,6 +7,7 @@ import { DISTANCE_RANGES, distanceMiles, ensureUserAreaCoords, geocode } from "@
 import { SearchSuggestInput } from "@/components/SearchSuggestInput";
 import { SearchFilters } from "@/components/SearchFilters";
 import { CollapsibleSearch } from "@/components/CollapsibleSearch";
+import { DiscoverTabs } from "@/components/DiscoverTabs";
 import { FollowButton, type FollowStatus } from "@/components/FollowButton";
 import { EditIcon } from "@/components/EditIcon";
 import { SwipeCardList, type SwipeCardItem } from "@/components/SwipeCardList";
@@ -193,8 +194,10 @@ export async function AffiliatesList({
         )}
       </div>
 
-      <CollapsibleSearch label="Search by gym name or area" defaultOpen={!!q || activeFilterCount > 0}>
-      <SectionCard>
+      <div className="flex items-center gap-2 border-b border-gray-200 pb-0.5">
+        <DiscoverTabs active="affiliates" />
+        <CollapsibleSearch label="Search by gym name or area" defaultOpen={!!q || activeFilterCount > 0} variant="icon">
+        <SectionCard>
         <form method="GET" className="flex flex-col gap-4">
           <input type="hidden" name="view" value="affiliates" />
           <div>
@@ -255,6 +258,7 @@ export async function AffiliatesList({
         </p>
       </SectionCard>
       </CollapsibleSearch>
+      </div>
 
       {(() => {
         const items: SwipeCardItem[] = visibleGyms.map(({ gym, miles }) => {
