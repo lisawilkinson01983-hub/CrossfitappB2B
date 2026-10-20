@@ -4,11 +4,11 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 /**
- * Lets an AFFILIATE account request to be recognised as this event's editor
- * (see Event.claimRequestedById, /api/events/[id]/claim) — for an event
- * that's actually theirs but was pulled in or submitted by someone else.
- * Goes to an admin for approval (see /admin/event-claims), after which this
- * affiliate becomes an additional editor alongside the event's existing
+ * Lets anyone request to be recognised as a public event's editor (see
+ * Event.claimRequestedById, /api/events/[id]/claim) — for an event that's
+ * actually theirs but was pulled in or submitted by someone else. Goes to
+ * an admin for approval (see /admin/event-claims), after which the
+ * claimant becomes an additional editor alongside the event's existing
  * organizer, not a replacement for them.
  */
 export function ClaimEventButton({ eventId }: { eventId: string }) {

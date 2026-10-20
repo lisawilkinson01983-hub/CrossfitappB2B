@@ -45,7 +45,7 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
 
   const { id } = await params;
 
-  const me = await prisma.user.findUnique({ where: { id: session.user.id }, select: { isAdmin: true, accountType: true } });
+  const me = await prisma.user.findUnique({ where: { id: session.user.id }, select: { isAdmin: true } });
 
   const event = await prisma.event.findUnique({
     where: { id },
@@ -65,12 +65,12 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
   if (!(await assertEventVisible(event, session.user.id))) notFound();
 
   const isOrganizer = event.createdById === session.user.id || event.submittedById === session.user.id;
-  // Whether to offer "Claim this event" — any affiliate not already the
-  // organizer or the current claimant, as long as nobody else has claimed it
+  // Whether to offer "Claim this event" — any logged-in account not already
+  // the organizer, on a public event nobody's already claimed or requested
   // (see Event.claimedById/claimRequestedById, /api/events/[id]/claim).
   const hasPendingClaimFromMe = event.claimRequestedById === session.user.id;
   const canOfferClaim =
-    me?.accountType === "AFFILIATE" &&
+    !event.isPrivate &&
     !isOrganizer &&
     event.claimedById !== session.user.id &&
     !event.claimedById &&
