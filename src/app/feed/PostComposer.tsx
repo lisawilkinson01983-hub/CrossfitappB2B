@@ -36,10 +36,10 @@ export function PostComposer({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="flex w-full items-center gap-3 rounded-full border border-gray-300 bg-b2b-bg px-4 py-2.5 text-left text-b2b-ink/50 hover:bg-b2b-card"
+        className="flex w-full items-center gap-3 rounded-xl border border-gray-300 bg-b2b-bg px-4 py-2.5 text-left text-b2b-ink/50 hover:bg-b2b-card"
       >
         <Avatar photo={currentUserPhoto} name={currentUserName} size={36} />
-        <span>Share something with the community...</span>
+        <span className="min-w-0 flex-1 truncate">Share something with the community...</span>
       </button>
 
       {open && <PostComposerModal onClose={() => setOpen(false)} canPostWorkout={canPostWorkout} />}
