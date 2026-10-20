@@ -118,6 +118,7 @@ type ExistingTeam = {
   members: UserOption[];
   freeformNames: string[];
   joinedByMe: boolean;
+  myPendingRequestKind: "INVITE" | "REQUEST" | null;
 };
 
 function TeamTagPrompt({
@@ -234,14 +235,14 @@ function TeamTagPrompt({
           </button>
         </div>
         <p className="mt-1 text-sm text-b2b-ink/60">
-          Add your teammates and they'll be tagged in your feed post and the event's Message Board — or skip if
-          you're going solo.
+          Add your teammates and they'll be tagged in your feed post and the event's Message Board — they'll need
+          to approve joining before they show up on the roster. Skip if you're going solo.
         </p>
 
         {existingTeams.length > 0 && (
           <div className="mt-3 flex flex-col gap-2">
             <span className="text-xs font-medium text-b2b-ink/50">
-              Already on one of these teams? Add yourself instead of starting a new one.
+              Already on one of these teams? Ask to join instead of starting a new one.
             </span>
             {existingTeams.map((team) => (
               <div
@@ -263,14 +264,20 @@ function TeamTagPrompt({
                     </p>
                   </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => handleJoinTeam(team.id)}
-                  disabled={busy}
-                  className="shrink-0 rounded-lg bg-b2b-pink px-3 py-1.5 text-xs font-semibold text-white hover:bg-b2b-pink-dark disabled:opacity-50"
-                >
-                  {busy && joiningTeamId === team.id ? "Joining..." : "Join"}
-                </button>
+                {team.myPendingRequestKind === "INVITE" ? (
+                  <span className="shrink-0 text-xs text-b2b-ink/50">Invited — respond in My Teams</span>
+                ) : team.myPendingRequestKind === "REQUEST" ? (
+                  <span className="shrink-0 text-xs text-b2b-ink/50">Request sent</span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => handleJoinTeam(team.id)}
+                    disabled={busy}
+                    className="shrink-0 rounded-lg bg-b2b-pink px-3 py-1.5 text-xs font-semibold text-white hover:bg-b2b-pink-dark disabled:opacity-50"
+                  >
+                    {busy && joiningTeamId === team.id ? "Sending..." : "Request to join"}
+                  </button>
+                )}
               </div>
             ))}
             <div className="my-1 border-t border-b2b-purple/10" />
@@ -408,7 +415,7 @@ function TeamTagPrompt({
             disabled={busy}
             className="rounded bg-b2b-pink px-3 py-1.5 text-sm font-medium text-white hover:bg-b2b-pink-dark disabled:opacity-50"
           >
-            {busy ? "Joining..." : totalTagged > 0 || teamName.trim() ? "Add team & join" : "I'm in!"}
+            {busy ? "Submitting..." : totalTagged > 0 || teamName.trim() ? "Add team & join" : "I'm in!"}
           </button>
         </div>
       </div>

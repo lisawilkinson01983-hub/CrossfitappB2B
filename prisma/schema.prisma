@@ -171,6 +171,18 @@ enum NotificationType {
   // (see WorkoutPartner) — workoutId below has the workout, owned by the
   // actor (not the recipient), so it deep-links to the actor's gallery.
   WORKOUT_PARTNER_TAGGED
+  // A team's creator tagged this user as a teammate (see TeamJoinRequest,
+  // kind INVITE) — needs this user's own approval before they're actually
+  // added to the roster. eventId below has the event the team belongs to.
+  TEAM_INVITE
+  // Someone asked to join this user's team (see TeamJoinRequest, kind
+  // REQUEST) — sent to the team's creator, who approves/declines it.
+  // eventId below has the event the team belongs to.
+  TEAM_JOIN_REQUEST
+  // This user's own request to join a team was approved (see
+  // TeamJoinRequest, kind REQUEST) — sent back to the original requester,
+  // not the approver. eventId below has the event the team belongs to.
+  TEAM_JOIN_APPROVED
 }
 
 enum EventStatus {
@@ -556,6 +568,8 @@ model User {
   eventWorkoutReactions       EventWorkoutReaction[]
   teamsCreated                Team[]                        @relation("TeamsCreated")
   teamMemberships             TeamMember[]
+  teamJoinRequestsReceived    TeamJoinRequest[]             @relation("TeamJoinRequestSubject")
+  teamJoinRequestsSent        TeamJoinRequest[]             @relation("TeamJoinRequestInitiator")
 
   blocksMade     Block[] @relation("BlocksMade")
   blocksReceived Block[] @relation("BlocksReceived")
@@ -1386,9 +1400,65 @@ model Team {
   // names" split as the join post's own teammateIds/teammateNames.
   freeformMemberNames String?
 
+  // The team's own group chat — null until the first member creates it (see
+  // POST /api/teams/[id]/message-team). Not a foreign key, same reasoning as
+  // Event.attendeesConversationId. Named after the team at creation time;
+  // new members get added automatically as they're approved (see
+  // /api/team-join-requests/[id]/accept), same as attendeesConversationId.
+  conversationId String?
+
+  joinRequests TeamJoinRequest[]
+
   createdAt DateTime @default(now())
 
   @@index([eventId])
+  @@index([conversationId])
+}
+
+enum TeamJoinRequestKind {
+  // The team's creator tagged this person — they're the one who approves it.
+  INVITE
+  // This person asked to join a team they found on the event's Teams page —
+  // the team's creator is the one who approves it.
+  REQUEST
+}
+
+enum TeamJoinRequestStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+}
+
+// A pending "add this person to this team" — either direction: the team's
+// creator tagging someone (kind INVITE, approved by that person), or someone
+// asking to join a team they found (kind REQUEST, approved by the team's
+// creator). Accepting creates the matching TeamMember row; nothing changes
+// about the roster until then. Kept (not deleted) once resolved so a new
+// INVITE/REQUEST for the same pair can upsert it back to PENDING rather than
+// colliding with the unique constraint below.
+model TeamJoinRequest {
+  id     String @id @default(cuid())
+  teamId String
+  team   Team   @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  // The person who'd become a member once this is accepted.
+  userId String
+  user   User   @relation("TeamJoinRequestSubject", fields: [userId], references: [id], onDelete: Cascade)
+
+  kind   TeamJoinRequestKind
+  status TeamJoinRequestStatus @default(PENDING)
+
+  // Who created this row — the team's creator for an INVITE, or `userId`
+  // itself for a REQUEST. Kept distinct from userId so "who invited them"
+  // stays on record even though it's nearly always the team's creator.
+  requestedById String
+  requestedBy   User   @relation("TeamJoinRequestInitiator", fields: [requestedById], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([teamId, userId])
+  @@index([teamId])
+  @@index([userId])
 }
 
 // One registered athlete on a Team — the creator is included as a member

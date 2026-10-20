@@ -7,6 +7,7 @@ import { NavBar } from "@/components/NavBar";
 import { Avatar } from "@/components/Avatar";
 import { BackLink } from "@/components/BackLink";
 import { assertEventVisible } from "@/lib/eventVisibility";
+import { TeamJoinRequestButton } from "@/components/TeamJoinRequestButton";
 
 export default async function EventTeamsPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
@@ -36,6 +37,12 @@ export default async function EventTeamsPage({ params }: { params: Promise<{ id:
   if (!event) notFound();
   if (!(await assertEventVisible(event, session.user.id))) notFound();
 
+  const myPendingRequests = await prisma.teamJoinRequest.findMany({
+    where: { teamId: { in: event.teams.map((t) => t.id) }, userId: session.user.id, status: "PENDING" },
+    select: { teamId: true, kind: true },
+  });
+  const myPendingByTeamId = new Map(myPendingRequests.map((r) => [r.teamId, r.kind]));
+
   return (
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
       <NavBar />
@@ -58,9 +65,24 @@ export default async function EventTeamsPage({ params }: { params: Promise<{ id:
               const freeformNames: string[] = team.freeformMemberNames
                 ? JSON.parse(team.freeformMemberNames)
                 : [];
+              const isMember = team.members.some((m) => m.userId === session.user.id);
+              const isCreator = team.createdById === session.user.id;
+              const pendingKind = myPendingByTeamId.get(team.id) ?? null;
+              const buttonStatus = isCreator
+                ? "creator"
+                : isMember
+                  ? "member"
+                  : pendingKind === "INVITE"
+                    ? "invited"
+                    : pendingKind === "REQUEST"
+                      ? "requested"
+                      : "none";
               return (
                 <div key={team.id} className="rounded-2xl border border-b2b-purple/10 bg-b2b-card p-4">
-                  <p className="font-display text-xl leading-none text-b2b-ink">{team.name}</p>
+                  <div className="flex items-start justify-between gap-3">
+                    <p className="font-display text-xl leading-none text-b2b-ink">{team.name}</p>
+                    <TeamJoinRequestButton teamId={team.id} initialStatus={buttonStatus} />
+                  </div>
                   <div className="mt-3 flex items-center gap-2.5">
                     <div className="flex">
                       {team.members.map((m, i) => (

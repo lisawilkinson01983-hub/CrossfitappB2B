@@ -29,6 +29,15 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     include: { members: { include: { user: { select: { id: true, name: true, photo: true } } } } },
   });
 
+  // My own pending request/invite per team, if any — lets the UI tell
+  // "request to join" apart from "you've already been invited, go respond
+  // to it" instead of offering a redundant second request for the same pair.
+  const myRequests = await prisma.teamJoinRequest.findMany({
+    where: { teamId: { in: teams.map((t) => t.id) }, userId: session.user.id, status: "PENDING" },
+    select: { teamId: true, kind: true },
+  });
+  const myRequestByTeamId = new Map(myRequests.map((r) => [r.teamId, r.kind]));
+
   return NextResponse.json({
     teams: teams.map((team) => ({
       id: team.id,
@@ -36,6 +45,8 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       members: team.members.map((m) => m.user),
       freeformNames: team.freeformMemberNames ? (JSON.parse(team.freeformMemberNames) as string[]) : [],
       joinedByMe: team.members.some((m) => m.userId === session.user.id),
+      createdByMe: team.createdById === session.user.id,
+      myPendingRequestKind: myRequestByTeamId.get(team.id) ?? null,
     })),
   });
 }

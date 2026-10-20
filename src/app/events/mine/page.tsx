@@ -15,6 +15,7 @@ import { distanceMiles, ensureUserAreaCoords, ensureEventCoords } from "@/lib/ge
 import { formatEventDate } from "@/lib/eventDate";
 import { isCompetitionEvent } from "@/lib/labels";
 import { EditIcon } from "@/components/EditIcon";
+import { MyTeamsTab } from "./MyTeamsTab";
 
 export default async function MyEventsPage({
   searchParams,
@@ -26,7 +27,8 @@ export default async function MyEventsPage({
   const userId = session.user.id;
 
   const sp = await searchParams;
-  const tab = sp.tab === "socials" ? "socials" : sp.tab === "past" ? "past" : "comps";
+  const tab =
+    sp.tab === "socials" ? "socials" : sp.tab === "past" ? "past" : sp.tab === "teams" ? "teams" : "comps";
   const q = typeof sp.q === "string" ? sp.q.trim() : "";
 
   const now = new Date();
@@ -57,15 +59,19 @@ export default async function MyEventsPage({
     ],
   };
 
+  // The teams tab has its own entirely different data shape (see
+  // MyTeamsTab) — no point running the events/distance query for it.
   const [events, pins, currentUser] = await Promise.all([
-    prisma.event.findMany({
-      where,
-      orderBy: { date: tab === "past" ? "desc" : "asc" },
-      include: {
-        participants: { select: { userId: true } },
-        interests: { select: { userId: true } },
-      },
-    }),
+    tab === "teams"
+      ? Promise.resolve([])
+      : prisma.event.findMany({
+          where,
+          orderBy: { date: tab === "past" ? "desc" : "asc" },
+          include: {
+            participants: { select: { userId: true } },
+            interests: { select: { userId: true } },
+          },
+        }),
     prisma.eventPin.findMany({ where: { userId }, select: { eventId: true } }),
     prisma.user.findUnique({
       where: { id: userId },
@@ -75,9 +81,8 @@ export default async function MyEventsPage({
 
   const pinnedIds = new Set(pins.map((p) => p.eventId));
 
-  const myCoords = currentUser
-    ? await ensureUserAreaCoords({ id: userId, ...currentUser }, { background: true })
-    : null;
+  const myCoords =
+    currentUser && tab !== "teams" ? await ensureUserAreaCoords({ id: userId, ...currentUser }, { background: true }) : null;
 
   const eventsWithDistance = await Promise.all(
     events.map(async (event) => {
@@ -139,8 +144,17 @@ export default async function MyEventsPage({
         >
           Past events
         </Link>
+        <Link
+          href="/events/mine?tab=teams"
+          className={`pb-2 ${tab === "teams" ? "border-b-2 border-b2b-purple text-b2b-purple" : "text-gray-500"}`}
+        >
+          My Teams
+        </Link>
       </div>
 
+      {tab === "teams" ? (
+        <MyTeamsTab userId={userId} />
+      ) : (
       <div className="mt-4 flex flex-col gap-6">
         <CollapsibleSearch label="Search my events by name or area" defaultOpen={!!q}>
         <SectionCard>
@@ -260,6 +274,7 @@ export default async function MyEventsPage({
           </div>
         )}
       </div>
+      )}
     </main>
   );
 }

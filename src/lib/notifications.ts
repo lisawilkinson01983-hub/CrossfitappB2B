@@ -102,6 +102,12 @@ export function notificationText(n: NotificationView): string {
       return "just signed up for Box 2 Box";
     case "WORKOUT_PARTNER_TAGGED":
       return "tagged you as a workout partner";
+    case "TEAM_INVITE":
+      return `invited you to join their team for "${n.event?.name ?? "an event"}"`;
+    case "TEAM_JOIN_REQUEST":
+      return `wants to join your team for "${n.event?.name ?? "an event"}"`;
+    case "TEAM_JOIN_APPROVED":
+      return `approved your request to join their team for "${n.event?.name ?? "an event"}"`;
     case "MENTION":
       return n.storyId ? "tagged you in their story" : "mentioned you";
     default:
@@ -136,6 +142,14 @@ export function notificationHref(n: NotificationView, viewerId: string): string 
     case "EVENT_TEAM_ADDED":
     case "EVENT_TEAM_JOINED":
       return `/events/${n.event?.id ?? ""}/teams`;
+    // Unlike EVENT_TEAM_ADDED/EVENT_TEAM_JOINED (which just announce
+    // something that already happened), these three need an action — accept/
+    // decline an invite, approve/decline a request, or just see the result —
+    // and that lives in My Teams, not the event's own Teams page.
+    case "TEAM_INVITE":
+    case "TEAM_JOIN_REQUEST":
+    case "TEAM_JOIN_APPROVED":
+      return "/events/mine?tab=teams";
     case "EVENT_NOTICE_COMMENT":
     case "EVENT_NOTICE_COMMENT_REACTION":
     case "EVENT_NOTICE_REACTION":

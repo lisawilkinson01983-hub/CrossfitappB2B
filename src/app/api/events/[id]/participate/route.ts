@@ -87,31 +87,30 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     if (teamId) {
       // Joining a team someone else already named — mutually exclusive with
       // creating a new one below (teamName/teammateIds/teammateNames are
-      // ignored when a teamId is given; see TeamTagPrompt).
-      const team = await prisma.team.findFirst({
-        where: { id: teamId, eventId },
-        include: { members: { where: { userId: { not: userId } }, select: { userId: true } } },
-      });
-      if (team) {
-        await prisma.teamMember.upsert({
+      // ignored when a teamId is given; see TeamTagPrompt). Joining an
+      // existing team is a request, not instant — the team's creator has to
+      // approve it (see TeamJoinRequest) before this shows up as a real
+      // roster spot, so nothing about the team itself changes here yet.
+      const team = await prisma.team.findFirst({ where: { id: teamId, eventId } });
+      if (team && team.createdById !== userId) {
+        const existingPending = await prisma.teamJoinRequest.findUnique({
           where: { teamId_userId: { teamId: team.id, userId } },
-          create: { teamId: team.id, userId },
-          update: {},
         });
-        contentText = `Joined team: ${team.name}`;
-
-        // Let the teammates who were already on the roster know someone new
-        // just joined, rather than them only finding out from the Teams page.
-        if (team.members.length > 0) {
-          await prisma.notification.createMany({
-            data: team.members.map((m) => ({
-              userId: m.userId,
-              actorId: userId,
-              type: "EVENT_TEAM_JOINED" as const,
-              eventId,
-            })),
+        // An existing PENDING row (most likely an INVITE from this same
+        // team) already covers this pair — don't overwrite what it's
+        // waiting on with a different kind of request.
+        if (existingPending?.status !== "PENDING") {
+          await prisma.teamJoinRequest.upsert({
+            where: { teamId_userId: { teamId: team.id, userId } },
+            create: { teamId: team.id, userId, kind: "REQUEST", status: "PENDING", requestedById: userId },
+            update: { kind: "REQUEST", status: "PENDING", requestedById: userId },
+          });
+          await prisma.notification.create({
+            data: { userId: team.createdById, actorId: userId, type: "TEAM_JOIN_REQUEST", eventId },
           });
         }
+        // No feed post/notice for a request that hasn't been approved yet —
+        // "joined team X" shouldn't be announced before it's actually true.
       }
     } else {
       const teammates =
@@ -126,49 +125,43 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       // Teams tile/page lists) — tagging teammates without naming a team still
       // tags them in the join post/notice below, same as always, it just
       // doesn't get its own roster entry.
+      let newTeamId: string | null = null;
       if (teamName) {
-        await prisma.team.create({
+        const newTeam = await prisma.team.create({
           data: {
             eventId,
             createdById: userId,
             name: teamName,
             freeformMemberNames: teammateNames.length > 0 ? JSON.stringify(teammateNames) : null,
-            members: { create: [userId, ...teammates.map((t) => t.id)].map((memberId) => ({ userId: memberId })) },
+            // Only the captain — a tagged platform teammate needs to approve
+            // their own TeamJoinRequest below before they're actually a
+            // member (and before they're auto-marked participating).
+            members: { create: [{ userId }] },
           },
         });
+        newTeamId = newTeam.id;
 
         if (teammates.length > 0) {
           const taggedIds = teammates.map((t) => t.id);
-          // Being added to a team puts you on the event's roster too — a
-          // tagged teammate shouldn't have to separately click "I'm
-          // participating" themselves once their captain's already named them.
-          // SQLite's createMany has no skipDuplicates, so filter out anyone
-          // already on the roster first.
-          const alreadyParticipating = await prisma.eventParticipant.findMany({
-            where: { eventId, userId: { in: taggedIds } },
-            select: { userId: true },
-          });
-          const alreadyParticipatingIds = new Set(alreadyParticipating.map((p) => p.userId));
-          const newParticipantIds = taggedIds.filter((id) => !alreadyParticipatingIds.has(id));
-          if (newParticipantIds.length > 0) {
-            await prisma.eventParticipant.createMany({
-              data: newParticipantIds.map((id) => ({ userId: id, eventId })),
-            });
-            if (event.attendeesConversationId) {
-              await addToConversation(event.attendeesConversationId, newParticipantIds);
-            }
-          }
-          // Same mutual-exclusion rule as the captain's own join above.
-          await prisma.eventInterest.deleteMany({ where: { eventId, userId: { in: taggedIds } } });
+          await Promise.all(
+            taggedIds.map((id) =>
+              prisma.teamJoinRequest.upsert({
+                where: { teamId_userId: { teamId: newTeam.id, userId: id } },
+                create: { teamId: newTeam.id, userId: id, kind: "INVITE", status: "PENDING", requestedById: userId },
+                update: { status: "PENDING", requestedById: userId },
+              })
+            )
+          );
 
-          // Being added (and auto-marked as participating) without knowing
-          // it happened would be a strange thing to discover secondhand —
-          // a dedicated notification beats relying on the @mention below.
+          // Tagged without knowing it happened would be a strange thing to
+          // discover secondhand — a dedicated notification beats relying on
+          // the @mention below, same reasoning as before this required
+          // approval, just no longer claiming they're already on the roster.
           await prisma.notification.createMany({
             data: taggedIds.map((id) => ({
               userId: id,
               actorId: userId,
-              type: "EVENT_TEAM_ADDED" as const,
+              type: "TEAM_INVITE" as const,
               eventId,
             })),
           });
@@ -180,7 +173,13 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         ...teammates.map((t) => `@[${t.name}](${t.id})`),
         ...teammateNames.map(escapeMentionSyntax),
       ];
-      contentText = teamTags.length > 0 ? `Competing with my team: ${teamTags.join(", ")}` : null;
+      contentText = newTeamId
+        ? teamTags.length > 0
+          ? `Started team "${teamName}" — invited: ${teamTags.join(", ")}`
+          : `Started team "${teamName}"`
+        : teamTags.length > 0
+          ? `Competing with my team: ${teamTags.join(", ")}`
+          : null;
     }
 
     // A private event's own page/notices/participant list are already
