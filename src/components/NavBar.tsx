@@ -47,7 +47,7 @@ export async function NavBar() {
 
   return (
     <>
-      <nav className="flex items-center justify-between gap-3 border-b border-b2b-purple/10 pb-4">
+      <nav className="flex items-center justify-between gap-3 border-b border-b2b-purple/10 pb-3">
         <Logo size="sm" href="/feed" wordmark={false} />
         <div className="flex items-center gap-4">
           <Link href="/notifications" className="relative text-b2b-ink/70 hover:text-b2b-pink" aria-label="Notifications">

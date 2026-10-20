@@ -44,14 +44,14 @@ export function CollapsibleSearch({
 
       {open && (
         <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 sm:items-center sm:p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
           onClick={() => setOpen(false)}
         >
           <div
             role="dialog"
             aria-modal="true"
             onClick={(e) => e.stopPropagation()}
-            className="max-h-[85vh] w-full max-w-sm overflow-y-auto rounded-t-2xl bg-b2b-card p-4 shadow-lg sm:rounded-2xl"
+            className="max-h-[85vh] w-full max-w-sm overflow-y-auto rounded-2xl bg-b2b-card p-4 shadow-lg"
           >
             <div className="flex items-center justify-between gap-3">
               <p className="text-sm font-semibold text-b2b-ink">{label}</p>

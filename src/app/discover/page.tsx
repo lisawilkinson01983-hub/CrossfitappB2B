@@ -53,7 +53,7 @@ export default async function DiscoverPage({
         />
       )}
       <NavBar />
-      <h1 className="mt-6 text-2xl font-bold">Discover</h1>
+      <h1 className="mt-4 text-2xl font-bold">Discover</h1>
 
       <div className="mt-4 flex gap-4 border-b border-gray-200 text-sm font-medium">
         <Link
