@@ -26,14 +26,9 @@ import type { Prisma } from "@prisma/client";
 // worth of, not a paginated archive.
 const TAB_PREVIEW_COUNT = 10;
 
-export default async function ProfilePage({
-  searchParams,
-}: {
-  searchParams: Promise<{ tab?: string }>;
-}) {
+export default async function ProfilePage() {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) redirect("/login");
-  const { tab } = await searchParams;
 
   // See feed/page.tsx's matching timer — same diagnostic, same reason:
   // ruling the page's own data-fetching in/out as the remaining source of
@@ -207,10 +202,8 @@ export default async function ProfilePage({
       ),
   });
 
-  tabs.push({
-    key: "wall",
-    label: "Wall",
-    content: (
+  const wallSection = (
+    <SectionCard title="Wall">
       <div className="flex flex-col gap-4">
         <WallComposer
           wallOwnerId={user.id}
@@ -227,8 +220,8 @@ export default async function ProfilePage({
           ))
         )}
       </div>
-    ),
-  });
+    </SectionCard>
+  );
 
   return (
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
@@ -249,12 +242,13 @@ export default async function ProfilePage({
             </Link>
           }
           belowActions={suggestedGym && <GymUpdateNudge suggestedGym={suggestedGym} />}
+          wallSection={wallSection}
         />
 
         <Gallery userId={user.id} canAdd />
 
         <SectionCard>
-          <ProfileContentTabs tabs={tabs} defaultKey={tab} />
+          <ProfileContentTabs tabs={tabs} />
         </SectionCard>
 
         {incomingRequests.length > 0 && (

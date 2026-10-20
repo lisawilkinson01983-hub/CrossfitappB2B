@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { redirect, notFound } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -27,17 +28,14 @@ const TAB_PREVIEW_COUNT = 10;
 
 export default async function UserProfilePage({
   params,
-  searchParams,
 }: {
   params: Promise<{ userId: string }>;
-  searchParams: Promise<{ tab?: string }>;
 }) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) redirect("/login");
 
   const { userId } = await params;
-  const { tab } = await searchParams;
-  if (userId === session.user.id) redirect(tab ? `/profile?tab=${tab}` : "/profile");
+  if (userId === session.user.id) redirect("/profile");
 
   const user = await prisma.user.findUnique({
     where: { id: userId },
@@ -89,6 +87,7 @@ export default async function UserProfilePage({
   const isLockedOut = user.isPrivate && followStatus !== "following";
 
   let tabs: ProfileTab[] = [];
+  let wallSection: ReactNode = null;
   if (!isLockedOut) {
     const now = new Date();
     const notPastFilter: Prisma.EventWhereInput["OR"] = [
@@ -198,10 +197,8 @@ export default async function UserProfilePage({
         ),
     });
 
-    tabs.push({
-      key: "wall",
-      label: "Wall",
-      content: (
+    wallSection = (
+      <SectionCard title="Wall">
         <div className="flex flex-col gap-4">
           <WallComposer
             wallOwnerId={user.id}
@@ -222,8 +219,8 @@ export default async function UserProfilePage({
             ))
           )}
         </div>
-      ),
-    });
+      </SectionCard>
+    );
   }
 
   return (
@@ -296,12 +293,13 @@ export default async function UserProfilePage({
                   </p>
                 ) : null
               }
+              wallSection={wallSection}
             />
 
             <Gallery userId={user.id} />
 
             <SectionCard>
-              <ProfileContentTabs tabs={tabs} defaultKey={tab} />
+              <ProfileContentTabs tabs={tabs} />
             </SectionCard>
           </>
         )}

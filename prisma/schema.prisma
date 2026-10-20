@@ -195,6 +195,9 @@ enum NotificationType {
   // sent to the wall post's author, not the wall owner, unless they're the
   // same person.
   WALL_POST_COMMENT
+  // Someone reacted to this user's wall-post comment with an emoji (see
+  // WallPostCommentReaction) — same pattern as COMMENT_REACTION.
+  WALL_POST_COMMENT_REACTION
 }
 
 enum EventStatus {
@@ -588,6 +591,7 @@ model User {
   wallPostsAuthored           WallPost[]                    @relation("WallPostsAuthored")
   wallPostLikes               WallPostLike[]
   wallPostComments            WallPostComment[]
+  wallPostCommentReactions    WallPostCommentReaction[]
 
   blocksMade     Block[] @relation("BlocksMade")
   blocksReceived Block[] @relation("BlocksReceived")
@@ -991,10 +995,10 @@ model WallPostLike {
   @@index([wallPostId])
 }
 
-// A flat (no reply-nesting) comment on a WallPost — kept simpler than
-// Comment/EventNoticeComment since a wall post is itself already a reply
-// surface. Same moderation rule as WallPost: deletable by its own author or
-// the wall owner (see DELETE /api/wall-post-comments/[id]).
+// A comment on a WallPost — same shape as EventNoticeComment (replies, a
+// GIF/photo/video attachment, emoji reactions). Deletable by its own author
+// or the wall owner moderating their own wall (see
+// DELETE /api/wall-post-comments/[id]).
 model WallPostComment {
   id         String   @id @default(cuid())
   wallPostId String
@@ -1002,11 +1006,46 @@ model WallPostComment {
   userId     String
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  // One level of self-reference, same as Comment/EventNoticeComment — a
+  // reply to a reply is flattened under its top-level ancestor in the UI.
+  parentId String?
+  parent   WallPostComment?  @relation("WallPostCommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies  WallPostComment[] @relation("WallPostCommentReplies")
+
   text String
+
+  // A GIF attached to the comment — not re-hosted, just linked, same as
+  // Comment.gifUrl. A comment can be GIF-only.
+  gifUrl String?
+
+  // An uploaded photo/video attachment, mutually exclusive with each other
+  // and with gifUrl — same shape as Comment.photo/video/videoThumbnail.
+  photo          String?
+  video          String?
+  videoThumbnail String?
 
   createdAt DateTime @default(now())
 
+  reactions WallPostCommentReaction[]
+
   @@index([wallPostId])
+  @@index([parentId])
+}
+
+// An emoji reaction (see REACTION_EMOJIS in src/lib/validation.ts) on a
+// WallPostComment — same shape as CommentReaction/EventNoticeCommentReaction.
+model WallPostCommentReaction {
+  id        String          @id @default(cuid())
+  userId    String
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  commentId String
+  comment   WallPostComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  emoji     String
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, commentId, emoji])
+  @@index([commentId])
 }
 
 // Someone reacting to another user's current status (see User.status) —

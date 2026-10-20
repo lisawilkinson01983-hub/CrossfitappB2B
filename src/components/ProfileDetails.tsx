@@ -65,6 +65,7 @@ export async function ProfileDetails({
   workoutCount,
   actions,
   belowActions,
+  wallSection,
   isOwner = false,
 }: {
   user: User;
@@ -75,6 +76,7 @@ export async function ProfileDetails({
   workoutCount: number;
   actions?: ReactNode;
   belowActions?: ReactNode;
+  wallSection?: ReactNode;
   isOwner?: boolean;
 }) {
   const displayedPbFields = parseDisplayedPbs(user.displayedPbs);
@@ -309,6 +311,8 @@ export async function ProfileDetails({
         </div>
         </div>
       </div>
+
+      {wallSection}
 
       {!isAffiliate && (
         <SectionCard

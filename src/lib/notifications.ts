@@ -117,6 +117,8 @@ export function notificationText(n: NotificationView): string {
       return "posted on your wall";
     case "WALL_POST_COMMENT":
       return "commented on your wall post";
+    case "WALL_POST_COMMENT_REACTION":
+      return n.emoji ? `reacted ${n.emoji} to your wall post comment` : "reacted to your wall post comment";
     default:
       return "mentioned you";
   }
@@ -187,7 +189,8 @@ export function notificationHref(n: NotificationView, viewerId: string): string 
       return `/profile/${n.actor.id}/gallery${n.workoutId ? `?workout=${n.workoutId}` : ""}`;
     case "WALL_POST":
     case "WALL_POST_COMMENT":
-      return `/profile/${n.wallPost?.wallOwnerId ?? n.actor.id}?tab=wall`;
+    case "WALL_POST_COMMENT_REACTION":
+      return `/profile/${n.wallPost?.wallOwnerId ?? n.actor.id}`;
     case "MENTION":
       if (n.storyId) return `/feed?story=${n.storyId}`;
       if (n.event) return `/events/${n.event.id}/notices`;
