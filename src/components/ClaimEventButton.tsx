@@ -30,12 +30,12 @@ export function ClaimEventButton({ eventId }: { eventId: string }) {
   }
 
   return (
-    <div className="flex flex-col items-center gap-1.5">
+    <div className="flex flex-col items-end gap-1">
       <button
         type="button"
         onClick={handleClaim}
         disabled={requesting}
-        className="text-sm font-medium text-b2b-purple hover:underline disabled:opacity-50"
+        className="whitespace-nowrap rounded-lg border border-b2b-purple/20 px-3 py-1.5 text-xs font-semibold text-b2b-purple hover:bg-b2b-purple/5 disabled:opacity-50"
       >
         {requesting ? "Requesting..." : "Claim this event"}
       </button>

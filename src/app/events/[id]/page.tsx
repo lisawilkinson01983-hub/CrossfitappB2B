@@ -227,35 +227,33 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
       </div>
 
       <div className="mt-5 flex flex-col gap-5">
-        <div className="flex items-start justify-between gap-3">
+        <div className="flex items-center justify-between gap-3">
           {event.createdBy ? (
-            <div className="flex items-center gap-2">
+            <div className="flex min-w-0 items-center gap-2">
               <Avatar photo={event.createdBy.photo} name={event.createdBy.name} size={26} />
-              <div>
-                <p className="text-xs text-b2b-ink/50">
-                  Organized by{" "}
-                  <Link href={`/profile/${event.createdBy.id}`} className="font-semibold text-b2b-ink/70 hover:underline">
-                    {event.createdBy.name}
-                  </Link>
-                </p>
-                {hasPendingClaimFromMe && (
-                  <p className="text-xs text-b2b-ink/40">Your claim request is pending admin review.</p>
-                )}
-                {canOfferClaim && <ClaimEventButton eventId={event.id} />}
-              </div>
+              <p className="truncate text-xs text-b2b-ink/50">
+                Created by{" "}
+                <Link href={`/profile/${event.createdBy.id}`} className="font-semibold text-b2b-ink/70 hover:underline">
+                  {event.createdBy.name}
+                </Link>
+              </p>
             </div>
           ) : (
             <div />
           )}
-          {canEdit && (
-            <Link
-              href={`/events/${event.id}/edit`}
-              aria-label={me?.isAdmin ? "Edit event" : "Event settings"}
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-b2b-purple/20 text-b2b-purple hover:border-b2b-pink/40 hover:text-b2b-pink"
-            >
-              <EditIcon className="h-4 w-4" />
-            </Link>
-          )}
+          <div className="flex shrink-0 items-center gap-2">
+            {hasPendingClaimFromMe && <p className="text-xs text-b2b-ink/40">Claim pending review</p>}
+            {canOfferClaim && <ClaimEventButton eventId={event.id} />}
+            {canEdit && (
+              <Link
+                href={`/events/${event.id}/edit`}
+                aria-label={me?.isAdmin ? "Edit event" : "Event settings"}
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-b2b-purple/20 text-b2b-purple hover:border-b2b-pink/40 hover:text-b2b-pink"
+              >
+                <EditIcon className="h-4 w-4" />
+              </Link>
+            )}
+          </div>
         </div>
 
         <EventEngagementButtons
