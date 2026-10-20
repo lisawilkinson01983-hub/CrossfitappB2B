@@ -29,6 +29,7 @@ export type AthleteSearchParams = {
   gender?: string;
   level?: string;
   lookingFor?: string | string[];
+  hideFollowing?: string;
 };
 
 export async function AthletesSearch({
@@ -46,6 +47,7 @@ export async function AthletesSearch({
   const lookingForFilter = lookingForRaw.filter((v): v is LookingForOption =>
     LOOKING_FOR_OPTIONS.includes(v as LookingForOption)
   );
+  const hideFollowing = sp.hideFollowing === "1";
 
   const [blocked, currentUser, approvedGyms] = await Promise.all([
     prisma.block.findMany({ where: { blockerId: currentUserId }, select: { blockedId: true } }),
@@ -60,7 +62,9 @@ export async function AthletesSearch({
   // manually-added or user-submitted affiliate shows up here too.
   const gymFilterOptions = [...approvedGyms.map((g) => g.name), UNAFFILIATED];
   const gym = gymFilterOptions.find((g) => g === sp.gym);
-  const activeFilterCount = [gym, distance, gender, level, lookingForFilter.length > 0].filter(Boolean).length;
+  const activeFilterCount = [gym, distance, gender, level, lookingForFilter.length > 0, hideFollowing].filter(
+    Boolean
+  ).length;
 
   const myCoords = currentUser
     ? await ensureUserAreaCoords({ id: currentUserId, ...currentUser }, { background: true })
@@ -134,6 +138,10 @@ export async function AthletesSearch({
   const myFollowingIds = new Set(myFollows.map((f) => f.followingId));
   const myPendingIds = new Set(myPendingRequests.map((r) => r.targetId));
   const myMutedIds = new Set(myMutes.map((m) => m.mutedUserId));
+
+  const visibleResults = hideFollowing
+    ? results.filter(({ user }) => !myFollowingIds.has(user.id))
+    : results;
 
   return (
     <div className="mt-4 flex flex-col gap-6">
@@ -252,6 +260,11 @@ export async function AthletesSearch({
               ))}
             </div>
           </fieldset>
+
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" name="hideFollowing" value="1" defaultChecked={hideFollowing} />
+            Hide people I already follow
+          </label>
         </SearchFilters>
 
         <div className="flex gap-3">
@@ -270,7 +283,7 @@ export async function AthletesSearch({
       </CollapsibleSearch>
 
       {(() => {
-        const items: SwipeCardItem[] = results.map(({ user, miles }) => {
+        const items: SwipeCardItem[] = visibleResults.map(({ user, miles }) => {
           const status: FollowStatus = myFollowingIds.has(user.id)
             ? "following"
             : myPendingIds.has(user.id)
