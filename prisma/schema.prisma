@@ -183,6 +183,11 @@ enum NotificationType {
   // TeamJoinRequest, kind REQUEST) — sent back to the original requester,
   // not the approver. eventId below has the event the team belongs to.
   TEAM_JOIN_APPROVED
+  // The team's creator removed this user from the roster (see DELETE
+  // /api/teams/[id]/members/[userId]) — eventId below has the event the
+  // team belonged to; there's no teamId on Notification, so this is sent
+  // before the removal in case it's the user's only link back to it.
+  TEAM_MEMBER_REMOVED
 }
 
 enum EventStatus {

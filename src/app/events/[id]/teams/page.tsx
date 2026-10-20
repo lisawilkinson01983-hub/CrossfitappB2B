@@ -94,6 +94,8 @@ export default async function EventTeamsPage({ params }: { params: Promise<{ id:
                     members={team.members.map((m) => m.user)}
                     freeformNames={freeformNames}
                     canInvite={isMember}
+                    isOwner={isCreator}
+                    creatorId={team.createdById}
                     viewerName={viewer?.name ?? "Someone"}
                     viewerInviteCode={viewerInviteCode}
                   >

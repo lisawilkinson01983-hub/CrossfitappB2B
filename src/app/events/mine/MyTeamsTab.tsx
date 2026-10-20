@@ -125,6 +125,8 @@ export async function MyTeamsTab({ userId, openTeamId }: { userId: string; openT
                   members={team.members.map((m) => m.user)}
                   freeformNames={freeformNames}
                   canInvite
+                  isOwner={team.createdById === userId}
+                  creatorId={team.createdById}
                   viewerName={viewer?.name ?? "Someone"}
                   viewerInviteCode={viewerInviteCode}
                   defaultOpen={team.id === openTeamId}

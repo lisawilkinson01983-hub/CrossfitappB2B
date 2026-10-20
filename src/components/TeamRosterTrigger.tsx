@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Avatar } from "@/components/Avatar";
+import { EditIcon } from "@/components/EditIcon";
 
 type RosterMember = { id: string; name: string; photo: string | null };
 type UserOption = { id: string; name: string; photo: string | null };
@@ -20,7 +21,11 @@ const MAX_TEAMMATES = 20;
  * Current members can also invite more teammates from inside this same
  * modal (see InviteSection below) — `canInvite` gates that, since someone
  * just browsing an event's Teams page shouldn't be able to add to a roster
- * they're not on.
+ * they're not on. The team's creator additionally gets to rename the team
+ * and remove roster spots (`isOwner`) — both update Team.name/members
+ * directly, so every other place that reads them (My Teams, the event's
+ * Teams page, the join/invite buttons) picks up the change automatically
+ * on its own next fetch, no separate propagation needed.
  */
 export function TeamRosterTrigger({
   teamId,
@@ -29,6 +34,8 @@ export function TeamRosterTrigger({
   members,
   freeformNames,
   canInvite,
+  isOwner,
+  creatorId,
   viewerName,
   viewerInviteCode,
   defaultOpen,
@@ -40,13 +47,61 @@ export function TeamRosterTrigger({
   members: RosterMember[];
   freeformNames: string[];
   canInvite: boolean;
+  isOwner: boolean;
+  creatorId: string;
   viewerName: string;
   viewerInviteCode: string;
   defaultOpen?: boolean;
   children: React.ReactNode;
 }) {
+  const router = useRouter();
   const [open, setOpen] = useState(!!defaultOpen);
+  const [editingName, setEditingName] = useState(false);
+  const [nameInput, setNameInput] = useState(teamName);
+  const [savingName, setSavingName] = useState(false);
+  const [nameError, setNameError] = useState<string | null>(null);
   const total = members.length + freeformNames.length;
+
+  async function saveName() {
+    const trimmed = nameInput.trim().slice(0, 60);
+    if (!trimmed || trimmed === teamName) {
+      setEditingName(false);
+      setNameInput(teamName);
+      return;
+    }
+    setSavingName(true);
+    setNameError(null);
+    const res = await fetch(`/api/teams/${teamId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: trimmed }),
+    });
+    setSavingName(false);
+    if (!res.ok) {
+      setNameError("Something went wrong. Please try again.");
+      return;
+    }
+    setEditingName(false);
+    router.refresh();
+  }
+
+  async function removeMember(userId: string) {
+    const res = await fetch(`/api/teams/${teamId}/remove-member`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId }),
+    });
+    if (res.ok) router.refresh();
+  }
+
+  async function removeFreeform(name: string) {
+    const res = await fetch(`/api/teams/${teamId}/remove-member`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ freeformName: name }),
+    });
+    if (res.ok) router.refresh();
+  }
 
   return (
     <>
@@ -66,8 +121,52 @@ export function TeamRosterTrigger({
             className="max-h-[85vh] w-full max-w-sm overflow-y-auto rounded-xl bg-b2b-card p-5 shadow-lg"
           >
             <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <p className="truncate text-base font-semibold text-b2b-ink">{teamName}</p>
+              <div className="min-w-0 flex-1">
+                {editingName ? (
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      type="text"
+                      value={nameInput}
+                      onChange={(e) => setNameInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          saveName();
+                        }
+                      }}
+                      autoFocus
+                      maxLength={60}
+                      disabled={savingName}
+                      className="min-w-0 flex-1 rounded border border-gray-300 px-2 py-1 text-sm focus:border-b2b-pink focus:outline-none disabled:opacity-50"
+                    />
+                    <button
+                      type="button"
+                      onClick={saveName}
+                      disabled={savingName}
+                      className="shrink-0 rounded bg-b2b-pink px-2 py-1 text-xs font-medium text-white disabled:opacity-50"
+                    >
+                      Save
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1.5">
+                    <p className="truncate text-base font-semibold text-b2b-ink">{teamName}</p>
+                    {isOwner && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setNameInput(teamName);
+                          setEditingName(true);
+                        }}
+                        aria-label="Rename team"
+                        className="shrink-0 text-b2b-ink/40 hover:text-b2b-ink"
+                      >
+                        <EditIcon className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                  </div>
+                )}
+                {nameError && <p className="mt-0.5 text-xs text-red-600">{nameError}</p>}
                 {eventName && <p className="truncate text-xs text-b2b-ink/50">{eventName}</p>}
                 <p className="mt-0.5 text-xs text-b2b-ink/40">
                   {total} {total === 1 ? "participant" : "participants"}
@@ -85,19 +184,37 @@ export function TeamRosterTrigger({
 
             <div className="mt-3 flex flex-col gap-2">
               {members.map((m) => (
-                <Link
-                  key={m.id}
-                  href={`/profile/${m.id}`}
-                  className="flex items-center gap-2.5 rounded-lg px-1 py-1 hover:bg-b2b-bg"
-                >
-                  <Avatar photo={m.photo} name={m.name} size={32} />
-                  <span className="truncate text-sm font-medium text-b2b-ink">{m.name}</span>
-                </Link>
+                <div key={m.id} className="flex items-center justify-between gap-2 rounded-lg px-1 py-1 hover:bg-b2b-bg">
+                  <Link href={`/profile/${m.id}`} className="flex min-w-0 flex-1 items-center gap-2.5">
+                    <Avatar photo={m.photo} name={m.name} size={32} />
+                    <span className="truncate text-sm font-medium text-b2b-ink">{m.name}</span>
+                  </Link>
+                  {isOwner && m.id !== creatorId && (
+                    <button
+                      type="button"
+                      onClick={() => removeMember(m.id)}
+                      className="shrink-0 text-xs font-medium text-red-600/70 hover:text-red-600"
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
               ))}
               {freeformNames.map((name) => (
-                <div key={name} className="flex items-center gap-2.5 px-1 py-1">
-                  <Avatar photo={null} name={name} size={32} />
-                  <span className="truncate text-sm text-b2b-ink/70">{name}</span>
+                <div key={name} className="flex items-center justify-between gap-2 px-1 py-1">
+                  <div className="flex min-w-0 flex-1 items-center gap-2.5">
+                    <Avatar photo={null} name={name} size={32} />
+                    <span className="truncate text-sm text-b2b-ink/70">{name}</span>
+                  </div>
+                  {isOwner && (
+                    <button
+                      type="button"
+                      onClick={() => removeFreeform(name)}
+                      className="shrink-0 text-xs font-medium text-red-600/70 hover:text-red-600"
+                    >
+                      Remove
+                    </button>
+                  )}
                 </div>
               ))}
             </div>

@@ -108,6 +108,8 @@ export function notificationText(n: NotificationView): string {
       return `wants to join your team for "${n.event?.name ?? "an event"}"`;
     case "TEAM_JOIN_APPROVED":
       return `approved your request to join their team for "${n.event?.name ?? "an event"}"`;
+    case "TEAM_MEMBER_REMOVED":
+      return `removed you from their team for "${n.event?.name ?? "an event"}"`;
     case "MENTION":
       return n.storyId ? "tagged you in their story" : "mentioned you";
     default:
@@ -141,6 +143,7 @@ export function notificationHref(n: NotificationView, viewerId: string): string 
       return `/events/${n.event?.id ?? ""}`;
     case "EVENT_TEAM_ADDED":
     case "EVENT_TEAM_JOINED":
+    case "TEAM_MEMBER_REMOVED":
       return `/events/${n.event?.id ?? ""}/teams`;
     // Unlike EVENT_TEAM_ADDED/EVENT_TEAM_JOINED (which just announce
     // something that already happened), these three need an action — accept/
