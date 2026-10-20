@@ -13,6 +13,7 @@ export type NotificationView = {
   emoji: string | null;
   storyId: string | null;
   eventWorkout: { eventId: string; number: number } | null;
+  wallPost: { id: string; wallOwnerId: string } | null;
 };
 
 /** What a post actually is, for notification wording — a photo/video takes priority over its text type, since that's what the other person actually reacted to. */
@@ -112,6 +113,10 @@ export function notificationText(n: NotificationView): string {
       return `removed you from their team for "${n.event?.name ?? "an event"}"`;
     case "MENTION":
       return n.storyId ? "tagged you in their story" : "mentioned you";
+    case "WALL_POST":
+      return "posted on your wall";
+    case "WALL_POST_COMMENT":
+      return "commented on your wall post";
     default:
       return "mentioned you";
   }
@@ -180,6 +185,9 @@ export function notificationHref(n: NotificationView, viewerId: string): string 
     case "WORKOUT_PARTNER_TAGGED":
       if (n.post) return `/posts/${n.post.id}`;
       return `/profile/${n.actor.id}/gallery${n.workoutId ? `?workout=${n.workoutId}` : ""}`;
+    case "WALL_POST":
+    case "WALL_POST_COMMENT":
+      return `/profile/${n.wallPost?.wallOwnerId ?? n.actor.id}?tab=wall`;
     case "MENTION":
       if (n.storyId) return `/feed?story=${n.storyId}`;
       if (n.event) return `/events/${n.event.id}/notices`;

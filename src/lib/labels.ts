@@ -38,6 +38,8 @@ export const REPORT_TARGET_LABELS: Record<ReportTargetTypeOption, string> = {
   EVENT_NOTICE_COMMENT: "comment",
   WORKOUT_COMMENT: "comment",
   PB_COMMENT: "comment",
+  WALL_POST: "wall post",
+  WALL_POST_COMMENT: "comment",
 };
 
 export const LEVEL_LABELS: Record<LevelOption, string> = {

@@ -55,6 +55,8 @@ export const REPORT_TARGET_TYPES = [
   "EVENT_NOTICE_COMMENT",
   "WORKOUT_COMMENT",
   "PB_COMMENT",
+  "WALL_POST",
+  "WALL_POST_COMMENT",
 ] as const;
 export type ReportTargetTypeOption = (typeof REPORT_TARGET_TYPES)[number];
 

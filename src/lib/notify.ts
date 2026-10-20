@@ -6,10 +6,11 @@ import { extractMentionIds } from "@/lib/mentions";
  * anyone in skipUserIds (e.g. someone already notified as the reply/comment
  * recipient, to avoid a duplicate notification for one action). Mentioned IDs
  * that aren't a real user (hand-crafted token, deleted account) are silently
- * ignored. Exactly one of postId/eventId/workoutId/pbField should be passed,
- * matching whichever surface the text came from (post/comment, event notice,
- * workout comment, PB comment) — same minimal deep-link fields Notification
- * already uses for that surface's own comment-notification type.
+ * ignored. Exactly one of postId/eventId/workoutId/pbField/wallPostId should
+ * be passed, matching whichever surface the text came from (post/comment,
+ * event notice, workout comment, PB comment, wall post) — same minimal
+ * deep-link fields Notification already uses for that surface's own
+ * comment-notification type.
  */
 export async function notifyMentions({
   text,
@@ -19,6 +20,7 @@ export async function notifyMentions({
   eventId,
   workoutId,
   pbField,
+  wallPostId,
   skipUserIds = [],
 }: {
   text: string | null | undefined;
@@ -28,6 +30,7 @@ export async function notifyMentions({
   eventId?: string;
   workoutId?: string;
   pbField?: string;
+  wallPostId?: string;
   skipUserIds?: string[];
 }): Promise<void> {
   const candidateIds = extractMentionIds(text).filter(
@@ -51,6 +54,7 @@ export async function notifyMentions({
       eventId: eventId ?? null,
       workoutId: workoutId ?? null,
       pbField: pbField ?? null,
+      wallPostId: wallPostId ?? null,
     })),
   });
 }

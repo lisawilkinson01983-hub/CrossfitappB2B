@@ -188,6 +188,13 @@ enum NotificationType {
   // team belonged to; there's no teamId on Notification, so this is sent
   // before the removal in case it's the user's only link back to it.
   TEAM_MEMBER_REMOVED
+  // Someone posted on this user's profile wall (see WallPost) — not sent
+  // when the wall owner posts on their own wall.
+  WALL_POST
+  // Someone commented on a post on this user's wall (see WallPostComment) —
+  // sent to the wall post's author, not the wall owner, unless they're the
+  // same person.
+  WALL_POST_COMMENT
 }
 
 enum EventStatus {
@@ -577,6 +584,10 @@ model User {
   teamJoinRequestsSent        TeamJoinRequest[]             @relation("TeamJoinRequestInitiator")
   teamInviteLinksCreated      TeamInviteLink[]              @relation("TeamInviteLinksCreated")
   teamInviteLinksClaimed      TeamInviteLink[]              @relation("TeamInviteLinksClaimed")
+  wallPostsReceived           WallPost[]                    @relation("WallPostsReceived")
+  wallPostsAuthored           WallPost[]                    @relation("WallPostsAuthored")
+  wallPostLikes               WallPostLike[]
+  wallPostComments            WallPostComment[]
 
   blocksMade     Block[] @relation("BlocksMade")
   blocksReceived Block[] @relation("BlocksReceived")
@@ -938,6 +949,64 @@ model CommentReaction {
 
   @@unique([userId, commentId, emoji])
   @@index([commentId])
+}
+
+// A public message written directly on a profile's "Wall" tab — distinct
+// from a private Message, and from a Post (which only ever belongs to its
+// own author). Visible to anyone who can see the wall owner's profile, same
+// gating as the Posts tab. Deleting one is allowed for either its own
+// author or the wall owner (moderating their own wall) — see
+// DELETE /api/wall-posts/[id].
+model WallPost {
+  id String @id @default(cuid())
+
+  wallOwnerId String
+  wallOwner   User   @relation("WallPostsReceived", fields: [wallOwnerId], references: [id], onDelete: Cascade)
+
+  authorId String
+  author   User   @relation("WallPostsAuthored", fields: [authorId], references: [id], onDelete: Cascade)
+
+  text  String?
+  photo String? // served path, e.g. "/media/xyz.jpg" (see src/lib/uploads.ts)
+
+  createdAt DateTime @default(now())
+
+  likes         WallPostLike[]
+  comments      WallPostComment[]
+  notifications Notification[]
+
+  @@index([wallOwnerId])
+}
+
+model WallPostLike {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  wallPostId String
+  wallPost   WallPost @relation(fields: [wallPostId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, wallPostId])
+  @@index([wallPostId])
+}
+
+// A flat (no reply-nesting) comment on a WallPost — kept simpler than
+// Comment/EventNoticeComment since a wall post is itself already a reply
+// surface. Same moderation rule as WallPost: deletable by its own author or
+// the wall owner (see DELETE /api/wall-post-comments/[id]).
+model WallPostComment {
+  id         String   @id @default(cuid())
+  wallPostId String
+  wallPost   WallPost @relation(fields: [wallPostId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  text String
+
+  createdAt DateTime @default(now())
+
+  @@index([wallPostId])
 }
 
 // Someone reacting to another user's current status (see User.status) —
@@ -1918,6 +1987,11 @@ model Notification {
   eventWorkoutId String?
   eventWorkout   EventWorkout? @relation(fields: [eventWorkoutId], references: [id], onDelete: Cascade)
 
+  // Set for WALL_POST/WALL_POST_COMMENT — the wall post itself, so the
+  // notification can deep-link straight to it.
+  wallPostId String?
+  wallPost   WallPost? @relation(fields: [wallPostId], references: [id], onDelete: Cascade)
+
   readAt    DateTime?
   createdAt DateTime  @default(now())
 
@@ -1970,6 +2044,8 @@ enum ReportTargetType {
   EVENT_NOTICE_COMMENT
   WORKOUT_COMMENT
   PB_COMMENT
+  WALL_POST
+  WALL_POST_COMMENT
 }
 
 enum ReportReason {

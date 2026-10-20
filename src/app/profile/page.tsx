@@ -14,6 +14,9 @@ import { ProfileEventRow } from "@/components/ProfileEventRow";
 import { IncomingFollowRequests } from "@/components/IncomingFollowRequests";
 import { GymUpdateNudge } from "@/components/GymUpdateNudge";
 import { EditIcon } from "@/components/EditIcon";
+import { WallComposer } from "@/components/WallComposer";
+import { WallPostCard } from "@/components/WallPostCard";
+import { wallPostInclude, toWallPostCardData } from "@/lib/wallPosts";
 import { OTHER_GYM } from "@/lib/gyms";
 import { isCompetitionEvent } from "@/lib/labels";
 import type { Prisma } from "@prisma/client";
@@ -23,9 +26,14 @@ import type { Prisma } from "@prisma/client";
 // worth of, not a paginated archive.
 const TAB_PREVIEW_COUNT = 10;
 
-export default async function ProfilePage() {
+export default async function ProfilePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tab?: string }>;
+}) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) redirect("/login");
+  const { tab } = await searchParams;
 
   // See feed/page.tsx's matching timer — same diagnostic, same reason:
   // ruling the page's own data-fetching in/out as the remaining source of
@@ -56,6 +64,7 @@ export default async function ProfilePage() {
     posts,
     postsTotalCount,
     workoutPosts,
+    wallPosts,
   ] = await Promise.all([
     prisma.workout.count({ where: { userId: user.id } }),
     prisma.follow.count({ where: { followingId: user.id } }),
@@ -84,6 +93,11 @@ export default async function ProfilePage() {
       orderBy: { createdAt: "desc" },
       take: TAB_PREVIEW_COUNT,
       include: postCardInclude,
+    }),
+    prisma.wallPost.findMany({
+      where: { wallOwnerId: user.id },
+      orderBy: { createdAt: "desc" },
+      include: wallPostInclude,
     }),
   ]);
   console.log(`/profile: data fetch took ${Date.now() - fetchStart}ms`);
@@ -193,6 +207,29 @@ export default async function ProfilePage() {
       ),
   });
 
+  tabs.push({
+    key: "wall",
+    label: "Wall",
+    content: (
+      <div className="flex flex-col gap-4">
+        <WallComposer
+          wallOwnerId={user.id}
+          wallOwnerName={user.name}
+          isOwnWall
+          currentUserName={user.name}
+          currentUserPhoto={user.photo}
+        />
+        {wallPosts.length === 0 ? (
+          <p className="text-b2b-ink/40">No wall posts yet.</p>
+        ) : (
+          wallPosts.map((post) => (
+            <WallPostCard key={post.id} post={toWallPostCardData(post, user.id, user.id)} isWallOwner />
+          ))
+        )}
+      </div>
+    ),
+  });
+
   return (
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
       <NavBar />
@@ -217,7 +254,7 @@ export default async function ProfilePage() {
         <Gallery userId={user.id} canAdd />
 
         <SectionCard>
-          <ProfileContentTabs tabs={tabs} />
+          <ProfileContentTabs tabs={tabs} defaultKey={tab} />
         </SectionCard>
 
         {incomingRequests.length > 0 && (

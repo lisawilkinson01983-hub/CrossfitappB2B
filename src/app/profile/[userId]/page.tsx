@@ -16,6 +16,9 @@ import { MessageButton } from "@/components/MessageButton";
 import { ProfileMoreMenu } from "@/components/ProfileMoreMenu";
 import { ExpandableHeroPhoto } from "@/components/ExpandableHeroPhoto";
 import { BackLink } from "@/components/BackLink";
+import { WallComposer } from "@/components/WallComposer";
+import { WallPostCard } from "@/components/WallPostCard";
+import { wallPostInclude, toWallPostCardData } from "@/lib/wallPosts";
 import { LOOKING_FOR_LABELS, parseLookingFor, showsSingleBadge } from "@/lib/labels";
 import type { Prisma } from "@prisma/client";
 
@@ -24,14 +27,17 @@ const TAB_PREVIEW_COUNT = 10;
 
 export default async function UserProfilePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ userId: string }>;
+  searchParams: Promise<{ tab?: string }>;
 }) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) redirect("/login");
 
   const { userId } = await params;
-  if (userId === session.user.id) redirect("/profile");
+  const { tab } = await searchParams;
+  if (userId === session.user.id) redirect(tab ? `/profile?tab=${tab}` : "/profile");
 
   const user = await prisma.user.findUnique({
     where: { id: userId },
@@ -58,7 +64,7 @@ export default async function UserProfilePage({
       where: { requesterId_targetId: { requesterId: session.user.id, targetId: user.id } },
     }),
     prisma.workout.count({ where: { userId: user.id } }),
-    prisma.user.findUnique({ where: { id: session.user.id }, select: { lookingFor: true } }),
+    prisma.user.findUnique({ where: { id: session.user.id }, select: { name: true, photo: true, lookingFor: true } }),
     prisma.block.findUnique({
       where: { blockerId_blockedId: { blockerId: session.user.id, blockedId: user.id } },
     }),
@@ -90,7 +96,7 @@ export default async function UserProfilePage({
       { endDate: { gte: now } },
     ];
 
-    const [posts, postsTotalCount, workoutPosts, competingIn, interestedIn] = await Promise.all([
+    const [posts, postsTotalCount, workoutPosts, competingIn, interestedIn, wallPosts] = await Promise.all([
       prisma.post.findMany({
         where: { userId: user.id, sharedToFeed: true },
         orderBy: { createdAt: "desc" },
@@ -113,6 +119,11 @@ export default async function UserProfilePage({
       prisma.event.findMany({
         where: { AND: [{ interests: { some: { userId: user.id } } }, { isPrivate: false }, { OR: notPastFilter }] },
         orderBy: { date: "asc" },
+      }),
+      prisma.wallPost.findMany({
+        where: { wallOwnerId: user.id },
+        orderBy: { createdAt: "desc" },
+        include: wallPostInclude,
       }),
     ]);
 
@@ -185,6 +196,33 @@ export default async function UserProfilePage({
             )}
           </div>
         ),
+    });
+
+    tabs.push({
+      key: "wall",
+      label: "Wall",
+      content: (
+        <div className="flex flex-col gap-4">
+          <WallComposer
+            wallOwnerId={user.id}
+            wallOwnerName={user.name}
+            isOwnWall={false}
+            currentUserName={me?.name ?? "You"}
+            currentUserPhoto={me?.photo ?? null}
+          />
+          {wallPosts.length === 0 ? (
+            <p className="text-b2b-ink/40">No wall posts yet.</p>
+          ) : (
+            wallPosts.map((post) => (
+              <WallPostCard
+                key={post.id}
+                post={toWallPostCardData(post, session.user.id, user.id)}
+                isWallOwner={false}
+              />
+            ))
+          )}
+        </div>
+      ),
     });
   }
 
@@ -263,7 +301,7 @@ export default async function UserProfilePage({
             <Gallery userId={user.id} />
 
             <SectionCard>
-              <ProfileContentTabs tabs={tabs} />
+              <ProfileContentTabs tabs={tabs} defaultKey={tab} />
             </SectionCard>
           </>
         )}
