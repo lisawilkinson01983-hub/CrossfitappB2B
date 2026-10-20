@@ -5,6 +5,7 @@ import { MessageTeamGroupButton } from "@/components/MessageTeamGroupButton";
 import { PendingTeamJoinRequests, type TeamJoinRequestItem } from "@/components/PendingTeamJoinRequests";
 import { TeamRosterTrigger } from "@/components/TeamRosterTrigger";
 import { Avatar } from "@/components/Avatar";
+import { getOrCreateInviteCode } from "@/lib/inviteCode";
 
 /**
  * Every team the viewer belongs to (across any event, not just upcoming
@@ -13,9 +14,13 @@ import { Avatar } from "@/components/Avatar";
  * start a new one. See TeamJoinRequest's own doc comment for what "pending"
  * means here — nothing in `myTeams` includes someone who hasn't accepted
  * yet, same as the event's own Teams page.
+ *
+ * `openTeamId`, when given, auto-opens that team's roster modal — used by
+ * the invite-accept flow (see PendingTeamJoinRequests) to land straight on
+ * the team you just joined instead of just the bare list.
  */
-export async function MyTeamsTab({ userId }: { userId: string }) {
-  const [myMemberships, myInvites, myApprovals, competitionEvents] = await Promise.all([
+export async function MyTeamsTab({ userId, openTeamId }: { userId: string; openTeamId?: string }) {
+  const [myMemberships, myInvites, myApprovals, competitionEvents, viewer, viewerInviteCode] = await Promise.all([
     prisma.teamMember.findMany({
       where: { userId },
       orderBy: { createdAt: "desc" },
@@ -55,6 +60,8 @@ export async function MyTeamsTab({ userId }: { userId: string }) {
       orderBy: { date: "asc" },
       select: { id: true, name: true },
     }),
+    prisma.user.findUnique({ where: { id: userId }, select: { name: true } }),
+    getOrCreateInviteCode(userId),
   ]);
 
   const inviteItems: TeamJoinRequestItem[] = myInvites.map((req) => ({
@@ -112,10 +119,15 @@ export async function MyTeamsTab({ userId }: { userId: string }) {
                   <MessageTeamGroupButton teamId={team.id} />
                 </div>
                 <TeamRosterTrigger
+                  teamId={team.id}
                   teamName={team.name}
                   eventName={team.event.name}
                   members={team.members.map((m) => m.user)}
                   freeformNames={freeformNames}
+                  canInvite
+                  viewerName={viewer?.name ?? "Someone"}
+                  viewerInviteCode={viewerInviteCode}
+                  defaultOpen={team.id === openTeamId}
                 >
                   <div className="mt-3 flex items-center gap-2.5">
                     <div className="flex shrink-0">

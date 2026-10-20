@@ -31,11 +31,18 @@ export function PendingTeamJoinRequests({
   const router = useRouter();
   const [busyId, setBusyId] = useState<string | null>(null);
 
-  async function respond(id: string, action: "accept" | "decline") {
+  async function respond(id: string, action: "accept" | "decline", teamId: string) {
     setBusyId(id);
     const res = await fetch(`/api/team-join-requests/${id}/${action}`, { method: "POST" });
     setBusyId(null);
-    if (res.ok) router.refresh();
+    if (!res.ok) return;
+    // Accepting is the moment the team becomes real for you — land straight
+    // on it (open) rather than just the bare list it now shows up in.
+    if (action === "accept") {
+      router.push(`/events/mine?tab=teams&openTeam=${teamId}`);
+    } else {
+      router.refresh();
+    }
   }
 
   if (requests.length === 0) return null;
@@ -67,7 +74,7 @@ export function PendingTeamJoinRequests({
           <div className="flex shrink-0 gap-2">
             <button
               type="button"
-              onClick={() => respond(req.id, "accept")}
+              onClick={() => respond(req.id, "accept", req.team.id)}
               disabled={busyId === req.id}
               className="rounded bg-b2b-pink px-2.5 py-1.5 text-xs font-medium text-white disabled:opacity-50"
             >
@@ -75,7 +82,7 @@ export function PendingTeamJoinRequests({
             </button>
             <button
               type="button"
-              onClick={() => respond(req.id, "decline")}
+              onClick={() => respond(req.id, "decline", req.team.id)}
               disabled={busyId === req.id}
               className="rounded bg-b2b-ink px-2.5 py-1.5 text-xs font-medium text-b2b-bg disabled:opacity-50"
             >

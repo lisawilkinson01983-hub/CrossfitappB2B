@@ -26,6 +26,20 @@ export async function generateUniqueInviteCode(): Promise<string> {
 }
 
 /**
+ * Every new signup gets a code already, and scripts/backfill-invite-codes.js
+ * covers accounts from before that shipped, but this self-heals anywhere
+ * else a user's code is needed (sharing a team invite, Settings) even if
+ * neither has run yet.
+ */
+export async function getOrCreateInviteCode(userId: string): Promise<string> {
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { inviteCode: true } });
+  if (user?.inviteCode) return user.inviteCode;
+  const inviteCode = await generateUniqueInviteCode();
+  await prisma.user.update({ where: { id: userId }, data: { inviteCode } });
+  return inviteCode;
+}
+
+/**
  * When INVITE_ONLY is "true", signing up needs an existing member's invite
  * code — how a closed test group stays closed without a site-wide password
  * (which home-screen apps on iPhone handle badly). Unset, a code is optional

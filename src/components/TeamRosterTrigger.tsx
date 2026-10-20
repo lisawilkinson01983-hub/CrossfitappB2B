@@ -1,10 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Avatar } from "@/components/Avatar";
 
 type RosterMember = { id: string; name: string; photo: string | null };
+type UserOption = { id: string; name: string; photo: string | null };
+
+const MAX_TEAMMATES = 20;
 
 /**
  * Wraps a team's avatar-stack/member-list summary (passed as `children`,
@@ -12,21 +16,36 @@ type RosterMember = { id: string; name: string; photo: string | null };
  * roster gets long) — tapping it opens the full, untruncated list in a
  * popout, same modal pattern as TeamTagPrompt. Used on both an event's own
  * Teams page and My Teams.
+ *
+ * Current members can also invite more teammates from inside this same
+ * modal (see InviteSection below) — `canInvite` gates that, since someone
+ * just browsing an event's Teams page shouldn't be able to add to a roster
+ * they're not on.
  */
 export function TeamRosterTrigger({
+  teamId,
   teamName,
   eventName,
   members,
   freeformNames,
+  canInvite,
+  viewerName,
+  viewerInviteCode,
+  defaultOpen,
   children,
 }: {
+  teamId: string;
   teamName: string;
   eventName?: string;
   members: RosterMember[];
   freeformNames: string[];
+  canInvite: boolean;
+  viewerName: string;
+  viewerInviteCode: string;
+  defaultOpen?: boolean;
   children: React.ReactNode;
 }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(!!defaultOpen);
   const total = members.length + freeformNames.length;
 
   return (
@@ -82,9 +101,200 @@ export function TeamRosterTrigger({
                 </div>
               ))}
             </div>
+
+            {canInvite && (
+              <InviteSection
+                teamId={teamId}
+                teamName={teamName}
+                existingMemberIds={members.map((m) => m.id)}
+                viewerName={viewerName}
+                viewerInviteCode={viewerInviteCode}
+              />
+            )}
           </div>
         </div>
       )}
     </>
+  );
+}
+
+/**
+ * Search-and-add for a platform teammate (sends a pending TeamJoinRequest,
+ * same as tagging someone at team creation — see POST /api/teams/[id]/invite)
+ * plus a freeform fallback for someone not on Box 2 Box yet, which adds them
+ * to the roster right away (nobody to approve anything) and hands the
+ * inviter a pre-filled WhatsApp link to actually reach that person.
+ */
+function InviteSection({
+  teamId,
+  teamName,
+  existingMemberIds,
+  viewerName,
+  viewerInviteCode,
+}: {
+  teamId: string;
+  teamName: string;
+  existingMemberIds: string[];
+  viewerName: string;
+  viewerInviteCode: string;
+}) {
+  const router = useRouter();
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<UserOption[]>([]);
+  const [freeformInput, setFreeformInput] = useState("");
+  const [sentTo, setSentTo] = useState<UserOption[]>([]);
+  const [addedFreeform, setAddedFreeform] = useState<string[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const requestId = useRef(0);
+  // Starts relative so server- and client-rendered markup match, then fills
+  // in the real origin after mount — same hydration-safe trick InviteCodeCard
+  // uses for its own install link.
+  const [origin, setOrigin] = useState("");
+  useEffect(() => setOrigin(window.location.origin), []);
+
+  const totalAdded = sentTo.length + addedFreeform.length;
+  const atLimit = existingMemberIds.length + totalAdded >= MAX_TEAMMATES;
+
+  async function handleQueryChange(value: string) {
+    setQuery(value);
+    if (!value.trim()) {
+      setResults([]);
+      return;
+    }
+    const thisRequest = ++requestId.current;
+    const res = await fetch(`/api/users/search?q=${encodeURIComponent(value.trim())}`);
+    if (thisRequest !== requestId.current) return;
+    if (res.ok) {
+      const body = await res.json();
+      setResults(body.users ?? []);
+    }
+  }
+
+  async function invite(user: UserOption) {
+    setError(null);
+    setQuery("");
+    setResults([]);
+    const res = await fetch(`/api/teams/${teamId}/invite`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ teammateIds: [user.id] }),
+    });
+    if (!res.ok) {
+      setError("Something went wrong. Please try again.");
+      return;
+    }
+    const body = await res.json();
+    if (body.invitedUserIds?.length > 0) {
+      setSentTo((prev) => [...prev, user]);
+    } else {
+      setError(`${user.name} already has a pending request for this team.`);
+    }
+    router.refresh();
+  }
+
+  async function addFreeform() {
+    const trimmed = freeformInput.trim().slice(0, 60);
+    if (!trimmed) return;
+    setError(null);
+    const res = await fetch(`/api/teams/${teamId}/invite`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ teammateNames: [trimmed] }),
+    });
+    if (!res.ok) {
+      setError("Something went wrong. Please try again.");
+      return;
+    }
+    setFreeformInput("");
+    setAddedFreeform((prev) => [...prev, trimmed]);
+    router.refresh();
+
+    const link = `${origin || window.location.origin}/install?ref=${viewerInviteCode}`;
+    const text = `${viewerName} wants to add you to their team "${teamName}" on Box 2 Box - sign up here: ${link}`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank", "noopener,noreferrer");
+  }
+
+  return (
+    <div className="mt-4 border-t border-b2b-purple/10 pt-3">
+      <p className="text-xs font-semibold uppercase tracking-wide text-b2b-ink/45">Invite more teammates</p>
+
+      {error && <p className="mt-2 text-xs text-red-600">{error}</p>}
+
+      {sentTo.length > 0 && (
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {sentTo.map((u) => (
+            <span key={u.id} className="rounded-full bg-b2b-purple/10 px-2.5 py-1 text-xs text-b2b-purple">
+              Invite sent to {u.name}
+            </span>
+          ))}
+        </div>
+      )}
+      {addedFreeform.length > 0 && (
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {addedFreeform.map((name) => (
+            <span key={name} className="rounded-full bg-b2b-ink/5 px-2.5 py-1 text-xs text-b2b-ink/60">
+              Added {name}
+            </span>
+          ))}
+        </div>
+      )}
+
+      <div className="relative mt-2">
+        <input
+          type="text"
+          value={query}
+          onChange={(e) => handleQueryChange(e.target.value)}
+          placeholder="Search teammates by name..."
+          disabled={atLimit}
+          className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-b2b-pink focus:outline-none disabled:opacity-50"
+        />
+        {results.length > 0 && (
+          <div className="absolute z-10 mt-1 w-full overflow-hidden rounded border border-gray-200 bg-b2b-card shadow-lg">
+            {results
+              .filter((u) => !existingMemberIds.includes(u.id) && !sentTo.some((s) => s.id === u.id))
+              .map((user) => (
+                <button
+                  key={user.id}
+                  type="button"
+                  onClick={() => invite(user)}
+                  className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-b2b-bg"
+                >
+                  <Avatar photo={user.photo} name={user.name} size={28} />
+                  {user.name}
+                </button>
+              ))}
+          </div>
+        )}
+      </div>
+
+      <div className="mt-2">
+        <p className="text-xs font-medium text-b2b-ink/50">Not on Box 2 Box yet?</p>
+        <div className="mt-1 flex gap-2">
+          <input
+            type="text"
+            value={freeformInput}
+            onChange={(e) => setFreeformInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                addFreeform();
+              }
+            }}
+            placeholder="Type their name..."
+            disabled={atLimit}
+            className="flex-1 rounded border border-gray-300 px-3 py-2 text-sm focus:border-b2b-pink focus:outline-none disabled:opacity-50"
+          />
+          <button
+            type="button"
+            onClick={addFreeform}
+            disabled={!freeformInput.trim() || atLimit}
+            className="shrink-0 rounded bg-[#25D366] px-3 py-2 text-sm font-medium text-white hover:bg-[#1ebe57] disabled:opacity-50"
+          >
+            WhatsApp
+          </button>
+        </div>
+        <p className="mt-1 text-xs text-b2b-ink/40">Adds them to the roster and opens a WhatsApp invite to send.</p>
+      </div>
+    </div>
   );
 }

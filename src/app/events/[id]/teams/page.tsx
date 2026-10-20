@@ -8,6 +8,7 @@ import { BackLink } from "@/components/BackLink";
 import { assertEventVisible } from "@/lib/eventVisibility";
 import { TeamJoinRequestButton } from "@/components/TeamJoinRequestButton";
 import { TeamRosterTrigger } from "@/components/TeamRosterTrigger";
+import { getOrCreateInviteCode } from "@/lib/inviteCode";
 
 export default async function EventTeamsPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
@@ -42,6 +43,9 @@ export default async function EventTeamsPage({ params }: { params: Promise<{ id:
     select: { teamId: true, kind: true },
   });
   const myPendingByTeamId = new Map(myPendingRequests.map((r) => [r.teamId, r.kind]));
+
+  const viewer = await prisma.user.findUnique({ where: { id: session.user.id }, select: { name: true } });
+  const viewerInviteCode = await getOrCreateInviteCode(session.user.id);
 
   return (
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
@@ -84,10 +88,14 @@ export default async function EventTeamsPage({ params }: { params: Promise<{ id:
                     <TeamJoinRequestButton teamId={team.id} initialStatus={buttonStatus} />
                   </div>
                   <TeamRosterTrigger
+                    teamId={team.id}
                     teamName={team.name}
                     eventName={event.name}
                     members={team.members.map((m) => m.user)}
                     freeformNames={freeformNames}
+                    canInvite={isMember}
+                    viewerName={viewer?.name ?? "Someone"}
+                    viewerInviteCode={viewerInviteCode}
                   >
                     <div className="mt-3 flex items-center gap-2.5">
                       <div className="flex">

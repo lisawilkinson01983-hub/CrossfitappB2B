@@ -20,7 +20,7 @@ import { MyTeamsTab } from "./MyTeamsTab";
 export default async function MyEventsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string; q?: string }>;
+  searchParams: Promise<{ tab?: string; q?: string; openTeam?: string }>;
 }) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) redirect("/login");
@@ -153,7 +153,7 @@ export default async function MyEventsPage({
       </div>
 
       {tab === "teams" ? (
-        <MyTeamsTab userId={userId} />
+        <MyTeamsTab userId={userId} openTeamId={sp.openTeam} />
       ) : (
       <div className="mt-4 flex flex-col gap-6">
         <CollapsibleSearch label="Search my events by name or area" defaultOpen={!!q}>
