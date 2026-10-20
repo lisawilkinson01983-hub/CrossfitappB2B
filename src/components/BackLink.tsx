@@ -68,9 +68,9 @@ export function BackLink({
       href={href}
       onClick={handleClick}
       aria-label={typeof children === "string" ? children : undefined}
-      className={`inline-flex h-9 w-9 items-center justify-center rounded-full border border-b2b-purple/15 text-b2b-ink/60 hover:bg-b2b-bg ${className}`}
+      className={`inline-flex h-6 w-6 items-center justify-center rounded-full border border-b2b-purple/15 text-b2b-ink/60 hover:bg-b2b-bg ${className}`}
     >
-      <BackIcon className="h-4 w-4 shrink-0" />
+      <BackIcon className="h-3 w-3 shrink-0" />
     </a>
   );
 }

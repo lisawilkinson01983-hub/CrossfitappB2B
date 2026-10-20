@@ -90,11 +90,11 @@ export async function EventsList({
     : eventsWithDistance;
 
   return (
-    <div className="mt-4 flex flex-col gap-6">
+    <div className="mt-4 flex flex-col gap-4">
       <div className="flex items-center justify-between">
         <Link
           href="/events/submit"
-          className="rounded bg-b2b-pink px-4 py-2 text-sm font-medium text-white hover:bg-b2b-pink-dark"
+          className="rounded bg-b2b-pink px-3 py-1.5 text-sm font-medium text-white hover:bg-b2b-pink-dark"
         >
           Create Event
         </Link>

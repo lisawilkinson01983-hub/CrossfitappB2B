@@ -144,7 +144,7 @@ export async function AthletesSearch({
     : results;
 
   return (
-    <div className="mt-4 flex flex-col gap-6">
+    <div className="mt-4 flex flex-col gap-4">
       <CollapsibleSearch label="Search athletes by name" defaultOpen={!!q || activeFilterCount > 0}>
       <SectionCard>
       <form method="GET" className="flex flex-col gap-4">

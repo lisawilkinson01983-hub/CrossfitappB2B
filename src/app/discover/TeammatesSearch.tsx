@@ -89,7 +89,7 @@ export async function TeammatesSearch({
   const visible = distance ? withDistance.filter(({ miles }) => miles !== null && miles <= distance) : withDistance;
 
   return (
-    <div className="mt-4 flex flex-col gap-6">
+    <div className="mt-4 flex flex-col gap-4">
       <SectionCard>
         <form method="GET" className="flex flex-col gap-4">
           <input type="hidden" name="view" value="teammates" />

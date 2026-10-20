@@ -272,8 +272,8 @@ export function SwipeCardList({
                 onPointerDown={onPointerDown}
                 onPointerMove={onPointerMove}
                 onPointerUp={onPointerUp}
-                className="relative w-full max-w-[280px] touch-none select-none overflow-hidden rounded-2xl shadow-lg"
-                style={{ height: 440 }}
+                className="relative w-full max-w-[260px] touch-none select-none overflow-hidden rounded-2xl shadow-lg"
+                style={{ height: 290 }}
               >
                 <div className="absolute inset-0">
                   {active.image ? (
@@ -282,7 +282,7 @@ export function SwipeCardList({
                       alt=""
                       fill
                       draggable={false}
-                      sizes="280px"
+                      sizes="260px"
                       className="pointer-events-none object-cover"
                     />
                   ) : (

@@ -290,7 +290,12 @@ export function StoriesBar({
 
   return (
     <>
-      <div className="flex gap-3 overflow-x-auto pb-1">
+      {/* py- (not just pb-) on purpose: a ring-offset avatar's gold ring
+          extends past its own box on every side, and `overflow-x-auto` here
+          forces the browser to also start clipping the y-axis (a standard
+          CSS quirk — one non-visible axis makes the other "auto" too), which
+          otherwise crops the top of every ring a few pixels short. */}
+      <div className="flex gap-3 overflow-x-auto py-1.5">
         <input ref={fileInputRef} type="file" accept={MEDIA_ACCEPT} onChange={handleFileChange} className="hidden" />
 
         {/* A real <button> can't nest another <button> (invalid HTML —
