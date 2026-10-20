@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { CreateTeamForm } from "@/components/CreateTeamForm";
 import { MessageTeamGroupButton } from "@/components/MessageTeamGroupButton";
 import { PendingTeamJoinRequests, type TeamJoinRequestItem } from "@/components/PendingTeamJoinRequests";
+import { TeamRosterTrigger } from "@/components/TeamRosterTrigger";
 import { Avatar } from "@/components/Avatar";
 
 /**
@@ -110,31 +111,36 @@ export async function MyTeamsTab({ userId }: { userId: string }) {
                   </div>
                   <MessageTeamGroupButton teamId={team.id} />
                 </div>
-                <div className="mt-3 flex items-center gap-2.5">
-                  <div className="flex shrink-0">
-                    {team.members.map((m, i) => (
-                      <div key={m.id} className={i > 0 ? "-ml-2" : ""}>
-                        <Avatar photo={m.user.photo} name={m.user.name} size={30} />
-                      </div>
-                    ))}
-                  </div>
-                  <p className="min-w-0 flex-1 truncate text-xs text-b2b-ink/60">
-                    {team.members.map((m, i) => (
-                      <span key={m.id}>
-                        {i > 0 && ", "}
-                        <Link href={`/profile/${m.user.id}`} className="hover:underline">
+                <TeamRosterTrigger
+                  teamName={team.name}
+                  eventName={team.event.name}
+                  members={team.members.map((m) => m.user)}
+                  freeformNames={freeformNames}
+                >
+                  <div className="mt-3 flex items-center gap-2.5">
+                    <div className="flex shrink-0">
+                      {team.members.map((m, i) => (
+                        <div key={m.id} className={i > 0 ? "-ml-2" : ""}>
+                          <Avatar photo={m.user.photo} name={m.user.name} size={30} />
+                        </div>
+                      ))}
+                    </div>
+                    <p className="min-w-0 flex-1 truncate text-xs text-b2b-ink/60">
+                      {team.members.map((m, i) => (
+                        <span key={m.id}>
+                          {i > 0 && ", "}
                           {m.user.name}
-                        </Link>
-                      </span>
-                    ))}
-                    {freeformNames.length > 0 && (
-                      <>
-                        {team.members.length > 0 && ", "}
-                        {freeformNames.join(", ")}
-                      </>
-                    )}
-                  </p>
-                </div>
+                        </span>
+                      ))}
+                      {freeformNames.length > 0 && (
+                        <>
+                          {team.members.length > 0 && ", "}
+                          {freeformNames.join(", ")}
+                        </>
+                      )}
+                    </p>
+                  </div>
+                </TeamRosterTrigger>
               </div>
             );
           })}

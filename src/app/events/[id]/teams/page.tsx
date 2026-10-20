@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { redirect, notFound } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -8,6 +7,7 @@ import { Avatar } from "@/components/Avatar";
 import { BackLink } from "@/components/BackLink";
 import { assertEventVisible } from "@/lib/eventVisibility";
 import { TeamJoinRequestButton } from "@/components/TeamJoinRequestButton";
+import { TeamRosterTrigger } from "@/components/TeamRosterTrigger";
 
 export default async function EventTeamsPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
@@ -83,31 +83,36 @@ export default async function EventTeamsPage({ params }: { params: Promise<{ id:
                     <p className="font-display text-xl leading-none text-b2b-ink">{team.name}</p>
                     <TeamJoinRequestButton teamId={team.id} initialStatus={buttonStatus} />
                   </div>
-                  <div className="mt-3 flex items-center gap-2.5">
-                    <div className="flex">
-                      {team.members.map((m, i) => (
-                        <div key={m.id} className={i > 0 ? "-ml-2" : ""}>
-                          <Avatar photo={m.user.photo} name={m.user.name} size={30} />
-                        </div>
-                      ))}
-                    </div>
-                    <p className="min-w-0 flex-1 truncate text-xs text-b2b-ink/60">
-                      {team.members.map((m, i) => (
-                        <span key={m.id}>
-                          {i > 0 && ", "}
-                          <Link href={`/profile/${m.user.id}`} className="hover:underline">
+                  <TeamRosterTrigger
+                    teamName={team.name}
+                    eventName={event.name}
+                    members={team.members.map((m) => m.user)}
+                    freeformNames={freeformNames}
+                  >
+                    <div className="mt-3 flex items-center gap-2.5">
+                      <div className="flex">
+                        {team.members.map((m, i) => (
+                          <div key={m.id} className={i > 0 ? "-ml-2" : ""}>
+                            <Avatar photo={m.user.photo} name={m.user.name} size={30} />
+                          </div>
+                        ))}
+                      </div>
+                      <p className="min-w-0 flex-1 truncate text-xs text-b2b-ink/60">
+                        {team.members.map((m, i) => (
+                          <span key={m.id}>
+                            {i > 0 && ", "}
                             {m.user.name}
-                          </Link>
-                        </span>
-                      ))}
-                      {freeformNames.length > 0 && (
-                        <>
-                          {team.members.length > 0 && ", "}
-                          {freeformNames.join(", ")}
-                        </>
-                      )}
-                    </p>
-                  </div>
+                          </span>
+                        ))}
+                        {freeformNames.length > 0 && (
+                          <>
+                            {team.members.length > 0 && ", "}
+                            {freeformNames.join(", ")}
+                          </>
+                        )}
+                      </p>
+                    </div>
+                  </TeamRosterTrigger>
                 </div>
               );
             })}
