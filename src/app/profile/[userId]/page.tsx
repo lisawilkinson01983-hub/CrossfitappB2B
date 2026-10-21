@@ -234,12 +234,15 @@ export default async function UserProfilePage({
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
       <NavBar />
 
-      <BackLink href="/feed" className="mt-6">Back to feed</BackLink>
-
-      <div className="mt-4 flex flex-col gap-6">
+      <div className="mt-6 flex flex-col gap-6">
         {isLockedOut ? (
           <div className="flex flex-col gap-4">
             <ExpandableHeroPhoto photo={user.photo} name={user.name}>
+              <div className="absolute left-3 top-3 z-10">
+                <BackLink href="/feed" variant="overlay">
+                  Back to feed
+                </BackLink>
+              </div>
               <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent px-6 pb-6 pt-16">
                 <p className="flex flex-wrap items-center gap-1.5 font-display text-2xl leading-tight text-white drop-shadow-sm">
                   {user.name}
@@ -281,6 +284,7 @@ export default async function UserProfilePage({
               followerCount={followerCount}
               followingCount={followingCount}
               workoutCount={workoutCount}
+              backHref="/feed"
               actions={
                 <>
                   <MessageButton targetUserId={user.id} fullWidth />

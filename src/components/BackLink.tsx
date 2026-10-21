@@ -22,10 +22,16 @@ export function BackLink({
   href,
   children,
   className = "",
+  variant = "default",
 }: {
   href: string;
   children: React.ReactNode;
   className?: string;
+  // "overlay": a filled circle for sitting on top of a photo (e.g. a
+  // profile/event hero), matching ProfileMoreMenu's own overlay variant —
+  // instead of this link's usual plain small-icon treatment for sitting in
+  // the page's own flow above the content.
+  variant?: "default" | "overlay";
 }) {
   const router = useRouter();
 
@@ -68,9 +74,13 @@ export function BackLink({
       href={href}
       onClick={handleClick}
       aria-label={typeof children === "string" ? children : undefined}
-      className={`inline-flex h-6 w-6 items-center justify-center rounded-full border border-b2b-purple/15 text-b2b-ink/60 hover:bg-b2b-bg ${className}`}
+      className={
+        variant === "overlay"
+          ? `flex h-9 w-9 items-center justify-center rounded-full bg-black/35 text-white backdrop-blur-sm hover:bg-black/50 ${className}`
+          : `inline-flex h-6 w-6 items-center justify-center rounded-full border border-b2b-purple/15 text-b2b-ink/60 hover:bg-b2b-bg ${className}`
+      }
     >
-      <BackIcon className="h-3 w-3 shrink-0" />
+      <BackIcon className={variant === "overlay" ? "h-[18px] w-[18px]" : "h-3 w-3 shrink-0"} />
     </a>
   );
 }
