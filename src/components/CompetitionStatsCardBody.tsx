@@ -160,39 +160,7 @@ export function CompetitionStatsCardBody({
         />
       )}
 
-      {hasAny ? (
-        <div className="flex flex-col gap-2">
-          {(latestOpen || latestCup) && (
-            <p className="text-[10px] font-semibold uppercase tracking-wide text-b2b-ink/40">All years</p>
-          )}
-          {openResults.map((r) => (
-            <div key={r.id} className="rounded-lg border border-b2b-purple/10 bg-b2b-bg px-3 py-2">
-              <p className="text-xs text-b2b-ink/50">
-                {r.year} CrossFit Open · {r.division}
-              </p>
-              <p className="mt-0.5 text-sm font-semibold text-b2b-ink">
-                {[
-                  r.overallRank != null && `${ordinal(r.overallRank)} overall`,
-                  r.countryRank != null && `${ordinal(r.countryRank)} country`,
-                ]
-                  .filter(Boolean)
-                  .join(" · ") || "—"}
-              </p>
-            </div>
-          ))}
-          {communityCupResults.map((r) => (
-            <div key={r.id} className="rounded-lg border border-b2b-purple/10 bg-b2b-bg px-3 py-2">
-              <p className="text-xs text-b2b-ink/50">
-                {r.year} Community Cup · {r.division}
-                {r.competition ? ` · ${r.competition}` : ""}
-              </p>
-              <p className="mt-0.5 text-sm font-semibold text-b2b-ink">{r.rank != null ? ordinal(r.rank) : "—"}</p>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <p className="text-b2b-ink/40">Not set</p>
-      )}
+      {!hasAny && <p className="text-b2b-ink/40">Not set</p>}
       {isOwner && (
         <button
           type="button"
