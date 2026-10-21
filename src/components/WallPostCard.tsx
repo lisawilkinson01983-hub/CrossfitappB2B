@@ -11,6 +11,8 @@ import { ProfileMoreMenu } from "@/components/ProfileMoreMenu";
 import { CommentActionsMenu } from "@/components/CommentActionsMenu";
 import { GifPicker } from "@/components/GifPicker";
 import { ReactionBar } from "@/components/ReactionBar";
+import { EmojiPicker } from "@/components/EmojiPicker";
+import { SmileyIcon } from "@/components/SmileyIcon";
 import { ComposerModal } from "@/components/ComposerModal";
 import { ComposerBar } from "@/components/ComposerBar";
 import { EditIcon } from "@/components/EditIcon";
@@ -18,6 +20,7 @@ import { DeleteIcon } from "@/components/DeleteIcon";
 import { EditModal } from "@/components/EditModal";
 import { LikeIcon } from "@/components/LikeIcon";
 import { CommentIcon } from "@/components/CommentIcon";
+import { ShareIcon } from "@/components/ShareIcon";
 import { formatDateTime } from "@/lib/dates";
 import { MAX_VIDEO_SECONDS, MAX_PHOTO_BYTES, MAX_PHOTO_MB } from "@/lib/media";
 import { readVideoInfo } from "@/lib/readVideoInfo";
@@ -39,6 +42,12 @@ export function WallPostCard({ post, isWallOwner }: { post: WallPostCardData; is
   const [liked, setLiked] = useState(post.likedByMe);
   const [likeCount, setLikeCount] = useState(post.likeCount);
   const [likeBusy, setLikeBusy] = useState(false);
+
+  const [reactions, setReactions] = useState(post.reactions);
+  const [reactionPickerOpen, setReactionPickerOpen] = useState(false);
+
+  const [shareBusy, setShareBusy] = useState(false);
+  const [justShared, setJustShared] = useState(false);
 
   const [showComments, setShowComments] = useState(false);
   const [comments, setComments] = useState(post.comments);
@@ -79,6 +88,36 @@ export function WallPostCard({ post, isWallOwner }: { post: WallPostCardData; is
       const body = await res.json();
       setLiked(body.liked);
       setLikeCount(body.count);
+    }
+  }
+
+  async function toggleReaction(emoji: string) {
+    const res = await fetch(`/api/wall-posts/${post.id}/react`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ emoji }),
+    });
+    if (!res.ok) return;
+    const body: { emoji: string; reacted: boolean; reactions: { emoji: string; count: number }[] } =
+      await res.json();
+    setReactions((prev) => {
+      const prevByEmoji = new Map(prev.map((r) => [r.emoji, r.reactedByMe]));
+      return body.reactions.map((r) => ({
+        emoji: r.emoji,
+        count: r.count,
+        reactedByMe: r.emoji === body.emoji ? body.reacted : (prevByEmoji.get(r.emoji) ?? false),
+      }));
+    });
+  }
+
+  async function shareToFeed() {
+    if (shareBusy) return;
+    setShareBusy(true);
+    const res = await fetch(`/api/wall-posts/${post.id}/share`, { method: "POST" });
+    setShareBusy(false);
+    if (res.ok) {
+      setJustShared(true);
+      setTimeout(() => setJustShared(false), 2500);
     }
   }
 
@@ -461,6 +500,20 @@ export function WallPostCard({ post, isWallOwner }: { post: WallPostCardData; is
 
       {post.text && <MentionText text={post.text} className="mt-2 block whitespace-pre-wrap text-b2b-ink" />}
 
+      {post.gifUrl && (
+        // eslint-disable-next-line @next/next/no-img-element -- external, unsized GIF from Tenor
+        <img src={post.gifUrl} alt="" className="mt-3 max-h-96 w-full rounded object-contain" />
+      )}
+
+      {post.video && (
+        <video
+          src={post.video}
+          controls
+          poster={post.videoThumbnail ?? undefined}
+          className="mt-3 max-h-96 w-full rounded bg-b2b-bg"
+        />
+      )}
+
       {post.photo && (
         <ExpandableImage src={post.photo} alt="Wall post attachment" className="mt-3 max-h-96 w-full rounded object-cover" />
       )}
@@ -485,7 +538,43 @@ export function WallPostCard({ post, isWallOwner }: { post: WallPostCardData; is
           <CommentIcon className="h-5 w-5" />
           {comments.length > 0 && comments.length}
         </button>
+        <button
+          type="button"
+          onClick={shareToFeed}
+          disabled={shareBusy}
+          aria-label="Share to your feed"
+          className="flex items-center gap-1 font-medium text-b2b-ink/50 hover:text-b2b-pink disabled:opacity-50"
+        >
+          <ShareIcon className="h-5 w-5" />
+          {justShared && <span className="text-b2b-pink">Shared!</span>}
+        </button>
+        <div className="relative ml-auto">
+          <button
+            type="button"
+            onClick={() => setReactionPickerOpen((v) => !v)}
+            aria-label="React"
+            className="flex items-center gap-1 font-medium text-b2b-ink/50 hover:text-b2b-pink"
+          >
+            <SmileyIcon className="h-5 w-5" />
+          </button>
+          {reactionPickerOpen && (
+            <EmojiPicker
+              align="end"
+              onSelect={(emoji) => {
+                toggleReaction(emoji);
+                setReactionPickerOpen(false);
+              }}
+              onClose={() => setReactionPickerOpen(false)}
+            />
+          )}
+        </div>
       </div>
+
+      {reactions.length > 0 && (
+        <div className="mt-2">
+          <ReactionBar reactions={reactions} onToggle={toggleReaction} />
+        </div>
+      )}
 
       {showComments && (
         <div className="mt-2 flex flex-col gap-3 border-t border-b2b-purple/10 pt-2">

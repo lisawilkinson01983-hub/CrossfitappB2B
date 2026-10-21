@@ -25,6 +25,9 @@ import type { Prisma } from "@prisma/client";
 // full post-history page — plenty for a tab people only expect a scroll's
 // worth of, not a paginated archive.
 const TAB_PREVIEW_COUNT = 10;
+// The Wall only ever shows its most recent few inline — "See all" opens the
+// full history on its own page, same split as Posts/Workouts above.
+const WALL_PREVIEW_COUNT = 3;
 
 export default async function ProfilePage() {
   const session = await getServerSession(authOptions);
@@ -60,6 +63,7 @@ export default async function ProfilePage() {
     postsTotalCount,
     workoutPosts,
     wallPosts,
+    wallPostsTotalCount,
   ] = await Promise.all([
     prisma.workout.count({ where: { userId: user.id } }),
     prisma.follow.count({ where: { followingId: user.id } }),
@@ -92,8 +96,10 @@ export default async function ProfilePage() {
     prisma.wallPost.findMany({
       where: { wallOwnerId: user.id },
       orderBy: { createdAt: "desc" },
+      take: WALL_PREVIEW_COUNT,
       include: wallPostInclude,
     }),
+    prisma.wallPost.count({ where: { wallOwnerId: user.id } }),
   ]);
   console.log(`/profile: data fetch took ${Date.now() - fetchStart}ms`);
 
@@ -205,19 +211,20 @@ export default async function ProfilePage() {
   const wallSection = (
     <SectionCard title="Wall">
       <div className="flex flex-col gap-4">
-        <WallComposer
-          wallOwnerId={user.id}
-          wallOwnerName={user.name}
-          isOwnWall
-          currentUserName={user.name}
-          currentUserPhoto={user.photo}
-        />
+        <WallComposer wallOwnerId={user.id} wallOwnerName={user.name} isOwnWall />
         {wallPosts.length === 0 ? (
           <p className="text-b2b-ink/40">No wall posts yet.</p>
         ) : (
-          wallPosts.map((post) => (
-            <WallPostCard key={post.id} post={toWallPostCardData(post, user.id, user.id)} isWallOwner />
-          ))
+          <>
+            {wallPosts.map((post) => (
+              <WallPostCard key={post.id} post={toWallPostCardData(post, user.id, user.id)} isWallOwner />
+            ))}
+            {wallPostsTotalCount > wallPosts.length && (
+              <Link href={`/profile/${user.id}/wall`} className="text-center text-sm text-b2b-pink underline">
+                See all wall posts ({wallPostsTotalCount})
+              </Link>
+            )}
+          </>
         )}
       </div>
     </SectionCard>

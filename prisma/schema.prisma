@@ -198,6 +198,12 @@ enum NotificationType {
   // Someone reacted to this user's wall-post comment with an emoji (see
   // WallPostCommentReaction) — same pattern as COMMENT_REACTION.
   WALL_POST_COMMENT_REACTION
+  // Someone reacted to this user's wall post itself with an emoji (see
+  // WallPostReaction) — same pattern as POST_REACTION.
+  WALL_POST_REACTION
+  // Someone shared this user's wall post to their own feed (a one-time copy,
+  // not a live reshare — see POST /api/wall-posts/[id]/share).
+  WALL_POST_SHARE
 }
 
 enum EventStatus {
@@ -590,6 +596,7 @@ model User {
   wallPostsReceived           WallPost[]                    @relation("WallPostsReceived")
   wallPostsAuthored           WallPost[]                    @relation("WallPostsAuthored")
   wallPostLikes               WallPostLike[]
+  wallPostReactions           WallPostReaction[]
   wallPostComments            WallPostComment[]
   wallPostCommentReactions    WallPostCommentReaction[]
 
@@ -973,13 +980,40 @@ model WallPost {
   text  String?
   photo String? // served path, e.g. "/media/xyz.jpg" (see src/lib/uploads.ts)
 
+  // An uploaded video, mutually exclusive with photo/gifUrl — same shape as
+  // EventNotice.video/videoThumbnail.
+  video          String?
+  videoThumbnail String?
+
+  // A GIF attached to the post (its direct media URL from the GIF provider
+  // — see src/lib/tenor.ts), mutually exclusive with photo/video.
+  gifUrl String?
+
   createdAt DateTime @default(now())
 
   likes         WallPostLike[]
+  reactions     WallPostReaction[]
   comments      WallPostComment[]
   notifications Notification[]
 
   @@index([wallOwnerId])
+}
+
+// An emoji reaction (see REACTION_EMOJIS in src/lib/validation.ts) on a
+// WallPost itself — same shape as PostReaction, distinct from the simpler
+// single-heart WallPostLike above.
+model WallPostReaction {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  wallPostId String
+  wallPost   WallPost @relation(fields: [wallPostId], references: [id], onDelete: Cascade)
+  emoji      String
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, wallPostId, emoji])
+  @@index([wallPostId])
 }
 
 model WallPostLike {

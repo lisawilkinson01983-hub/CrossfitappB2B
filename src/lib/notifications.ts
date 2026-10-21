@@ -119,6 +119,10 @@ export function notificationText(n: NotificationView): string {
       return "commented on your wall post";
     case "WALL_POST_COMMENT_REACTION":
       return n.emoji ? `reacted ${n.emoji} to your wall post comment` : "reacted to your wall post comment";
+    case "WALL_POST_REACTION":
+      return n.emoji ? `reacted ${n.emoji} to your wall post` : "reacted to your wall post";
+    case "WALL_POST_SHARE":
+      return "shared your wall post";
     default:
       return "mentioned you";
   }
@@ -190,6 +194,8 @@ export function notificationHref(n: NotificationView, viewerId: string): string 
     case "WALL_POST":
     case "WALL_POST_COMMENT":
     case "WALL_POST_COMMENT_REACTION":
+    case "WALL_POST_REACTION":
+    case "WALL_POST_SHARE":
       return `/profile/${n.wallPost?.wallOwnerId ?? n.actor.id}`;
     case "MENTION":
       if (n.storyId) return `/feed?story=${n.storyId}`;

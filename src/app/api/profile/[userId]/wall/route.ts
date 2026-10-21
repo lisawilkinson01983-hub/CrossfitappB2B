@@ -3,7 +3,13 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { parseFormData } from "@/lib/http";
-import { PhotoUploadError, savePhotoUpload } from "@/lib/uploads";
+import {
+  PhotoUploadError,
+  VideoUploadError,
+  savePhotoUpload,
+  saveVideoThumbnailUpload,
+  saveVideoUpload,
+} from "@/lib/uploads";
 import { notifyMentions } from "@/lib/notify";
 import { wallPostInclude, toWallPostCardData } from "@/lib/wallPosts";
 
@@ -41,9 +47,30 @@ export async function POST(req: Request, { params }: { params: Promise<{ userId:
   const rawText = formData.get("text");
   const text = typeof rawText === "string" ? rawText.trim().slice(0, MAX_TEXT_LENGTH) : "";
 
+  // At most one attachment — video takes priority over photo over a GIF,
+  // same "pick one" convention as EventNotice/Comment/Message.
+  const videoFile = formData.get("video");
   const photoFile = formData.get("photo");
+  const gifUrlRaw = formData.get("gifUrl");
   let photoPath: string | null = null;
-  if (photoFile instanceof File && photoFile.size > 0) {
+  let videoPath: string | null = null;
+  let videoThumbnailPath: string | null = null;
+  let gifUrl: string | null = null;
+
+  if (videoFile instanceof File && videoFile.size > 0) {
+    try {
+      videoPath = await saveVideoUpload(videoFile, session.user.id);
+    } catch (err) {
+      if (err instanceof VideoUploadError) {
+        return NextResponse.json({ error: err.message }, { status: 400 });
+      }
+      throw err;
+    }
+    const thumbnailFile = formData.get("thumbnail");
+    if (thumbnailFile instanceof File && thumbnailFile.size > 0) {
+      videoThumbnailPath = await saveVideoThumbnailUpload(thumbnailFile, session.user.id);
+    }
+  } else if (photoFile instanceof File && photoFile.size > 0) {
     try {
       photoPath = await savePhotoUpload(photoFile, session.user.id);
     } catch (err) {
@@ -52,10 +79,12 @@ export async function POST(req: Request, { params }: { params: Promise<{ userId:
       }
       throw err;
     }
+  } else if (typeof gifUrlRaw === "string" && gifUrlRaw) {
+    gifUrl = gifUrlRaw;
   }
 
-  if (!text && !photoPath) {
-    return NextResponse.json({ error: "Write something, or add a photo" }, { status: 400 });
+  if (!text && !photoPath && !videoPath && !gifUrl) {
+    return NextResponse.json({ error: "Write something, or add a photo, video, or GIF" }, { status: 400 });
   }
 
   const post = await prisma.wallPost.create({
@@ -64,6 +93,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ userId:
       authorId: session.user.id,
       text: text || null,
       photo: photoPath,
+      video: videoPath,
+      videoThumbnail: videoThumbnailPath,
+      gifUrl,
     },
     include: wallPostInclude,
   });

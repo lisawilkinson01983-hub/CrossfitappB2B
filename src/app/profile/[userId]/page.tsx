@@ -25,6 +25,9 @@ import type { Prisma } from "@prisma/client";
 
 // Same preview cap as the own-profile page's Posts/Workouts tabs.
 const TAB_PREVIEW_COUNT = 10;
+// The Wall only ever shows its most recent few inline — "See all" opens the
+// full history on its own page, same split as Posts above.
+const WALL_PREVIEW_COUNT = 3;
 
 export default async function UserProfilePage({
   params,
@@ -62,7 +65,7 @@ export default async function UserProfilePage({
       where: { requesterId_targetId: { requesterId: session.user.id, targetId: user.id } },
     }),
     prisma.workout.count({ where: { userId: user.id } }),
-    prisma.user.findUnique({ where: { id: session.user.id }, select: { name: true, photo: true, lookingFor: true } }),
+    prisma.user.findUnique({ where: { id: session.user.id }, select: { lookingFor: true } }),
     prisma.block.findUnique({
       where: { blockerId_blockedId: { blockerId: session.user.id, blockedId: user.id } },
     }),
@@ -95,7 +98,8 @@ export default async function UserProfilePage({
       { endDate: { gte: now } },
     ];
 
-    const [posts, postsTotalCount, workoutPosts, competingIn, interestedIn, wallPosts] = await Promise.all([
+    const [posts, postsTotalCount, workoutPosts, competingIn, interestedIn, wallPosts, wallPostsTotalCount] =
+      await Promise.all([
       prisma.post.findMany({
         where: { userId: user.id, sharedToFeed: true },
         orderBy: { createdAt: "desc" },
@@ -122,8 +126,10 @@ export default async function UserProfilePage({
       prisma.wallPost.findMany({
         where: { wallOwnerId: user.id },
         orderBy: { createdAt: "desc" },
+        take: WALL_PREVIEW_COUNT,
         include: wallPostInclude,
       }),
+      prisma.wallPost.count({ where: { wallOwnerId: user.id } }),
     ]);
 
     tabs = [
@@ -200,23 +206,24 @@ export default async function UserProfilePage({
     wallSection = (
       <SectionCard title="Wall">
         <div className="flex flex-col gap-4">
-          <WallComposer
-            wallOwnerId={user.id}
-            wallOwnerName={user.name}
-            isOwnWall={false}
-            currentUserName={me?.name ?? "You"}
-            currentUserPhoto={me?.photo ?? null}
-          />
+          <WallComposer wallOwnerId={user.id} wallOwnerName={user.name} isOwnWall={false} />
           {wallPosts.length === 0 ? (
             <p className="text-b2b-ink/40">No wall posts yet.</p>
           ) : (
-            wallPosts.map((post) => (
-              <WallPostCard
-                key={post.id}
-                post={toWallPostCardData(post, session.user.id, user.id)}
-                isWallOwner={false}
-              />
-            ))
+            <>
+              {wallPosts.map((post) => (
+                <WallPostCard
+                  key={post.id}
+                  post={toWallPostCardData(post, session.user.id, user.id)}
+                  isWallOwner={false}
+                />
+              ))}
+              {wallPostsTotalCount > wallPosts.length && (
+                <Link href={`/profile/${user.id}/wall`} className="text-center text-sm text-b2b-pink underline">
+                  See all wall posts ({wallPostsTotalCount})
+                </Link>
+              )}
+            </>
           )}
         </div>
       </SectionCard>

@@ -4,6 +4,7 @@ import { summarizeReactions, type ReactionSummary } from "@/lib/reactions";
 export const wallPostInclude = {
   author: { select: { id: true, name: true, photo: true } },
   likes: { select: { userId: true } },
+  reactions: { select: { emoji: true, userId: true } },
   comments: {
     orderBy: { createdAt: "asc" as const },
     include: {
@@ -34,10 +35,14 @@ export type WallPostCardData = {
   id: string;
   text: string | null;
   photo: string | null;
+  video: string | null;
+  videoThumbnail: string | null;
+  gifUrl: string | null;
   createdAt: Date;
   author: { id: string; name: string; photo: string | null };
   likeCount: number;
   likedByMe: boolean;
+  reactions: ReactionSummary[];
   canDelete: boolean;
   comments: WallPostCommentData[];
 };
@@ -49,10 +54,14 @@ export function toWallPostCardData(post: WallPostWithRelations, viewerId: string
     id: post.id,
     text: post.text,
     photo: post.photo,
+    video: post.video,
+    videoThumbnail: post.videoThumbnail,
+    gifUrl: post.gifUrl,
     createdAt: post.createdAt,
     author: post.author,
     likeCount: post.likes.length,
     likedByMe: post.likes.some((l) => l.userId === viewerId),
+    reactions: summarizeReactions(post.reactions, viewerId),
     canDelete: canModerate || post.authorId === viewerId,
     comments: post.comments.map((c) => ({
       id: c.id,
