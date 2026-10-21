@@ -4,7 +4,15 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PB_FIELDS, pbEditSchema } from "@/lib/validation";
 
-/** Quick PB-only update from the profile page's "Key PBs" card — a lighter alternative to the full /api/profile edit. */
+/**
+ * Quick PB-only update from the profile page's "Key PBs" card — a lighter
+ * alternative to the full /api/profile edit. Only touches fields actually
+ * present as a key in the request body, rather than nulling out every PB
+ * field it didn't mention: the in-app editor (see PbEditor) always sends
+ * every field (so this still behaves as a full save for it, including
+ * clearing a field left blank — the key is still present, just empty), but
+ * a partial payload from any other client only updates the fields it names.
+ */
 export async function PATCH(req: Request) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
@@ -22,13 +30,15 @@ export async function PATCH(req: Request) {
   }
 
   const data = parsed.data;
-  const pbData = Object.fromEntries(PB_FIELDS.map((field) => [field, data[field] ?? null]));
+  const pbData = Object.fromEntries(
+    PB_FIELDS.filter((field) => field in body).map((field) => [field, data[field] ?? null])
+  );
 
   await prisma.user.update({
     where: { id: session.user.id },
     data: {
       ...pbData,
-      displayedPbs: JSON.stringify(data.displayedPbs ?? []),
+      ...("displayedPbs" in body ? { displayedPbs: JSON.stringify(data.displayedPbs ?? []) } : {}),
     },
   });
 
