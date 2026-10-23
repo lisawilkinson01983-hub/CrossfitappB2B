@@ -363,7 +363,12 @@ export function StoriesBar({
         >
           <div className="relative">
             <div
-              className={`rounded-full ${ownGroupIndex >= 0 ? "ring-2 ring-offset-2 ring-gray-300" : ""}`}
+              // A gray ring here used to mean "you have an active story" —
+              // but a muted gray read as "nothing happened" at a glance, so
+              // someone who'd just posted couldn't tell it worked without
+              // tapping in. Matches the colored ring everyone else's active
+              // story gets, instead of being uniquely subdued for your own.
+              className={`rounded-full ${ownGroupIndex >= 0 ? "ring-2 ring-offset-2 ring-b2b-pink" : ""}`}
             >
               <Avatar photo={currentUser.photo} name={currentUser.name} size={56} />
             </div>
