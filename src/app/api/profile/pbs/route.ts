@@ -30,9 +30,21 @@ export async function PATCH(req: Request) {
   }
 
   const data = parsed.data;
-  const pbData = Object.fromEntries(
-    PB_FIELDS.filter((field) => field in body).map((field) => [field, data[field] ?? null])
-  );
+  const touchedFields = PB_FIELDS.filter((field) => field in body);
+  const pbData = Object.fromEntries(touchedFields.map((field) => [field, data[field] ?? null]));
+
+  // Read the old values of only the fields actually being touched, so a new
+  // PB can be detected (strictly higher — every PB_FIELDS entry is a load in
+  // kg, so higher is always better, no "lower is better" case to handle) and
+  // surfaced back to the client for the share-your-PB celebration prompt
+  // (see PbEditor) — this never blocks the save itself.
+  const before =
+    touchedFields.length > 0
+      ? await prisma.user.findUnique({
+          where: { id: session.user.id },
+          select: Object.fromEntries(touchedFields.map((field) => [field, true])),
+        })
+      : null;
 
   await prisma.user.update({
     where: { id: session.user.id },
@@ -42,5 +54,18 @@ export async function PATCH(req: Request) {
     },
   });
 
-  return NextResponse.json({ ok: true });
+  let newPb: { field: (typeof PB_FIELDS)[number]; value: number; previous: number | null } | null = null;
+  for (const field of touchedFields) {
+    const newValue = data[field];
+    const oldValue = (before as Record<string, number | null> | null)?.[field] ?? null;
+    if (newValue != null && (oldValue == null || newValue > oldValue)) {
+      // Only the first touched field that improved is surfaced — a quick
+      // editor save can touch several fields at once, but the celebration
+      // prompt only ever shows one PB at a time.
+      newPb = { field, value: newValue, previous: oldValue };
+      break;
+    }
+  }
+
+  return NextResponse.json({ ok: true, newPb });
 }
