@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { workoutSchema } from "@/lib/validation";
+import { PB_FIELDS, workoutSchema, type PbField } from "@/lib/validation";
 import {
   PhotoUploadError,
   VideoUploadError,
@@ -76,6 +76,25 @@ export async function POST(req: Request) {
 
   const data = parsed.data;
 
+  // Set only by the "Log a Single Score" form (see SingleScoreForm) — a
+  // single-lift entry also writes the real PB field it's for, so it can
+  // trigger the same New PB celebration/share flow the quick PB editor
+  // already does, rather than just flagging the post gold like `isPb` does
+  // on its own. Validated against PB_FIELDS since it reaches a dynamic
+  // Prisma update key below — never trust it unchecked.
+  const rawPbField = formData.get("pbField");
+  const pbField: PbField | null =
+    typeof rawPbField === "string" && (PB_FIELDS as readonly string[]).includes(rawPbField)
+      ? (rawPbField as PbField)
+      : null;
+  // Only meaningful (and only ever sent) when the movement had no PB on
+  // record at all — SingleScoreForm asks the user directly rather than
+  // assuming a first-ever entry is automatically their best.
+  const pbConfirmed = formData.get("pbConfirmed") === "true";
+  const rawPrevOverride = formData.get("pbPreviousOverride");
+  const pbPreviousOverride =
+    typeof rawPrevOverride === "string" && rawPrevOverride.trim() !== "" ? Number(rawPrevOverride) : null;
+
   const rawPartnerIds = formData.getAll("partnerUserIds").filter((v): v is string => typeof v === "string");
   const candidatePartnerIds = Array.from(new Set(rawPartnerIds)).filter((id) => id !== session.user.id);
   const partners =
@@ -85,6 +104,33 @@ export async function POST(req: Request) {
           select: { id: true },
         })
       : [];
+
+  // A single-score entry (pbField set) determines isPb from the real PB
+  // field rather than trusting the client's own flag — the client
+  // computes the same thing to drive its UI, but the DB value read here is
+  // the authoritative one, and it's what actually gets written to
+  // User.<pbField> below. The full workout form never sets pbField, so
+  // this leaves its plain isPb-checkbox behavior untouched.
+  let newPb: { field: PbField; value: number; previous: number | null } | null = null;
+  let isPb = data.isPb;
+  if (pbField) {
+    const beforeUser = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { [pbField]: true },
+    });
+    const before = (beforeUser as Record<string, number | null> | null)?.[pbField] ?? null;
+    // Not re-parsed out of `data.score` — that's a free-text display string
+    // (e.g. "145kg"), not guaranteed to round-trip through Number().
+    const scoreNum = Number(formData.get("pbValue"));
+    if (Number.isFinite(scoreNum)) {
+      const isGenuinePb = before != null ? scoreNum > before : pbConfirmed;
+      isPb = isGenuinePb;
+      if (isGenuinePb) {
+        newPb = { field: pbField, value: scoreNum, previous: before ?? pbPreviousOverride };
+        await prisma.user.update({ where: { id: session.user.id }, data: { [pbField]: scoreNum } });
+      }
+    }
+  }
 
   const workout = await prisma.workout.create({
     data: {
@@ -97,7 +143,7 @@ export async function POST(req: Request) {
       intensity: data.intensity,
       description: data.description ?? null,
       notes: data.notes ?? null,
-      isPb: data.isPb,
+      isPb,
       sharedToFeed: data.sharedToFeed,
       photo: photoPath ?? null,
       video: videoPath ?? null,
@@ -116,7 +162,7 @@ export async function POST(req: Request) {
       await prisma.post.create({
         data: {
           userId: session.user.id,
-          type: data.isPb ? "PR" : "WORKOUT",
+          type: isPb ? "PR" : "WORKOUT",
           contentText: data.notes ?? null,
           photo: photoPath ?? null,
           video: videoPath ?? null,
@@ -138,5 +184,5 @@ export async function POST(req: Request) {
     });
   }
 
-  return NextResponse.json({ ok: true, id: workout.id });
+  return NextResponse.json({ ok: true, id: workout.id, newPb });
 }
