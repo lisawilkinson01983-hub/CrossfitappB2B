@@ -117,6 +117,20 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
       if (!res.ok) throw new Error("render failed");
       const blob = await res.blob();
       const file = new File([blob], "box2box-share.png", { type: "image/png" });
+
+      if (destination === "story") {
+        // A real in-app Story, same as the existing /api/stories feature —
+        // not just a hand-off to the OS share sheet.
+        const formData = new FormData();
+        formData.set("photo", file);
+        const storyRes = await fetch("/api/stories", { method: "POST", body: formData });
+        if (!storyRes.ok) throw new Error("story post failed");
+        onClose();
+        return;
+      }
+
+      // Instagram is a third-party app — there's no way to post into it
+      // directly, so this genuinely is just a hand-off to the OS share sheet.
       const nav = navigator as Navigator & {
         canShare?: (data: { files: File[] }) => boolean;
         share?: (data: { files: File[]; title?: string }) => Promise<void>;
@@ -135,7 +149,9 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
       }
       onClose();
     } catch {
-      setError("Couldn't generate that image. Please try again.");
+      setError(
+        destination === "story" ? "Couldn't post that story. Please try again." : "Couldn't generate that image. Please try again."
+      );
     } finally {
       setSharing(false);
     }
@@ -266,7 +282,7 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
               disabled={sharing}
               className="mt-1 rounded-full bg-b2b-ink px-4 py-3 text-center text-sm font-semibold text-b2b-bg disabled:opacity-50"
             >
-              {sharing ? "Preparing..." : destination === "instagram" ? "Share to Instagram" : "Share to Story"}
+              {sharing ? "Preparing..." : destination === "instagram" ? "Share to Instagram" : "Post to Story"}
             </button>
           </>
         )}
