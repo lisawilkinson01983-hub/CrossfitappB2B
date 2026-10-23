@@ -8,7 +8,7 @@ export type ShareTarget =
   | { kind: "pb"; field: PbField; value: number; previous: number | null };
 
 type Format = "A" | "B" | "C";
-type Step = "destination" | "format" | "photo";
+type Step = "destination" | "format" | "photo" | "preview";
 type Destination = "story" | "instagram";
 
 const FORMAT_LABELS: Record<Format, string> = {
@@ -39,13 +39,15 @@ function imageUrl(target: ShareTarget, format: Format, photo: string | null, siz
 }
 
 /**
- * The full "share outside the app" flow — destination (Feed / Story /
- * Instagram) → format (3 card styles, live thumbnails from the real
- * image-generation routes) → optional photo swap → hand the rendered PNG to
- * the device's native share sheet (falling back to a plain download where
- * Web Share isn't available, e.g. desktop). "Share to Feed" for a post
- * reuses the caller's own existing in-app share flow; for a PB it posts a
- * small text-only PR post through /api/profile/pbs/share.
+ * The full share flow — destination (Feed / Story / Instagram) → format (3
+ * card styles, live thumbnails from the real image-generation routes) →
+ * optional photo swap → a full-size preview of exactly what will be posted
+ * → the actual share: Story posts the rendered PNG into the app's own
+ * Stories feature (POST /api/stories), Instagram hands it to the device's
+ * native share sheet (falling back to a plain download where Web Share
+ * isn't available, e.g. desktop). "Share to Feed" for a post reuses the
+ * caller's own existing in-app share flow; for a PB it posts a small
+ * text-only PR post through /api/profile/pbs/share.
  */
 export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: () => void }) {
   const [step, setStep] = useState<Step>("destination");
@@ -55,6 +57,7 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
   const [showPhotoPicker, setShowPhotoPicker] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [sharing, setSharing] = useState(false);
+  const [previewLoaded, setPreviewLoaded] = useState(false);
   const [feedBusy, setFeedBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -66,6 +69,11 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
   function openDestination(dest: Destination) {
     setDestination(dest);
     setStep("format");
+  }
+
+  function goToPreview() {
+    setPreviewLoaded(false);
+    setStep("preview");
   }
 
   async function shareToFeed() {
@@ -170,7 +178,7 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
         {step !== "destination" && (
           <button
             type="button"
-            onClick={() => setStep("destination")}
+            onClick={() => setStep(step === "preview" ? "format" : "destination")}
             className="self-start text-sm text-b2b-ink/50 hover:text-b2b-ink"
           >
             ← Back
@@ -282,11 +290,45 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
 
             <button
               type="button"
+              onClick={goToPreview}
+              className="mt-1 rounded-full bg-b2b-ink px-4 py-3 text-center text-sm font-semibold text-b2b-bg"
+            >
+              Continue
+            </button>
+          </>
+        )}
+
+        {step === "preview" && (
+          <>
+            <p className="font-semibold text-b2b-ink">
+              {destination === "instagram" ? "Share to Instagram" : "Post to Story"}
+            </p>
+            <div
+              className="relative mx-auto overflow-hidden rounded-xl bg-b2b-bg"
+              style={{ width: 220, aspectRatio: "9 / 16" }}
+            >
+              {!previewLoaded && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <span className="text-xs text-b2b-ink/40">Loading preview...</span>
+                </div>
+              )}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={imageUrl(target, format, photo, "full")}
+                alt="Preview of what will be posted"
+                onLoad={() => setPreviewLoaded(true)}
+                className={`h-full w-full object-cover transition-opacity ${previewLoaded ? "opacity-100" : "opacity-0"}`}
+              />
+            </div>
+            <p className="text-center text-xs text-b2b-ink/50">This is exactly what will be posted</p>
+
+            <button
+              type="button"
               onClick={doShare}
               disabled={sharing}
               className="mt-1 rounded-full bg-b2b-ink px-4 py-3 text-center text-sm font-semibold text-b2b-bg disabled:opacity-50"
             >
-              {sharing ? "Preparing..." : destination === "instagram" ? "Share to Instagram" : "Post to Story"}
+              {sharing ? "Posting..." : destination === "instagram" ? "Share to Instagram" : "Post to Story"}
             </button>
           </>
         )}
