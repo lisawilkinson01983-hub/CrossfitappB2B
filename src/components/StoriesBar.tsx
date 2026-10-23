@@ -4,9 +4,10 @@ import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Avatar } from "@/components/Avatar";
 import { StoryViewer } from "@/components/StoryViewer";
+import { StoryEditor, type StoryBase, type StoryEditorHandle, type StoryEditorOutput } from "@/components/StoryEditor";
 import { MAX_VIDEO_SECONDS, MAX_PHOTO_BYTES, MAX_PHOTO_MB } from "@/lib/media";
 import { readVideoInfo } from "@/lib/readVideoInfo";
-import { MAX_STORY_TEXT_LENGTH, STORY_BACKGROUND_COLORS, type StoryGroup } from "@/lib/stories";
+import type { StoryGroup } from "@/lib/stories";
 import { USER_STATUS_BADGE_CLASSES, USER_STATUS_EMOJI, USER_STATUS_LABELS } from "@/lib/labels";
 import { USER_STATUSES, type UserStatusOption } from "@/lib/validation";
 import { REACTION_EMOJIS, type ReactionSummary } from "@/lib/reactions";
@@ -14,9 +15,6 @@ import { REACTION_EMOJIS, type ReactionSummary } from "@/lib/reactions";
 const MEDIA_ACCEPT = "image/jpeg,image/png,image/webp,video/mp4,video/quicktime";
 const MAX_STORY_MENTIONS = 10;
 
-type PendingStory =
-  | { kind: "media"; file: File; previewUrl: string; isVideo: boolean; thumbnail: Blob | null }
-  | { kind: "text"; text: string; backgroundColor: string };
 type UserOption = { id: string; name: string; photo: string | null };
 
 export type StatusBarEntry = {
@@ -63,10 +61,12 @@ export function StoriesBar({
   const router = useRouter();
   const [groups, setGroups] = useState<StoryGroup[] | null>(null);
   const [viewerStart, setViewerStart] = useState<{ groupIndex: number; storyIndex: number } | null>(null);
-  const [pending, setPending] = useState<PendingStory | null>(null);
+  const [pending, setPending] = useState<StoryBase | null>(null);
+  const [justPosted, setJustPosted] = useState<StoryEditorOutput | null>(null);
   const [mediaError, setMediaError] = useState<string | null>(null);
   const [posting, setPosting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const editorRef = useRef<StoryEditorHandle>(null);
   const [composerChoiceOpen, setComposerChoiceOpen] = useState(false);
 
   const [tagging, setTagging] = useState(false);
@@ -173,25 +173,25 @@ export function StoriesBar({
         setMediaError(`Videos must be ${MAX_VIDEO_SECONDS} seconds or under (this one is ${Math.round(info.duration)}s)`);
         return;
       }
-      setPending({ kind: "media", file, previewUrl: URL.createObjectURL(file), isVideo: true, thumbnail: info.thumbnail });
+      setPending({ kind: "video", file });
     } else {
       if (file.size > MAX_PHOTO_BYTES) {
         setMediaError(`Photo must be smaller than ${MAX_PHOTO_MB}MB`);
         return;
       }
-      setPending({ kind: "media", file, previewUrl: URL.createObjectURL(file), isVideo: false, thumbnail: null });
+      setPending({ kind: "photo", file });
     }
   }
 
   function openTextComposer() {
     setComposerChoiceOpen(false);
     setMediaError(null);
-    setPending({ kind: "text", text: "", backgroundColor: STORY_BACKGROUND_COLORS[0] });
+    setPending({ kind: "color" });
   }
 
   function cancelPending() {
-    if (pending?.kind === "media") URL.revokeObjectURL(pending.previewUrl);
     setPending(null);
+    setJustPosted(null);
     setMediaError(null);
     setTagging(false);
     setTagQuery("");
@@ -225,20 +225,24 @@ export function StoriesBar({
   }
 
   async function sharePending() {
-    if (!pending || posting) return;
-    if (pending.kind === "text" && !pending.text.trim()) return;
+    if (!pending || posting || !editorRef.current) return;
     setPosting(true);
+
+    let output: StoryEditorOutput;
+    try {
+      output = await editorRef.current.export();
+    } catch {
+      setPosting(false);
+      setMediaError("Couldn't prepare that story — please try again.");
+      return;
+    }
+
     const formData = new FormData();
-    if (pending.kind === "media") {
-      if (pending.isVideo) {
-        formData.set("video", pending.file);
-        if (pending.thumbnail) formData.set("thumbnail", pending.thumbnail, "thumbnail.jpg");
-      } else {
-        formData.set("photo", pending.file);
-      }
+    if (output.kind === "video") {
+      formData.set("video", output.file);
+      if (output.thumbnail) formData.set("thumbnail", output.thumbnail, "thumbnail.jpg");
     } else {
-      formData.set("text", pending.text.trim());
-      formData.set("backgroundColor", pending.backgroundColor);
+      formData.set("photo", output.blob, "story.jpg");
     }
     taggedUsers.forEach((u) => formData.append("mentionedUserIds", u.id));
     const res = await fetch("/api/stories", { method: "POST", body: formData });
@@ -248,8 +252,39 @@ export function StoriesBar({
       setMediaError(body.error ?? "Couldn't post that. Please try again.");
       return;
     }
-    cancelPending();
+    // Posted — keep the overlay up one more beat to offer sharing the same
+    // file outside the app (Instagram, Messages, etc. via the native share
+    // sheet), rather than closing straight away.
+    setJustPosted(output);
     loadStories();
+  }
+
+  function outputToFile(output: StoryEditorOutput): File {
+    return output.kind === "video" ? output.file : new File([output.blob], "story.jpg", { type: "image/jpeg" });
+  }
+
+  async function shareOutsideApp() {
+    if (!justPosted) return;
+    const file = outputToFile(justPosted);
+    const nav = navigator as Navigator & {
+      canShare?: (data: { files: File[] }) => boolean;
+      share?: (data: { files: File[]; title?: string }) => Promise<void>;
+    };
+    if (nav.canShare?.({ files: [file] }) && nav.share) {
+      try {
+        await nav.share({ files: [file], title: "My Box 2 Box story" });
+        return;
+      } catch {
+        // User cancelled the native sheet, or it failed — fall through to
+        // the download fallback below rather than leaving them stuck.
+      }
+    }
+    const url = URL.createObjectURL(file);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = file.name;
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
   // Deliberately NOT gated on `groups` having loaded yet: the "Your story"/
@@ -402,52 +437,36 @@ export function StoriesBar({
           >
             ×
           </button>
-          <div className="flex flex-1 items-center justify-center overflow-hidden">
-            {pending.kind === "media" ? (
-              pending.isVideo ? (
-                <video src={pending.previewUrl} controls autoPlay playsInline className="max-h-full max-w-full" />
-              ) : (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={pending.previewUrl} alt="" className="max-h-full max-w-full object-contain" />
-              )
-            ) : (
-              <div
-                className="flex h-full w-full items-center justify-center p-8"
-                style={{ backgroundColor: pending.backgroundColor }}
+          {justPosted ? (
+            <div className="flex flex-1 flex-col items-center justify-center gap-4 px-6 text-center text-white">
+              <p className="text-2xl">✅</p>
+              <p className="text-lg font-semibold">Posted to your story</p>
+              <p className="max-w-xs text-sm text-white/60">
+                Visible to your Box 2 Box community for the next 24 hours. Want to share the same image outside the
+                app too — Instagram, Messages, and more?
+              </p>
+              <button
+                type="button"
+                onClick={shareOutsideApp}
+                className="w-full max-w-xs rounded-full bg-white/10 py-3 text-sm font-semibold text-white hover:bg-white/20"
               >
-                <textarea
-                  autoFocus
-                  value={pending.text}
-                  onChange={(e) =>
-                    setPending((prev) =>
-                      prev?.kind === "text" ? { ...prev, text: e.target.value.slice(0, MAX_STORY_TEXT_LENGTH) } : prev
-                    )
-                  }
-                  placeholder="Type something..."
-                  rows={4}
-                  className="w-full resize-none bg-transparent text-center text-2xl font-semibold text-white placeholder:text-white/50 focus:outline-none"
-                />
-              </div>
-            )}
-          </div>
-
-          {pending.kind === "text" && (
-            <div className="flex items-center justify-center gap-2 px-4 pb-2">
-              {STORY_BACKGROUND_COLORS.map((color) => (
-                <button
-                  key={color}
-                  type="button"
-                  aria-label={`Use background color ${color}`}
-                  onClick={() => setPending((prev) => (prev?.kind === "text" ? { ...prev, backgroundColor: color } : prev))}
-                  className={`h-8 w-8 rounded-full border-2 ${
-                    pending.backgroundColor === color ? "border-white" : "border-white/20"
-                  }`}
-                  style={{ backgroundColor: color }}
-                />
-              ))}
+                Share outside Box 2 Box
+              </button>
+              <button
+                type="button"
+                onClick={cancelPending}
+                className="text-sm font-medium text-white/60 hover:text-white"
+              >
+                Done
+              </button>
+            </div>
+          ) : (
+            <div className="flex flex-1 flex-col overflow-hidden">
+              <StoryEditor ref={editorRef} base={pending} />
             </div>
           )}
 
+          {!justPosted && (
           <div className="p-4">
             {taggedUsers.length > 0 && (
               <div className="mb-3 flex flex-wrap gap-2">
@@ -511,12 +530,13 @@ export function StoriesBar({
             <button
               type="button"
               onClick={sharePending}
-              disabled={posting || (pending.kind === "text" && !pending.text.trim())}
+              disabled={posting}
               className="w-full rounded-full bg-b2b-pink py-3 text-sm font-semibold text-white hover:bg-b2b-pink-dark disabled:opacity-50"
             >
               {posting ? "Sharing..." : "Share to your story"}
             </button>
           </div>
+          )}
         </div>
       )}
 

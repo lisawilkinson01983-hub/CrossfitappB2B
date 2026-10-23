@@ -68,11 +68,17 @@ async function resizePhoto(bytes: Buffer, ext: string, options: { square?: boole
   }
 }
 
-// iPhone videos only (mp4/mov share the same ISO-BMFF/QuickTime "moov" box
-// layout, which is how getMp4DurationSeconds reads their length below).
+// iPhone videos (mp4/mov share the same ISO-BMFF/QuickTime "moov" box
+// layout, which is how getMp4DurationSeconds reads their length below), plus
+// webm — the only format a browser's MediaRecorder can reliably produce
+// without a server-side transcode, used by the story editor's client-side
+// text-burn-in export (see StoryEditor.tsx). webm's duration isn't
+// re-verified here the way mp4/mov's is (see saveVideoUpload) since it only
+// ever arrives already length-capped by the editor's own source-video check.
 const ALLOWED_VIDEO_TYPES: Record<string, string> = {
   "video/mp4": "mp4",
   "video/quicktime": "mov",
+  "video/webm": "webm",
 };
 // Generous outer safety cap — MAX_VIDEO_SECONDS is the real limit; this just
 // guards against an absurdly bloated file for its length.
@@ -123,17 +129,30 @@ export async function savePhotoUpload(
 
 /** Validates and writes an uploaded video, returning its public /media/... path. */
 export async function saveVideoUpload(file: File, ownerId: string): Promise<string> {
-  const ext = ALLOWED_VIDEO_TYPES[file.type];
-  if (!ext) throw new VideoUploadError("Video must be MP4 or MOV");
+  // A MediaRecorder-produced file's type always carries a codecs= parameter
+  // (e.g. "video/webm;codecs=vp9,opus" — see StoryEditor's video export),
+  // which an exact match against ALLOWED_VIDEO_TYPES would never match.
+  const baseType = file.type.split(";")[0].trim();
+  const ext = ALLOWED_VIDEO_TYPES[baseType];
+  if (!ext) throw new VideoUploadError("Video must be MP4, MOV, or WebM");
   if (file.size > MAX_VIDEO_BYTES) throw new VideoUploadError("Video is too large");
 
   const bytes = Buffer.from(await file.arrayBuffer());
-  const duration = getMp4DurationSeconds(bytes);
-  if (duration === null) {
-    throw new VideoUploadError("Couldn't read that video — please try a different file");
-  }
-  if (duration > MAX_VIDEO_SECONDS + 0.5) {
-    throw new VideoUploadError(`Videos must be ${MAX_VIDEO_SECONDS} seconds or under`);
+
+  // webm has no equivalent cheap box-walk here (it's EBML, not ISO-BMFF) —
+  // only mp4/mov get a hard server-side duration re-check; a webm only ever
+  // reaches this route via the story editor's own export, whose source
+  // video was already length-checked before editing began (see
+  // StoriesBar's handleFileChange), and the export re-encodes in real time
+  // without changing playback duration.
+  if (ext !== "webm") {
+    const duration = getMp4DurationSeconds(bytes);
+    if (duration === null) {
+      throw new VideoUploadError("Couldn't read that video — please try a different file");
+    }
+    if (duration > MAX_VIDEO_SECONDS + 0.5) {
+      throw new VideoUploadError(`Videos must be ${MAX_VIDEO_SECONDS} seconds or under`);
+    }
   }
 
   return saveUpload(ownerId, ext, bytes);
