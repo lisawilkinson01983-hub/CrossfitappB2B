@@ -125,6 +125,10 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
         formData.set("photo", file);
         const storyRes = await fetch("/api/stories", { method: "POST", body: formData });
         if (!storyRes.ok) throw new Error("story post failed");
+        // StoriesBar only loads its list once on mount — tell any copy of
+        // it on this page to refetch so the new story shows up without a
+        // full reload (see StoriesBar's matching listener).
+        window.dispatchEvent(new Event("b2b:story-posted"));
         onClose();
         return;
       }

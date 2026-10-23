@@ -127,6 +127,19 @@ export function StoriesBar({
     return body.groups as StoryGroup[];
   }
 
+  // A story can also be posted from elsewhere on the page (e.g. a feed
+  // post's "Share to Story" flow — see ShareSheet), which has no way to
+  // call this component's own loadStories() directly. It dispatches this
+  // event instead; the mount-time load below still covers the normal case.
+  useEffect(() => {
+    function onExternalStoryPosted() {
+      loadStories();
+    }
+    window.addEventListener("b2b:story-posted", onExternalStoryPosted);
+    return () => window.removeEventListener("b2b:story-posted", onExternalStoryPosted);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
     loadStories().then((loaded) => {
       if (!autoOpenStoryId || !loaded) return;
