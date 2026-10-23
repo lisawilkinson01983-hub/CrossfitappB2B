@@ -8,7 +8,7 @@ export type ShareTarget =
   | { kind: "pb"; field: PbField; value: number; previous: number | null };
 
 type Format = "A" | "B" | "C";
-type Step = "destination" | "format" | "photo" | "preview";
+type Step = "destination" | "format" | "photo" | "preview" | "posted";
 type Destination = "story" | "instagram";
 
 const FORMAT_LABELS: Record<Format, string> = {
@@ -137,7 +137,8 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
         // it on this page to refetch so the new story shows up without a
         // full reload (see StoriesBar's matching listener).
         window.dispatchEvent(new Event("b2b:story-posted"));
-        onClose();
+        setStep("posted");
+        setTimeout(onClose, 1400);
         return;
       }
 
@@ -175,7 +176,7 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
         className="flex w-full max-w-sm flex-col gap-3 rounded-2xl bg-b2b-card p-4 shadow-lg"
         onClick={(e) => e.stopPropagation()}
       >
-        {step !== "destination" && (
+        {step !== "destination" && step !== "posted" && (
           <button
             type="button"
             onClick={() => setStep(step === "preview" ? "format" : "destination")}
@@ -331,6 +332,15 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
               {sharing ? "Posting..." : destination === "instagram" ? "Share to Instagram" : "Post to Story"}
             </button>
           </>
+        )}
+
+        {step === "posted" && (
+          <div className="flex flex-col items-center gap-2 py-6">
+            <span className="flex h-12 w-12 items-center justify-center rounded-full bg-b2b-pink text-2xl text-white">
+              ✓
+            </span>
+            <p className="font-semibold text-b2b-ink">Posted to Story</p>
+          </div>
         )}
 
         {step === "format" && showPhotoPicker && (
