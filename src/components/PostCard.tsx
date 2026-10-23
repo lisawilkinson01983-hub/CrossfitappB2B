@@ -33,6 +33,7 @@ import { EditModal } from "@/components/EditModal";
 import { LikeIcon } from "@/components/LikeIcon";
 import { CommentIcon } from "@/components/CommentIcon";
 import { ShareIcon } from "@/components/ShareIcon";
+import { ShareSheet } from "@/components/share/ShareSheet";
 import { SaveIcon } from "@/components/SaveIcon";
 import { formatEventDate } from "@/lib/eventDate";
 import { formatDateTime } from "@/lib/dates";
@@ -181,6 +182,7 @@ export function PostCard({
   const [shareBusy, setShareBusy] = useState(false);
   const [unsharing, setUnsharing] = useState(false);
   const [composingShare, setComposingShare] = useState(false);
+  const [shareSheetOpen, setShareSheetOpen] = useState(false);
   const [shareMessageDraft, setShareMessageDraft] = useState("");
   const [shareMessage, setShareMessage] = useState(post.sharedBy?.message ?? null);
   const [editingShareMessage, setEditingShareMessage] = useState(false);
@@ -1102,7 +1104,7 @@ export function PostCard({
           {(post.canShare || shared) && (
             <button
               type="button"
-              onClick={shared ? unshareNow : openShareComposer}
+              onClick={shared ? unshareNow : () => setShareSheetOpen(true)}
               disabled={shareBusy}
               aria-label={shared ? "Unshare" : "Share"}
               className={`flex items-center gap-1 font-medium disabled:opacity-50 ${shared ? "text-b2b-pink" : "text-gray-600 hover:text-b2b-pink"}`}
@@ -1205,6 +1207,13 @@ export function PostCard({
         onCancel={() => setConfirmUnshareOpen(false)}
         confirming={unsharing}
       />
+
+      {shareSheetOpen && (
+        <ShareSheet
+          target={{ kind: "post", postId: post.id, onShareToFeed: openShareComposer }}
+          onClose={() => setShareSheetOpen(false)}
+        />
+      )}
 
       {composingShare && (
         <div
