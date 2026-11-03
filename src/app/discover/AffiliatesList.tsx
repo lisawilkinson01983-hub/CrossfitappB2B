@@ -11,6 +11,8 @@ import { DiscoverTabs } from "@/components/DiscoverTabs";
 import { FollowButton, type FollowStatus } from "@/components/FollowButton";
 import { EditIcon } from "@/components/EditIcon";
 import { SwipeCardList, type SwipeCardItem } from "@/components/SwipeCardList";
+import { DiscoverMapLoader } from "@/components/DiscoverMapLoader";
+import type { MapMarker } from "@/components/DiscoverMap";
 
 export type AffiliateSearchParams = {
   q?: string;
@@ -261,6 +263,27 @@ export async function AffiliatesList({
       </div>
 
       {(() => {
+        const gymMarkers: MapMarker[] = visibleGyms
+          .filter(({ gym }) => gym.lat !== null && gym.lng !== null)
+          .map(({ gym, miles }) => {
+            const athleteCount = countByName.get(gym.name) ?? 0;
+            return {
+              id: gym.id,
+              lat: gym.lat as number,
+              lng: gym.lng as number,
+              title: gym.name,
+              subtitle:
+                [
+                  gym.address,
+                  miles !== null ? `${miles < 1 ? "<1" : Math.round(miles)} miles away` : null,
+                  `${athleteCount} ${athleteCount === 1 ? "athlete" : "athletes"}`,
+                ]
+                  .filter(Boolean)
+                  .join(" · ") || null,
+              href: gym.claimedBy ? `/profile/${gym.claimedBy.id}` : `/gyms/${encodeURIComponent(gym.name)}`,
+            };
+          });
+
         const items: SwipeCardItem[] = visibleGyms.map(({ gym, miles }) => {
           const athleteCount = countByName.get(gym.name) ?? 0;
           const followStatus: FollowStatus = gym.claimedBy
@@ -301,6 +324,13 @@ export async function AffiliatesList({
             items={items}
             emptyMessage="No affiliates match those filters."
             label={`${items.length} ${items.length === 1 ? "affiliate" : "affiliates"}`}
+            map={
+              <DiscoverMapLoader
+                markers={gymMarkers}
+                myCoords={myCoords}
+                emptyMessage="None of these affiliates have a mapped location yet."
+              />
+            }
           />
         );
       })()}

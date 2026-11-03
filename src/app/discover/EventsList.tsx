@@ -15,6 +15,8 @@ import { isCompetitionEvent } from "@/lib/labels";
 import { EditIcon } from "@/components/EditIcon";
 import { SwipeCardList, type SwipeCardItem } from "@/components/SwipeCardList";
 import { ListOrCarousel } from "@/components/ListOrCarousel";
+import { DiscoverMapLoader } from "@/components/DiscoverMapLoader";
+import type { MapMarker } from "@/components/DiscoverMap";
 
 const TIME_RANGES = {
   week: { label: "Next 7 days", days: 7 },
@@ -197,6 +199,23 @@ export async function EventsList({
         <p className="text-b2b-ink/50">No events match those filters.</p>
       ) : (
         (() => {
+          const eventMarkers: MapMarker[] = visibleEvents
+            .filter(({ event }) => event.lat !== null && event.lng !== null)
+            .map(({ event, miles }) => ({
+              id: event.id,
+              lat: event.lat as number,
+              lng: event.lng as number,
+              title: event.name,
+              subtitle: [
+                formatEventDate(event),
+                event.isOnline ? "Online" : event.location,
+                miles !== null ? `${miles < 1 ? "<1" : Math.round(miles)} miles away` : null,
+              ]
+                .filter(Boolean)
+                .join(" · "),
+              href: `/events/${event.id}`,
+            }));
+
           const items: SwipeCardItem[] = visibleEvents.map(({ event, miles }) => {
             const isParticipating = event.participants.some((p) => p.userId === currentUserId);
             const isInterested = event.interests.some((i) => i.userId === currentUserId);
@@ -238,6 +257,13 @@ export async function EventsList({
             <ListOrCarousel
               label={`${visibleEvents.length} ${visibleEvents.length === 1 ? "event" : "events"}`}
               carousel={<SwipeCardList items={items} emptyMessage="No events match those filters." hideHeader />}
+              map={
+                <DiscoverMapLoader
+                  markers={eventMarkers}
+                  myCoords={myCoords}
+                  emptyMessage="None of these events have a mapped location yet."
+                />
+              }
               list={
                 <div className="flex flex-col gap-3">
                   {visibleEvents.map(({ event, miles }) => {
