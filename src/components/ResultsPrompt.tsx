@@ -61,21 +61,42 @@ export function ResultsPrompt() {
   const [headline, setHeadline] = useState("COMPLETED");
   const [busy, setBusy] = useState(false);
 
-  useEffect(() => {
-    let cancelled = false;
-    fetch("/api/event-results/prompt")
+  // Resets every per-event field so the next prompt (if any) starts clean at
+  // "ask" rather than carrying over the previous event's placement/tags/etc.
+  function resetFlowState() {
+    setStep("ask");
+    setMode("EXACT");
+    setPlace("");
+    setTotalCompetitors("");
+    setDivision("");
+    setNote("");
+    setQuery("");
+    setSearchResults([]);
+    setTaggedUsers([]);
+    setFreeformNames([]);
+    setFreeformInput(null);
+    setResultId(null);
+    setHeadline("COMPLETED");
+  }
+
+  function loadNextPrompt() {
+    return fetch("/api/event-results/prompt")
       .then((r) => r.json())
       .then((data) => {
-        if (cancelled) return;
+        resetFlowState();
         if (data.prompt) {
           setPrompt(data.prompt);
           setDivision(divisionOptionsForEvent({ division: data.prompt.division })[0] ?? "");
+        } else {
+          setPrompt(null);
         }
       })
       .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
+  }
+
+  useEffect(() => {
+    loadNextPrompt();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -101,7 +122,12 @@ export function ResultsPrompt() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ eventId: prompt!.eventId }),
     }).catch(() => {});
-    setPrompt(null);
+    // Dismissing just this one event is what the API marks — there may still
+    // be other past events waiting, so check again rather than closing for
+    // the rest of the session (that's the whole point of asking about every
+    // passed event, not just the single most recent one).
+    await loadNextPrompt();
+    setBusy(false);
   }
 
   async function submitResult(tags: { taggedUserIds: string[]; freeformNames: string[] }) {
@@ -133,18 +159,24 @@ export function ResultsPrompt() {
 
   async function share() {
     if (!resultId) {
-      setPrompt(null);
+      await loadNextPrompt();
+      setBusy(false);
       return;
     }
     setBusy(true);
     await fetch(`/api/event-results/${resultId}/share`, { method: "POST" }).catch(() => {});
-    setPrompt(null);
     router.refresh();
+    // More than one past event can be waiting — move straight to the next
+    // one instead of closing until the next full page load.
+    await loadNextPrompt();
+    setBusy(false);
   }
 
-  function saveOnly() {
-    setPrompt(null);
+  async function saveOnly() {
+    setBusy(true);
     router.refresh();
+    await loadNextPrompt();
+    setBusy(false);
   }
 
   function toggleTag(user: UserOption) {
