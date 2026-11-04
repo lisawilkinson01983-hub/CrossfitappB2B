@@ -33,6 +33,7 @@ export default async function NotificationsPage() {
       notice: { select: { id: true, title: true, body: true } },
       eventWorkout: { select: { eventId: true, number: true } },
       wallPost: { select: { id: true, wallOwnerId: true } },
+      eventResultTag: { select: { id: true } },
     },
   });
 

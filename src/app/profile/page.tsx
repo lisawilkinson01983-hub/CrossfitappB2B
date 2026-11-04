@@ -19,6 +19,7 @@ import { WallPostCard } from "@/components/WallPostCard";
 import { wallPostInclude, toWallPostCardData } from "@/lib/wallPosts";
 import { OTHER_GYM } from "@/lib/gyms";
 import { isCompetitionEvent } from "@/lib/labels";
+import { ProfileResultsGrid } from "@/components/ProfileResultsGrid";
 import type { Prisma } from "@prisma/client";
 
 // How many entries a Posts/Workouts tab preview-loads before pointing to the
@@ -64,6 +65,7 @@ export default async function ProfilePage() {
     workoutPosts,
     wallPosts,
     wallPostsTotalCount,
+    eventResults,
   ] = await Promise.all([
     prisma.workout.count({ where: { userId: user.id } }),
     prisma.follow.count({ where: { followingId: user.id } }),
@@ -100,6 +102,18 @@ export default async function ProfilePage() {
       include: wallPostInclude,
     }),
     prisma.wallPost.count({ where: { wallOwnerId: user.id } }),
+    prisma.eventResult.findMany({
+      where: { userId: user.id },
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        placementType: true,
+        place: true,
+        division: true,
+        createdAt: true,
+        event: { select: { id: true, name: true, photo: true } },
+      },
+    }),
   ]);
   console.log(`/profile: data fetch took ${Date.now() - fetchStart}ms`);
 
@@ -157,6 +171,25 @@ export default async function ProfilePage() {
             ))
           )}
         </div>
+      ),
+    });
+
+    tabs.push({
+      key: "results",
+      label: "🏆 Results",
+      content: (
+        <ProfileResultsGrid
+          results={eventResults.map((r) => ({
+            id: r.id,
+            eventId: r.event.id,
+            eventName: r.event.name,
+            eventPhoto: r.event.photo,
+            createdAt: r.createdAt,
+            placementType: r.placementType,
+            place: r.place,
+            division: r.division,
+          }))}
+        />
       ),
     });
   }

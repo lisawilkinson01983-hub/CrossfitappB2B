@@ -37,6 +37,7 @@ import { ShareIcon } from "@/components/ShareIcon";
 import { ShareSheet } from "@/components/share/ShareSheet";
 import { SaveIcon } from "@/components/SaveIcon";
 import { formatEventDate } from "@/lib/eventDate";
+import { resultHeadline, isPodiumPlace, placeMedal } from "@/lib/eventResults";
 import { formatDateTime } from "@/lib/dates";
 import type { ReactionSummary } from "@/lib/reactions";
 import { readVideoInfo } from "@/lib/readVideoInfo";
@@ -90,7 +91,7 @@ export type PostCardData = {
   // False once the original author has turned off post sharing — hides the
   // Share button for anyone who hasn't already shared it.
   canShare: boolean;
-  type: "WORKOUT" | "PR" | "UPDATE" | "TEAMMATE_REQUEST";
+  type: "WORKOUT" | "PR" | "UPDATE" | "TEAMMATE_REQUEST" | "EVENT_RESULT";
   contentText: string | null;
   teammateRequests: TeammateRequest[];
   // Legacy single-attachment fields — only ever set on a post created before
@@ -145,6 +146,17 @@ export type PostCardData = {
     workflow: string | null;
     eventId: string;
     event: { name: string };
+  } | null;
+  linkedResult: {
+    id: string;
+    placementType: "EXACT" | "COMPLETED";
+    place: number | null;
+    totalCompetitors: number | null;
+    division: string | null;
+    note: string | null;
+    event: { id: string; name: string; photo: string | null; location: string | null; isOnline: boolean };
+    team: { id: string; name: string; members: { id: string; name: string; photo: string | null }[] } | null;
+    freeformTeammateNames: string[];
   } | null;
   likeCount: number;
   likedByMe: boolean;
@@ -790,27 +802,47 @@ export function PostCard({
           original embedded below in its own mini card, same as Facebook's
           share style rather than Twitter's retweet-banner style. */}
       <div className="flex items-start justify-between gap-3">
-        <Link href={`/profile/${headerUser.id}`} className="flex min-w-0 flex-1 items-center gap-3">
-          <Avatar
-            photo={headerUser.photo}
-            name={headerUser.name}
-            size={40}
-            showSingleBadge={showsSingleBadge(headerUser)}
-            verified={headerUser.verified}
-            status={headerUser.status}
-          />
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-              <span className="break-words font-semibold hover:underline">{headerUser.name}</span>
-              <LevelTags levels={headerUser.levels} />
-              {!post.sharedBy && isPb && <span className="shrink-0 text-sm font-semibold text-yellow-600">★ PB</span>}
+        {!post.sharedBy && post.linkedResult?.team ? (
+          <div className="flex min-w-0 flex-1 items-center gap-3">
+            <div className="flex shrink-0">
+              {post.linkedResult.team.members.map((m, i) => (
+                <div key={m.id} className={i > 0 ? "-ml-2.5 ring-2 ring-b2b-card rounded-full" : "rounded-full"}>
+                  <Avatar photo={m.photo} name={m.name} size={40} />
+                </div>
+              ))}
             </div>
-            <p className="truncate text-xs text-b2b-ink/40">
-              {headerUser.affiliateGym && `${headerUser.affiliateGym} · `}
-              {formatDateTime(post.sharedBy ? post.sharedBy.sharedAt : post.createdAt)}
-            </p>
+            <div className="min-w-0 flex-1">
+              <span className="break-words font-semibold">Team {post.linkedResult.team.name}</span>
+              <p className="truncate text-xs text-b2b-ink/40">
+                {post.linkedResult.team.members.map((m) => m.name.split(" ")[0]).join(", ")}
+                {" · "}
+                {formatDateTime(post.createdAt)}
+              </p>
+            </div>
           </div>
-        </Link>
+        ) : (
+          <Link href={`/profile/${headerUser.id}`} className="flex min-w-0 flex-1 items-center gap-3">
+            <Avatar
+              photo={headerUser.photo}
+              name={headerUser.name}
+              size={40}
+              showSingleBadge={showsSingleBadge(headerUser)}
+              verified={headerUser.verified}
+              status={headerUser.status}
+            />
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                <span className="break-words font-semibold hover:underline">{headerUser.name}</span>
+                <LevelTags levels={headerUser.levels} />
+                {!post.sharedBy && isPb && <span className="shrink-0 text-sm font-semibold text-yellow-600">★ PB</span>}
+              </div>
+              <p className="truncate text-xs text-b2b-ink/40">
+                {headerUser.affiliateGym && `${headerUser.affiliateGym} · `}
+                {formatDateTime(post.sharedBy ? post.sharedBy.sharedAt : post.createdAt)}
+              </p>
+            </div>
+          </Link>
+        )}
         {post.sharedBy ? (
           post.sharedBy.id === currentUserId && (
             <div className="flex shrink-0 items-center gap-3">
@@ -986,6 +1018,58 @@ export function PostCard({
                 </p>
               )}
             </Link>
+          </div>
+        )}
+
+        {post.linkedResult && (
+          <div className={post.sharedBy ? "" : "mt-3"}>
+            <Link
+              href={`/events/${post.linkedResult.event.id}/results`}
+              className="relative block h-48 overflow-hidden rounded-xl"
+            >
+              {post.linkedResult.event.photo ? (
+                <Image
+                  src={post.linkedResult.event.photo}
+                  alt=""
+                  fill
+                  sizes="(max-width: 640px) 100vw, 600px"
+                  className="object-cover"
+                />
+              ) : (
+                <div className="absolute inset-0 bg-gradient-to-br from-b2b-ink to-b2b-purple-dark" />
+              )}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
+              <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-b2b-pink px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wide text-white">
+                {placeMedal(post.linkedResult.place) ?? "🏆"} Result
+              </span>
+              <div className="absolute inset-x-3 bottom-2.5 text-white">
+                <p className="font-display text-3xl leading-none">{resultHeadline(post.linkedResult)}</p>
+                {post.linkedResult.placementType === "EXACT" &&
+                  post.linkedResult.place != null &&
+                  post.linkedResult.totalCompetitors != null &&
+                  !isPodiumPlace(post.linkedResult.place) && (
+                    <p className="mt-0.5 text-[11px] font-semibold text-white/65">
+                      of {post.linkedResult.totalCompetitors} competitors
+                    </p>
+                  )}
+                <p className="mt-1.5 text-sm font-semibold">{post.linkedResult.event.name}</p>
+                <p className="text-xs text-white/75">
+                  {post.linkedResult.division && `${post.linkedResult.division} · `}
+                  {post.linkedResult.event.isOnline ? "Online" : post.linkedResult.event.location}
+                </p>
+              </div>
+            </Link>
+            {(post.linkedResult.freeformTeammateNames.length > 0 || post.linkedResult.note) && (
+              <p className="mt-2 text-sm text-b2b-ink">
+                {post.linkedResult.note}
+                {post.linkedResult.freeformTeammateNames.length > 0 && (
+                  <span className="text-b2b-ink/50">
+                    {post.linkedResult.note && " — "}
+                    with {post.linkedResult.freeformTeammateNames.join(", ")}
+                  </span>
+                )}
+              </p>
+            )}
           </div>
         )}
 

@@ -14,6 +14,7 @@ export type NotificationView = {
   storyId: string | null;
   eventWorkout: { eventId: string; number: number } | null;
   wallPost: { id: string; wallOwnerId: string } | null;
+  eventResultTag: { id: string } | null;
 };
 
 /** What a post actually is, for notification wording — a photo/video takes priority over its text type, since that's what the other person actually reacted to. */
@@ -111,6 +112,8 @@ export function notificationText(n: NotificationView): string {
       return `approved your request to join their team for "${n.event?.name ?? "an event"}"`;
     case "TEAM_MEMBER_REMOVED":
       return `removed you from their team for "${n.event?.name ?? "an event"}"`;
+    case "RESULT_TAG_REQUEST":
+      return `tagged you in a result at "${n.event?.name ?? "an event"}" — add it to your profile?`;
     case "MENTION":
       return n.storyId ? "tagged you in their story" : "mentioned you";
     case "WALL_POST":
@@ -183,6 +186,8 @@ export function notificationHref(n: NotificationView, viewerId: string): string 
     case "FOLLOW":
     case "NEW_USER_SIGNUP":
       return `/profile/${n.actor.id}`;
+    case "RESULT_TAG_REQUEST":
+      return `/event-result-tags/${n.eventResultTag?.id ?? ""}`;
     // Unlike WORKOUT_COMMENT (always on the viewer's own workout), the
     // workout here belongs to whoever tagged this user. If it was shared to
     // the feed, go straight to that post (n.post is set at notification-

@@ -62,6 +62,25 @@ const postContentInclude = {
       event: { select: { name: true } },
     },
   },
+  linkedEventResult: {
+    select: {
+      id: true,
+      placementType: true,
+      place: true,
+      totalCompetitors: true,
+      division: true,
+      note: true,
+      freeformTeammateNames: true,
+      event: { select: { id: true, name: true, photo: true, location: true, isOnline: true } },
+      team: {
+        select: {
+          id: true,
+          name: true,
+          members: { select: { user: { select: { id: true, name: true, photo: true } } } },
+        },
+      },
+    },
+  },
   media: {
     orderBy: { order: "asc" },
     select: { id: true, kind: true, url: true, thumbnail: true },
@@ -162,6 +181,27 @@ export function toPostCardData(post: PostWithCardData, currentUserId: string): P
         }
       : null,
     linkedEventWorkout: original.linkedEventWorkout,
+    linkedResult: original.linkedEventResult
+      ? {
+          id: original.linkedEventResult.id,
+          placementType: original.linkedEventResult.placementType,
+          place: original.linkedEventResult.place,
+          totalCompetitors: original.linkedEventResult.totalCompetitors,
+          division: original.linkedEventResult.division,
+          note: original.linkedEventResult.note,
+          event: original.linkedEventResult.event,
+          team: original.linkedEventResult.team
+            ? {
+                id: original.linkedEventResult.team.id,
+                name: original.linkedEventResult.team.name,
+                members: original.linkedEventResult.team.members.map((m) => m.user),
+              }
+            : null,
+          freeformTeammateNames: original.linkedEventResult.freeformTeammateNames
+            ? (JSON.parse(original.linkedEventResult.freeformTeammateNames) as string[])
+            : [],
+        }
+      : null,
     likeCount: original.likes.length,
     likedByMe: original.likes.some((like) => like.userId === currentUserId),
     reactions: summarizeReactions(original.reactions, currentUserId),

@@ -9,6 +9,7 @@ import { FEED_PAGE_SIZE, postCardInclude, toPostCardData } from "@/lib/posts";
 import { summarizeReactions } from "@/lib/reactions";
 import { PostComposer } from "./PostComposer";
 import { FeedPostList } from "./FeedPostList";
+import { ResultsPrompt } from "@/components/ResultsPrompt";
 
 export default async function FeedPage({
   searchParams,
@@ -98,6 +99,7 @@ export default async function FeedPage({
         />
       )}
       <NavBar />
+      <ResultsPrompt />
 
       <div className="mt-4">
         <StoriesBar

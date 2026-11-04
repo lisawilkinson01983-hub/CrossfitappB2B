@@ -12,6 +12,7 @@ import { PostCard } from "@/components/PostCard";
 import { postCardInclude, toPostCardData } from "@/lib/posts";
 import { ProfileContentTabs, type ProfileTab } from "@/components/ProfileContentTabs";
 import { ProfileEventRow } from "@/components/ProfileEventRow";
+import { ProfileResultsGrid } from "@/components/ProfileResultsGrid";
 import { FollowButton, type FollowStatus } from "@/components/FollowButton";
 import { MessageButton } from "@/components/MessageButton";
 import { ProfileMoreMenu } from "@/components/ProfileMoreMenu";
@@ -98,7 +99,7 @@ export default async function UserProfilePage({
       { endDate: { gte: now } },
     ];
 
-    const [posts, postsTotalCount, workoutPosts, competingIn, interestedIn, wallPosts, wallPostsTotalCount] =
+    const [posts, postsTotalCount, workoutPosts, competingIn, interestedIn, wallPosts, wallPostsTotalCount, eventResults] =
       await Promise.all([
       prisma.post.findMany({
         where: { userId: user.id, sharedToFeed: true },
@@ -130,6 +131,18 @@ export default async function UserProfilePage({
         include: wallPostInclude,
       }),
       prisma.wallPost.count({ where: { wallOwnerId: user.id } }),
+      prisma.eventResult.findMany({
+        where: { userId: user.id },
+        orderBy: { createdAt: "desc" },
+        select: {
+          id: true,
+          placementType: true,
+          place: true,
+          division: true,
+          createdAt: true,
+          event: { select: { id: true, name: true, photo: true } },
+        },
+      }),
     ]);
 
     tabs = [
@@ -168,6 +181,25 @@ export default async function UserProfilePage({
               ))}
             </div>
           ),
+      });
+
+      tabs.push({
+        key: "results",
+        label: "🏆 Results",
+        content: (
+          <ProfileResultsGrid
+            results={eventResults.map((r) => ({
+              id: r.id,
+              eventId: r.event.id,
+              eventName: r.event.name,
+              eventPhoto: r.event.photo,
+              createdAt: r.createdAt,
+              placementType: r.placementType,
+              place: r.place,
+              division: r.division,
+            }))}
+          />
+        ),
       });
     }
 
