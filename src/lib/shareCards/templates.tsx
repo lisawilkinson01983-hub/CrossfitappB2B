@@ -383,6 +383,10 @@ export function FeedStoryC({ name, photo, date, scoreLabel, score, badge, descri
           {description && (
             <div
               style={{
+                // Satori needs an explicit width to know where to wrap —
+                // without one this rendered as one unbroken line that
+                // overlapped the stats row below it instead of wrapping.
+                width: px(CARD_WIDTH - 48 - 32, scale),
                 marginTop: px(12, scale),
                 fontSize: px(9, scale),
                 lineHeight: 1.5,

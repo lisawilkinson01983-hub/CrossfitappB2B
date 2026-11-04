@@ -64,6 +64,10 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
   const labels = target.kind === "pb" ? PB_FORMAT_LABELS : FORMAT_LABELS;
+  // The feed-post quote card (format B) is dropped — its free-form caption
+  // text didn't wrap reliably at render time. PBs keep all three formats;
+  // B there is the unrelated "Stat + delta" card, not a quote.
+  const formats: Format[] = target.kind === "pb" ? ["A", "B", "C"] : ["A", "C"];
   const usesPhoto = format === "A" || format === "C";
 
   function openDestination(dest: Destination) {
@@ -250,7 +254,7 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
               {destination === "instagram" ? "Share to Instagram" : "Share to Story"}
             </p>
             <div className="flex justify-center gap-3">
-              {(["A", "B", "C"] as Format[]).map((f) => (
+              {formats.map((f) => (
                 <button key={f} type="button" onClick={() => setFormat(f)} className="flex flex-col items-center gap-1.5">
                   <span
                     className={`block overflow-hidden rounded-lg border-2 ${
