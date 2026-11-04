@@ -30,7 +30,26 @@ const postContentInclude = {
   linkedWorkout: {
     select: { wodName: true, score: true, rounds: true, reps: true, unit: true, intensity: true, description: true },
   },
-  linkedEvent: { select: { id: true, name: true, date: true, endDate: true, isOnline: true, location: true } },
+  linkedEvent: {
+    select: {
+      id: true,
+      name: true,
+      date: true,
+      endDate: true,
+      isOnline: true,
+      location: true,
+      photo: true,
+      // A handful of other attendees to show on the card ("Daisy, Simon +6
+      // others attending") — the post's own author is filtered out of this
+      // list below, since the post already says they're going.
+      participants: {
+        take: 4,
+        orderBy: { createdAt: "asc" },
+        select: { user: { select: { id: true, name: true, photo: true } } },
+      },
+      _count: { select: { participants: true } },
+    },
+  },
   linkedEventWorkout: {
     select: {
       id: true,
@@ -123,7 +142,25 @@ export function toPostCardData(post: PostWithCardData, currentUserId: string): P
       status: original.user.status,
     },
     linkedWorkout: original.linkedWorkout,
-    linkedEvent: original.linkedEvent,
+    linkedEvent: original.linkedEvent
+      ? {
+          id: original.linkedEvent.id,
+          name: original.linkedEvent.name,
+          date: original.linkedEvent.date,
+          endDate: original.linkedEvent.endDate,
+          isOnline: original.linkedEvent.isOnline,
+          location: original.linkedEvent.location,
+          photo: original.linkedEvent.photo,
+          attendees: original.linkedEvent.participants
+            .map((p) => p.user)
+            .filter((u) => u.id !== original.user.id)
+            .slice(0, 3),
+          // The author is implied by the post itself and always a
+          // participant by the time this post exists, so it's excluded here
+          // too — keeps this in sync with the `attendees` list above.
+          attendeeCount: Math.max(0, original.linkedEvent._count.participants - 1),
+        }
+      : null,
     linkedEventWorkout: original.linkedEventWorkout,
     likeCount: original.likes.length,
     likedByMe: original.likes.some((like) => like.userId === currentUserId),

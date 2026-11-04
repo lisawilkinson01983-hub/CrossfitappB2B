@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
   WORKOUT_INTENSITY_BADGE_CLASSES,
@@ -128,6 +129,12 @@ export type PostCardData = {
     endDate: Date | null;
     isOnline: boolean;
     location: string | null;
+    photo: string | null;
+    // Other attendees besides whoever made this post — that's already
+    // implied by the post itself, so repeating them here would be
+    // redundant (see toPostCardData, which excludes the author).
+    attendees: { id: string; name: string; photo: string | null }[];
+    attendeeCount: number;
   } | null;
   linkedEventWorkout: {
     id: string;
@@ -983,17 +990,57 @@ export function PostCard({
         )}
 
         {post.linkedEvent && post.type !== "TEAMMATE_REQUEST" && (
-          <p className={`text-sm text-b2b-ink ${post.sharedBy ? "" : "mt-3"}`}>
-            🏆 Competing in{" "}
-            <Link href={`/events/${post.linkedEvent.id}`} className="font-semibold hover:underline">
-              {post.linkedEvent.name}
+          <div className={post.sharedBy ? "" : "mt-3"}>
+            <Link
+              href={`/events/${post.linkedEvent.id}`}
+              className="flex gap-3 rounded-xl border border-b2b-pink/30 bg-b2b-pink/[0.06] p-3 hover:bg-b2b-pink/10"
+            >
+              {post.linkedEvent.photo ? (
+                <Image
+                  src={post.linkedEvent.photo}
+                  alt=""
+                  width={72}
+                  height={88}
+                  className="h-[88px] w-[72px] shrink-0 rounded-lg object-cover"
+                />
+              ) : (
+                <div className="flex h-[88px] w-[72px] shrink-0 items-center justify-center rounded-lg bg-b2b-pink/15 text-2xl">
+                  🏆
+                </div>
+              )}
+              <div className="flex min-w-0 flex-col justify-center">
+                <span className="self-start text-[10px] font-extrabold uppercase tracking-wide text-b2b-pink-dark">
+                  🏆 Attending
+                </span>
+                <p className="mt-1 truncate text-base font-extrabold leading-tight text-b2b-ink">
+                  {post.linkedEvent.name}
+                </p>
+                <p className="mt-1 text-xs leading-snug text-b2b-ink/60">
+                  {formatEventDate(post.linkedEvent)}
+                  <br />
+                  {post.linkedEvent.isOnline ? "Online" : post.linkedEvent.location}
+                </p>
+              </div>
             </Link>
-            <span className="text-b2b-ink/50">
-              {" "}
-              · {formatEventDate(post.linkedEvent)} ·{" "}
-              {post.linkedEvent.isOnline ? "Online" : post.linkedEvent.location}
-            </span>
-          </p>
+
+            {post.linkedEvent.attendees.length > 0 && (
+              <div className="mt-2 flex items-center gap-2">
+                <div className="flex">
+                  {post.linkedEvent.attendees.map((a, i) => (
+                    <div key={a.id} className={`rounded-full ring-2 ring-b2b-card ${i > 0 ? "-ml-2" : ""}`}>
+                      <Avatar photo={a.photo} name={a.name} size={20} />
+                    </div>
+                  ))}
+                </div>
+                <p className="text-xs text-b2b-ink/50">
+                  {post.linkedEvent.attendees.map((a) => a.name.split(" ")[0]).join(", ")}
+                  {post.linkedEvent.attendeeCount > 0 &&
+                    ` +${post.linkedEvent.attendeeCount} ${post.linkedEvent.attendeeCount === 1 ? "other" : "others"}`}{" "}
+                  attending
+                </p>
+              </div>
+            )}
+          </div>
         )}
 
         {post.type === "TEAMMATE_REQUEST" && post.teammateRequests.length > 0 && (
