@@ -61,6 +61,14 @@ export function ResultsPrompt() {
   const [headline, setHeadline] = useState("COMPLETED");
   const [busy, setBusy] = useState(false);
 
+  // How many past events were waiting when this catch-up sequence began, and
+  // how many (including the one on screen) are still left — together these
+  // give the "1 of 3" indicator a fixed denominator across the whole
+  // sequence instead of recomputing a shrinking total every time.
+  const [totalAtStart, setTotalAtStart] = useState<number | null>(null);
+  const [remainingCount, setRemainingCount] = useState(0);
+  const position = totalAtStart != null ? totalAtStart - remainingCount + 1 : 1;
+
   // Resets every per-event field so the next prompt (if any) starts clean at
   // "ask" rather than carrying over the previous event's placement/tags/etc.
   function resetFlowState() {
@@ -87,8 +95,15 @@ export function ResultsPrompt() {
         if (data.prompt) {
           setPrompt(data.prompt);
           setDivision(divisionOptionsForEvent({ division: data.prompt.division })[0] ?? "");
+          setRemainingCount(data.remainingCount ?? 1);
+          // Only set the denominator once per sequence — a later call just
+          // shrinks remainingCount, which moves "1 of 3" to "2 of 3" on its
+          // own without the total itself changing.
+          setTotalAtStart((prev) => prev ?? data.remainingCount ?? 1);
         } else {
           setPrompt(null);
+          setTotalAtStart(null);
+          setRemainingCount(0);
         }
       })
       .catch(() => {});
@@ -194,6 +209,20 @@ export function ResultsPrompt() {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
       <div className="flex w-full max-w-xs flex-col items-center gap-1 rounded-2xl bg-b2b-card p-6 text-center shadow-lg">
+        {step === "ask" && totalAtStart != null && totalAtStart > 1 && (
+          <div className="mb-2 flex items-center gap-1.5">
+            {Array.from({ length: Math.min(totalAtStart, 5) }).map((_, i) => (
+              <span
+                key={i}
+                className={`h-1.5 w-1.5 rounded-full ${i < Math.min(position, totalAtStart) ? "bg-b2b-pink" : "bg-b2b-ink/15"}`}
+              />
+            ))}
+            <span className="ml-1 text-[10.5px] font-semibold text-b2b-ink/45">
+              {position} of {totalAtStart} events
+            </span>
+          </div>
+        )}
+
         {step === "ask" && prompt.kind === "solo" && (
           <>
             {prompt.eventPhoto && (

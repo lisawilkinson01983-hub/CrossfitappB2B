@@ -32,19 +32,28 @@ export type ResultPromptPayload =
  * before calling this — kept separate so this stays reusable once the gate
  * widens.
  */
+function pendingPromptWhere(userId: string, now: Date) {
+  return {
+    userId,
+    event: {
+      AND: [
+        { OR: [{ endDate: null, date: { lt: now } }, { endDate: { lt: now } }] },
+        { results: { none: { userId } } },
+        { resultPromptDismissals: { none: { userId } } },
+      ],
+    },
+  };
+}
+
+/** How many past events are still waiting on a result, including the one `findResultPrompt` would return next — lets the prompt UI show "1 of 3" rather than surfacing events one at a time with no sense of how many are queued. */
+export async function countResultPrompts(userId: string): Promise<number> {
+  return prisma.eventParticipant.count({ where: pendingPromptWhere(userId, new Date()) });
+}
+
 export async function findResultPrompt(userId: string): Promise<ResultPromptPayload | null> {
   const now = new Date();
   const participant = await prisma.eventParticipant.findFirst({
-    where: {
-      userId,
-      event: {
-        AND: [
-          { OR: [{ endDate: null, date: { lt: now } }, { endDate: { lt: now } }] },
-          { results: { none: { userId } } },
-          { resultPromptDismissals: { none: { userId } } },
-        ],
-      },
-    },
+    where: pendingPromptWhere(userId, now),
     orderBy: { event: { date: "desc" } },
     select: {
       event: {
