@@ -25,6 +25,14 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
       create: { followerId: request.requesterId, followingId: request.targetId },
       update: {},
     }),
+    prisma.notification.create({
+      data: { userId: request.requesterId, actorId: request.targetId, type: "FOLLOW_REQUEST_ACCEPTED" },
+    }),
+    // The "asked to follow you" notification has been dealt with.
+    prisma.notification.updateMany({
+      where: { userId: request.targetId, actorId: request.requesterId, type: "FOLLOW_REQUEST", readAt: null },
+      data: { readAt: new Date() },
+    }),
   ]);
 
   return NextResponse.json({ ok: true });

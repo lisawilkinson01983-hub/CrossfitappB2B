@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { reviewerActorId } from "@/lib/notify";
 
 /** Admin approve/dismiss for a pending "claim this event" request (see Event.claimRequestedById). */
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -35,6 +36,17 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         ? { claimedById: event.claimRequestedById, claimRequestedById: null, claimRequestedAt: null }
         : { claimRequestedById: null, claimRequestedAt: null },
   });
+
+  if (event.claimRequestedById !== session.user.id) {
+    await prisma.notification.create({
+      data: {
+        userId: event.claimRequestedById,
+        actorId: await reviewerActorId(session.user.id),
+        type: action === "approve" ? "EVENT_CLAIM_APPROVED" : "EVENT_CLAIM_DISMISSED",
+        eventId: id,
+      },
+    });
+  }
 
   return NextResponse.json({ ok: true });
 }

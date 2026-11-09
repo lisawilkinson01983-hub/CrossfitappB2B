@@ -220,6 +220,30 @@ enum NotificationType {
   // tapping it opens the accept/decline screen, not a deep-link to content
   // that already exists.
   RESULT_TAG_REQUEST
+
+  // Private accounts: someone asked to follow you / your request was accepted.
+  FOLLOW_REQUEST
+  FOLLOW_REQUEST_ACCEPTED
+  // Outcomes of things a user sent to the admins for review — the actor is
+  // the Box 2 Box site account (see reviewerActorId in src/lib/notify.ts).
+  EVENT_APPROVED
+  EVENT_REJECTED
+  GYM_APPROVED
+  GYM_REJECTED
+  VERIFICATION_APPROVED
+  VERIFICATION_DISMISSED
+  EVENT_CLAIM_APPROVED
+  EVENT_CLAIM_DISMISSED
+  // Sent to an event's participants once, within the 24 hours before it
+  // starts (src/lib/eventReminders.ts).
+  EVENT_REMINDER
+  // An event's date, end date or venue changed — sent to participants and
+  // interested athletes.
+  EVENT_UPDATED
+  // Someone else commented on a post you've commented on.
+  COMMENT_THREAD
+  // An admin took action on something you reported.
+  REPORT_ACTIONED
 }
 
 enum EventStatus {

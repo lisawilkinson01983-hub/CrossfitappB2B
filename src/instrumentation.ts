@@ -12,6 +12,20 @@ export async function register() {
     (globalThis as { __b2bDeliverPushes?: () => Promise<void> }).__b2bDeliverPushes = deliverPendingPushes;
   }
 
+  // Event reminders (src/lib/eventReminders.ts): checked every 30 minutes
+  // in this always-on server process, so no separate cron service is
+  // needed. Guarded so dev-mode reloads don't stack up extra timers.
+  const g = globalThis as { __b2bReminderTimer?: ReturnType<typeof setInterval> };
+  if (process.env.NEXT_RUNTIME === "nodejs" && !g.__b2bReminderTimer) {
+    const { sendEventReminders } = await import("./lib/eventReminders");
+    const run = () => {
+      sendEventReminders().catch((err) => console.error("[reminders] failed:", err));
+    };
+    g.__b2bReminderTimer = setInterval(run, 30 * 60 * 1000);
+    g.__b2bReminderTimer.unref?.();
+    setTimeout(run, 60 * 1000).unref?.(); // first check a minute after start-up
+  }
+
   if (!process.env.SENTRY_DSN) return;
 
   const Sentry = await import("@sentry/nextjs");

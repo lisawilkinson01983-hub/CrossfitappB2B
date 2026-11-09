@@ -90,6 +90,29 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     },
   });
 
+  // Tell everyone who's taking part or interested when the details they
+  // plan around change — not for edits to the description, photo, etc.
+  const when = (d: Date | null) => d?.getTime() ?? null;
+  const detailsChanged =
+    when(data.date) !== when(existing.date) ||
+    when(data.endDate ?? null) !== when(existing.endDate) ||
+    newLocation !== existing.location ||
+    data.isOnline !== existing.isOnline;
+  if (detailsChanged && existing.status === "APPROVED") {
+    const [participants, interested] = await Promise.all([
+      prisma.eventParticipant.findMany({ where: { eventId: id }, select: { userId: true } }),
+      prisma.eventInterest.findMany({ where: { eventId: id }, select: { userId: true } }),
+    ]);
+    const recipients = [...new Set([...participants, ...interested].map((r) => r.userId))].filter(
+      (userId) => userId !== session.user.id
+    );
+    if (recipients.length) {
+      await prisma.notification.createMany({
+        data: recipients.map((userId) => ({ userId, actorId: session.user.id, type: "EVENT_UPDATED" as const, eventId: id })),
+      });
+    }
+  }
+
   return NextResponse.json({ ok: true });
 }
 

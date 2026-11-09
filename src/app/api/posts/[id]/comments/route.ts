@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { extractMentionIds } from "@/lib/mentions";
 import { commentSchema } from "@/lib/validation";
 import { notifyMentions } from "@/lib/notify";
 import { PhotoUploadError, VideoUploadError, savePhotoUpload, saveVideoThumbnailUpload, saveVideoUpload } from "@/lib/uploads";
@@ -97,6 +98,35 @@ async function notifyCommentCreated({
   }
 
   await notifyMentions({ text, actorId, postId: post.id, commentId, skipUserIds: notified });
+
+  // Everyone else already in the conversation — anyone who has commented on
+  // this post before, except the post's owner (told above), whoever was
+  // replied to or @mentioned (told above), and anyone who blocked the
+  // commenter.
+  const skip = [actorId, post.userId, ...notified, ...extractMentionIds(text)];
+  const [earlier, blockers] = await Promise.all([
+    prisma.comment.findMany({
+      where: { postId: post.id, id: { not: commentId }, userId: { notIn: skip } },
+      select: { userId: true },
+      distinct: ["userId"],
+      orderBy: { createdAt: "desc" },
+      take: 50,
+    }),
+    prisma.block.findMany({ where: { blockedId: actorId }, select: { blockerId: true } }),
+  ]);
+  const blockedBy = new Set(blockers.map((b) => b.blockerId));
+  const threadRecipients = earlier.map((c) => c.userId).filter((id) => !blockedBy.has(id));
+  if (threadRecipients.length) {
+    await prisma.notification.createMany({
+      data: threadRecipients.map((userId) => ({
+        userId,
+        actorId,
+        type: "COMMENT_THREAD" as const,
+        postId: post.id,
+        commentId,
+      })),
+    });
+  }
 }
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {

@@ -114,6 +114,34 @@ export function notificationText(n: NotificationView): string {
       return `removed you from their team for "${n.event?.name ?? "an event"}"`;
     case "RESULT_TAG_REQUEST":
       return `tagged you in a result at "${n.event?.name ?? "an event"}" — add it to your profile?`;
+    case "FOLLOW_REQUEST":
+      return "asked to follow you";
+    case "FOLLOW_REQUEST_ACCEPTED":
+      return "accepted your follow request";
+    case "EVENT_APPROVED":
+      return `approved your event "${n.event?.name ?? "your event"}" — it's now live`;
+    case "EVENT_REJECTED":
+      return `didn't approve your event "${n.event?.name ?? "your event"}"`;
+    case "GYM_APPROVED":
+      return `approved your affiliate "${n.gym?.name ?? "your affiliate"}" — it's now listed`;
+    case "GYM_REJECTED":
+      return `didn't approve your affiliate "${n.gym?.name ?? "your affiliate"}"`;
+    case "VERIFICATION_APPROVED":
+      return "verified your affiliate account";
+    case "VERIFICATION_DISMISSED":
+      return "couldn't verify your affiliate account this time";
+    case "EVENT_CLAIM_APPROVED":
+      return `approved your claim on "${n.event?.name ?? "an event"}" — you can now manage it`;
+    case "EVENT_CLAIM_DISMISSED":
+      return `didn't approve your claim on "${n.event?.name ?? "an event"}"`;
+    case "EVENT_REMINDER":
+      return `reminder: "${n.event?.name ?? "your event"}" starts within 24 hours — good luck!`;
+    case "EVENT_UPDATED":
+      return `changed the date or venue for "${n.event?.name ?? "an event"}" — check the latest details`;
+    case "COMMENT_THREAD":
+      return "also commented on a post you commented on";
+    case "REPORT_ACTIONED":
+      return "took action on something you reported — thanks for helping keep the community safe";
     case "MENTION":
       return n.storyId ? "tagged you in their story" : "mentioned you";
     case "WALL_POST":
@@ -202,6 +230,28 @@ export function notificationHref(n: NotificationView, viewerId: string): string 
     case "WALL_POST_REACTION":
     case "WALL_POST_SHARE":
       return `/profile/${n.wallPost?.wallOwnerId ?? n.actor.id}`;
+    case "FOLLOW_REQUEST":
+      return "/profile"; // incoming requests are listed on your own profile
+    case "FOLLOW_REQUEST_ACCEPTED":
+      return `/profile/${n.actor.id}`;
+    case "EVENT_APPROVED":
+    case "EVENT_CLAIM_APPROVED":
+    case "EVENT_CLAIM_DISMISSED":
+    case "EVENT_REMINDER":
+    case "EVENT_UPDATED":
+      return `/events/${n.event?.id ?? ""}`;
+    case "EVENT_REJECTED":
+      return "/events/mine";
+    case "GYM_APPROVED":
+      return n.gym ? `/gyms/${encodeURIComponent(n.gym.name)}` : "/discover?view=affiliates";
+    case "GYM_REJECTED":
+      return "/discover?view=affiliates";
+    case "VERIFICATION_APPROVED":
+      return "/profile";
+    case "VERIFICATION_DISMISSED":
+      return "/settings/legal"; // has the contact address
+    case "REPORT_ACTIONED":
+      return "/guidelines";
     case "MENTION":
       if (n.storyId) return `/feed?story=${n.storyId}`;
       if (n.event) return `/events/${n.event.id}/notices`;

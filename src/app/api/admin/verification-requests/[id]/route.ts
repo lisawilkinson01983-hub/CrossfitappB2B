@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { reviewerActorId } from "@/lib/notify";
 
 /** Admin approve/dismiss for an affiliate account's "verify me as the owner" request. */
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -51,6 +52,16 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         data: { claimedById: target.id },
       }),
     ]);
+  }
+
+  if (target.id !== session.user.id) {
+    await prisma.notification.create({
+      data: {
+        userId: target.id,
+        actorId: await reviewerActorId(session.user.id),
+        type: action === "approve" ? "VERIFICATION_APPROVED" : "VERIFICATION_DISMISSED",
+      },
+    });
   }
 
   return NextResponse.json({ ok: true });
