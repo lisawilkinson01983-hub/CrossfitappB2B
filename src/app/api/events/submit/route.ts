@@ -81,8 +81,15 @@ export async function POST(req: Request) {
   });
 
   if (data.isPrivate) {
-    // The organizer is naturally "in" their own event.
-    await prisma.eventParticipant.create({ data: { userId: session.user.id, eventId: event.id } });
+    // A private social/other event has no "team" concept, so the organizer
+    // is naturally "in" their own event with nothing further to ask. A
+    // private competition needs the same explicit "I'm participating"
+    // click a public one does — auto-joining here would skip straight past
+    // the team-tag prompt (see EventEngagementButtons) and leave them with
+    // no team recorded, since that prompt only fires on a first join.
+    if (data.eventKind !== "COMPETITION") {
+      await prisma.eventParticipant.create({ data: { userId: session.user.id, eventId: event.id } });
+    }
 
     const inviteParsed = eventInviteAudienceSchema.safeParse({
       userIds: formData.getAll("inviteUserIds"),

@@ -45,7 +45,7 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
 
   const { id } = await params;
 
-  const me = await prisma.user.findUnique({ where: { id: session.user.id }, select: { isAdmin: true, accountType: true } });
+  const me = await prisma.user.findUnique({ where: { id: session.user.id }, select: { isAdmin: true } });
 
   const event = await prisma.event.findUnique({
     where: { id },
@@ -56,7 +56,7 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
       // Only the count is needed here for notices — they're rendered on the
       // dedicated Message Board page. Workouts are rendered in full, right
       // in the Overview section below.
-      _count: { select: { interests: true, teams: true } },
+      _count: { select: { interests: true, teams: true, results: true } },
       notices: { select: { id: true } },
       workouts: { orderBy: { number: "asc" }, select: { number: true, title: true, photo: true } },
     },
@@ -65,12 +65,12 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
   if (!(await assertEventVisible(event, session.user.id))) notFound();
 
   const isOrganizer = event.createdById === session.user.id || event.submittedById === session.user.id;
-  // Whether to offer "Claim this event" — any affiliate not already the
-  // organizer or the current claimant, as long as nobody else has claimed it
+  // Whether to offer "Claim this event" — any logged-in account not already
+  // the organizer, on a public event nobody's already claimed or requested
   // (see Event.claimedById/claimRequestedById, /api/events/[id]/claim).
   const hasPendingClaimFromMe = event.claimRequestedById === session.user.id;
   const canOfferClaim =
-    me?.accountType === "AFFILIATE" &&
+    !event.isPrivate &&
     !isOrganizer &&
     event.claimedById !== session.user.id &&
     !event.claimedById &&
@@ -159,12 +159,12 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
         />
       )}
 
-      {event.isPrivate && isOrganizer && (
+      {isOrganizer && (event.isPrivate || event.eventKind === "SOCIAL") && (
         <div className="flex flex-col gap-3">
           {event.participants.some((p) => p.userId !== session.user.id) && (
             <MessageAttendeesButton eventId={event.id} />
           )}
-          <InviteToEventForm eventId={event.id} gymOptions={gymOptions} />
+          {event.isPrivate && <InviteToEventForm eventId={event.id} gymOptions={gymOptions} />}
         </div>
       )}
     </div>
@@ -227,35 +227,33 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
       </div>
 
       <div className="mt-5 flex flex-col gap-5">
-        <div className="flex items-start justify-between gap-3">
+        <div className="flex items-center justify-between gap-3">
           {event.createdBy ? (
-            <div className="flex items-center gap-2">
+            <div className="flex min-w-0 items-center gap-2">
               <Avatar photo={event.createdBy.photo} name={event.createdBy.name} size={26} />
-              <div>
-                <p className="text-xs text-b2b-ink/50">
-                  Organized by{" "}
-                  <Link href={`/profile/${event.createdBy.id}`} className="font-semibold text-b2b-ink/70 hover:underline">
-                    {event.createdBy.name}
-                  </Link>
-                </p>
-                {hasPendingClaimFromMe && (
-                  <p className="text-xs text-b2b-ink/40">Your claim request is pending admin review.</p>
-                )}
-                {canOfferClaim && <ClaimEventButton eventId={event.id} />}
-              </div>
+              <p className="truncate text-xs text-b2b-ink/50">
+                Created by{" "}
+                <Link href={`/profile/${event.createdBy.id}`} className="font-semibold text-b2b-ink/70 hover:underline">
+                  {event.createdBy.name}
+                </Link>
+              </p>
             </div>
           ) : (
             <div />
           )}
-          {canEdit && (
-            <Link
-              href={`/events/${event.id}/edit`}
-              aria-label={me?.isAdmin ? "Edit event" : "Event settings"}
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-b2b-purple/20 text-b2b-purple hover:border-b2b-pink/40 hover:text-b2b-pink"
-            >
-              <EditIcon className="h-4 w-4" />
-            </Link>
-          )}
+          <div className="flex shrink-0 items-center gap-2">
+            {hasPendingClaimFromMe && <p className="text-xs text-b2b-ink/40">Claim pending review</p>}
+            {canOfferClaim && <ClaimEventButton eventId={event.id} />}
+            {canEdit && (
+              <Link
+                href={`/events/${event.id}/edit`}
+                aria-label={me?.isAdmin ? "Edit event" : "Event settings"}
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-b2b-purple/20 text-b2b-purple hover:border-b2b-pink/40 hover:text-b2b-pink"
+              >
+                <EditIcon className="h-4 w-4" />
+              </Link>
+            )}
+          </div>
         </div>
 
         <EventEngagementButtons
@@ -265,7 +263,7 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
           isCompetition={isCompetitionEvent(event)}
         />
 
-        <div className={`grid gap-2 ${isPrivateSocial ? "grid-cols-2" : "grid-cols-3"}`}>
+        <div className={`grid gap-2 ${isPrivateSocial ? "grid-cols-2" : "grid-cols-4"}`}>
           <Link
             href={`/events/${event.id}/participants`}
             className="flex flex-col items-center gap-0.5 rounded-2xl border border-b2b-purple/10 bg-b2b-card py-3 hover:border-b2b-pink/30"
@@ -289,6 +287,15 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
             >
               <span className="font-display text-2xl text-b2b-pink">{event._count.teams}</span>
               <span className="text-[10px] font-semibold uppercase tracking-wide text-b2b-ink/45">Teams</span>
+            </Link>
+          )}
+          {!isPrivateSocial && (
+            <Link
+              href={`/events/${event.id}/results`}
+              className="flex flex-col items-center gap-0.5 rounded-2xl border border-b2b-purple/10 bg-b2b-card py-3 hover:border-b2b-pink/30"
+            >
+              <span className="font-display text-2xl text-b2b-pink">{event._count.results}</span>
+              <span className="text-[10px] font-semibold uppercase tracking-wide text-b2b-ink/45">🏆 Results</span>
             </Link>
           )}
         </div>

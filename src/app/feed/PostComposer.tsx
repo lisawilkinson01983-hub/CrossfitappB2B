@@ -36,10 +36,10 @@ export function PostComposer({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="flex w-full items-center gap-3 rounded-full border border-gray-300 bg-b2b-bg px-4 py-2.5 text-left text-b2b-ink/50 hover:bg-b2b-card"
+        className="flex w-full items-center gap-3 rounded-xl border border-gray-300 bg-b2b-bg px-4 py-2.5 text-left text-b2b-ink/50 hover:bg-b2b-card"
       >
         <Avatar photo={currentUserPhoto} name={currentUserName} size={36} />
-        <span>Share something with the community...</span>
+        <span className="min-w-0 flex-1 truncate">Share something with the community...</span>
       </button>
 
       {open && <PostComposerModal onClose={() => setOpen(false)} canPostWorkout={canPostWorkout} />}
@@ -116,6 +116,8 @@ function PostComposerModal({ onClose, canPostWorkout }: { onClose: () => void; c
   function removeAttachment(index: number) {
     setAttachments((prev) => prev.filter((_, i) => i !== index));
   }
+
+  const hasContent = contentText.trim().length > 0 || attachments.length > 0 || !!stagedGifUrl;
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -249,7 +251,7 @@ function PostComposerModal({ onClose, canPostWorkout }: { onClose: () => void; c
           <div className="mt-3 flex justify-end">
             <button
               type="submit"
-              disabled={submitting}
+              disabled={submitting || !hasContent}
               className="rounded bg-b2b-pink px-4 py-2 text-sm font-medium text-white hover:bg-b2b-pink-dark disabled:opacity-50"
             >
               {submitting ? "Posting..." : "Post"}

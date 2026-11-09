@@ -11,9 +11,9 @@ const SIZES = {
 // height from whatever width a given size renders it at.
 const WORDMARK_ASPECT = 900 / 126;
 
-/** The two interlocking squares mark — see public/logo-mark.png (cropped/keyed from the source artwork). */
+/** The two interlocking squares mark — see public/logo-mark.png (cropped/keyed from the source artwork). The logo-img class (see globals.css) keeps it visible in dark mode, where the artwork's near-black charcoal would otherwise vanish into the dark background. */
 function LogoMark({ size }: { size: number }) {
-  return <Image src="/logo-mark.png" alt="" width={size} height={size} className="shrink-0" priority />;
+  return <Image src="/logo-mark.png" alt="" width={size} height={size} className="logo-img shrink-0" priority />;
 }
 
 /** The "BOX 2 BOX" wordmark — see public/logo-wordmark.png (same source artwork as the mark, own custom typeface). */
@@ -24,7 +24,7 @@ function LogoWordmark({ width }: { width: number }) {
       alt="Box 2 Box"
       width={width}
       height={Math.round(width / WORDMARK_ASPECT)}
-      className="shrink-0"
+      className="logo-img shrink-0"
       priority
     />
   );

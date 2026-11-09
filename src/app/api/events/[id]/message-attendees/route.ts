@@ -2,12 +2,13 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { createGroupConversation } from "@/lib/conversations";
+import { createGroupConversation, addToConversation } from "@/lib/conversations";
 
 /**
- * Gets (or starts) the group chat with a private event's current attendees —
- * organizer-only. Re-syncs membership on every call, so anyone who joined
- * since the chat was created gets added rather than left out.
+ * Gets (or starts) the group chat with a private or social event's current
+ * attendees — organizer-only. Re-syncs membership on every call (covering
+ * anyone who joined before this existed), and from then on new joiners are
+ * added automatically by /api/events/[id]/participate as they join.
  */
 export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
@@ -20,8 +21,8 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
   if (!event) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
-  if (!event.isPrivate) {
-    return NextResponse.json({ error: "This event isn't private" }, { status: 400 });
+  if (!event.isPrivate && event.eventKind !== "SOCIAL") {
+    return NextResponse.json({ error: "This isn't a private or social event" }, { status: 400 });
   }
 
   const me = await prisma.user.findUnique({ where: { id: session.user.id }, select: { isAdmin: true } });
@@ -40,17 +41,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
   let conversationId = event.attendeesConversationId;
 
   if (conversationId) {
-    const existingParticipants = await prisma.conversationParticipant.findMany({
-      where: { conversationId },
-      select: { userId: true },
-    });
-    const existingIds = new Set(existingParticipants.map((p) => p.userId));
-    const newIds = attendeeIds.filter((id) => !existingIds.has(id));
-    if (newIds.length > 0) {
-      await prisma.conversationParticipant.createMany({
-        data: newIds.map((userId) => ({ conversationId: conversationId!, userId })),
-      });
-    }
+    await addToConversation(conversationId, attendeeIds);
   } else {
     const conversation = await createGroupConversation(session.user.id, attendeeIds, event.name);
     conversationId = conversation.id;

@@ -72,6 +72,22 @@ export function messageVisibilityWhere(participant: { hideHistory: boolean; join
   return participant.hideHistory ? { createdAt: { gte: participant.joinedAt } } : {};
 }
 
+/** Adds anyone not already in the conversation — used to keep an event's attendees group chat in sync as new people join the event after the chat was created. SQLite's createMany has no skipDuplicates, so existing membership is checked first. */
+export async function addToConversation(conversationId: string, userIds: string[]) {
+  if (userIds.length === 0) return;
+  const existing = await prisma.conversationParticipant.findMany({
+    where: { conversationId, userId: { in: userIds } },
+    select: { userId: true },
+  });
+  const existingIds = new Set(existing.map((p) => p.userId));
+  const newIds = userIds.filter((id) => !existingIds.has(id));
+  if (newIds.length > 0) {
+    await prisma.conversationParticipant.createMany({
+      data: newIds.map((userId) => ({ conversationId, userId })),
+    });
+  }
+}
+
 /** The name shown for a conversation: its explicit group name, or else the other participants' names joined together. */
 export function conversationDisplayName(
   conversation: { isGroup: boolean; name: string | null },

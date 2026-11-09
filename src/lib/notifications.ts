@@ -13,6 +13,8 @@ export type NotificationView = {
   emoji: string | null;
   storyId: string | null;
   eventWorkout: { eventId: string; number: number } | null;
+  wallPost: { id: string; wallOwnerId: string } | null;
+  eventResultTag: { id: string } | null;
 };
 
 /** What a post actually is, for notification wording — a photo/video takes priority over its text type, since that's what the other person actually reacted to. */
@@ -100,8 +102,30 @@ export function notificationText(n: NotificationView): string {
       return `joined your team for "${n.event?.name ?? "an event"}"`;
     case "NEW_USER_SIGNUP":
       return "just signed up for Box 2 Box";
+    case "WORKOUT_PARTNER_TAGGED":
+      return "tagged you as a workout partner";
+    case "TEAM_INVITE":
+      return `invited you to join their team for "${n.event?.name ?? "an event"}"`;
+    case "TEAM_JOIN_REQUEST":
+      return `wants to join your team for "${n.event?.name ?? "an event"}"`;
+    case "TEAM_JOIN_APPROVED":
+      return `approved your request to join their team for "${n.event?.name ?? "an event"}"`;
+    case "TEAM_MEMBER_REMOVED":
+      return `removed you from their team for "${n.event?.name ?? "an event"}"`;
+    case "RESULT_TAG_REQUEST":
+      return `tagged you in a result at "${n.event?.name ?? "an event"}" — add it to your profile?`;
     case "MENTION":
       return n.storyId ? "tagged you in their story" : "mentioned you";
+    case "WALL_POST":
+      return "posted on your wall";
+    case "WALL_POST_COMMENT":
+      return "commented on your wall post";
+    case "WALL_POST_COMMENT_REACTION":
+      return n.emoji ? `reacted ${n.emoji} to your wall post comment` : "reacted to your wall post comment";
+    case "WALL_POST_REACTION":
+      return n.emoji ? `reacted ${n.emoji} to your wall post` : "reacted to your wall post";
+    case "WALL_POST_SHARE":
+      return "shared your wall post";
     default:
       return "mentioned you";
   }
@@ -133,7 +157,16 @@ export function notificationHref(n: NotificationView, viewerId: string): string 
       return `/events/${n.event?.id ?? ""}`;
     case "EVENT_TEAM_ADDED":
     case "EVENT_TEAM_JOINED":
+    case "TEAM_MEMBER_REMOVED":
       return `/events/${n.event?.id ?? ""}/teams`;
+    // Unlike EVENT_TEAM_ADDED/EVENT_TEAM_JOINED (which just announce
+    // something that already happened), these three need an action — accept/
+    // decline an invite, approve/decline a request, or just see the result —
+    // and that lives in My Teams, not the event's own Teams page.
+    case "TEAM_INVITE":
+    case "TEAM_JOIN_REQUEST":
+    case "TEAM_JOIN_APPROVED":
+      return "/events/mine?tab=teams";
     case "EVENT_NOTICE_COMMENT":
     case "EVENT_NOTICE_COMMENT_REACTION":
     case "EVENT_NOTICE_REACTION":
@@ -153,6 +186,22 @@ export function notificationHref(n: NotificationView, viewerId: string): string 
     case "FOLLOW":
     case "NEW_USER_SIGNUP":
       return `/profile/${n.actor.id}`;
+    case "RESULT_TAG_REQUEST":
+      return `/event-result-tags/${n.eventResultTag?.id ?? ""}`;
+    // Unlike WORKOUT_COMMENT (always on the viewer's own workout), the
+    // workout here belongs to whoever tagged this user. If it was shared to
+    // the feed, go straight to that post (n.post is set at notification-
+    // creation time — see /api/workouts); only fall back to their gallery
+    // for a workout that was never shared, since there'd be no post to go to.
+    case "WORKOUT_PARTNER_TAGGED":
+      if (n.post) return `/posts/${n.post.id}`;
+      return `/profile/${n.actor.id}/gallery${n.workoutId ? `?workout=${n.workoutId}` : ""}`;
+    case "WALL_POST":
+    case "WALL_POST_COMMENT":
+    case "WALL_POST_COMMENT_REACTION":
+    case "WALL_POST_REACTION":
+    case "WALL_POST_SHARE":
+      return `/profile/${n.wallPost?.wallOwnerId ?? n.actor.id}`;
     case "MENTION":
       if (n.storyId) return `/feed?story=${n.storyId}`;
       if (n.event) return `/events/${n.event.id}/notices`;

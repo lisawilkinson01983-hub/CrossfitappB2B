@@ -55,6 +55,8 @@ export const REPORT_TARGET_TYPES = [
   "EVENT_NOTICE_COMMENT",
   "WORKOUT_COMMENT",
   "PB_COMMENT",
+  "WALL_POST",
+  "WALL_POST_COMMENT",
 ] as const;
 export type ReportTargetTypeOption = (typeof REPORT_TARGET_TYPES)[number];
 
@@ -144,6 +146,10 @@ export const signupSchema = z.object({
     errorMap: () => ({ message: "You must confirm you're at least 18 years old" }),
   }),
   inviteCode: z.string().trim().optional(),
+  // A TeamInviteLink token from a freeform teammate's WhatsApp invite link
+  // (see TeamRosterTrigger) — an invalid/stale one is ignored at signup
+  // time, same as a bad inviteCode, so it's unvalidated here beyond shape.
+  teamInviteToken: z.string().trim().optional(),
 });
 
 /** Treat empty-string form fields as "not provided" instead of failing validation. */
@@ -421,6 +427,9 @@ export const eventWorkoutSchema = z.object({
   workout: z.preprocess(emptyToUndefined, z.string().trim().max(2000).optional()),
   standards: z.preprocess(emptyToUndefined, z.string().trim().max(2000).optional()),
   workflow: z.preprocess(emptyToUndefined, z.string().trim().max(2000).optional()),
+  scaledWorkout: z.preprocess(emptyToUndefined, z.string().trim().max(2000).optional()),
+  scaledStandards: z.preprocess(emptyToUndefined, z.string().trim().max(2000).optional()),
+  scaledWorkflow: z.preprocess(emptyToUndefined, z.string().trim().max(2000).optional()),
 });
 
 export const teammateRequestSchema = z.object({
@@ -542,6 +551,10 @@ export const eventEditSchema = z
     division: z.array(z.enum(EVENT_DIVISIONS)).optional().default([]),
     teamFormat: z.array(z.enum(EVENT_TEAM_FORMATS)).optional().default([]),
     genderCategory: z.array(z.enum(EVENT_GENDER_CATEGORIES)).optional().default([]),
+    // Switchable after creation too — see eventSubmissionSchema's isPrivate
+    // comment for what private means. Unlike there, going public here never
+    // requires a website (this schema stays lenient throughout).
+    isPrivate: checkboxToBoolean,
     eventKind: z.preprocess(emptyToUndefined, z.enum(EVENT_KINDS).optional()),
     eventKindOther: z.preprocess(emptyToUndefined, z.string().trim().max(100).optional()),
   })

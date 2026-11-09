@@ -39,6 +39,9 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     workout: formData.get("workout"),
     standards: formData.get("standards"),
     workflow: formData.get("workflow"),
+    scaledWorkout: formData.get("scaledWorkout"),
+    scaledStandards: formData.get("scaledStandards"),
+    scaledWorkflow: formData.get("scaledWorkflow"),
   });
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
@@ -83,6 +86,9 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       workout: parsed.data.workout ?? null,
       standards: parsed.data.standards ?? null,
       workflow: parsed.data.workflow ?? null,
+      scaledWorkout: parsed.data.scaledWorkout ?? null,
+      scaledStandards: parsed.data.scaledStandards ?? null,
+      scaledWorkflow: parsed.data.scaledWorkflow ?? null,
       ...(photoPath !== undefined ? { photo: photoPath } : {}),
     },
   });

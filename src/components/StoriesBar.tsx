@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Avatar } from "@/components/Avatar";
 import { StoryViewer } from "@/components/StoryViewer";
+import { StoryEditor, type StoryBase, type StoryEditorHandle, type StoryEditorOutput } from "@/components/StoryEditor";
 import { MAX_VIDEO_SECONDS, MAX_PHOTO_BYTES, MAX_PHOTO_MB } from "@/lib/media";
 import { readVideoInfo } from "@/lib/readVideoInfo";
 import type { StoryGroup } from "@/lib/stories";
@@ -14,7 +15,6 @@ import { REACTION_EMOJIS, type ReactionSummary } from "@/lib/reactions";
 const MEDIA_ACCEPT = "image/jpeg,image/png,image/webp,video/mp4,video/quicktime";
 const MAX_STORY_MENTIONS = 10;
 
-type PendingStory = { file: File; previewUrl: string; isVideo: boolean; thumbnail: Blob | null };
 type UserOption = { id: string; name: string; photo: string | null };
 
 export type StatusBarEntry = {
@@ -61,10 +61,13 @@ export function StoriesBar({
   const router = useRouter();
   const [groups, setGroups] = useState<StoryGroup[] | null>(null);
   const [viewerStart, setViewerStart] = useState<{ groupIndex: number; storyIndex: number } | null>(null);
-  const [pending, setPending] = useState<PendingStory | null>(null);
+  const [pending, setPending] = useState<StoryBase | null>(null);
+  const [justPosted, setJustPosted] = useState<StoryEditorOutput | null>(null);
   const [mediaError, setMediaError] = useState<string | null>(null);
   const [posting, setPosting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const editorRef = useRef<StoryEditorHandle>(null);
+  const [composerChoiceOpen, setComposerChoiceOpen] = useState(false);
 
   const [tagging, setTagging] = useState(false);
   const [tagQuery, setTagQuery] = useState("");
@@ -124,6 +127,19 @@ export function StoriesBar({
     return body.groups as StoryGroup[];
   }
 
+  // A story can also be posted from elsewhere on the page (e.g. a feed
+  // post's "Share to Story" flow — see ShareSheet), which has no way to
+  // call this component's own loadStories() directly. It dispatches this
+  // event instead; the mount-time load below still covers the normal case.
+  useEffect(() => {
+    function onExternalStoryPosted() {
+      loadStories();
+    }
+    window.addEventListener("b2b:story-posted", onExternalStoryPosted);
+    return () => window.removeEventListener("b2b:story-posted", onExternalStoryPosted);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
     loadStories().then((loaded) => {
       if (!autoOpenStoryId || !loaded) return;
@@ -170,19 +186,25 @@ export function StoriesBar({
         setMediaError(`Videos must be ${MAX_VIDEO_SECONDS} seconds or under (this one is ${Math.round(info.duration)}s)`);
         return;
       }
-      setPending({ file, previewUrl: URL.createObjectURL(file), isVideo: true, thumbnail: info.thumbnail });
+      setPending({ kind: "video", file });
     } else {
       if (file.size > MAX_PHOTO_BYTES) {
         setMediaError(`Photo must be smaller than ${MAX_PHOTO_MB}MB`);
         return;
       }
-      setPending({ file, previewUrl: URL.createObjectURL(file), isVideo: false, thumbnail: null });
+      setPending({ kind: "photo", file });
     }
   }
 
+  function openTextComposer() {
+    setComposerChoiceOpen(false);
+    setMediaError(null);
+    setPending({ kind: "color" });
+  }
+
   function cancelPending() {
-    if (pending) URL.revokeObjectURL(pending.previewUrl);
     setPending(null);
+    setJustPosted(null);
     setMediaError(null);
     setTagging(false);
     setTagQuery("");
@@ -216,14 +238,24 @@ export function StoriesBar({
   }
 
   async function sharePending() {
-    if (!pending || posting) return;
+    if (!pending || posting || !editorRef.current) return;
     setPosting(true);
+
+    let output: StoryEditorOutput;
+    try {
+      output = await editorRef.current.export();
+    } catch {
+      setPosting(false);
+      setMediaError("Couldn't prepare that story — please try again.");
+      return;
+    }
+
     const formData = new FormData();
-    if (pending.isVideo) {
-      formData.set("video", pending.file);
-      if (pending.thumbnail) formData.set("thumbnail", pending.thumbnail, "thumbnail.jpg");
+    if (output.kind === "video") {
+      formData.set("video", output.file);
+      if (output.thumbnail) formData.set("thumbnail", output.thumbnail, "thumbnail.jpg");
     } else {
-      formData.set("photo", pending.file);
+      formData.set("photo", output.blob, "story.jpg");
     }
     taggedUsers.forEach((u) => formData.append("mentionedUserIds", u.id));
     const res = await fetch("/api/stories", { method: "POST", body: formData });
@@ -233,11 +265,51 @@ export function StoriesBar({
       setMediaError(body.error ?? "Couldn't post that. Please try again.");
       return;
     }
-    cancelPending();
+    // Posted — keep the overlay up one more beat to offer sharing the same
+    // file outside the app (Instagram, Messages, etc. via the native share
+    // sheet), rather than closing straight away.
+    setJustPosted(output);
     loadStories();
   }
 
-  if (groups === null) return null;
+  function outputToFile(output: StoryEditorOutput): File {
+    return output.kind === "video" ? output.file : new File([output.blob], "story.jpg", { type: "image/jpeg" });
+  }
+
+  async function shareOutsideApp() {
+    if (!justPosted) return;
+    const file = outputToFile(justPosted);
+    const nav = navigator as Navigator & {
+      canShare?: (data: { files: File[] }) => boolean;
+      share?: (data: { files: File[]; title?: string }) => Promise<void>;
+    };
+    if (nav.canShare?.({ files: [file] }) && nav.share) {
+      try {
+        await nav.share({ files: [file], title: "My Box 2 Box story" });
+        return;
+      } catch {
+        // User cancelled the native sheet, or it failed — fall through to
+        // the download fallback below rather than leaving them stuck.
+      }
+    }
+    const url = URL.createObjectURL(file);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = file.name;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  // Deliberately NOT gated on `groups` having loaded yet: the "Your story"/
+  // "Set status" slots and everyone's status-only entries (statusEntries
+  // arrives as a prop, already known at first paint) don't need the stories
+  // fetch at all, so rendering them immediately keeps this bar's height
+  // stable from the very first paint. Returning null here until the fetch
+  // resolved used to collapse the whole bar to zero height, which shoved
+  // whatever rendered below it (the post composer) up to the top of the
+  // page for a moment before shunting it back down once stories arrived —
+  // the composer never actually moved, the bar just wasn't there yet.
+  const groupsList = groups ?? [];
 
   // Merge story authors with status-setters into one ordered strip: everyone
   // with an active story keeps their spot (unseen-first, per the stories
@@ -252,7 +324,7 @@ export function StoriesBar({
       id: g.author.id,
       name: g.author.name,
       photo: g.author.photo,
-      groupIndex: groups.findIndex((gr) => gr.author.id === g.author.id),
+      groupIndex: groupsList.findIndex((gr) => gr.author.id === g.author.id),
       hasUnseen: g.hasUnseen,
       statusEntry: statusById.get(g.author.id) ?? null,
     };
@@ -266,17 +338,37 @@ export function StoriesBar({
 
   return (
     <>
-      <div className="flex gap-3 overflow-x-auto pb-1">
+      {/* py- (not just pb-) on purpose: a ring-offset avatar's gold ring
+          extends past its own box on every side, and `overflow-x-auto` here
+          forces the browser to also start clipping the y-axis (a standard
+          CSS quirk — one non-visible axis makes the other "auto" too), which
+          otherwise crops the top of every ring a few pixels short. */}
+      <div className="flex gap-3 overflow-x-auto py-1.5">
         <input ref={fileInputRef} type="file" accept={MEDIA_ACCEPT} onChange={handleFileChange} className="hidden" />
 
-        <button
-          type="button"
-          onClick={() => (ownGroupIndex >= 0 ? openViewer(ownGroupIndex) : fileInputRef.current?.click())}
-          className="flex shrink-0 flex-col items-center gap-1"
+        {/* A real <button> can't nest another <button> (invalid HTML —
+            causes a hydration error) — the "+" badge is its own button for
+            the "add to story" action, so this outer one is a div acting as
+            a button instead, for the "open your existing story" action. */}
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => (ownGroupIndex >= 0 ? openViewer(ownGroupIndex) : setComposerChoiceOpen(true))}
+          onKeyDown={(e) => {
+            if (e.key !== "Enter" && e.key !== " ") return;
+            e.preventDefault();
+            ownGroupIndex >= 0 ? openViewer(ownGroupIndex) : setComposerChoiceOpen(true);
+          }}
+          className="flex shrink-0 cursor-pointer flex-col items-center gap-1"
         >
           <div className="relative">
             <div
-              className={`rounded-full ${ownGroupIndex >= 0 ? "ring-2 ring-offset-2 ring-gray-300" : ""}`}
+              // A gray ring here used to mean "you have an active story" —
+              // but a muted gray read as "nothing happened" at a glance, so
+              // someone who'd just posted couldn't tell it worked without
+              // tapping in. Matches the colored ring everyone else's active
+              // story gets, instead of being uniquely subdued for your own.
+              className={`rounded-full ${ownGroupIndex >= 0 ? "ring-2 ring-offset-2 ring-b2b-pink" : ""}`}
             >
               <Avatar photo={currentUser.photo} name={currentUser.name} size={56} />
             </div>
@@ -284,7 +376,7 @@ export function StoriesBar({
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
-                fileInputRef.current?.click();
+                setComposerChoiceOpen(true);
               }}
               aria-label="Add to your story"
               className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full border-2 border-b2b-bg bg-b2b-pink text-xs font-bold text-white"
@@ -293,7 +385,7 @@ export function StoriesBar({
             </button>
           </div>
           <span className="max-w-[4.5rem] truncate text-center text-xs text-b2b-ink/60">Your story</span>
-        </button>
+        </div>
 
         <button
           type="button"
@@ -343,9 +435,9 @@ export function StoriesBar({
         })}
       </div>
 
-      {viewerStart && groups[viewerStart.groupIndex] && (
+      {viewerStart && groupsList[viewerStart.groupIndex] && (
         <StoryViewer
-          groups={groups}
+          groups={groupsList}
           startGroupIndex={viewerStart.groupIndex}
           startStoryIndex={viewerStart.storyIndex}
           currentUserId={currentUser.id}
@@ -363,14 +455,36 @@ export function StoriesBar({
           >
             ×
           </button>
-          <div className="flex flex-1 items-center justify-center overflow-hidden">
-            {pending.isVideo ? (
-              <video src={pending.previewUrl} controls autoPlay playsInline className="max-h-full max-w-full" />
-            ) : (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={pending.previewUrl} alt="" className="max-h-full max-w-full object-contain" />
-            )}
-          </div>
+          {justPosted ? (
+            <div className="flex flex-1 flex-col items-center justify-center gap-4 px-6 text-center text-white">
+              <p className="text-2xl">✅</p>
+              <p className="text-lg font-semibold">Posted to your story</p>
+              <p className="max-w-xs text-sm text-white/60">
+                Visible to your Box 2 Box community for the next 24 hours. Want to share the same image outside the
+                app too — Instagram, Messages, and more?
+              </p>
+              <button
+                type="button"
+                onClick={shareOutsideApp}
+                className="w-full max-w-xs rounded-full bg-white/10 py-3 text-sm font-semibold text-white hover:bg-white/20"
+              >
+                Share outside Box 2 Box
+              </button>
+              <button
+                type="button"
+                onClick={cancelPending}
+                className="text-sm font-medium text-white/60 hover:text-white"
+              >
+                Done
+              </button>
+            </div>
+          ) : (
+            <div className="flex flex-1 flex-col overflow-hidden">
+              <StoryEditor ref={editorRef} base={pending} />
+            </div>
+          )}
+
+          {!justPosted && (
           <div className="p-4">
             {taggedUsers.length > 0 && (
               <div className="mb-3 flex flex-wrap gap-2">
@@ -438,6 +552,44 @@ export function StoriesBar({
               className="w-full rounded-full bg-b2b-pink py-3 text-sm font-semibold text-white hover:bg-b2b-pink-dark disabled:opacity-50"
             >
               {posting ? "Sharing..." : "Share to your story"}
+            </button>
+          </div>
+          )}
+        </div>
+      )}
+
+      {composerChoiceOpen && (
+        <div
+          className="fixed inset-0 z-[60] flex items-end justify-center bg-black/50 sm:items-center"
+          onClick={() => setComposerChoiceOpen(false)}
+        >
+          <div
+            className="w-full max-w-sm rounded-t-2xl bg-b2b-card p-2 shadow-lg sm:rounded-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={() => {
+                setComposerChoiceOpen(false);
+                fileInputRef.current?.click();
+              }}
+              className="flex w-full items-center gap-2 rounded-lg px-4 py-3 text-left text-sm font-medium text-b2b-ink hover:bg-b2b-bg"
+            >
+              📷 Photo or video
+            </button>
+            <button
+              type="button"
+              onClick={openTextComposer}
+              className="flex w-full items-center gap-2 rounded-lg px-4 py-3 text-left text-sm font-medium text-b2b-ink hover:bg-b2b-bg"
+            >
+              🔤 Write something
+            </button>
+            <button
+              type="button"
+              onClick={() => setComposerChoiceOpen(false)}
+              className="w-full rounded-lg px-4 py-3 text-left text-sm text-b2b-ink/60 hover:bg-b2b-bg"
+            >
+              Cancel
             </button>
           </div>
         </div>

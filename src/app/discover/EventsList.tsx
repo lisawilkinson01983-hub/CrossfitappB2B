@@ -9,11 +9,14 @@ import { formatEventDate } from "@/lib/eventDate";
 import { SearchSuggestInput } from "@/components/SearchSuggestInput";
 import { SearchFilters } from "@/components/SearchFilters";
 import { CollapsibleSearch } from "@/components/CollapsibleSearch";
+import { DiscoverTabs } from "@/components/DiscoverTabs";
 import { eventVisibilityWhere } from "@/lib/eventVisibility";
 import { isCompetitionEvent } from "@/lib/labels";
 import { EditIcon } from "@/components/EditIcon";
 import { SwipeCardList, type SwipeCardItem } from "@/components/SwipeCardList";
 import { ListOrCarousel } from "@/components/ListOrCarousel";
+import { DiscoverMapLoader } from "@/components/DiscoverMapLoader";
+import type { MapMarker } from "@/components/DiscoverMap";
 
 const TIME_RANGES = {
   week: { label: "Next 7 days", days: 7 },
@@ -90,11 +93,11 @@ export async function EventsList({
     : eventsWithDistance;
 
   return (
-    <div className="mt-4 flex flex-col gap-6">
+    <div className="mt-4 flex flex-col gap-4">
       <div className="flex items-center justify-between">
         <Link
           href="/events/submit"
-          className="rounded bg-b2b-pink px-4 py-2 text-sm font-medium text-white hover:bg-b2b-pink-dark"
+          className="rounded bg-b2b-pink px-3 py-1.5 text-sm font-medium text-white hover:bg-b2b-pink-dark"
         >
           Create Event
         </Link>
@@ -105,8 +108,10 @@ export async function EventsList({
         )}
       </div>
 
-      <CollapsibleSearch label="Search events by name or area" defaultOpen={!!q || activeFilterCount > 0}>
-      <SectionCard>
+      <div className="flex items-center gap-2 border-b border-gray-200 pb-0.5">
+        <DiscoverTabs active="events" />
+        <CollapsibleSearch label="Search events by name or area" defaultOpen={!!q || activeFilterCount > 0} variant="icon">
+        <SectionCard>
         <form method="GET" className="flex flex-col gap-4">
           <input type="hidden" name="view" value="events" />
           <div>
@@ -188,11 +193,29 @@ export async function EventsList({
         </p>
       </SectionCard>
       </CollapsibleSearch>
+      </div>
 
       {visibleEvents.length === 0 ? (
         <p className="text-b2b-ink/50">No events match those filters.</p>
       ) : (
         (() => {
+          const eventMarkers: MapMarker[] = visibleEvents
+            .filter(({ event }) => event.lat !== null && event.lng !== null)
+            .map(({ event, miles }) => ({
+              id: event.id,
+              lat: event.lat as number,
+              lng: event.lng as number,
+              title: event.name,
+              subtitle: [
+                formatEventDate(event),
+                event.isOnline ? "Online" : event.location,
+                miles !== null ? `${miles < 1 ? "<1" : Math.round(miles)} miles away` : null,
+              ]
+                .filter(Boolean)
+                .join(" · "),
+              href: `/events/${event.id}`,
+            }));
+
           const items: SwipeCardItem[] = visibleEvents.map(({ event, miles }) => {
             const isParticipating = event.participants.some((p) => p.userId === currentUserId);
             const isInterested = event.interests.some((i) => i.userId === currentUserId);
@@ -234,6 +257,13 @@ export async function EventsList({
             <ListOrCarousel
               label={`${visibleEvents.length} ${visibleEvents.length === 1 ? "event" : "events"}`}
               carousel={<SwipeCardList items={items} emptyMessage="No events match those filters." hideHeader />}
+              map={
+                <DiscoverMapLoader
+                  markers={eventMarkers}
+                  myCoords={myCoords}
+                  emptyMessage="None of these events have a mapped location yet."
+                />
+              }
               list={
                 <div className="flex flex-col gap-3">
                   {visibleEvents.map(({ event, miles }) => {

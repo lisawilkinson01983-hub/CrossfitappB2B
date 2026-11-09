@@ -32,6 +32,8 @@ export default async function NotificationsPage() {
       gym: { select: { id: true, name: true } },
       notice: { select: { id: true, title: true, body: true } },
       eventWorkout: { select: { eventId: true, number: true } },
+      wallPost: { select: { id: true, wallOwnerId: true } },
+      eventResultTag: { select: { id: true } },
     },
   });
 

@@ -16,6 +16,7 @@ import { PB_FIELDS, type PbField } from "@/lib/validation";
 import { OTHER_GYM, UNAFFILIATED } from "@/lib/gyms";
 import { SectionCard } from "@/components/SectionCard";
 import { ExpandableHeroPhoto } from "@/components/ExpandableHeroPhoto";
+import { BackLink } from "@/components/BackLink";
 import { OpenLevelBadge } from "@/components/OpenLevelBadge";
 import { PbCardBody } from "@/components/PbCardBody";
 import { CompetitionStatsCardBody } from "@/components/CompetitionStatsCardBody";
@@ -65,6 +66,8 @@ export async function ProfileDetails({
   workoutCount,
   actions,
   belowActions,
+  wallSection,
+  backHref,
   isOwner = false,
 }: {
   user: User;
@@ -75,6 +78,11 @@ export async function ProfileDetails({
   workoutCount: number;
   actions?: ReactNode;
   belowActions?: ReactNode;
+  wallSection?: ReactNode;
+  // Only set on someone else's profile — the back arrow overlays the hero
+  // photo (see the event page's own hero) instead of sitting in its own row
+  // above it. Own-profile has nothing to go "back" to, so this stays unset there.
+  backHref?: string;
   isOwner?: boolean;
 }) {
   const displayedPbFields = parseDisplayedPbs(user.displayedPbs);
@@ -170,12 +178,21 @@ export async function ProfileDetails({
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-4">
         <ExpandableHeroPhoto photo={user.photo} name={user.name}>
-          {user.status && (
-            <div
-              title={USER_STATUS_LABELS[user.status]}
-              className="absolute left-3 top-3 flex h-9 items-center gap-1 rounded-full bg-black/35 px-2.5 text-sm backdrop-blur-sm"
-            >
-              {USER_STATUS_EMOJI[user.status]}
+          {(backHref || user.status) && (
+            <div className="absolute left-3 top-3 z-10 flex items-center gap-2">
+              {backHref && (
+                <BackLink href={backHref} variant="overlay">
+                  Back to feed
+                </BackLink>
+              )}
+              {user.status && (
+                <div
+                  title={USER_STATUS_LABELS[user.status]}
+                  className="flex h-9 items-center gap-1 rounded-full bg-black/35 px-2.5 text-sm backdrop-blur-sm"
+                >
+                  {USER_STATUS_EMOJI[user.status]}
+                </div>
+              )}
             </div>
           )}
 
@@ -309,6 +326,8 @@ export async function ProfileDetails({
         </div>
         </div>
       </div>
+
+      {wallSection}
 
       {!isAffiliate && (
         <SectionCard

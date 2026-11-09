@@ -11,6 +11,7 @@ import { BackIcon } from "@/components/BackIcon";
 import { assertEventVisible } from "@/lib/eventVisibility";
 import { EventWorkoutReactions } from "@/components/EventWorkoutReactions";
 import { EventWorkoutShareButton } from "@/components/EventWorkoutShareButton";
+import { WorkoutDivisionTabs } from "@/components/WorkoutDivisionTabs";
 import { summarizeReactions } from "@/lib/reactions";
 
 export default async function EventWorkoutPage({
@@ -41,6 +42,8 @@ export default async function EventWorkoutPage({
     },
   });
   if (!workout) notFound();
+
+  const hasScaledVersion = !!(workout.scaledWorkout || workout.scaledStandards || workout.scaledWorkflow);
 
   return (
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
@@ -81,26 +84,41 @@ export default async function EventWorkoutPage({
             </div>
           )}
 
-          <div className={workout.photo ? "" : "mt-5 border-t border-b2b-purple/10 pt-4"}>
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-b2b-ink/50">Workout</h2>
-            <p className="mt-1.5 whitespace-pre-wrap text-sm text-b2b-ink/80">
-              {workout.workout ?? "Not released yet."}
-            </p>
-          </div>
+          {hasScaledVersion ? (
+            <div className={workout.photo ? "" : "mt-5 border-t border-b2b-purple/10 pt-4"}>
+              <WorkoutDivisionTabs
+                rx={{ workout: workout.workout, standards: workout.standards, workflow: workout.workflow }}
+                scaled={{
+                  workout: workout.scaledWorkout,
+                  standards: workout.scaledStandards,
+                  workflow: workout.scaledWorkflow,
+                }}
+              />
+            </div>
+          ) : (
+            <>
+              <div className={workout.photo ? "" : "mt-5 border-t border-b2b-purple/10 pt-4"}>
+                <h2 className="text-xs font-semibold uppercase tracking-wider text-b2b-ink/50">Workout</h2>
+                <p className="mt-1.5 whitespace-pre-wrap text-sm text-b2b-ink/80">
+                  {workout.workout ?? "Not released yet."}
+                </p>
+              </div>
 
-          <div className="mt-5 border-t border-b2b-purple/10 pt-4">
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-b2b-ink/50">Standards</h2>
-            <p className="mt-1.5 whitespace-pre-wrap text-sm text-b2b-ink/80">
-              {workout.standards ?? "Not released yet."}
-            </p>
-          </div>
+              <div className="mt-5 border-t border-b2b-purple/10 pt-4">
+                <h2 className="text-xs font-semibold uppercase tracking-wider text-b2b-ink/50">Standards</h2>
+                <p className="mt-1.5 whitespace-pre-wrap text-sm text-b2b-ink/80">
+                  {workout.standards ?? "Not released yet."}
+                </p>
+              </div>
 
-          <div className="mt-5 border-t border-b2b-purple/10 pt-4">
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-b2b-ink/50">Workflow</h2>
-            <p className="mt-1.5 whitespace-pre-wrap text-sm text-b2b-ink/80">
-              {workout.workflow ?? "Not released yet."}
-            </p>
-          </div>
+              <div className="mt-5 border-t border-b2b-purple/10 pt-4">
+                <h2 className="text-xs font-semibold uppercase tracking-wider text-b2b-ink/50">Workflow</h2>
+                <p className="mt-1.5 whitespace-pre-wrap text-sm text-b2b-ink/80">
+                  {workout.workflow ?? "Not released yet."}
+                </p>
+              </div>
+            </>
+          )}
 
           <div className="mt-5 flex items-center justify-between border-t border-b2b-purple/10 pt-4">
             <EventWorkoutReactions

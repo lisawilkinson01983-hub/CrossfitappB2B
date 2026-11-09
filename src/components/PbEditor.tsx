@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { MAX_DISPLAYED_PBS, PB_CATEGORIES, PB_FIELDS, type PbField } from "@/lib/validation";
 import { PB_LABELS } from "@/lib/labels";
+import { ShareSheet } from "@/components/share/ShareSheet";
+import { NewPbCelebration, type NewPb } from "@/components/NewPbCelebration";
 
 export type PbEditorInitial = {
   pbs: Record<PbField, number | "">;
@@ -20,6 +22,8 @@ export function PbEditor({ initial, onSaved }: { initial: PbEditorInitial; onSav
   const [showAllMovements, setShowAllMovements] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [newPb, setNewPb] = useState<NewPb | null>(null);
+  const [shareSheetOpen, setShareSheetOpen] = useState(false);
   const atMaxDisplayedPbs = displayedPbs.length >= MAX_DISPLAYED_PBS;
 
   function addDisplayedPb(field: PbField) {
@@ -50,8 +54,16 @@ export function PbEditor({ initial, onSaved }: { initial: PbEditorInitial; onSav
       return;
     }
 
+    const body = await res.json().catch(() => ({}));
     router.refresh();
-    onSaved();
+    if (body.newPb) {
+      // Stay open behind the celebration prompt instead of calling onSaved()
+      // straight away — dismissing the prompt (or finishing a share) closes
+      // the editor itself, same end state as a normal save.
+      setNewPb(body.newPb);
+    } else {
+      onSaved();
+    }
   }
 
   return (
@@ -158,6 +170,20 @@ export function PbEditor({ initial, onSaved }: { initial: PbEditorInitial; onSav
           Cancel
         </button>
       </div>
+
+      {newPb && !shareSheetOpen && (
+        <NewPbCelebration newPb={newPb} onShare={() => setShareSheetOpen(true)} onDismiss={onSaved} />
+      )}
+
+      {newPb && shareSheetOpen && (
+        <ShareSheet
+          target={{ kind: "pb", field: newPb.field, value: newPb.value, previous: newPb.previous }}
+          onClose={() => {
+            setShareSheetOpen(false);
+            onSaved();
+          }}
+        />
+      )}
     </div>
   );
 }

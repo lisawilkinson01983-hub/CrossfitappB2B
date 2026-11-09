@@ -4,11 +4,11 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 /**
- * Lets an AFFILIATE account request to be recognised as this event's editor
- * (see Event.claimRequestedById, /api/events/[id]/claim) — for an event
- * that's actually theirs but was pulled in or submitted by someone else.
- * Goes to an admin for approval (see /admin/event-claims), after which this
- * affiliate becomes an additional editor alongside the event's existing
+ * Lets anyone request to be recognised as a public event's editor (see
+ * Event.claimRequestedById, /api/events/[id]/claim) — for an event that's
+ * actually theirs but was pulled in or submitted by someone else. Goes to
+ * an admin for approval (see /admin/event-claims), after which the
+ * claimant becomes an additional editor alongside the event's existing
  * organizer, not a replacement for them.
  */
 export function ClaimEventButton({ eventId }: { eventId: string }) {
@@ -30,12 +30,12 @@ export function ClaimEventButton({ eventId }: { eventId: string }) {
   }
 
   return (
-    <div className="flex flex-col items-center gap-1.5">
+    <div className="flex flex-col items-end gap-1">
       <button
         type="button"
         onClick={handleClaim}
         disabled={requesting}
-        className="text-sm font-medium text-b2b-purple hover:underline disabled:opacity-50"
+        className="whitespace-nowrap rounded-lg border border-b2b-purple/20 px-3 py-1.5 text-xs font-semibold text-b2b-purple hover:bg-b2b-purple/5 disabled:opacity-50"
       >
         {requesting ? "Requesting..." : "Claim this event"}
       </button>

@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NavBar } from "@/components/NavBar";
+import { BackLink } from "@/components/BackLink";
 import { SectionCard } from "@/components/SectionCard";
 import { WorkoutForm } from "../../WorkoutForm";
 
@@ -11,13 +12,17 @@ export default async function EditWorkoutPage({ params }: { params: Promise<{ id
   if (!session?.user?.id) redirect("/login");
 
   const { id } = await params;
-  const workout = await prisma.workout.findUnique({ where: { id } });
+  const workout = await prisma.workout.findUnique({
+    where: { id },
+    include: { partners: { select: { user: { select: { id: true, name: true, photo: true } } } } },
+  });
   if (!workout || workout.userId !== session.user.id) notFound();
 
   return (
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
       <NavBar />
-      <div className="mt-6">
+      <BackLink href="/workouts" className="mt-6">Back to workouts</BackLink>
+      <div className="mt-4">
         <SectionCard title="Edit workout">
           <WorkoutForm
             workoutId={workout.id}
@@ -35,6 +40,7 @@ export default async function EditWorkoutPage({ params }: { params: Promise<{ id
               photo: workout.photo,
               video: workout.video,
               videoThumbnail: workout.videoThumbnail,
+              partners: workout.partners.map((p) => p.user),
             }}
           />
         </SectionCard>

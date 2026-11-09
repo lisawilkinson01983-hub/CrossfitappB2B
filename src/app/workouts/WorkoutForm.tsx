@@ -19,8 +19,13 @@ import {
   formatWodDetails,
   type NamedWorkout,
 } from "@/lib/wodDatabase";
+import { Avatar } from "@/components/Avatar";
+import type { GymWodSuggestion } from "@/lib/gymSuggestion";
 
 type Attachment = { kind: "photo" | "video"; file: File; thumbnail?: Blob | null };
+type UserOption = { id: string; name: string; photo: string | null };
+
+const MAX_WORKOUT_PARTNERS = 10;
 
 const pad2 = (v: string) => (v || "0").padStart(2, "0");
 
@@ -46,6 +51,7 @@ type Initial = {
   photo: string | null;
   video: string | null;
   videoThumbnail: string | null;
+  partners: UserOption[];
 };
 
 const BLANK_INITIAL: Initial = {
@@ -62,13 +68,28 @@ const BLANK_INITIAL: Initial = {
   photo: null,
   video: null,
   videoThumbnail: null,
+  partners: [],
 };
 
-/** Used both to log a new workout and to edit an existing one — pass workoutId + initial to edit. */
-export function WorkoutForm({ workoutId, initial }: { workoutId?: string; initial?: Initial }) {
+/**
+ * Used both to log a new workout and to edit an existing one — pass
+ * workoutId + initial to edit. `gymSuggestion` (new-workout page only — see
+ * getGymWodSuggestion) offers today's already-logged gym WOD as a one-tap
+ * fill, so a second person from the same box doesn't have to retype it.
+ */
+export function WorkoutForm({
+  workoutId,
+  initial,
+  gymSuggestion = null,
+}: {
+  workoutId?: string;
+  initial?: Initial;
+  gymSuggestion?: GymWodSuggestion | null;
+}) {
   const router = useRouter();
   const isEditing = Boolean(workoutId);
   const start = initial ?? BLANK_INITIAL;
+  const [suggestionVisible, setSuggestionVisible] = useState(!!gymSuggestion && !isEditing);
 
   const initialTime = start.unit === "TIME" ? splitTime(start.score ?? "") : ["", "", ""];
 
@@ -92,8 +113,40 @@ export function WorkoutForm({ workoutId, initial }: { workoutId?: string; initia
   const photoInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
 
+  const [partners, setPartners] = useState<UserOption[]>(start.partners);
+  const [partnerQuery, setPartnerQuery] = useState("");
+  const [partnerResults, setPartnerResults] = useState<UserOption[]>([]);
+  const partnerRequestId = useRef(0);
+
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  async function handlePartnerQueryChange(value: string) {
+    setPartnerQuery(value);
+    if (!value.trim()) {
+      setPartnerResults([]);
+      return;
+    }
+    const thisRequest = ++partnerRequestId.current;
+    const res = await fetch(`/api/users/search?q=${encodeURIComponent(value.trim())}`);
+    if (thisRequest !== partnerRequestId.current) return;
+    if (res.ok) {
+      const body = await res.json();
+      setPartnerResults((body.users ?? []).filter((u: UserOption) => !partners.some((p) => p.id === u.id)));
+    }
+  }
+
+  function addPartner(user: UserOption) {
+    setPartners((prev) =>
+      prev.length >= MAX_WORKOUT_PARTNERS || prev.some((p) => p.id === user.id) ? prev : [...prev, user]
+    );
+    setPartnerQuery("");
+    setPartnerResults([]);
+  }
+
+  function removePartner(userId: string) {
+    setPartners((prev) => prev.filter((p) => p.id !== userId));
+  }
 
   // Tracks the last text this form itself wrote into the workout
   // description, so switching to a different matched WOD keeps updating it —
@@ -111,10 +164,19 @@ export function WorkoutForm({ workoutId, initial }: { workoutId?: string; initia
 
   function handleWodNameChange(value: string) {
     setWodName(value);
+    setSuggestionVisible(false);
     const match = WOD_DATABASE_BY_NAME.get(value.trim().toLowerCase());
     if (match && (!description.trim() || description === autoFilledDescription)) {
       fillDescriptionFromWod(match);
     }
+  }
+
+  function applyGymSuggestion() {
+    if (!gymSuggestion) return;
+    setWodName(gymSuggestion.wodName);
+    setDescription(gymSuggestion.description);
+    setAutoFilledDescription(gymSuggestion.description);
+    setSuggestionVisible(false);
   }
 
   async function handleFileChange(kind: "photo" | "video", e: ChangeEvent<HTMLInputElement>) {
@@ -165,6 +227,7 @@ export function WorkoutForm({ workoutId, initial }: { workoutId?: string; initia
     formData.set("notes", notes);
     if (isPb) formData.set("isPb", "on");
     if (sharedToFeed) formData.set("sharedToFeed", "on");
+    partners.forEach((p) => formData.append("partnerUserIds", p.id));
     if (attachment) {
       formData.set(attachment.kind, attachment.file);
       if (attachment.kind === "video" && attachment.thumbnail) {
@@ -192,6 +255,33 @@ export function WorkoutForm({ workoutId, initial }: { workoutId?: string; initia
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-5">
       {error && <p className="rounded bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
+
+      {suggestionVisible && gymSuggestion && (
+        <div className="rounded-lg border border-b2b-pink/30 bg-b2b-pink/5 p-3">
+          <p className="text-sm font-medium text-b2b-ink">
+            {gymSuggestion.authorName.split(" ")[0]} already logged today's WOD from your gym
+          </p>
+          <p className="mt-1 line-clamp-2 text-sm text-b2b-ink/60">
+            <span className="font-medium">{gymSuggestion.wodName}</span> — {gymSuggestion.description}
+          </p>
+          <div className="mt-2 flex items-center gap-3">
+            <button
+              type="button"
+              onClick={applyGymSuggestion}
+              className="rounded-full bg-b2b-pink px-3 py-1.5 text-xs font-semibold text-white hover:bg-b2b-pink-dark"
+            >
+              Use this — just add my score
+            </button>
+            <button
+              type="button"
+              onClick={() => setSuggestionVisible(false)}
+              className="text-xs text-b2b-ink/50 hover:underline"
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
+      )}
 
       <div>
         <label htmlFor="wodName" className="block text-sm font-medium">
@@ -455,6 +545,61 @@ export function WorkoutForm({ workoutId, initial }: { workoutId?: string; initia
         {isEditing && (
           <p className="mt-1 text-xs text-b2b-ink/40">Choose a photo or video to replace the current one.</p>
         )}
+      </div>
+
+      <div>
+        <span className="block text-sm font-medium">Workout partners</span>
+        <p className="mt-0.5 text-xs text-b2b-ink/40">
+          Tag who you trained with — they'll be notified and shown on this workout.
+        </p>
+
+        {partners.length > 0 && (
+          <div className="mt-2 flex flex-wrap gap-2">
+            {partners.map((p) => (
+              <span
+                key={p.id}
+                className="flex items-center gap-1.5 rounded-full bg-b2b-purple/10 py-1 pl-1.5 pr-2 text-sm text-b2b-purple"
+              >
+                <Avatar photo={p.photo} name={p.name} size={20} />
+                {p.name}
+                <button
+                  type="button"
+                  onClick={() => removePartner(p.id)}
+                  aria-label={`Remove ${p.name}`}
+                  className="text-b2b-purple/60 hover:text-b2b-purple"
+                >
+                  ×
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
+
+        <div className="relative mt-2">
+          <input
+            type="text"
+            value={partnerQuery}
+            onChange={(e) => handlePartnerQueryChange(e.target.value)}
+            placeholder="Search partners by name..."
+            disabled={partners.length >= MAX_WORKOUT_PARTNERS}
+            className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-b2b-pink focus:outline-none disabled:opacity-50"
+          />
+          {partnerResults.length > 0 && (
+            <div className="absolute z-10 mt-1 w-full overflow-hidden rounded border border-gray-200 bg-b2b-card shadow-lg">
+              {partnerResults.map((user) => (
+                <button
+                  key={user.id}
+                  type="button"
+                  onClick={() => addPartner(user)}
+                  className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-b2b-bg"
+                >
+                  <Avatar photo={user.photo} name={user.name} size={24} />
+                  {user.name}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       <label className="flex items-center gap-2 text-sm">

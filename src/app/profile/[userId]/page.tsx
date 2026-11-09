@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { redirect, notFound } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -11,15 +12,23 @@ import { PostCard } from "@/components/PostCard";
 import { postCardInclude, toPostCardData } from "@/lib/posts";
 import { ProfileContentTabs, type ProfileTab } from "@/components/ProfileContentTabs";
 import { ProfileEventRow } from "@/components/ProfileEventRow";
+import { ProfileResultsGrid } from "@/components/ProfileResultsGrid";
 import { FollowButton, type FollowStatus } from "@/components/FollowButton";
 import { MessageButton } from "@/components/MessageButton";
 import { ProfileMoreMenu } from "@/components/ProfileMoreMenu";
 import { ExpandableHeroPhoto } from "@/components/ExpandableHeroPhoto";
+import { BackLink } from "@/components/BackLink";
+import { WallComposer } from "@/components/WallComposer";
+import { WallPostCard } from "@/components/WallPostCard";
+import { wallPostInclude, toWallPostCardData } from "@/lib/wallPosts";
 import { LOOKING_FOR_LABELS, parseLookingFor, showsSingleBadge } from "@/lib/labels";
 import type { Prisma } from "@prisma/client";
 
 // Same preview cap as the own-profile page's Posts/Workouts tabs.
 const TAB_PREVIEW_COUNT = 10;
+// The Wall only ever shows its most recent few inline — "See all" opens the
+// full history on its own page, same split as Posts above.
+const WALL_PREVIEW_COUNT = 3;
 
 export default async function UserProfilePage({
   params,
@@ -82,6 +91,7 @@ export default async function UserProfilePage({
   const isLockedOut = user.isPrivate && followStatus !== "following";
 
   let tabs: ProfileTab[] = [];
+  let wallSection: ReactNode = null;
   if (!isLockedOut) {
     const now = new Date();
     const notPastFilter: Prisma.EventWhereInput["OR"] = [
@@ -89,7 +99,8 @@ export default async function UserProfilePage({
       { endDate: { gte: now } },
     ];
 
-    const [posts, postsTotalCount, workoutPosts, competingIn, interestedIn] = await Promise.all([
+    const [posts, postsTotalCount, workoutPosts, competingIn, interestedIn, wallPosts, wallPostsTotalCount, eventResults] =
+      await Promise.all([
       prisma.post.findMany({
         where: { userId: user.id, sharedToFeed: true },
         orderBy: { createdAt: "desc" },
@@ -112,6 +123,25 @@ export default async function UserProfilePage({
       prisma.event.findMany({
         where: { AND: [{ interests: { some: { userId: user.id } } }, { isPrivate: false }, { OR: notPastFilter }] },
         orderBy: { date: "asc" },
+      }),
+      prisma.wallPost.findMany({
+        where: { wallOwnerId: user.id },
+        orderBy: { createdAt: "desc" },
+        take: WALL_PREVIEW_COUNT,
+        include: wallPostInclude,
+      }),
+      prisma.wallPost.count({ where: { wallOwnerId: user.id } }),
+      prisma.eventResult.findMany({
+        where: { userId: user.id },
+        orderBy: { createdAt: "desc" },
+        select: {
+          id: true,
+          placementType: true,
+          place: true,
+          division: true,
+          createdAt: true,
+          event: { select: { id: true, name: true, photo: true } },
+        },
       }),
     ]);
 
@@ -152,6 +182,25 @@ export default async function UserProfilePage({
             </div>
           ),
       });
+
+      tabs.push({
+        key: "results",
+        label: "🏆 Results",
+        content: (
+          <ProfileResultsGrid
+            results={eventResults.map((r) => ({
+              id: r.id,
+              eventId: r.event.id,
+              eventName: r.event.name,
+              eventPhoto: r.event.photo,
+              createdAt: r.createdAt,
+              placementType: r.placementType,
+              place: r.place,
+              division: r.division,
+            }))}
+          />
+        ),
+      });
     }
 
     tabs.push({
@@ -185,6 +234,32 @@ export default async function UserProfilePage({
           </div>
         ),
     });
+
+    wallSection = (
+      <SectionCard title="Wall">
+        <div className="flex flex-col gap-4">
+          <WallComposer wallOwnerId={user.id} wallOwnerName={user.name} isOwnWall={false} />
+          {wallPosts.length === 0 ? (
+            <p className="text-b2b-ink/40">No wall posts yet.</p>
+          ) : (
+            <>
+              {wallPosts.map((post) => (
+                <WallPostCard
+                  key={post.id}
+                  post={toWallPostCardData(post, session.user.id, user.id)}
+                  isWallOwner={false}
+                />
+              ))}
+              {wallPostsTotalCount > wallPosts.length && (
+                <Link href={`/profile/${user.id}/wall`} className="text-center text-sm text-b2b-pink underline">
+                  See all wall posts ({wallPostsTotalCount})
+                </Link>
+              )}
+            </>
+          )}
+        </div>
+      </SectionCard>
+    );
   }
 
   return (
@@ -195,6 +270,11 @@ export default async function UserProfilePage({
         {isLockedOut ? (
           <div className="flex flex-col gap-4">
             <ExpandableHeroPhoto photo={user.photo} name={user.name}>
+              <div className="absolute left-3 top-3 z-10">
+                <BackLink href="/feed" variant="overlay">
+                  Back to feed
+                </BackLink>
+              </div>
               <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent px-6 pb-6 pt-16">
                 <p className="flex flex-wrap items-center gap-1.5 font-display text-2xl leading-tight text-white drop-shadow-sm">
                   {user.name}
@@ -236,6 +316,7 @@ export default async function UserProfilePage({
               followerCount={followerCount}
               followingCount={followingCount}
               workoutCount={workoutCount}
+              backHref="/feed"
               actions={
                 <>
                   <MessageButton targetUserId={user.id} fullWidth />
@@ -255,6 +336,7 @@ export default async function UserProfilePage({
                   </p>
                 ) : null
               }
+              wallSection={wallSection}
             />
 
             <Gallery userId={user.id} />

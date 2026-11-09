@@ -26,3 +26,6 @@
 .DS_Store
 *.pem
 npm-debug.log*
+
+# local Claude Code tooling (e.g. agent worktrees) — not part of the app
+.claude/

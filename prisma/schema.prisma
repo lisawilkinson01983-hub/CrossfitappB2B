@@ -60,6 +60,18 @@ enum PostType {
   PR
   UPDATE
   TEAMMATE_REQUEST
+  EVENT_RESULT
+}
+
+enum EventResultPlacementType {
+  EXACT
+  COMPLETED
+}
+
+enum EventResultTagStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
 }
 
 enum PostMediaKind {
@@ -167,6 +179,47 @@ enum NotificationType {
   // already-signed-up Account (see /api/account/add-profile) — that's an
   // existing member, not a new one.
   NEW_USER_SIGNUP
+  // Someone tagged this user as a training partner on a workout they logged
+  // (see WorkoutPartner) — workoutId below has the workout, owned by the
+  // actor (not the recipient), so it deep-links to the actor's gallery.
+  WORKOUT_PARTNER_TAGGED
+  // A team's creator tagged this user as a teammate (see TeamJoinRequest,
+  // kind INVITE) — needs this user's own approval before they're actually
+  // added to the roster. eventId below has the event the team belongs to.
+  TEAM_INVITE
+  // Someone asked to join this user's team (see TeamJoinRequest, kind
+  // REQUEST) — sent to the team's creator, who approves/declines it.
+  // eventId below has the event the team belongs to.
+  TEAM_JOIN_REQUEST
+  // This user's own request to join a team was approved (see
+  // TeamJoinRequest, kind REQUEST) — sent back to the original requester,
+  // not the approver. eventId below has the event the team belongs to.
+  TEAM_JOIN_APPROVED
+  // The team's creator removed this user from the roster (see DELETE
+  // /api/teams/[id]/members/[userId]) — eventId below has the event the
+  // team belonged to; there's no teamId on Notification, so this is sent
+  // before the removal in case it's the user's only link back to it.
+  TEAM_MEMBER_REMOVED
+  // Someone posted on this user's profile wall (see WallPost) — not sent
+  // when the wall owner posts on their own wall.
+  WALL_POST
+  // Someone commented on a post on this user's wall (see WallPostComment) —
+  // sent to the wall post's author, not the wall owner, unless they're the
+  // same person.
+  WALL_POST_COMMENT
+  // Someone reacted to this user's wall-post comment with an emoji (see
+  // WallPostCommentReaction) — same pattern as COMMENT_REACTION.
+  WALL_POST_COMMENT_REACTION
+  // Someone reacted to this user's wall post itself with an emoji (see
+  // WallPostReaction) — same pattern as POST_REACTION.
+  WALL_POST_REACTION
+  // Someone shared this user's wall post to their own feed (a one-time copy,
+  // not a live reshare — see POST /api/wall-posts/[id]/share).
+  WALL_POST_SHARE
+  // Someone tagged this user in an event result (see EventResultTag) —
+  // tapping it opens the accept/decline screen, not a deep-link to content
+  // that already exists.
+  RESULT_TAG_REQUEST
 }
 
 enum EventStatus {
@@ -447,8 +500,8 @@ model User {
   // only come into play once someone actively turns a banner off (see
   // CompetitionStatsCardBody). The full year-by-year list underneath is
   // unaffected either way.
-  hideRecentOpen          Boolean @default(false)
-  hideRecentCommunityCup  Boolean @default(false)
+  hideRecentOpen         Boolean @default(false)
+  hideRecentCommunityCup Boolean @default(false)
 
   // Governs whether new followers require approval once a follow system
   // exists; stored now so the setting has somewhere to live.
@@ -550,8 +603,22 @@ model User {
   eventInvitesSent            EventInvite[]                @relation("EventInvitesSent")
   eventWorkouts               EventWorkout[]
   eventWorkoutReactions       EventWorkoutReaction[]
-  teamsCreated                Team[]                        @relation("TeamsCreated")
+  teamsCreated                Team[]                       @relation("TeamsCreated")
   teamMemberships             TeamMember[]
+  teamJoinRequestsReceived    TeamJoinRequest[]            @relation("TeamJoinRequestSubject")
+  teamJoinRequestsSent        TeamJoinRequest[]            @relation("TeamJoinRequestInitiator")
+  teamInviteLinksCreated      TeamInviteLink[]             @relation("TeamInviteLinksCreated")
+  teamInviteLinksClaimed      TeamInviteLink[]             @relation("TeamInviteLinksClaimed")
+  wallPostsReceived           WallPost[]                   @relation("WallPostsReceived")
+  wallPostsAuthored           WallPost[]                   @relation("WallPostsAuthored")
+  eventResults                EventResult[]                @relation("EventResultsForUser")
+  eventResultsLogged          EventResult[]                @relation("EventResultsLogged")
+  eventResultTags             EventResultTag[]
+  eventResultPromptDismissals EventResultPromptDismissal[]
+  wallPostLikes               WallPostLike[]
+  wallPostReactions           WallPostReaction[]
+  wallPostComments            WallPostComment[]
+  wallPostCommentReactions    WallPostCommentReaction[]
 
   blocksMade     Block[] @relation("BlocksMade")
   blocksReceived Block[] @relation("BlocksReceived")
@@ -564,6 +631,7 @@ model User {
 
   workoutComments         WorkoutComment[]
   workoutCommentReactions WorkoutCommentReaction[]
+  workoutPartnerTags      WorkoutPartner[]
   pbCommentsReceived      PbComment[]              @relation("PbCommentsReceived")
   pbCommentsWritten       PbComment[]              @relation("PbCommentsWritten")
   pbCommentReactions      PbCommentReaction[]
@@ -683,8 +751,25 @@ model Workout {
   posts         Post[]
   comments      WorkoutComment[]
   notifications Notification[]
+  partners      WorkoutPartner[]
 
   @@index([userId])
+}
+
+// Someone tagged as a training partner on this workout (see the "Tag
+// workout partners" step when logging one) — shown as a "with ..." line on
+// the workout card, and triggers a WORKOUT_PARTNER_TAGGED notification to
+// that person. Same shape/pattern as StoryMention.
+model WorkoutPartner {
+  id        String  @id @default(cuid())
+  workoutId String
+  workout   Workout @relation(fields: [workoutId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([workoutId, userId])
+  @@index([workoutId])
 }
 
 model Post {
@@ -741,6 +826,12 @@ model Post {
   // removes this post too, since it has nothing left to show.
   linkedEventWorkoutId String?
   linkedEventWorkout   EventWorkout? @relation(fields: [linkedEventWorkoutId], references: [id], onDelete: Cascade)
+
+  // Set when auto-created from sharing a logged EventResult to the feed
+  // (type EVENT_RESULT) — see POST /api/event-results/[id]/share. Deleting
+  // the result removes this post too, same as linkedWorkout above.
+  linkedEventResultId String?
+  linkedEventResult   EventResult? @relation(fields: [linkedEventResultId], references: [id], onDelete: Cascade)
 
   // Set when this post is a share/reshare of another post to the sharer's
   // own feed (see /api/posts/[id]/share) — a share row carries none of its
@@ -891,6 +982,126 @@ model CommentReaction {
   user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   commentId String
   comment   Comment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  emoji     String
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, commentId, emoji])
+  @@index([commentId])
+}
+
+// A public message written directly on a profile's "Wall" tab — distinct
+// from a private Message, and from a Post (which only ever belongs to its
+// own author). Visible to anyone who can see the wall owner's profile, same
+// gating as the Posts tab. Deleting one is allowed for either its own
+// author or the wall owner (moderating their own wall) — see
+// DELETE /api/wall-posts/[id].
+model WallPost {
+  id String @id @default(cuid())
+
+  wallOwnerId String
+  wallOwner   User   @relation("WallPostsReceived", fields: [wallOwnerId], references: [id], onDelete: Cascade)
+
+  authorId String
+  author   User   @relation("WallPostsAuthored", fields: [authorId], references: [id], onDelete: Cascade)
+
+  text  String?
+  photo String? // served path, e.g. "/media/xyz.jpg" (see src/lib/uploads.ts)
+
+  // An uploaded video, mutually exclusive with photo/gifUrl — same shape as
+  // EventNotice.video/videoThumbnail.
+  video          String?
+  videoThumbnail String?
+
+  // A GIF attached to the post (its direct media URL from the GIF provider
+  // — see src/lib/tenor.ts), mutually exclusive with photo/video.
+  gifUrl String?
+
+  createdAt DateTime @default(now())
+
+  likes         WallPostLike[]
+  reactions     WallPostReaction[]
+  comments      WallPostComment[]
+  notifications Notification[]
+
+  @@index([wallOwnerId])
+}
+
+// An emoji reaction (see REACTION_EMOJIS in src/lib/validation.ts) on a
+// WallPost itself — same shape as PostReaction, distinct from the simpler
+// single-heart WallPostLike above.
+model WallPostReaction {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  wallPostId String
+  wallPost   WallPost @relation(fields: [wallPostId], references: [id], onDelete: Cascade)
+  emoji      String
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, wallPostId, emoji])
+  @@index([wallPostId])
+}
+
+model WallPostLike {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  wallPostId String
+  wallPost   WallPost @relation(fields: [wallPostId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, wallPostId])
+  @@index([wallPostId])
+}
+
+// A comment on a WallPost — same shape as EventNoticeComment (replies, a
+// GIF/photo/video attachment, emoji reactions). Deletable by its own author
+// or the wall owner moderating their own wall (see
+// DELETE /api/wall-post-comments/[id]).
+model WallPostComment {
+  id         String   @id @default(cuid())
+  wallPostId String
+  wallPost   WallPost @relation(fields: [wallPostId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // One level of self-reference, same as Comment/EventNoticeComment — a
+  // reply to a reply is flattened under its top-level ancestor in the UI.
+  parentId String?
+  parent   WallPostComment?  @relation("WallPostCommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies  WallPostComment[] @relation("WallPostCommentReplies")
+
+  text String
+
+  // A GIF attached to the comment — not re-hosted, just linked, same as
+  // Comment.gifUrl. A comment can be GIF-only.
+  gifUrl String?
+
+  // An uploaded photo/video attachment, mutually exclusive with each other
+  // and with gifUrl — same shape as Comment.photo/video/videoThumbnail.
+  photo          String?
+  video          String?
+  videoThumbnail String?
+
+  createdAt DateTime @default(now())
+
+  reactions WallPostCommentReaction[]
+
+  @@index([wallPostId])
+  @@index([parentId])
+}
+
+// An emoji reaction (see REACTION_EMOJIS in src/lib/validation.ts) on a
+// WallPostComment — same shape as CommentReaction/EventNoticeCommentReaction.
+model WallPostCommentReaction {
+  id        String          @id @default(cuid())
+  userId    String
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  commentId String
+  comment   WallPostComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
   emoji     String
 
   createdAt DateTime @default(now())
@@ -1296,16 +1507,18 @@ model Event {
 
   createdAt DateTime @default(now())
 
-  participants   EventParticipant[]
-  interests      EventInterest[]
-  pins           EventPin[]
-  notices        EventNotice[]
-  posts          Post[]
-  notifications  Notification[]
-  teammateAlerts EventTeammateAlert[]
-  invites        EventInvite[]
-  workouts       EventWorkout[]
-  teams          Team[]
+  participants           EventParticipant[]
+  interests              EventInterest[]
+  pins                   EventPin[]
+  notices                EventNotice[]
+  posts                  Post[]
+  notifications          Notification[]
+  teammateAlerts         EventTeammateAlert[]
+  invites                EventInvite[]
+  workouts               EventWorkout[]
+  teams                  Team[]
+  results                EventResult[]
+  resultPromptDismissals EventResultPromptDismissal[]
 
   @@index([date])
 }
@@ -1369,9 +1582,94 @@ model Team {
   // names" split as the join post's own teammateIds/teammateNames.
   freeformMemberNames String?
 
+  // The team's own group chat — null until the first member creates it (see
+  // POST /api/teams/[id]/message-team). Not a foreign key, same reasoning as
+  // Event.attendeesConversationId. Named after the team at creation time;
+  // new members get added automatically as they're approved (see
+  // /api/team-join-requests/[id]/accept), same as attendeesConversationId.
+  conversationId String?
+
+  joinRequests TeamJoinRequest[]
+  inviteLinks  TeamInviteLink[]
+  results      EventResult[]
+
   createdAt DateTime @default(now())
 
   @@index([eventId])
+  @@index([conversationId])
+}
+
+// One freeform (not-on-the-app) teammate's personal WhatsApp invite link
+// (see POST /api/teams/[id]/invite, TeamRosterTrigger) — its id IS the
+// link's token (?team=<id> on /install). Signing up through it (see
+// POST /api/signup) swaps that freeform roster slot for a real TeamMember
+// row instead of just crediting a generic referral. Single-use: claimedAt
+// set the moment that happens, so a link can't be redeemed twice.
+model TeamInviteLink {
+  id     String @id @default(cuid())
+  teamId String
+  team   Team   @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  // The exact freeform name this link stands in for — matched
+  // case-insensitively against Team.freeformMemberNames when claimed.
+  freeformName String
+
+  createdById String
+  createdBy   User   @relation("TeamInviteLinksCreated", fields: [createdById], references: [id], onDelete: Cascade)
+
+  claimedByUserId String?
+  claimedBy       User?     @relation("TeamInviteLinksClaimed", fields: [claimedByUserId], references: [id], onDelete: SetNull)
+  claimedAt       DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([teamId])
+}
+
+enum TeamJoinRequestKind {
+  // The team's creator tagged this person — they're the one who approves it.
+  INVITE
+  // This person asked to join a team they found on the event's Teams page —
+  // the team's creator is the one who approves it.
+  REQUEST
+}
+
+enum TeamJoinRequestStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+}
+
+// A pending "add this person to this team" — either direction: the team's
+// creator tagging someone (kind INVITE, approved by that person), or someone
+// asking to join a team they found (kind REQUEST, approved by the team's
+// creator). Accepting creates the matching TeamMember row; nothing changes
+// about the roster until then. Kept (not deleted) once resolved so a new
+// INVITE/REQUEST for the same pair can upsert it back to PENDING rather than
+// colliding with the unique constraint below.
+model TeamJoinRequest {
+  id     String @id @default(cuid())
+  teamId String
+  team   Team   @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  // The person who'd become a member once this is accepted.
+  userId String
+  user   User   @relation("TeamJoinRequestSubject", fields: [userId], references: [id], onDelete: Cascade)
+
+  kind   TeamJoinRequestKind
+  status TeamJoinRequestStatus @default(PENDING)
+
+  // Who created this row — the team's creator for an INVITE, or `userId`
+  // itself for a REQUEST. Kept distinct from userId so "who invited them"
+  // stays on record even though it's nearly always the team's creator.
+  requestedById String
+  requestedBy   User   @relation("TeamJoinRequestInitiator", fields: [requestedById], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([teamId, userId])
+  @@index([teamId])
+  @@index([userId])
 }
 
 // One registered athlete on a Team — the creator is included as a member
@@ -1389,6 +1687,94 @@ model TeamMember {
   @@unique([teamId, userId])
   @@index([teamId])
   @@index([userId])
+}
+
+// One athlete's result at an event — "did you compete, how'd you do" logged
+// either from the post-event login prompt or accepted from a teammate's tag
+// (see EventResultTag below). A registered pre-event Team's result produces
+// one of these per member (same placementType/place/division/note, teamId
+// set on all of them) so "my results" and a leaderboard both query this
+// table uniformly regardless of format — see src/lib/resultsRollout.ts for
+// who currently gets prompted to create these.
+model EventResult {
+  id      String @id @default(cuid())
+  eventId String
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  userId  String
+  user    User   @relation("EventResultsForUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  // Set when this came from a registered pre-event Team (see Team above) —
+  // null for an individual or untracked-partner result.
+  teamId String?
+  team   Team?   @relation(fields: [teamId], references: [id], onDelete: SetNull)
+
+  placementType    EventResultPlacementType
+  // Set only when placementType is EXACT.
+  place            Int?
+  totalCompetitors Int?
+  division         String?
+  note             String?
+
+  // Not-on-the-app teammates named alongside this result — JSON-encoded
+  // array of plain names, same "platform members are rows, the rest are
+  // just names" split as Team.freeformMemberNames. No account to tag, so
+  // these never get an EventResultTag or notification.
+  freeformTeammateNames String?
+
+  // Who actually submitted this — themselves for an individual/team result,
+  // or the original tagger for one created by accepting an EventResultTag.
+  loggedByUserId String
+  loggedBy       User   @relation("EventResultsLogged", fields: [loggedByUserId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  tags  EventResultTag[]
+  posts Post[]
+
+  // One result per athlete per event, individual or team — a team result
+  // still gets its own row per member (see above) rather than one shared
+  // row, so this constraint holds either way.
+  @@unique([eventId, userId])
+  @@index([eventId])
+  @@index([teamId])
+}
+
+// A pending "add this result to your profile?" tag for an untracked
+// partner/teammate (no registered Team record covers them) — see the
+// teammate-tagging step of the results prompt. Accepting clones the
+// source result's placement/division/note into a new EventResult row for
+// taggedUserId; declining or ignoring leaves their profile untouched.
+model EventResultTag {
+  id       String      @id @default(cuid())
+  resultId String
+  result   EventResult @relation(fields: [resultId], references: [id], onDelete: Cascade)
+
+  taggedUserId String
+  taggedUser   User   @relation(fields: [taggedUserId], references: [id], onDelete: Cascade)
+
+  status    EventResultTagStatus @default(PENDING)
+  createdAt DateTime             @default(now())
+
+  notifications Notification[]
+
+  @@unique([resultId, taggedUserId])
+  @@index([taggedUserId])
+}
+
+// "No, I didn't make it" or "Skip for now" on the post-event results
+// prompt — stops that event from being asked about again on a future
+// login, same as an EventResult existing would (see the eligibility query
+// in src/lib/eventResultPrompt.ts). A team "No" inserts one of these per
+// TeamMember, not just whoever answered.
+model EventResultPromptDismissal {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  eventId   String
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, eventId])
 }
 
 // "I'm interested" (looking for a team) is tracked separately from actually
@@ -1493,9 +1879,18 @@ model EventWorkout {
   number Int
 
   title     String
-  workout   String? // the movements/reps/load prescription, e.g. "21-15-9 Thrusters (42.5/30kg) and Pull-ups"
-  standards String? // movement standards — what counts as a valid rep, depth, lockout, etc.
-  workflow  String? // format/structure — time cap, rounds, rest, scoring
+  workout   String? // the RX movements/reps/load prescription, e.g. "21-15-9 Thrusters (42.5/30kg) and Pull-ups"
+  standards String? // RX movement standards — what counts as a valid rep, depth, lockout, etc.
+  workflow  String? // RX format/structure — time cap, rounds, rest, scoring
+
+  // A Scaled variant of the three fields above — optional, since plenty of
+  // workouts (or whole events) don't need a separate one. Null in all three
+  // means there's nothing to show a Scaled tab for at all (see the workout
+  // page and EventWorkoutsEditor), so an existing single-version workout
+  // never suddenly grows an empty second tab.
+  scaledWorkout   String?
+  scaledStandards String?
+  scaledWorkflow  String?
 
   // An optional poster for this specific workout — served path (see
   // src/lib/uploads.ts), same as every other photo field. Shown as the
@@ -1677,6 +2072,12 @@ model Story {
   video          String?
   videoThumbnail String?
 
+  // A pure-text story (no photo/video) — plain text shown centered over a
+  // solid background color. Mutually exclusive with photo/video; exactly one
+  // of {photo, video, text} is set (see the POST route's own validation).
+  text            String?
+  backgroundColor String? // hex, e.g. "#232223" — only meaningful when text is set
+
   createdAt DateTime @default(now())
   expiresAt DateTime
 
@@ -1781,6 +2182,15 @@ model Notification {
   eventWorkoutId String?
   eventWorkout   EventWorkout? @relation(fields: [eventWorkoutId], references: [id], onDelete: Cascade)
 
+  // Set for WALL_POST/WALL_POST_COMMENT — the wall post itself, so the
+  // notification can deep-link straight to it.
+  wallPostId String?
+  wallPost   WallPost? @relation(fields: [wallPostId], references: [id], onDelete: Cascade)
+
+  // Set for RESULT_TAG_REQUEST — the pending tag awaiting accept/decline.
+  eventResultTagId String?
+  eventResultTag   EventResultTag? @relation(fields: [eventResultTagId], references: [id], onDelete: Cascade)
+
   readAt    DateTime?
   // Set once a push has been sent (or claimed for sending) for this
   // notification — see src/lib/pushDelivery.ts. Null for in-app only.
@@ -1836,6 +2246,8 @@ enum ReportTargetType {
   EVENT_NOTICE_COMMENT
   WORKOUT_COMMENT
   PB_COMMENT
+  WALL_POST
+  WALL_POST_COMMENT
 }
 
 enum ReportReason {

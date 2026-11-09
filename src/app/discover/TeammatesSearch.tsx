@@ -14,6 +14,7 @@ import {
   parseTeammateRequests,
 } from "@/lib/labels";
 import { TEAMMATE_DIVISIONS, TEAMMATE_GENDERS, type TeammateDivisionOption, type TeammateGenderOption } from "@/lib/validation";
+import { DiscoverTabs } from "@/components/DiscoverTabs";
 
 export type TeammateSearchParams = {
   division?: string;
@@ -89,7 +90,10 @@ export async function TeammatesSearch({
   const visible = distance ? withDistance.filter(({ miles }) => miles !== null && miles <= distance) : withDistance;
 
   return (
-    <div className="mt-4 flex flex-col gap-6">
+    <div className="mt-4 flex flex-col gap-4">
+      <div className="border-b border-gray-200 pb-0.5">
+        <DiscoverTabs active="teammates" />
+      </div>
       <SectionCard>
         <form method="GET" className="flex flex-col gap-4">
           <input type="hidden" name="view" value="teammates" />

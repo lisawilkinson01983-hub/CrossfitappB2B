@@ -12,6 +12,8 @@ import {
 } from "@/lib/uploads";
 import { parseFormData } from "@/lib/http";
 
+const MAX_WORKOUT_PARTNERS = 10;
+
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
@@ -20,7 +22,10 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
   const { id } = await params;
 
-  const existing = await prisma.workout.findUnique({ where: { id } });
+  const existing = await prisma.workout.findUnique({
+    where: { id },
+    include: { partners: { select: { userId: true } } },
+  });
   if (!existing || existing.userId !== session.user.id) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
@@ -88,6 +93,18 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const finalVideo = hasPhoto ? null : (videoPath ?? existing.video);
   const finalVideoThumbnail = hasVideo ? videoThumbnailPath : hasPhoto ? null : existing.videoThumbnail;
 
+  const rawPartnerIds = formData.getAll("partnerUserIds").filter((v): v is string => typeof v === "string");
+  const candidatePartnerIds = Array.from(new Set(rawPartnerIds)).filter((pid) => pid !== session.user.id);
+  const partners =
+    candidatePartnerIds.length > 0
+      ? await prisma.user.findMany({
+          where: { id: { in: candidatePartnerIds.slice(0, MAX_WORKOUT_PARTNERS) } },
+          select: { id: true },
+        })
+      : [];
+  const existingPartnerIds = new Set(existing.partners.map((p) => p.userId));
+  const newPartners = partners.filter((p) => !existingPartnerIds.has(p.id));
+
   await prisma.workout.update({
     where: { id },
     data: {
@@ -104,11 +121,19 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       photo: finalPhoto,
       video: finalVideo,
       videoThumbnail: finalVideoThumbnail,
+      // Full replace, same as the rest of this form — only the newly-added
+      // partners (computed above, before this runs) get notified, not
+      // ones who were already tagged.
+      partners: { deleteMany: {}, create: partners.map((p) => ({ userId: p.id })) },
     },
   });
 
   const linkedPost = await prisma.post.findFirst({ where: { linkedWorkoutId: id } });
 
+  // Resolved before the new-partner notifications below so one of them can
+  // deep-link straight to the feed post (not just the gallery) when there
+  // is one — see postId on the notification.
+  let postId: string | null = null;
   if (data.sharedToFeed) {
     const postData: {
       type: "PR" | "WORKOUT";
@@ -125,13 +150,27 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     };
     if (linkedPost) {
       await prisma.post.update({ where: { id: linkedPost.id }, data: postData });
+      postId = linkedPost.id;
     } else {
-      await prisma.post.create({
+      const created = await prisma.post.create({
         data: { userId: session.user.id, linkedWorkoutId: id, ...postData },
       });
+      postId = created.id;
     }
   } else if (linkedPost) {
     await prisma.post.delete({ where: { id: linkedPost.id } });
+  }
+
+  if (newPartners.length > 0) {
+    await prisma.notification.createMany({
+      data: newPartners.map((p) => ({
+        userId: p.id,
+        actorId: session.user.id,
+        type: "WORKOUT_PARTNER_TAGGED" as const,
+        workoutId: id,
+        postId,
+      })),
+    });
   }
 
   return NextResponse.json({ ok: true });

@@ -11,11 +11,20 @@ import { isNativeAppUserAgent } from "@/lib/nativeApp";
 // app is installed first and signed up for inside it, not in the browser:
 // on iPhone a home-screen app doesn't share Safari's login, so signing up in
 // Safari first would just mean logging in all over again.
-export default async function InstallPage({ searchParams }: { searchParams: Promise<{ ref?: string }> }) {
-  const { ref } = await searchParams;
+export default async function InstallPage({ searchParams }: { searchParams: Promise<{ ref?: string; team?: string }> }) {
+  const { ref, team } = await searchParams;
   const code = ref && /^[A-Za-z0-9]{4,12}$/.test(ref) ? ref.toUpperCase() : null;
+  // A team invite link's token (see TeamInviteLink, TeamRosterTrigger) —
+  // passed straight through to signup without validating it here; an
+  // invalid/stale one is just ignored there, same as a bad `ref`.
+  const teamToken = team && /^[A-Za-z0-9]{1,40}$/.test(team) ? team : null;
+  const signupHref = code
+    ? teamToken
+      ? `/signup?ref=${code}&team=${teamToken}`
+      : `/signup?ref=${code}`
+    : "/signup";
   const session = await getServerSession(authOptions);
-  const appTarget = session?.user?.id ? "/feed" : code ? `/signup?ref=${code}` : "/start";
+  const appTarget = session?.user?.id ? "/feed" : code ? signupHref : "/start";
 
   // Already inside the store app — nothing to install.
   if (isNativeAppUserAgent((await headers()).get("user-agent"))) redirect(appTarget);
@@ -75,7 +84,7 @@ export default async function InstallPage({ searchParams }: { searchParams: Prom
 
       <p className="mt-6 text-sm text-b2b-ink/60">
         On a computer, or just want to look first?{" "}
-        <Link href={code ? `/signup?ref=${code}` : "/signup"} className="text-b2b-pink underline">
+        <Link href={signupHref} className="text-b2b-pink underline">
           Sign up in the browser
         </Link>
         .

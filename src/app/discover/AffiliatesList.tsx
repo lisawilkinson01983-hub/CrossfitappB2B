@@ -7,9 +7,12 @@ import { DISTANCE_RANGES, distanceMiles, ensureUserAreaCoords, geocode } from "@
 import { SearchSuggestInput } from "@/components/SearchSuggestInput";
 import { SearchFilters } from "@/components/SearchFilters";
 import { CollapsibleSearch } from "@/components/CollapsibleSearch";
+import { DiscoverTabs } from "@/components/DiscoverTabs";
 import { FollowButton, type FollowStatus } from "@/components/FollowButton";
 import { EditIcon } from "@/components/EditIcon";
 import { SwipeCardList, type SwipeCardItem } from "@/components/SwipeCardList";
+import { DiscoverMapLoader } from "@/components/DiscoverMapLoader";
+import type { MapMarker } from "@/components/DiscoverMap";
 
 export type AffiliateSearchParams = {
   q?: string;
@@ -178,7 +181,7 @@ export async function AffiliatesList({
   });
 
   return (
-    <div className="mt-4 flex flex-col gap-6">
+    <div className="mt-4 flex flex-col gap-4">
       <div className="flex items-center justify-between">
         <Link
           href="/gyms/submit"
@@ -193,12 +196,14 @@ export async function AffiliatesList({
         )}
       </div>
 
-      <CollapsibleSearch label="Search by gym name or area" defaultOpen={!!q || activeFilterCount > 0}>
-      <SectionCard>
+      <div className="flex items-center gap-2 border-b border-gray-200 pb-0.5">
+        <DiscoverTabs active="affiliates" />
+        <CollapsibleSearch label="Search by gym name or area" defaultOpen={!!q || activeFilterCount > 0} variant="icon">
+        <SectionCard>
         <form method="GET" className="flex flex-col gap-4">
           <input type="hidden" name="view" value="affiliates" />
           <div>
-            <label htmlFor="q" className="block text-sm font-medium">
+            <label htmlFor="q" className="sr-only">
               Search affiliates
             </label>
             <SearchSuggestInput
@@ -207,7 +212,7 @@ export async function AffiliatesList({
               name="q"
               placeholder="Search by gym name or area"
               defaultValue={q}
-              className="mt-1 w-full rounded border border-gray-300 px-3 py-2 focus:border-b2b-pink focus:outline-none"
+              className="w-full rounded border border-gray-300 px-3 py-2 focus:border-b2b-pink focus:outline-none"
             />
           </div>
           <SearchFilters activeCount={activeFilterCount} defaultOpen={activeFilterCount > 0}>
@@ -255,8 +260,30 @@ export async function AffiliatesList({
         </p>
       </SectionCard>
       </CollapsibleSearch>
+      </div>
 
       {(() => {
+        const gymMarkers: MapMarker[] = visibleGyms
+          .filter(({ gym }) => gym.lat !== null && gym.lng !== null)
+          .map(({ gym, miles }) => {
+            const athleteCount = countByName.get(gym.name) ?? 0;
+            return {
+              id: gym.id,
+              lat: gym.lat as number,
+              lng: gym.lng as number,
+              title: gym.name,
+              subtitle:
+                [
+                  gym.address,
+                  miles !== null ? `${miles < 1 ? "<1" : Math.round(miles)} miles away` : null,
+                  `${athleteCount} ${athleteCount === 1 ? "athlete" : "athletes"}`,
+                ]
+                  .filter(Boolean)
+                  .join(" · ") || null,
+              href: gym.claimedBy ? `/profile/${gym.claimedBy.id}` : `/gyms/${encodeURIComponent(gym.name)}`,
+            };
+          });
+
         const items: SwipeCardItem[] = visibleGyms.map(({ gym, miles }) => {
           const athleteCount = countByName.get(gym.name) ?? 0;
           const followStatus: FollowStatus = gym.claimedBy
@@ -297,6 +324,13 @@ export async function AffiliatesList({
             items={items}
             emptyMessage="No affiliates match those filters."
             label={`${items.length} ${items.length === 1 ? "affiliate" : "affiliates"}`}
+            map={
+              <DiscoverMapLoader
+                markers={gymMarkers}
+                myCoords={myCoords}
+                emptyMessage="None of these affiliates have a mapped location yet."
+              />
+            }
           />
         );
       })()}

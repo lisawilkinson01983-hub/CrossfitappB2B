@@ -3,13 +3,13 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NavBar } from "@/components/NavBar";
-import { SectionCard } from "@/components/SectionCard";
 import { SectionOnboarding } from "@/components/SectionOnboarding";
 import { StoriesBar } from "@/components/StoriesBar";
 import { FEED_PAGE_SIZE, postCardInclude, toPostCardData } from "@/lib/posts";
 import { summarizeReactions } from "@/lib/reactions";
 import { PostComposer } from "./PostComposer";
 import { FeedPostList } from "./FeedPostList";
+import { ResultsPrompt } from "@/components/ResultsPrompt";
 
 export default async function FeedPage({
   searchParams,
@@ -99,7 +99,7 @@ export default async function FeedPage({
         />
       )}
       <NavBar />
-      <h1 className="mt-6 text-2xl font-bold">Feed</h1>
+      <ResultsPrompt />
 
       <div className="mt-4">
         <StoriesBar
@@ -111,29 +111,21 @@ export default async function FeedPage({
       </div>
 
       <div className="mt-4">
-        <SectionCard>
-          <PostComposer
-            currentUserName={currentUser?.name ?? "You"}
-            currentUserPhoto={currentUser?.photo ?? null}
-            canPostWorkout={currentUser?.accountType === "ATHLETE"}
-          />
-        </SectionCard>
+        <PostComposer
+          currentUserName={currentUser?.name ?? "You"}
+          currentUserPhoto={currentUser?.photo ?? null}
+          canPostWorkout={currentUser?.accountType === "ATHLETE"}
+        />
       </div>
 
-      {initialPosts.length === 0 ? (
-        <p className="mt-6 text-b2b-ink/50">
-          No posts yet — be the first to share something, or share a workout from your log.
-        </p>
-      ) : (
-        <FeedPostList
-          initialPosts={initialPosts}
-          initialCursor={page.length > 0 ? page[page.length - 1].id : null}
-          initialHasMore={hasMore}
-          currentUserId={session.user.id}
-          highlightPostId={highlightPostId}
-          highlightCommentId={highlightCommentId}
-        />
-      )}
+      <FeedPostList
+        initialPosts={initialPosts}
+        initialCursor={page.length > 0 ? page[page.length - 1].id : null}
+        initialHasMore={hasMore}
+        currentUserId={session.user.id}
+        highlightPostId={highlightPostId}
+        highlightCommentId={highlightCommentId}
+      />
     </main>
   );
 }

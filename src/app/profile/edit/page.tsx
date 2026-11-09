@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isProfileSetupComplete } from "@/lib/profileSetup";
 import { NavBar } from "@/components/NavBar";
+import { BackLink } from "@/components/BackLink";
 import { SectionCard } from "@/components/SectionCard";
 import { SectionOnboarding } from "@/components/SectionOnboarding";
 import { ProfileEditMenuLink } from "@/components/ProfileEditMenuLink";
@@ -56,7 +57,8 @@ export default async function EditProfilePage() {
         />
       )}
       <NavBar />
-      <div className="mt-6">
+      <BackLink href="/profile" className="mt-6">Back to profile</BackLink>
+      <div className="mt-4">
         <SectionCard title="Edit profile">
           <div className="flex flex-col gap-2">
             <ProfileEditMenuLink

@@ -48,6 +48,8 @@ async function deliverNotifications(since: Date) {
       gym: { select: { id: true, name: true } },
       notice: { select: { title: true, body: true } },
       eventWorkout: { select: { eventId: true, number: true } },
+      wallPost: { select: { id: true, wallOwnerId: true } },
+      eventResultTag: { select: { id: true } },
     },
   });
 

@@ -5,6 +5,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Avatar } from "@/components/Avatar";
+import { readStoredView, storeView, type StoredView } from "@/lib/viewPreference";
+import { ViewToggle } from "@/components/ViewToggle";
 
 export type SwipeCardItem = {
   id: string;
@@ -52,6 +54,7 @@ export function SwipeCardList({
   label,
   defaultView = "carousel",
   hideHeader = false,
+  map,
 }: {
   items: SwipeCardItem[];
   emptyMessage: string;
@@ -65,12 +68,34 @@ export function SwipeCardList({
   // carousel — for a page that supplies its own bespoke list view and wraps
   // this in ListOrCarousel instead, sharing one toggle between the two.
   hideHeader?: boolean;
+  // A pre-built map view (e.g. <DiscoverMap />) — when supplied, the toggle
+  // grows a third "Map" button and selecting it renders this instead of the
+  // list/carousel this component builds itself from `items` (which carry no
+  // coordinates). Ignored when `hideHeader` is set — same reasoning as
+  // skipping the toggle itself: the owning page is driving view selection.
+  map?: ReactNode;
 }) {
   const router = useRouter();
-  const [view, setView] = useState<"carousel" | "list">(hideHeader ? "carousel" : defaultView);
+  const [view, setView] = useState<StoredView>(hideHeader ? "carousel" : defaultView);
   const [index, setIndex] = useState(0);
   const cardRef = useRef<HTMLDivElement>(null);
   const drag = useRef({ startX: 0, dx: 0, dragging: false });
+
+  // Restores a previously-chosen List/Carousel view after this component
+  // remounts from a navigation — can't be the initial useState value itself
+  // (localStorage isn't available during server rendering), so this runs
+  // once after mount instead, same as any other "restore a client-only
+  // preference" effect.
+  useEffect(() => {
+    if (hideHeader) return;
+    const stored = readStoredView();
+    if (stored) setView(stored);
+  }, [hideHeader]);
+
+  function changeView(next: StoredView) {
+    setView(next);
+    storeView(next);
+  }
 
   // Reset any leftover drag transform instantly whenever the active card
   // changes (including a dot/list jump, which skips the fly-out animation).
@@ -165,30 +190,13 @@ export function SwipeCardList({
       {!hideHeader && (
         <div className="flex items-center justify-between">
           <p className="text-xs font-semibold uppercase tracking-wide text-b2b-ink/45">{label}</p>
-          <div className="flex rounded-full bg-b2b-purple/10 p-1">
-            <button
-              type="button"
-              onClick={() => setView("list")}
-              className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
-                view === "list" ? "bg-b2b-pink text-white" : "text-b2b-ink/55"
-              }`}
-            >
-              List
-            </button>
-            <button
-              type="button"
-              onClick={() => setView("carousel")}
-              className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
-                view === "carousel" ? "bg-b2b-pink text-white" : "text-b2b-ink/55"
-              }`}
-            >
-              Carousel
-            </button>
-          </div>
+          <ViewToggle view={view} onChange={changeView} hasMap={!!map} />
         </div>
       )}
 
-      {view === "list" ? (
+      {view === "map" && map ? (
+        <div className="mt-2.5">{map}</div>
+      ) : view === "list" ? (
         <div className="mt-2.5 flex flex-col gap-2">
           {items.map((item, i) => {
             const rowContent = (
@@ -256,7 +264,7 @@ export function SwipeCardList({
                 onPointerMove={onPointerMove}
                 onPointerUp={onPointerUp}
                 className="relative w-full max-w-[280px] touch-none select-none overflow-hidden rounded-2xl shadow-lg"
-                style={{ height: 440 }}
+                style={{ height: 430 }}
               >
                 <div className="absolute inset-0">
                   {active.image ? (
