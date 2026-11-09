@@ -280,17 +280,19 @@ export function ResultsPrompt() {
                 <input
                   type="number"
                   min={1}
+                  placeholder="–"
                   value={place}
                   onChange={(e) => setPlace(e.target.value)}
-                  className="w-14 rounded-lg bg-b2b-bg px-2 py-2 text-center font-display text-lg text-b2b-ink"
+                  className="w-14 rounded-lg border border-b2b-purple/25 bg-b2b-bg px-2 py-2 text-center font-display text-lg text-b2b-ink focus:border-b2b-pink focus:outline-none"
                 />
                 <span className="text-sm font-medium text-b2b-ink">of</span>
                 <input
                   type="number"
                   min={1}
+                  placeholder="–"
                   value={totalCompetitors}
                   onChange={(e) => setTotalCompetitors(e.target.value)}
-                  className="w-14 rounded-lg bg-b2b-bg px-2 py-2 text-center font-display text-lg text-b2b-ink"
+                  className="w-14 rounded-lg border border-b2b-purple/25 bg-b2b-bg px-2 py-2 text-center font-display text-lg text-b2b-ink focus:border-b2b-pink focus:outline-none"
                 />
               </div>
             )}
