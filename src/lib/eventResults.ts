@@ -1,5 +1,5 @@
 import { EVENT_DIVISION_LABELS } from "@/lib/labels";
-import type { EventDivisionOption, EventTeamFormatOption } from "@/lib/validation";
+import type { EventDivisionOption } from "@/lib/validation";
 
 /** "1" -> "1ST", "12" -> "12TH", etc. — used for the result headline/badge. */
 export function ordinal(n: number): string {
@@ -48,15 +48,4 @@ export function divisionOptionsForEvent(event: { division: string | null }): str
     }
   }
   return ["Rx", "Scaled", "Intermediate"];
-}
-
-/** Whether an event's results should be grouped/listed by team rather than by athlete. */
-export function isTeamFormatEvent(event: { teamFormat: string | null }): boolean {
-  if (!event.teamFormat) return false;
-  try {
-    const parsed = JSON.parse(event.teamFormat) as EventTeamFormatOption[];
-    return parsed.some((f) => f === "PAIRS" || f === "TEAMS");
-  } catch {
-    return false;
-  }
 }
