@@ -7,6 +7,7 @@ import { NavBar } from "@/components/NavBar";
 import { Avatar } from "@/components/Avatar";
 import { BackLink } from "@/components/BackLink";
 import { TeamResultRow } from "@/components/TeamResultRow";
+import { DeleteMyResultButton } from "@/components/DeleteMyResultButton";
 import { assertEventVisible } from "@/lib/eventVisibility";
 import { placeMedal, resultHeadline } from "@/lib/eventResults";
 
@@ -152,22 +153,24 @@ export default async function EventResultsPage({ params }: { params: Promise<{ i
             }
             const medal = placeMedal(r.place != null ? rank : null);
             return (
-              <Link
+              <div
                 key={r.resultId}
-                href={`/profile/${r.userId}`}
                 className={`flex items-center gap-2.5 rounded-xl px-3 py-2.5 ${
                   rank === 1 ? "border border-b2b-pink/35 bg-b2b-pink/10" : "bg-b2b-card"
                 }`}
               >
-                <span className={`w-6 text-center font-display text-xl ${rank === 1 ? "text-b2b-pink-dark" : "text-b2b-ink/40"}`}>
-                  {rank}
-                </span>
-                <Avatar photo={r.photo} name={r.name} size={32} />
-                <span className={`flex-1 truncate text-sm ${rank === 1 ? "font-extrabold" : "font-semibold"} text-b2b-ink`}>
-                  {r.name}
-                </span>
+                <Link href={`/profile/${r.userId}`} className="flex min-w-0 flex-1 items-center gap-2.5">
+                  <span className={`w-6 text-center font-display text-xl ${rank === 1 ? "text-b2b-pink-dark" : "text-b2b-ink/40"}`}>
+                    {rank}
+                  </span>
+                  <Avatar photo={r.photo} name={r.name} size={32} />
+                  <span className={`flex-1 truncate text-sm ${rank === 1 ? "font-extrabold" : "font-semibold"} text-b2b-ink`}>
+                    {r.name}
+                  </span>
+                </Link>
                 {medal && <span className="text-sm">{medal}</span>}
-              </Link>
+                {r.userId === session.user.id && <DeleteMyResultButton resultId={r.resultId} />}
+              </div>
             );
           })
         )}
