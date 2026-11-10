@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { reviewerActorId } from "@/lib/notify";
 import { removeReportTarget } from "@/lib/reports";
 
 const ACTIONS = ["dismiss", "remove", "suspend"] as const;
@@ -61,6 +62,24 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       ? await prisma.user.findUnique({ where: { id: report.reportedUserId }, select: { accountId: true } })
       : null;
 
+  // Everyone whose report this closes hears that it was acted on (without
+  // details) — the same set of reports the transaction below marks ACTIONED.
+  const closedReports = await prisma.report.findMany({
+    where: {
+      OR: [
+        { id },
+        {
+          status: "OPEN",
+          OR: action === "suspend" ? [sameTarget, { reportedUserId: report.reportedUserId }] : [sameTarget],
+        },
+      ],
+    },
+    select: { reporterId: true },
+  });
+  const reporterIds = [...new Set(closedReports.map((r) => r.reporterId))].filter(
+    (reporterId) => reporterId !== session.user.id
+  );
+
   await removeReportTarget(report.targetType, report.targetId);
 
   await prisma.$transaction([
@@ -76,6 +95,13 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     }),
     prisma.report.update({ where: { id }, data: { status: "ACTIONED", resolvedAt: now } }),
   ]);
+
+  if (reporterIds.length) {
+    const actorId = await reviewerActorId(session.user.id);
+    await prisma.notification.createMany({
+      data: reporterIds.map((userId) => ({ userId, actorId, type: "REPORT_ACTIONED" as const })),
+    });
+  }
 
   return NextResponse.json({ status: "ACTIONED" });
 }

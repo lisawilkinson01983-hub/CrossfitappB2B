@@ -1,8 +1,37 @@
 import { PrismaClient } from "@prisma/client";
 
-const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
+// Every Notification or Message row created anywhere in the app also goes
+// out as a phone push (see src/lib/pushDelivery.ts) — hooked in here rather
+// than at each of the ~30 places that create one, so new notification types
+// get pushes automatically. Delivery runs shortly after, off the request
+// path (and after any surrounding transaction has committed). The delivery
+// function is registered at server start-up by src/instrumentation.ts (only
+// when APNs/FCM credentials are configured) instead of imported here, since
+// it needs Node-only modules and client bundles can reach this file.
+let pushTimer: ReturnType<typeof setTimeout> | null = null;
+function schedulePushDelivery() {
+  const deliver = (globalThis as { __b2bDeliverPushes?: () => Promise<void> }).__b2bDeliverPushes;
+  if (!deliver || pushTimer) return;
+  pushTimer = setTimeout(() => {
+    pushTimer = null;
+    deliver().catch((err) => console.error("[push] delivery failed:", err));
+  }, 1500);
+}
 
-export const prisma = globalForPrisma.prisma ?? new PrismaClient();
+function createClient() {
+  const afterCreate = {
+    async $allOperations({ operation, args, query }: { operation: string; args: unknown; query: (args: unknown) => Promise<unknown> }) {
+      const result = await query(args);
+      if (operation.startsWith("create") || operation === "upsert") schedulePushDelivery();
+      return result;
+    },
+  };
+  return new PrismaClient().$extends({ query: { notification: afterCreate, message: afterCreate } });
+}
+
+const globalForPrisma = globalThis as unknown as { prisma?: ReturnType<typeof createClient> };
+
+export const prisma = globalForPrisma.prisma ?? createClient();
 
 if (process.env.NODE_ENV !== "production") {
   globalForPrisma.prisma = prisma;

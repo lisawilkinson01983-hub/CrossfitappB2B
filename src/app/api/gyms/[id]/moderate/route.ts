@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { reviewerActorId } from "@/lib/notify";
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
@@ -28,6 +29,18 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   }
 
   const updated = await prisma.gym.update({ where: { id }, data: { status: action } });
+
+  // Let whoever submitted it know the outcome (only on an actual change).
+  if (gym.submittedById && gym.status !== action && gym.submittedById !== session.user.id) {
+    await prisma.notification.create({
+      data: {
+        userId: gym.submittedById,
+        actorId: await reviewerActorId(session.user.id),
+        type: action === "APPROVED" ? "GYM_APPROVED" : "GYM_REJECTED",
+        gymId: id,
+      },
+    });
+  }
 
   return NextResponse.json({ status: updated.status });
 }
