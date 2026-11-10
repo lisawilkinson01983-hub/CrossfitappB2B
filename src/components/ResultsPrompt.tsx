@@ -30,7 +30,7 @@ type Prompt =
     };
 
 type UserOption = { id: string; name: string; photo: string | null };
-type Step = "ask" | "placement" | "tag" | "confirm";
+type Step = "ask" | "team-or-solo" | "create-team" | "placement" | "tag" | "confirm";
 
 /**
  * The post-event "did you compete?" login prompt — fetches whether the
@@ -39,8 +39,23 @@ type Step = "ask" | "placement" | "tag" | "confirm";
  * so, walks them through logging a result. Mount once near the top of an
  * authenticated page (currently just /feed); renders nothing while loading
  * or when there's nothing to ask about.
+ *
+ * Passing `fixedEventId` switches it to log one specific event instead of
+ * pulling from the automatic catch-up queue — backs the manual "Log
+ * result" button on that event's own results page (see
+ * findResultPromptForEvent for why that path ignores the dismissal/beta
+ * gates the queue applies). In that mode, finishing any step (dismissing,
+ * sharing, or saving) calls `onClose` instead of chaining to "whatever's
+ * next in the queue", since that concept doesn't apply to a one-off,
+ * explicitly-requested log.
  */
-export function ResultsPrompt() {
+export function ResultsPrompt({
+  fixedEventId,
+  onClose,
+}: {
+  fixedEventId?: string;
+  onClose?: () => void;
+} = {}) {
   const router = useRouter();
   const [prompt, setPrompt] = useState<Prompt | null>(null);
   const [step, setStep] = useState<Step>("ask");
@@ -60,6 +75,22 @@ export function ResultsPrompt() {
   const [resultId, setResultId] = useState<string | null>(null);
   const [headline, setHeadline] = useState("COMPLETED");
   const [busy, setBusy] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
+  // Set once a team's been created inline from "As a team" below — from
+  // then on this result logs under that team instead of solo, same as if a
+  // registered team had already existed when the prompt first fired.
+  const [localTeamId, setLocalTeamId] = useState<string | null>(null);
+  const [teamName, setTeamName] = useState("");
+  const [createTeamError, setCreateTeamError] = useState<string | null>(null);
+
+  // How many past events were waiting when this catch-up sequence began, and
+  // how many (including the one on screen) are still left — together these
+  // give the "1 of 3" indicator a fixed denominator across the whole
+  // sequence instead of recomputing a shrinking total every time.
+  const [totalAtStart, setTotalAtStart] = useState<number | null>(null);
+  const [remainingCount, setRemainingCount] = useState(0);
+  const position = totalAtStart != null ? totalAtStart - remainingCount + 1 : 1;
 
   // Resets every per-event field so the next prompt (if any) starts clean at
   // "ask" rather than carrying over the previous event's placement/tags/etc.
@@ -77,21 +108,50 @@ export function ResultsPrompt() {
     setFreeformInput(null);
     setResultId(null);
     setHeadline("COMPLETED");
+    setSubmitError(null);
+    setLocalTeamId(null);
+    setTeamName("");
+    setCreateTeamError(null);
   }
 
   function loadNextPrompt() {
-    return fetch("/api/event-results/prompt")
+    const url = fixedEventId ? `/api/events/${fixedEventId}/result-prompt` : "/api/event-results/prompt";
+    return fetch(url)
       .then((r) => r.json())
       .then((data) => {
         resetFlowState();
         if (data.prompt) {
           setPrompt(data.prompt);
           setDivision(divisionOptionsForEvent({ division: data.prompt.division })[0] ?? "");
+          if (!fixedEventId) {
+            setRemainingCount(data.remainingCount ?? 1);
+            // Only set the denominator once per sequence — a later call just
+            // shrinks remainingCount, which moves "1 of 3" to "2 of 3" on its
+            // own without the total itself changing.
+            setTotalAtStart((prev) => prev ?? data.remainingCount ?? 1);
+          }
         } else {
           setPrompt(null);
+          setTotalAtStart(null);
+          setRemainingCount(0);
+          // Nothing (left) to log for this one specific event — e.g. someone
+          // else's click got there first. Nothing queued to fall back to, so
+          // just close rather than show an empty modal.
+          if (fixedEventId) onClose?.();
         }
       })
       .catch(() => {});
+  }
+
+  // After dismissing/sharing/saving: the automatic queue chains to whatever
+  // past event is next, but a fixed single-event log has no "next" — it
+  // just closes.
+  async function advance() {
+    if (fixedEventId) {
+      onClose?.();
+      return;
+    }
+    await loadNextPrompt();
   }
 
   useEffect(() => {
@@ -100,7 +160,7 @@ export function ResultsPrompt() {
   }, []);
 
   useEffect(() => {
-    if (step !== "tag" || query.trim().length === 0) {
+    if ((step !== "tag" && step !== "create-team") || query.trim().length === 0) {
       setSearchResults([]);
       return;
     }
@@ -125,20 +185,23 @@ export function ResultsPrompt() {
     // Dismissing just this one event is what the API marks — there may still
     // be other past events waiting, so check again rather than closing for
     // the rest of the session (that's the whole point of asking about every
-    // passed event, not just the single most recent one).
-    await loadNextPrompt();
-    setBusy(false);
+    // passed event, not just the single most recent one). A fixed single-
+    // event log has no "next", so advance() just closes it instead — return
+    // right after rather than setBusy(false) on a component about to unmount.
+    await advance();
+    if (!fixedEventId) setBusy(false);
   }
 
   async function submitResult(tags: { taggedUserIds: string[]; freeformNames: string[] }) {
     setBusy(true);
+    setSubmitError(null);
     try {
       const res = await fetch("/api/event-results", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           eventId: prompt!.eventId,
-          teamId: prompt!.kind === "team" ? prompt!.teamId : undefined,
+          teamId: localTeamId ?? (prompt!.kind === "team" ? prompt!.teamId : undefined),
           placementType: mode,
           place: mode === "EXACT" && place ? Number(place) : undefined,
           totalCompetitors: mode === "EXACT" && totalCompetitors ? Number(totalCompetitors) : undefined,
@@ -149,6 +212,15 @@ export function ResultsPrompt() {
         }),
       });
       const data = await res.json();
+      if (!res.ok) {
+        // A clashing placement (someone else already holds that exact
+        // place) sends the submitter back to the placement step with the
+        // server's explanation instead of silently "succeeding" with no
+        // resultId — fixing the number is the only way forward from here.
+        setSubmitError(data.error ?? "Something went wrong. Please try again.");
+        setStep("placement");
+        return;
+      }
       setResultId(data.resultId ?? null);
       setHeadline(resultHeadline({ placementType: mode, place: mode === "EXACT" && place ? Number(place) : null }));
       setStep("confirm");
@@ -157,10 +229,45 @@ export function ResultsPrompt() {
     }
   }
 
+  async function createTeamAndContinue() {
+    if (!teamName.trim()) return;
+    setBusy(true);
+    setCreateTeamError(null);
+    try {
+      const res = await fetch("/api/teams", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          eventId: prompt!.eventId,
+          name: teamName.trim(),
+          teammateIds: taggedUsers.map((u) => u.id),
+          teammateNames: freeformNames,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setCreateTeamError(data.error ?? "Something went wrong. Please try again.");
+        return;
+      }
+      // The same /api/teams route My Teams uses — it's already marked us
+      // participating and sent pending invites to any tagged teammates, so
+      // from here this just carries the new teamId into the placement step.
+      setLocalTeamId(data.id);
+      setQuery("");
+      setSearchResults([]);
+      setTaggedUsers([]);
+      setFreeformNames([]);
+      setFreeformInput(null);
+      setStep("placement");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function share() {
     if (!resultId) {
-      await loadNextPrompt();
-      setBusy(false);
+      await advance();
+      if (!fixedEventId) setBusy(false);
       return;
     }
     setBusy(true);
@@ -168,15 +275,15 @@ export function ResultsPrompt() {
     router.refresh();
     // More than one past event can be waiting — move straight to the next
     // one instead of closing until the next full page load.
-    await loadNextPrompt();
-    setBusy(false);
+    await advance();
+    if (!fixedEventId) setBusy(false);
   }
 
   async function saveOnly() {
     setBusy(true);
     router.refresh();
-    await loadNextPrompt();
-    setBusy(false);
+    await advance();
+    if (!fixedEventId) setBusy(false);
   }
 
   function toggleTag(user: UserOption) {
@@ -194,6 +301,20 @@ export function ResultsPrompt() {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
       <div className="flex w-full max-w-xs flex-col items-center gap-1 rounded-2xl bg-b2b-card p-6 text-center shadow-lg">
+        {step === "ask" && totalAtStart != null && totalAtStart > 1 && (
+          <div className="mb-2 flex items-center gap-1.5">
+            {Array.from({ length: Math.min(totalAtStart, 5) }).map((_, i) => (
+              <span
+                key={i}
+                className={`h-1.5 w-1.5 rounded-full ${i < Math.min(position, totalAtStart) ? "bg-b2b-pink" : "bg-b2b-ink/15"}`}
+              />
+            ))}
+            <span className="ml-1 text-[10.5px] font-semibold text-b2b-ink/45">
+              {position} of {totalAtStart} events
+            </span>
+          </div>
+        )}
+
         {step === "ask" && prompt.kind === "solo" && (
           <>
             {prompt.eventPhoto && (
@@ -210,13 +331,178 @@ export function ResultsPrompt() {
             </p>
             <button
               type="button"
-              onClick={() => setStep("placement")}
+              onClick={() => setStep("team-or-solo")}
               className="mt-4 w-full rounded-full bg-b2b-ink px-4 py-2.5 text-sm font-semibold text-b2b-bg"
             >
               Yes, let&rsquo;s log it
             </button>
             <button type="button" onClick={dismiss} disabled={busy} className="mt-2 text-xs font-medium text-b2b-ink/40 hover:underline">
               No, I didn&rsquo;t make it
+            </button>
+          </>
+        )}
+
+        {step === "team-or-solo" && prompt.kind === "solo" && (
+          <>
+            <span className="mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-b2b-pink/10 text-lg">🏆</span>
+            <p className="font-display text-lg uppercase leading-tight text-b2b-ink">
+              Did you compete at {prompt.eventName} alone, or as a team?
+            </p>
+            <p className="mt-1 text-xs text-b2b-ink/45">We don&rsquo;t have a team on file for you for this one yet.</p>
+
+            <div className="mt-4 flex w-full flex-col gap-2">
+              <button
+                type="button"
+                onClick={() => setStep("placement")}
+                className="flex w-full items-center gap-2.5 rounded-2xl border border-b2b-purple/15 px-3.5 py-3 text-left"
+              >
+                <span className="text-lg">🧍</span>
+                <span>
+                  <span className="block text-sm font-bold text-b2b-ink">Individual</span>
+                  <span className="block text-[10.5px] text-b2b-ink/45">Just your own placement</span>
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setStep("create-team")}
+                className="flex w-full items-center gap-2.5 rounded-2xl border-2 border-b2b-pink bg-b2b-pink/5 px-3.5 py-3 text-left"
+              >
+                <span className="text-lg">👥</span>
+                <span>
+                  <span className="block text-sm font-extrabold text-b2b-pink-dark">As a team</span>
+                  <span className="block text-[10.5px] text-b2b-pink-dark">Name your team &amp; who was on it</span>
+                </span>
+              </button>
+            </div>
+          </>
+        )}
+
+        {step === "create-team" && (
+          <>
+            <p className="font-display text-lg uppercase leading-tight text-b2b-ink">Who was on your team?</p>
+
+            {createTeamError && (
+              <p className="mt-2 w-full rounded-lg bg-red-50 px-3 py-2 text-left text-xs text-red-700">{createTeamError}</p>
+            )}
+
+            <div className="mt-3 w-full text-left">
+              <p className="mb-1 text-[10px] font-bold uppercase tracking-wide text-b2b-ink/40">Team name</p>
+              <input
+                type="text"
+                autoFocus
+                value={teamName}
+                onChange={(e) => setTeamName(e.target.value)}
+                placeholder="e.g. The Hailsham Heavies"
+                maxLength={60}
+                className="w-full rounded-lg border border-b2b-purple/15 bg-b2b-card px-3 py-2 text-sm text-b2b-ink placeholder:text-b2b-ink/35"
+              />
+            </div>
+
+            <div className="mt-3 w-full text-left">
+              <p className="mb-1 text-[10px] font-bold uppercase tracking-wide text-b2b-ink/40">Invite teammates</p>
+              <input
+                type="text"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search your connections..."
+                className="w-full rounded-lg border border-b2b-purple/15 bg-b2b-card px-3 py-2 text-sm text-b2b-ink placeholder:text-b2b-ink/35"
+              />
+              {searchResults.length > 0 && (
+                <div className="mt-1 flex w-full flex-col gap-1 rounded-lg border border-b2b-purple/10 bg-b2b-card p-1">
+                  {searchResults
+                    .filter((u) => !taggedUsers.some((t) => t.id === u.id))
+                    .map((u) => (
+                      <button
+                        key={u.id}
+                        type="button"
+                        onClick={() => toggleTag(u)}
+                        className="flex items-center gap-2 rounded-md p-1.5 text-left hover:bg-b2b-bg"
+                      >
+                        <Avatar photo={u.photo} name={u.name} size={24} />
+                        <span className="text-sm text-b2b-ink">{u.name}</span>
+                      </button>
+                    ))}
+                </div>
+              )}
+              <p className="mt-1 text-[10.5px] text-b2b-ink/40">
+                They&rsquo;ll get an invite to confirm — shown greyed out as &ldquo;Pending&rdquo; until they do.
+              </p>
+            </div>
+
+            {(taggedUsers.length > 0 || freeformNames.length > 0) && (
+              <div className="mt-2 flex w-full flex-wrap gap-1.5">
+                {taggedUsers.map((u) => (
+                  <span
+                    key={u.id}
+                    className="flex items-center gap-1 rounded-full border border-b2b-pink bg-b2b-pink/10 py-1 pl-1 pr-2 text-xs font-semibold text-b2b-pink-dark"
+                  >
+                    <Avatar photo={u.photo} name={u.name} size={18} />
+                    {u.name}
+                    <button type="button" onClick={() => toggleTag(u)} aria-label={`Remove ${u.name}`}>
+                      ✕
+                    </button>
+                  </span>
+                ))}
+                {freeformNames.map((name) => (
+                  <span
+                    key={name}
+                    className="flex items-center gap-1.5 rounded-full border border-dashed border-b2b-ink/30 bg-b2b-bg py-1 pl-2.5 pr-2 text-xs font-semibold text-b2b-ink/60"
+                  >
+                    {name}
+                    <span className="text-[8px] font-bold uppercase text-b2b-ink/40">not on app</span>
+                    <button
+                      type="button"
+                      onClick={() => setFreeformNames((prev) => prev.filter((n) => n !== name))}
+                      aria-label={`Remove ${name}`}
+                    >
+                      ✕
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {freeformInput === null ? (
+              <button
+                type="button"
+                onClick={() => setFreeformInput("")}
+                className="mt-2 flex items-center gap-1.5 self-start text-xs font-semibold text-b2b-pink"
+              >
+                <span className="flex h-4 w-4 items-center justify-center rounded-full border border-b2b-pink text-[10px]">+</span>
+                Add someone not on Box 2 Box
+              </button>
+            ) : (
+              <div className="mt-2 flex w-full items-center gap-1.5">
+                <input
+                  type="text"
+                  autoFocus
+                  value={freeformInput}
+                  onChange={(e) => setFreeformInput(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && addFreeform()}
+                  placeholder="Their name"
+                  className="flex-1 rounded-lg border border-b2b-purple/15 bg-b2b-card px-3 py-1.5 text-sm text-b2b-ink"
+                />
+                <button type="button" onClick={addFreeform} className="text-xs font-semibold text-b2b-pink">
+                  Add
+                </button>
+              </div>
+            )}
+
+            <button
+              type="button"
+              disabled={busy || !teamName.trim()}
+              onClick={createTeamAndContinue}
+              className="mt-4 w-full rounded-full bg-b2b-ink px-4 py-2.5 text-sm font-semibold text-b2b-bg disabled:opacity-50"
+            >
+              Create team &amp; continue
+            </button>
+            <button
+              type="button"
+              onClick={() => setStep("team-or-solo")}
+              disabled={busy}
+              className="mt-2 text-xs font-medium text-b2b-ink/40 hover:underline"
+            >
+              Back
             </button>
           </>
         )}
@@ -256,6 +542,10 @@ export function ResultsPrompt() {
             <p className="font-display text-lg uppercase leading-tight text-b2b-ink">
               How&rsquo;d it go at {prompt.eventName}?
             </p>
+
+            {submitError && (
+              <p className="mt-2 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700">{submitError}</p>
+            )}
 
             <div className="mt-3 flex w-full rounded-lg bg-b2b-bg p-1">
               <button
@@ -327,7 +617,11 @@ export function ResultsPrompt() {
             <button
               type="button"
               disabled={busy || (mode === "EXACT" && !place)}
-              onClick={() => (prompt.kind === "team" ? submitResult({ taggedUserIds: [], freeformNames: [] }) : setStep("tag"))}
+              onClick={() =>
+                prompt.kind === "team" || localTeamId
+                  ? submitResult({ taggedUserIds: [], freeformNames: [] })
+                  : setStep("tag")
+              }
               className="mt-4 w-full rounded-full bg-b2b-ink px-4 py-2.5 text-sm font-semibold text-b2b-bg disabled:opacity-50"
             >
               Continue

@@ -47,18 +47,21 @@ export async function MyTeamsTab({ userId, openTeamId }: { userId: string; openT
         user: { select: { id: true, name: true, photo: true } },
       },
     }),
-    // Upcoming competitions the viewer already has some engagement with —
-    // the pool the "Create a team" form picks from (see CreateTeamForm).
+    // Competitions the viewer already has some engagement with, past or
+    // upcoming — the pool the "Create a team" form picks from (see
+    // CreateTeamForm). Past ones matter just as much as upcoming: naming a
+    // team retroactively is how a result logged after the fact gets
+    // credited to the team rather than showing as a solo placement (see
+    // the results page's own teamId-based grouping).
     prisma.event.findMany({
       where: {
         AND: [
           { OR: [{ participants: { some: { userId } } }, { interests: { some: { userId } } }] },
           { OR: [{ eventKind: "COMPETITION" }, { eventKind: null }] },
-          { OR: [{ endDate: null, date: { gte: new Date() } }, { endDate: { gte: new Date() } }] },
         ],
       },
-      orderBy: { date: "asc" },
-      select: { id: true, name: true },
+      orderBy: { date: "desc" },
+      select: { id: true, name: true, date: true },
     }),
     prisma.user.findUnique({ where: { id: userId }, select: { name: true } }),
     getOrCreateInviteCode(userId),

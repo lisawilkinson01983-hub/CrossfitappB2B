@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isInResultsPromptBeta } from "@/lib/resultsRollout";
-import { findResultPrompt, dismissResultPrompt } from "@/lib/eventResultPrompt";
+import { findResultPrompt, dismissResultPrompt, countResultPrompts } from "@/lib/eventResultPrompt";
 
 /** Whether to show the "did you compete at X?" prompt on this login, and for what. */
 export async function GET() {
@@ -17,11 +17,14 @@ export async function GET() {
     include: { account: { select: { email: true } } },
   });
   if (!user || !isInResultsPromptBeta(user.account?.email)) {
-    return NextResponse.json({ prompt: null });
+    return NextResponse.json({ prompt: null, remainingCount: 0 });
   }
 
-  const prompt = await findResultPrompt(session.user.id);
-  return NextResponse.json({ prompt });
+  const [prompt, remainingCount] = await Promise.all([
+    findResultPrompt(session.user.id),
+    countResultPrompts(session.user.id),
+  ]);
+  return NextResponse.json({ prompt, remainingCount });
 }
 
 export async function DELETE(req: Request) {

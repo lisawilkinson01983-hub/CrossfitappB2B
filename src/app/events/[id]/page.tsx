@@ -17,8 +17,10 @@ import { InviteToEventForm } from "@/components/InviteToEventForm";
 import { MessageAttendeesButton } from "@/components/MessageAttendeesButton";
 import { ShareEventButton } from "@/components/ShareEventButton";
 import { ClaimEventButton } from "@/components/ClaimEventButton";
+import { AskMeAgainLink } from "@/components/AskMeAgainLink";
 import { BackIcon } from "@/components/BackIcon";
 import { EditIcon } from "@/components/EditIcon";
+import { isInResultsPromptBeta } from "@/lib/resultsRollout";
 import { parseJsonArray, eventKindLabel, isCompetitionEvent } from "@/lib/labels";
 import { formatEventDate } from "@/lib/eventDate";
 import { assertEventVisible } from "@/lib/eventVisibility";
@@ -45,7 +47,10 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
 
   const { id } = await params;
 
-  const me = await prisma.user.findUnique({ where: { id: session.user.id }, select: { isAdmin: true } });
+  const me = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { isAdmin: true, account: { select: { email: true } } },
+  });
 
   const event = await prisma.event.findUnique({
     where: { id },
@@ -85,6 +90,22 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
   const participantIds = new Set(event.participants.map((p) => p.userId));
   const isParticipating = participantIds.has(session.user.id);
   const isInterested = event.interests.length > 0;
+
+  // "Ask me again" — only offered where the results prompt itself could
+  // ever fire: still in its beta, this event has actually ended, and the
+  // viewer dismissed it (rather than just never having been asked, or
+  // already having logged a result) — see the beta gate this mirrors in
+  // src/lib/eventResultPrompt.ts.
+  const eventHasEnded = event.endDate ? event.endDate < new Date() : event.date < new Date();
+  const showAskAgain =
+    eventHasEnded &&
+    isInResultsPromptBeta(me?.account?.email) &&
+    (await prisma.eventResultPromptDismissal.findUnique({
+      where: { userId_eventId: { userId: session.user.id, eventId: event.id } },
+    })) != null &&
+    (await prisma.eventResult.findUnique({
+      where: { eventId_userId: { eventId: event.id, userId: session.user.id } },
+    })) == null;
 
   // Every notice — search or free text — shows up on the shared message board.
   const chatMessageCount = event.notices.length;
@@ -262,6 +283,7 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
           initialInterested={isInterested}
           isCompetition={isCompetitionEvent(event)}
         />
+        {showAskAgain && <AskMeAgainLink eventId={event.id} />}
 
         <div className={`grid gap-2 ${isPrivateSocial ? "grid-cols-2" : "grid-cols-4"}`}>
           <Link

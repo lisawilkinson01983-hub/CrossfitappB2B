@@ -16,12 +16,15 @@ export function TeamResultRow({
   rank,
   teamName,
   members,
+  pendingMembers = [],
   placementLabel,
   resultHeadline,
 }: {
   rank: number;
   teamName: string;
   members: Member[];
+  /** Invited but not yet accepted — shown in the roster popout greyed out so the team's full intended lineup is visible even before everyone's confirmed, not just whoever's officially joined so far. */
+  pendingMembers?: Member[];
   placementLabel: string;
   resultHeadline: string;
 }) {
@@ -51,6 +54,7 @@ export function TeamResultRow({
           <p className={`truncate text-sm ${rank === 1 ? "font-extrabold text-b2b-ink" : "font-bold text-b2b-ink"}`}>{teamName}</p>
           <p className="text-[10.5px] text-b2b-ink/45">
             {members.length} {members.length === 1 ? "athlete" : "athletes"}
+            {pendingMembers.length > 0 && ` · ${pendingMembers.length} pending`}
           </p>
         </div>
         {medal && <span className="text-sm">{medal}</span>}
@@ -80,6 +84,15 @@ export function TeamResultRow({
                 <div key={m.id} className="flex items-center gap-2.5">
                   <Avatar photo={m.photo} name={m.name} size={34} />
                   <p className="text-sm font-semibold text-b2b-ink">{m.name}</p>
+                </div>
+              ))}
+              {pendingMembers.map((m) => (
+                <div key={m.id} className="flex items-center gap-2.5 opacity-40">
+                  <Avatar photo={m.photo} name={m.name} size={34} />
+                  <p className="text-sm font-semibold text-b2b-ink">{m.name}</p>
+                  <span className="rounded-full border border-b2b-ink/20 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-b2b-ink/50">
+                    Pending
+                  </span>
                 </div>
               ))}
             </div>
