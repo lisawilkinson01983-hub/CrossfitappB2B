@@ -106,15 +106,56 @@ export default async function EventResultsPage({ params }: { params: Promise<{ i
     }
   }
 
-  // Exact placements first (ascending), then everyone marked just
-  // "Completed" — SQLite's orderBy doesn't give reliable control over null
-  // placement, so this sorts in JS instead.
-  const ranked = displayRows.sort((a, b) => {
-    if (a.place != null && b.place != null) return a.place - b.place;
-    if (a.place != null) return -1;
-    if (b.place != null) return 1;
-    return 0;
+  // The field size — "11 of 16" — isn't stored on the event itself, only on
+  // whoever's logged an exact placement; take the largest one anyone's
+  // entered as the best available guess at how many places exist in total.
+  const fieldSize = results.reduce<number | null>((max, r) => {
+    if (r.placementType !== "EXACT" || r.totalCompetitors == null) return max;
+    return max == null ? r.totalCompetitors : Math.max(max, r.totalCompetitors);
+  }, null);
+
+  const byPlace = new Map<number, DisplayRow[]>();
+  const completedRows: DisplayRow[] = [];
+  for (const row of displayRows) {
+    if (row.place != null) {
+      const existing = byPlace.get(row.place);
+      if (existing) existing.push(row);
+      else byPlace.set(row.place, [row]);
+    } else {
+      completedRows.push(row);
+    }
+  }
+
+  // Every place from 1 up to the known field size gets a slot — logged or
+  // not — rather than only ever listing the rows someone's actually filled
+  // in, so e.g. "11th of 16" reads as 11th on a board that visibly has 16
+  // places, with the other 15 shown as still open, instead of silently
+  // becoming "1st of however many people happened to log something."
+  type RankedItem = { rank: number; row: DisplayRow } | { rank: number; placeholder: true };
+  const rankedItems: RankedItem[] = [];
+  if (fieldSize != null) {
+    for (let place = 1; place <= fieldSize; place++) {
+      const rows = byPlace.get(place);
+      if (rows && rows.length > 0) {
+        for (const row of rows) rankedItems.push({ rank: place, row });
+      } else {
+        rankedItems.push({ rank: place, placeholder: true });
+      }
+    }
+  } else {
+    // No one's given a field size yet — fall back to just listing whatever
+    // exact placements exist, numbered by their own place value.
+    for (const [place, rows] of [...byPlace.entries()].sort((a, b) => a[0] - b[0])) {
+      for (const row of rows) rankedItems.push({ rank: place, row });
+    }
+  }
+  // "Just mark Completed" entries have no place to slot in anywhere, so they
+  // continue the numbering after every known/placeholder slot.
+  completedRows.forEach((row, i) => {
+    rankedItems.push({ rank: (fieldSize ?? rankedItems.length) + i + 1, row });
   });
+
+  const loggedCount = displayRows.length;
 
   return (
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
@@ -128,17 +169,28 @@ export default async function EventResultsPage({ params }: { params: Promise<{ i
         <div>
           <h1 className="font-display text-2xl text-b2b-ink">🏆 Results</h1>
           <p className="mt-1 text-xs text-b2b-ink/50">
-            {event.name} · {ranked.length} logged
+            {event.name} · {loggedCount} of {fieldSize ?? loggedCount} logged
           </p>
         </div>
       </div>
 
       <div className="mt-4 flex flex-col gap-1.5">
-        {ranked.length === 0 ? (
+        {rankedItems.length === 0 ? (
           <p className="py-6 text-center text-b2b-ink/40">No results logged yet.</p>
         ) : (
-          ranked.map((r, i) => {
-            const rank = i + 1;
+          rankedItems.map((item) => {
+            if ("placeholder" in item) {
+              return (
+                <div
+                  key={`placeholder-${item.rank}`}
+                  className="flex items-center gap-2.5 rounded-xl border border-dashed border-b2b-ink/15 px-3 py-2"
+                >
+                  <span className="w-6 text-center text-sm font-semibold text-b2b-ink/30">{item.rank}</span>
+                  <span className="flex-1 text-xs text-b2b-ink/35">Not logged yet</span>
+                </div>
+              );
+            }
+            const { rank, row: r } = item;
             if (r.kind === "team") {
               return (
                 <TeamResultRow
