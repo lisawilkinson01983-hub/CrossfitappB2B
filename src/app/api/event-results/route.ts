@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { ordinal } from "@/lib/eventResults";
 
 const MAX_NOTE_LENGTH = 280;
 const MAX_TAGGED = 20;
@@ -48,6 +49,32 @@ export async function POST(req: Request) {
 
   const event = await prisma.event.findUnique({ where: { id: eventId }, select: { id: true } });
   if (!event) return NextResponse.json({ error: "Event not found" }, { status: 404 });
+
+  // Only one team or individual can hold a given exact placement for this
+  // event — a second, unrelated claim to e.g. "11th" is almost always a
+  // mistake (wrong number typed, or someone logging solo before joining
+  // the team that already claimed it) rather than a real tie. A row that's
+  // already part of THIS SAME team doesn't conflict — that's just the rest
+  // of the roster sharing the one placement they actually earned together.
+  if (place != null) {
+    const clashes = await prisma.eventResult.findMany({
+      where: { eventId, place, placementType: "EXACT" },
+      select: {
+        userId: true,
+        teamId: true,
+        user: { select: { name: true } },
+        team: { select: { name: true } },
+      },
+    });
+    const conflict = clashes.find((r) => (teamId ? r.teamId !== teamId : r.userId !== userId));
+    if (conflict) {
+      const claimant = conflict.team?.name ?? conflict.user.name;
+      return NextResponse.json(
+        { error: `${ordinal(place)} place is already logged for this event by ${claimant}. Double-check your placement, or ask them about it if that's a mistake.` },
+        { status: 409 }
+      );
+    }
+  }
 
   if (teamId) {
     const team = await prisma.team.findUnique({

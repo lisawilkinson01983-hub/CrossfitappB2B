@@ -49,6 +49,13 @@ export default async function EventResultsPage({ params }: { params: Promise<{ i
           id: true,
           name: true,
           members: { select: { user: { select: { id: true, name: true, photo: true } } } },
+          // Invited but not yet accepted — shown in the roster popout too
+          // (greyed out), so the team's intended full lineup is visible
+          // right away rather than only once everyone's confirmed.
+          joinRequests: {
+            where: { kind: "INVITE", status: "PENDING" },
+            select: { user: { select: { id: true, name: true, photo: true } } },
+          },
         },
       },
     },
@@ -69,6 +76,7 @@ export default async function EventResultsPage({ params }: { params: Promise<{ i
         teamId: string;
         teamName: string;
         members: { id: string; name: string; photo: string | null }[];
+        pendingMembers: { id: string; name: string; photo: string | null }[];
         division: string | null;
       }
     | {
@@ -94,6 +102,7 @@ export default async function EventResultsPage({ params }: { params: Promise<{ i
         teamId: r.teamId,
         teamName: r.team.name,
         members: r.team.members.map((m) => m.user),
+        pendingMembers: r.team.joinRequests.map((jr) => jr.user),
         division: r.division,
       });
     } else {
@@ -211,6 +220,7 @@ export default async function EventResultsPage({ params }: { params: Promise<{ i
                   rank={rank}
                   teamName={r.teamName}
                   members={r.members}
+                  pendingMembers={r.pendingMembers}
                   placementLabel={r.division ?? "—"}
                   resultHeadline={resultHeadline(r)}
                 />

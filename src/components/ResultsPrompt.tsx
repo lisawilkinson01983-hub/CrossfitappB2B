@@ -75,6 +75,7 @@ export function ResultsPrompt({
   const [resultId, setResultId] = useState<string | null>(null);
   const [headline, setHeadline] = useState("COMPLETED");
   const [busy, setBusy] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   // How many past events were waiting when this catch-up sequence began, and
   // how many (including the one on screen) are still left — together these
@@ -100,6 +101,7 @@ export function ResultsPrompt({
     setFreeformInput(null);
     setResultId(null);
     setHeadline("COMPLETED");
+    setSubmitError(null);
   }
 
   function loadNextPrompt() {
@@ -182,6 +184,7 @@ export function ResultsPrompt({
 
   async function submitResult(tags: { taggedUserIds: string[]; freeformNames: string[] }) {
     setBusy(true);
+    setSubmitError(null);
     try {
       const res = await fetch("/api/event-results", {
         method: "POST",
@@ -199,6 +202,15 @@ export function ResultsPrompt({
         }),
       });
       const data = await res.json();
+      if (!res.ok) {
+        // A clashing placement (someone else already holds that exact
+        // place) sends the submitter back to the placement step with the
+        // server's explanation instead of silently "succeeding" with no
+        // resultId — fixing the number is the only way forward from here.
+        setSubmitError(data.error ?? "Something went wrong. Please try again.");
+        setStep("placement");
+        return;
+      }
       setResultId(data.resultId ?? null);
       setHeadline(resultHeadline({ placementType: mode, place: mode === "EXACT" && place ? Number(place) : null }));
       setStep("confirm");
@@ -320,6 +332,10 @@ export function ResultsPrompt({
             <p className="font-display text-lg uppercase leading-tight text-b2b-ink">
               How&rsquo;d it go at {prompt.eventName}?
             </p>
+
+            {submitError && (
+              <p className="mt-2 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700">{submitError}</p>
+            )}
 
             <div className="mt-3 flex w-full rounded-lg bg-b2b-bg p-1">
               <button
