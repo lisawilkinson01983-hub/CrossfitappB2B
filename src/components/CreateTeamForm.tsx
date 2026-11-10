@@ -3,19 +3,23 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Avatar } from "@/components/Avatar";
+import { formatDate } from "@/lib/dates";
 
 type UserOption = { id: string; name: string; photo: string | null };
-type EventOption = { id: string; name: string };
+type EventOption = { id: string; name: string; date: Date | string };
 
 const MAX_TEAMMATES = 20;
 
 /**
- * Starts a new team for one of the viewer's own upcoming competitions —
- * collapsed to a single button by default, same "small control opens into
- * the full thing" shape as the feed/messaging composers. Tagging a platform
- * teammate here sends them a pending invite (see TeamJoinRequest) rather
- * than adding them outright, same as tagging one through "I'm participating"
- * (see EventEngagementButtons' TeamTagPrompt, which this mirrors).
+ * Starts a new team for one of the viewer's own competitions, past or
+ * upcoming — collapsed to a single button by default, same "small control
+ * opens into the full thing" shape as the feed/messaging composers. A past
+ * competition is included deliberately: naming a team after the fact is how
+ * a result logged retroactively gets credited to the team instead of
+ * showing as a solo placement. Tagging a platform teammate here sends them
+ * a pending invite (see TeamJoinRequest) rather than adding them outright,
+ * same as tagging one through "I'm participating" (see
+ * EventEngagementButtons' TeamTagPrompt, which this mirrors).
  */
 export function CreateTeamForm({ events }: { events: EventOption[] }) {
   const router = useRouter();
@@ -121,8 +125,8 @@ export function CreateTeamForm({ events }: { events: EventOption[] }) {
   if (events.length === 0) {
     return (
       <div className="rounded-xl border border-b2b-purple/10 bg-b2b-card p-4 text-sm text-b2b-ink/60">
-        You need to be participating in or interested in an upcoming competition before you can start a team for
-        it — head to Discover or your Upcoming comps tab first.
+        You need to be participating in or interested in a competition (past or upcoming) before you can start a
+        team for it — head to Discover or your My Events tab first.
       </div>
     );
   }
@@ -147,7 +151,8 @@ export function CreateTeamForm({ events }: { events: EventOption[] }) {
         >
           {events.map((ev) => (
             <option key={ev.id} value={ev.id}>
-              {ev.name}
+              {ev.name} · {formatDate(ev.date)}
+              {new Date(ev.date) < new Date() ? " (past)" : ""}
             </option>
           ))}
         </select>
