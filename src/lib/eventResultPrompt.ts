@@ -50,29 +50,33 @@ export async function countResultPrompts(userId: string): Promise<number> {
   return prisma.eventParticipant.count({ where: pendingPromptWhere(userId, new Date()) });
 }
 
-export async function findResultPrompt(userId: string): Promise<ResultPromptPayload | null> {
-  const now = new Date();
-  const participant = await prisma.eventParticipant.findFirst({
-    where: pendingPromptWhere(userId, now),
-    orderBy: { event: { date: "desc" } },
-    select: {
-      event: {
-        select: {
-          id: true,
-          name: true,
-          photo: true,
-          date: true,
-          endDate: true,
-          isOnline: true,
-          location: true,
-          division: true,
-        },
-      },
-    },
-  });
-  if (!participant) return null;
-  const event = participant.event;
+type PromptEvent = {
+  id: string;
+  name: string;
+  photo: string | null;
+  date: Date;
+  endDate: Date | null;
+  isOnline: boolean;
+  location: string | null;
+  division: string | null;
+};
 
+const PROMPT_EVENT_SELECT = {
+  id: true,
+  name: true,
+  photo: true,
+  date: true,
+  endDate: true,
+  isOnline: true,
+  location: true,
+  division: true,
+} as const;
+
+/** Builds the solo/team payload for one event+user pair — shared by the
+ * automatic catch-up queue and a manual "Log result" trigger, since both
+ * ultimately need the same "is this person on a registered team for this
+ * event?" check to decide which flow to show. */
+async function buildPromptPayload(userId: string, event: PromptEvent): Promise<ResultPromptPayload> {
   const teamMembership = await prisma.teamMember.findFirst({
     where: { userId, team: { eventId: event.id } },
     select: {
@@ -109,6 +113,36 @@ export async function findResultPrompt(userId: string): Promise<ResultPromptPayl
     location: event.location,
     division: event.division,
   };
+}
+
+export async function findResultPrompt(userId: string): Promise<ResultPromptPayload | null> {
+  const participant = await prisma.eventParticipant.findFirst({
+    where: pendingPromptWhere(userId, new Date()),
+    orderBy: { event: { date: "desc" } },
+    select: { event: { select: PROMPT_EVENT_SELECT } },
+  });
+  if (!participant) return null;
+  return buildPromptPayload(userId, participant.event);
+}
+
+/**
+ * The same payload, but for one specific event rather than whatever's next
+ * in the catch-up queue — backs the manual "Log result" button on the
+ * event's own results page, for someone who dismissed/skipped the automatic
+ * prompt (or was never queued for it at all, e.g. the event hasn't crossed
+ * into beta yet) and wants to log it anyway. Only refuses when a result
+ * already exists for them — unlike the queue, this intentionally ignores
+ * the dismissal and beta-rollout gates, since asking is proactive but
+ * logging on request is not.
+ */
+export async function findResultPromptForEvent(userId: string, eventId: string): Promise<ResultPromptPayload | null> {
+  const [event, existingResult] = await Promise.all([
+    prisma.event.findUnique({ where: { id: eventId }, select: PROMPT_EVENT_SELECT }),
+    prisma.eventResult.findUnique({ where: { eventId_userId: { eventId, userId } }, select: { id: true } }),
+  ]);
+  const hasEnded = event ? (event.endDate ? event.endDate < new Date() : event.date < new Date()) : false;
+  if (!event || existingResult || !hasEnded) return null;
+  return buildPromptPayload(userId, event);
 }
 
 /** "No, I/we didn't make it" or "Skip for now" — a team dismissal covers every member, not just whoever answered. */

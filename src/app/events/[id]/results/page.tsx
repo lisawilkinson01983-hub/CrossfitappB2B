@@ -8,6 +8,7 @@ import { Avatar } from "@/components/Avatar";
 import { BackLink } from "@/components/BackLink";
 import { TeamResultRow } from "@/components/TeamResultRow";
 import { DeleteMyResultButton } from "@/components/DeleteMyResultButton";
+import { LogResultButton } from "@/components/LogResultButton";
 import { assertEventVisible } from "@/lib/eventVisibility";
 import { placeMedal, resultHeadline } from "@/lib/eventResults";
 
@@ -25,6 +26,8 @@ export default async function EventResultsPage({ params }: { params: Promise<{ i
       status: true,
       createdById: true,
       submittedById: true,
+      date: true,
+      endDate: true,
     },
   });
   if (!event) notFound();
@@ -157,6 +160,10 @@ export default async function EventResultsPage({ params }: { params: Promise<{ i
 
   const loggedCount = displayRows.length;
 
+  const hasEnded = event.endDate ? event.endDate < new Date() : event.date < new Date();
+  const viewerHasLoggedResult = results.some((r) => r.userId === session.user.id);
+  const showLogResultButton = hasEnded && !viewerHasLoggedResult;
+
   return (
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
       <NavBar />
@@ -173,6 +180,12 @@ export default async function EventResultsPage({ params }: { params: Promise<{ i
           </p>
         </div>
       </div>
+
+      {showLogResultButton && (
+        <div className="mt-3">
+          <LogResultButton eventId={event.id} />
+        </div>
+      )}
 
       <div className="mt-4 flex flex-col gap-1.5">
         {rankedItems.length === 0 ? (

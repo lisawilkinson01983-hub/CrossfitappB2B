@@ -39,8 +39,23 @@ type Step = "ask" | "placement" | "tag" | "confirm";
  * so, walks them through logging a result. Mount once near the top of an
  * authenticated page (currently just /feed); renders nothing while loading
  * or when there's nothing to ask about.
+ *
+ * Passing `fixedEventId` switches it to log one specific event instead of
+ * pulling from the automatic catch-up queue — backs the manual "Log
+ * result" button on that event's own results page (see
+ * findResultPromptForEvent for why that path ignores the dismissal/beta
+ * gates the queue applies). In that mode, finishing any step (dismissing,
+ * sharing, or saving) calls `onClose` instead of chaining to "whatever's
+ * next in the queue", since that concept doesn't apply to a one-off,
+ * explicitly-requested log.
  */
-export function ResultsPrompt() {
+export function ResultsPrompt({
+  fixedEventId,
+  onClose,
+}: {
+  fixedEventId?: string;
+  onClose?: () => void;
+} = {}) {
   const router = useRouter();
   const [prompt, setPrompt] = useState<Prompt | null>(null);
   const [step, setStep] = useState<Step>("ask");
@@ -88,25 +103,43 @@ export function ResultsPrompt() {
   }
 
   function loadNextPrompt() {
-    return fetch("/api/event-results/prompt")
+    const url = fixedEventId ? `/api/events/${fixedEventId}/result-prompt` : "/api/event-results/prompt";
+    return fetch(url)
       .then((r) => r.json())
       .then((data) => {
         resetFlowState();
         if (data.prompt) {
           setPrompt(data.prompt);
           setDivision(divisionOptionsForEvent({ division: data.prompt.division })[0] ?? "");
-          setRemainingCount(data.remainingCount ?? 1);
-          // Only set the denominator once per sequence — a later call just
-          // shrinks remainingCount, which moves "1 of 3" to "2 of 3" on its
-          // own without the total itself changing.
-          setTotalAtStart((prev) => prev ?? data.remainingCount ?? 1);
+          if (!fixedEventId) {
+            setRemainingCount(data.remainingCount ?? 1);
+            // Only set the denominator once per sequence — a later call just
+            // shrinks remainingCount, which moves "1 of 3" to "2 of 3" on its
+            // own without the total itself changing.
+            setTotalAtStart((prev) => prev ?? data.remainingCount ?? 1);
+          }
         } else {
           setPrompt(null);
           setTotalAtStart(null);
           setRemainingCount(0);
+          // Nothing (left) to log for this one specific event — e.g. someone
+          // else's click got there first. Nothing queued to fall back to, so
+          // just close rather than show an empty modal.
+          if (fixedEventId) onClose?.();
         }
       })
       .catch(() => {});
+  }
+
+  // After dismissing/sharing/saving: the automatic queue chains to whatever
+  // past event is next, but a fixed single-event log has no "next" — it
+  // just closes.
+  async function advance() {
+    if (fixedEventId) {
+      onClose?.();
+      return;
+    }
+    await loadNextPrompt();
   }
 
   useEffect(() => {
@@ -140,9 +173,11 @@ export function ResultsPrompt() {
     // Dismissing just this one event is what the API marks — there may still
     // be other past events waiting, so check again rather than closing for
     // the rest of the session (that's the whole point of asking about every
-    // passed event, not just the single most recent one).
-    await loadNextPrompt();
-    setBusy(false);
+    // passed event, not just the single most recent one). A fixed single-
+    // event log has no "next", so advance() just closes it instead — return
+    // right after rather than setBusy(false) on a component about to unmount.
+    await advance();
+    if (!fixedEventId) setBusy(false);
   }
 
   async function submitResult(tags: { taggedUserIds: string[]; freeformNames: string[] }) {
@@ -174,8 +209,8 @@ export function ResultsPrompt() {
 
   async function share() {
     if (!resultId) {
-      await loadNextPrompt();
-      setBusy(false);
+      await advance();
+      if (!fixedEventId) setBusy(false);
       return;
     }
     setBusy(true);
@@ -183,15 +218,15 @@ export function ResultsPrompt() {
     router.refresh();
     // More than one past event can be waiting — move straight to the next
     // one instead of closing until the next full page load.
-    await loadNextPrompt();
-    setBusy(false);
+    await advance();
+    if (!fixedEventId) setBusy(false);
   }
 
   async function saveOnly() {
     setBusy(true);
     router.refresh();
-    await loadNextPrompt();
-    setBusy(false);
+    await advance();
+    if (!fixedEventId) setBusy(false);
   }
 
   function toggleTag(user: UserOption) {
