@@ -73,11 +73,11 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
 /**
  * Undoes a still-pending claim request — e.g. the button was clicked by
- * accident. Only the claimant themselves, and only while it's still
- * awaiting admin review (claimedById unset); once approved, undoing it is
- * no longer a simple self-service action. Clears the claim fields and
- * removes the EVENT_CLAIM_REQUESTED notifications it sent to admins, so
- * there's nothing left over to review or act on.
+ * accident — or, once a claim is already approved, lets the claimant give
+ * it up themselves (e.g. they didn't mean to end up as this event's
+ * editor). Either way, only the claimant themselves can undo their own
+ * claim; removes the EVENT_CLAIM_REQUESTED notifications a still-pending
+ * request sent to admins, so there's nothing left over to review.
  */
 export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
@@ -87,7 +87,16 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
 
   const { id: eventId } = await params;
   const event = await prisma.event.findUnique({ where: { id: eventId } });
-  if (!event || event.claimRequestedById !== session.user.id) {
+  if (!event) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  if (event.claimedById === session.user.id) {
+    await prisma.event.update({ where: { id: eventId }, data: { claimedById: null } });
+    return NextResponse.json({ ok: true });
+  }
+
+  if (event.claimRequestedById !== session.user.id) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 

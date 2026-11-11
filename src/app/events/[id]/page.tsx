@@ -18,6 +18,7 @@ import { MessageAttendeesButton } from "@/components/MessageAttendeesButton";
 import { ShareEventButton } from "@/components/ShareEventButton";
 import { ClaimEventButton } from "@/components/ClaimEventButton";
 import { UndoClaimButton } from "@/components/UndoClaimButton";
+import { ReleaseClaimButton } from "@/components/ReleaseClaimButton";
 import { AskMeAgainLink } from "@/components/AskMeAgainLink";
 import { BackIcon } from "@/components/BackIcon";
 import { EditIcon } from "@/components/EditIcon";
@@ -75,6 +76,7 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
   // the organizer, on a public event nobody's already claimed or requested
   // (see Event.claimedById/claimRequestedById, /api/events/[id]/claim).
   const hasPendingClaimFromMe = event.claimRequestedById === session.user.id;
+  const hasApprovedClaimFromMe = event.claimedById === session.user.id;
   const canOfferClaim =
     !event.isPrivate &&
     !isOrganizer &&
@@ -268,6 +270,12 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
               <span className="flex items-center gap-1.5 text-xs text-b2b-ink/40">
                 Claim pending review
                 <UndoClaimButton eventId={event.id} />
+              </span>
+            )}
+            {hasApprovedClaimFromMe && (
+              <span className="flex items-center gap-1.5 text-xs text-b2b-ink/40">
+                You've claimed this event
+                <ReleaseClaimButton eventId={event.id} />
               </span>
             )}
             {canOfferClaim && <ClaimEventButton eventId={event.id} />}
