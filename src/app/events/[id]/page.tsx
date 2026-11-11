@@ -22,7 +22,6 @@ import { ReleaseClaimButton } from "@/components/ReleaseClaimButton";
 import { AskMeAgainLink } from "@/components/AskMeAgainLink";
 import { BackIcon } from "@/components/BackIcon";
 import { EditIcon } from "@/components/EditIcon";
-import { isInResultsPromptBeta } from "@/lib/resultsRollout";
 import { parseJsonArray, eventKindLabel, isCompetitionEvent } from "@/lib/labels";
 import { formatEventDate } from "@/lib/eventDate";
 import { assertEventVisible } from "@/lib/eventVisibility";
@@ -51,7 +50,7 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
 
   const me = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { isAdmin: true, account: { select: { email: true } } },
+    select: { isAdmin: true },
   });
 
   const event = await prisma.event.findUnique({
@@ -95,14 +94,12 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
   const isInterested = event.interests.length > 0;
 
   // "Ask me again" — only offered where the results prompt itself could
-  // ever fire: still in its beta, this event has actually ended, and the
-  // viewer dismissed it (rather than just never having been asked, or
-  // already having logged a result) — see the beta gate this mirrors in
-  // src/lib/eventResultPrompt.ts.
+  // ever fire: this event has actually ended, and the viewer dismissed it
+  // (rather than just never having been asked, or already having logged a
+  // result).
   const eventHasEnded = event.endDate ? event.endDate < new Date() : event.date < new Date();
   const showAskAgain =
     eventHasEnded &&
-    isInResultsPromptBeta(me?.account?.email) &&
     (await prisma.eventResultPromptDismissal.findUnique({
       where: { userId_eventId: { userId: session.user.id, eventId: event.id } },
     })) != null &&

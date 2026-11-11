@@ -35,10 +35,10 @@ type Step = "ask" | "team-or-solo" | "create-team" | "placement" | "tag" | "conf
 /**
  * The post-event "did you compete?" login prompt — fetches whether the
  * current user has an event waiting to be asked about (see
- * /api/event-results/prompt, gated by src/lib/resultsRollout.ts) and, if
- * so, walks them through logging a result. Mount once near the top of an
- * authenticated page (currently just /feed); renders nothing while loading
- * or when there's nothing to ask about.
+ * /api/event-results/prompt) and, if so, walks them through logging a
+ * result. Mount once near the top of an authenticated page (currently just
+ * /feed); renders nothing while loading or when there's nothing to ask
+ * about.
  *
  * Passing `fixedEventId` switches it to log one specific event instead of
  * pulling from the automatic catch-up queue — backs the manual "Log

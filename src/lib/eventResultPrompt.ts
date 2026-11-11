@@ -28,9 +28,6 @@ export type ResultPromptPayload =
  * on next login — the most-recently-ended event they're an EventParticipant
  * on with no EventResult logged yet and no prior dismissal. Only ever one
  * at a time, so logging/dismissing it is what surfaces the next-oldest.
- * Caller is responsible for the beta-rollout check (src/lib/resultsRollout.ts)
- * before calling this — kept separate so this stays reusable once the gate
- * widens.
  */
 function pendingPromptWhere(userId: string, now: Date) {
   return {
