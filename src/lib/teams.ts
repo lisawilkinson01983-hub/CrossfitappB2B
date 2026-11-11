@@ -51,6 +51,24 @@ export async function addUserToTeam(
     await addToConversation(team.conversationId, [userId]);
   }
 
+  // If the team's placement was already logged before this member joined,
+  // give them their own copy of it now (upserting by the same eventId+userId
+  // key the results flow itself uses) — otherwise a pre-existing solo result
+  // of theirs for this event stays orphaned at the team's old place forever,
+  // never converted, and shows up a second time as its own individual entry
+  // right alongside the team's row.
+  const existingTeamResult = await prisma.eventResult.findFirst({
+    where: { teamId },
+    select: { placementType: true, place: true, totalCompetitors: true, division: true, note: true, loggedByUserId: true },
+  });
+  if (existingTeamResult) {
+    await prisma.eventResult.upsert({
+      where: { eventId_userId: { eventId: team.eventId, userId } },
+      create: { eventId: team.eventId, userId, teamId, ...existingTeamResult },
+      update: { teamId, ...existingTeamResult },
+    });
+  }
+
   if (existingMembers.length > 0) {
     await prisma.notification.createMany({
       data: existingMembers.map((m) => ({

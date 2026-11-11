@@ -114,6 +114,8 @@ export function notificationText(n: NotificationView): string {
       return `removed you from their team for "${n.event?.name ?? "an event"}"`;
     case "RESULT_TAG_REQUEST":
       return `tagged you in a result at "${n.event?.name ?? "an event"}" — add it to your profile?`;
+    case "RESULT_REMOVED_BY_CAPTAIN":
+      return `removed your individual result at "${n.event?.name ?? "an event"}" — you're still on the team's result`;
     case "MENTION":
       return n.storyId ? "tagged you in their story" : "mentioned you";
     case "WALL_POST":
@@ -188,6 +190,8 @@ export function notificationHref(n: NotificationView, viewerId: string): string 
       return `/profile/${n.actor.id}`;
     case "RESULT_TAG_REQUEST":
       return `/event-result-tags/${n.eventResultTag?.id ?? ""}`;
+    case "RESULT_REMOVED_BY_CAPTAIN":
+      return `/events/${n.event?.id ?? ""}/results`;
     // Unlike WORKOUT_COMMENT (always on the viewer's own workout), the
     // workout here belongs to whoever tagged this user. If it was shared to
     // the feed, go straight to that post (n.post is set at notification-

@@ -220,6 +220,11 @@ enum NotificationType {
   // tapping it opens the accept/decline screen, not a deep-link to content
   // that already exists.
   RESULT_TAG_REQUEST
+  // A team's creator removed this user's own solo EventResult because it
+  // conflicted with the place their team already holds for the same event
+  // (see DELETE /api/event-results/[id]'s captain-override branch). The
+  // user stays on the team's own result; eventId below links back to it.
+  RESULT_REMOVED_BY_CAPTAIN
 }
 
 enum EventStatus {
