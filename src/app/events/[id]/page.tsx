@@ -17,6 +17,7 @@ import { InviteToEventForm } from "@/components/InviteToEventForm";
 import { MessageAttendeesButton } from "@/components/MessageAttendeesButton";
 import { ShareEventButton } from "@/components/ShareEventButton";
 import { ClaimEventButton } from "@/components/ClaimEventButton";
+import { UndoClaimButton } from "@/components/UndoClaimButton";
 import { AskMeAgainLink } from "@/components/AskMeAgainLink";
 import { BackIcon } from "@/components/BackIcon";
 import { EditIcon } from "@/components/EditIcon";
@@ -263,7 +264,12 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
             <div />
           )}
           <div className="flex shrink-0 items-center gap-2">
-            {hasPendingClaimFromMe && <p className="text-xs text-b2b-ink/40">Claim pending review</p>}
+            {hasPendingClaimFromMe && (
+              <span className="flex items-center gap-1.5 text-xs text-b2b-ink/40">
+                Claim pending review
+                <UndoClaimButton eventId={event.id} />
+              </span>
+            )}
             {canOfferClaim && <ClaimEventButton eventId={event.id} />}
             {canEdit && (
               <Link

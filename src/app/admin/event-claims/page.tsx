@@ -22,6 +22,7 @@ export default async function EventClaimsPage() {
       name: true,
       createdBy: { select: { name: true } },
       claimRequestedAt: true,
+      claimRequestNote: true,
       claimRequestedBy: { select: { id: true, name: true, account: { select: { email: true } } } },
     },
   });
@@ -51,6 +52,7 @@ export default async function EventClaimsPage() {
                       email: event.claimRequestedBy!.account?.email ?? "",
                     },
                     claimRequestedAt: event.claimRequestedAt!,
+                    note: event.claimRequestNote,
                   }}
                 />
               ))}

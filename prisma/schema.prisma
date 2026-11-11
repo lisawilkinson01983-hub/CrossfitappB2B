@@ -1524,6 +1524,10 @@ model Event {
   claimRequestedById String?
   claimRequestedBy   User?     @relation("EventClaimRequests", fields: [claimRequestedById], references: [id], onDelete: SetNull)
   claimRequestedAt   DateTime?
+  // Optional free text the claimant added to help an admin verify the
+  // claim (e.g. "I'm the affiliate owner, see our Instagram @..."). Cleared
+  // alongside the other claim fields once the request is resolved or undone.
+  claimRequestNote  String?
 
   // Set once an admin approves a claim request — this affiliate becomes an
   // additional editor alongside the event's existing organizer
