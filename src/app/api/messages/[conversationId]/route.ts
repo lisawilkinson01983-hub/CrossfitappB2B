@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { prisma, scheduleBadgeSync } from "@/lib/prisma";
 import { messageSchema } from "@/lib/validation";
 import { checkRateLimit } from "@/lib/rateLimit";
 import { summarizeReactions } from "@/lib/reactions";
@@ -41,10 +41,11 @@ export async function GET(_req: Request, { params }: { params: Promise<{ convers
   }
 
   // Viewing the thread marks the other participants' messages as read.
-  await prisma.message.updateMany({
+  const { count: newlyRead } = await prisma.message.updateMany({
     where: { conversationId, senderId: { not: session.user.id }, readAt: null },
     data: { readAt: new Date() },
   });
+  if (newlyRead > 0) scheduleBadgeSync(session.user.id);
 
   const messages = await prisma.message.findMany({
     where: { conversationId, ...messageVisibilityWhere(conversation.me) },
