@@ -1,3 +1,4 @@
+import { getSiteAccountId } from "@/lib/siteAccount";
 import { prisma } from "@/lib/prisma";
 import { extractMentionIds } from "@/lib/mentions";
 
@@ -57,4 +58,14 @@ export async function notifyMentions({
       wallPostId: wallPostId ?? null,
     })),
   });
+}
+
+/**
+ * Who an admin decision (approve/reject/verify/report outcome) appears to
+ * come from: the Box 2 Box site account when one is configured, so people
+ * see "Box 2 Box approved your event", not the individual admin's name.
+ * Falls back to the admin who acted.
+ */
+export async function reviewerActorId(adminProfileId: string): Promise<string> {
+  return (await getSiteAccountId()) ?? adminProfileId;
 }

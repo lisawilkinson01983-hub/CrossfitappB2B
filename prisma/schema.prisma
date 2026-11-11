@@ -225,6 +225,30 @@ enum NotificationType {
   // (see DELETE /api/event-results/[id]'s captain-override branch). The
   // user stays on the team's own result; eventId below links back to it.
   RESULT_REMOVED_BY_CAPTAIN
+
+  // Private accounts: someone asked to follow you / your request was accepted.
+  FOLLOW_REQUEST
+  FOLLOW_REQUEST_ACCEPTED
+  // Outcomes of things a user sent to the admins for review — the actor is
+  // the Box 2 Box site account (see reviewerActorId in src/lib/notify.ts).
+  EVENT_APPROVED
+  EVENT_REJECTED
+  GYM_APPROVED
+  GYM_REJECTED
+  VERIFICATION_APPROVED
+  VERIFICATION_DISMISSED
+  EVENT_CLAIM_APPROVED
+  EVENT_CLAIM_DISMISSED
+  // Sent to an event's participants once, within the 24 hours before it
+  // starts (src/lib/eventReminders.ts).
+  EVENT_REMINDER
+  // An event's date, end date or venue changed — sent to participants and
+  // interested athletes.
+  EVENT_UPDATED
+  // Someone else commented on a post you've commented on.
+  COMMENT_THREAD
+  // An admin took action on something you reported.
+  REPORT_ACTIONED
 }
 
 enum EventStatus {
@@ -653,6 +677,8 @@ model User {
 
   openResults         OpenResult[]
   communityCupResults CommunityCupResult[]
+
+  pushDevices PushDevice[]
 }
 
 // One row per successful login — used only to measure "days active" on the
@@ -1380,6 +1406,9 @@ model Message {
   storyId String?
   story   Story?  @relation(fields: [storyId], references: [id], onDelete: SetNull)
 
+  // Set once push notifications have gone out to the other participants
+  // (see src/lib/pushDelivery.ts).
+  pushedAt  DateTime?
   createdAt DateTime  @default(now())
   // Set when the sender edits the text after sending.
   editedAt  DateTime?
@@ -2192,6 +2221,9 @@ model Notification {
   eventResultTag   EventResultTag? @relation(fields: [eventResultTagId], references: [id], onDelete: Cascade)
 
   readAt    DateTime?
+  // Set once a push has been sent (or claimed for sending) for this
+  // notification — see src/lib/pushDelivery.ts. Null for in-app only.
+  pushedAt  DateTime?
   createdAt DateTime  @default(now())
 
   @@index([userId])
@@ -2302,6 +2334,32 @@ model Report {
   @@unique([reporterId, targetType, targetId])
   @@index([status])
   @@index([targetType, targetId])
+}
+
+enum PushPlatform {
+  IOS
+  ANDROID
+}
+
+/// A phone running the store app (mobile/) that has allowed push
+/// notifications. Registered by the app on launch (see
+/// src/components/NativePush.tsx → /api/push/devices) against whichever
+/// profile is active, so switching profiles moves the device with it.
+/// Deleted on sign-out, and automatically once Apple/Google report the
+/// token is no longer valid (app uninstalled, notifications turned off).
+model PushDevice {
+  id       String       @id @default(cuid())
+  // APNs device token (iOS) or FCM registration token (Android).
+  token    String       @unique
+  platform PushPlatform
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt  DateTime @default(now())
+  lastSeenAt DateTime @default(now())
+
+  @@index([userId])
 }
 
 enum GymStatus {

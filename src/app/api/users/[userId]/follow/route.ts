@@ -41,11 +41,22 @@ export async function POST(_req: Request, { params }: { params: Promise<{ userId
   }
 
   if (target.isPrivate) {
+    const previous = await prisma.followRequest.findUnique({
+      where: { requesterId_targetId: { requesterId: followerId, targetId } },
+      select: { status: true },
+    });
     await prisma.followRequest.upsert({
       where: { requesterId_targetId: { requesterId: followerId, targetId } },
       create: { requesterId: followerId, targetId, status: "PENDING" },
       update: { status: "PENDING" },
     });
+    // Only for a fresh request — re-tapping Follow on one that's already
+    // pending doesn't ping them again.
+    if (previous?.status !== "PENDING") {
+      await prisma.notification.create({
+        data: { userId: targetId, actorId: followerId, type: "FOLLOW_REQUEST" },
+      });
+    }
     return NextResponse.json({ status: "pending" });
   }
 

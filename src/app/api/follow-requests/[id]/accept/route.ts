@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { prisma, scheduleBadgeSync } from "@/lib/prisma";
 
 export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
@@ -25,7 +25,16 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
       create: { followerId: request.requesterId, followingId: request.targetId },
       update: {},
     }),
+    prisma.notification.create({
+      data: { userId: request.requesterId, actorId: request.targetId, type: "FOLLOW_REQUEST_ACCEPTED" },
+    }),
+    // The "asked to follow you" notification has been dealt with.
+    prisma.notification.updateMany({
+      where: { userId: request.targetId, actorId: request.requesterId, type: "FOLLOW_REQUEST", readAt: null },
+      data: { readAt: new Date() },
+    }),
   ]);
+  scheduleBadgeSync(session.user.id);
 
   return NextResponse.json({ ok: true });
 }

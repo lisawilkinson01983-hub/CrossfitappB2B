@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { signOut } from "next-auth/react";
+import { unregisterNativePush } from "@/components/NativePush";
 
 export function ChangeEmailForm() {
   const [currentPassword, setCurrentPassword] = useState("");
@@ -29,6 +30,7 @@ export function ChangeEmailForm() {
 
     // The session cookie still holds the old email until re-login, so sign
     // out now and have them log back in with the new one.
+    await unregisterNativePush();
     await signOut({ callbackUrl: "/login" });
   }
 

@@ -68,6 +68,8 @@ export async function POST(req: Request) {
     prisma.block.deleteMany({ where: { OR: [{ blockerId: { in: userIds } }, { blockedId: { in: userIds } }] } }),
     prisma.mute.deleteMany({ where: { OR: [{ userId: { in: userIds } }, { mutedUserId: { in: userIds } }] } }),
     prisma.notification.deleteMany({ where: { OR: [{ userId: { in: userIds } }, { actorId: { in: userIds } }] } }),
+    // No more pushes to this person's phones.
+    prisma.pushDevice.deleteMany({ where: { userId: { in: userIds } } }),
 
     // Release any gym directory entry a profile here had claimed (see
     // Gym.claimedById) — onDelete: SetNull only fires on an actual row

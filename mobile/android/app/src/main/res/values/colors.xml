@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Box 2 Box gold, used to tint push notifications. -->
+    <color name="notification_accent">#B8842A</color>
+</resources>
