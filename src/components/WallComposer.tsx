@@ -2,9 +2,10 @@
 
 import { useRef, useState, type ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
+import { Avatar } from "@/components/Avatar";
 import { MentionTextarea } from "@/components/MentionTextarea";
-import { AttachmentMenu } from "@/components/AttachmentMenu";
 import { GifPicker } from "@/components/GifPicker";
+import { GlobeIcon } from "@/components/GlobeIcon";
 import { MAX_VIDEO_SECONDS, MAX_PHOTO_BYTES, MAX_PHOTO_MB } from "@/lib/media";
 import { readVideoInfo } from "@/lib/readVideoInfo";
 
@@ -13,21 +14,29 @@ const MEDIA_ACCEPT = "image/jpeg,image/png,image/webp,video/mp4,video/quicktime"
 type Attachment = { kind: "photo" | "video"; file: File; thumbnail?: Blob | null };
 
 /**
- * Writes a new message directly onto a profile's Wall — full-width text (no
- * avatar; the author shows on each posted card instead) plus the same
- * photo/video/GIF attachment options the feed composer has. At most one
- * attachment at a time, same "pick one" convention as EventNotice/Comment.
+ * Writes a new message directly onto a profile's Wall. Collapses to a single
+ * tappable row (avatar + prompt) that opens a full-screen composer to draft
+ * the text and pick a photo/video/GIF — same attachment options the feed
+ * composer has, at most one at a time, same "pick one" convention as
+ * EventNotice/Comment. Keeping the draft surface full-screen (rather than an
+ * always-open inline textarea) leaves the Wall itself to just its collapsed
+ * row and the posted messages below it.
  */
 export function WallComposer({
   wallOwnerId,
   wallOwnerName,
   isOwnWall,
+  viewerPhoto,
+  viewerName,
 }: {
   wallOwnerId: string;
   wallOwnerName: string;
   isOwnWall: boolean;
+  viewerPhoto: string | null;
+  viewerName: string;
 }) {
   const router = useRouter();
+  const [open, setOpen] = useState(false);
   const [text, setText] = useState("");
   const [attachment, setAttachment] = useState<Attachment | null>(null);
   const [stagedGifUrl, setStagedGifUrl] = useState<string | null>(null);
@@ -35,6 +44,15 @@ export function WallComposer({
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  function reset() {
+    setText("");
+    setAttachment(null);
+    setStagedGifUrl(null);
+    setGifPickerOpen(false);
+    setError(null);
+    setOpen(false);
+  }
 
   function pickGif(gifUrl: string) {
     setGifPickerOpen(false);
@@ -104,81 +122,124 @@ export function WallComposer({
       return;
     }
 
-    setText("");
-    setAttachment(null);
-    setStagedGifUrl(null);
+    reset();
     router.refresh();
   }
 
+  const destination = isOwnWall ? "your wall" : `${wallOwnerName}'s wall`;
+
   return (
-    <div className="rounded-xl border border-b2b-purple/10 bg-b2b-card p-4">
-      <MentionTextarea
-        value={text}
-        onChange={setText}
-        rows={2}
-        placeholder={
-          isOwnWall
-            ? "Write something on your wall... (type @ to tag someone)"
-            : `Write on ${wallOwnerName}'s wall... (type @ to tag someone)`
-        }
-        className="w-full resize-none rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-b2b-pink focus:outline-none"
-      />
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="flex w-full items-center gap-2.5 rounded-xl border border-b2b-purple/10 bg-b2b-card px-3.5 py-2.5 text-left hover:bg-b2b-bg"
+      >
+        <Avatar photo={viewerPhoto} name={viewerName} size={30} />
+        <span className="text-sm text-b2b-ink/40">Write something on {destination}...</span>
+      </button>
 
-      {attachment && (
-        <div className="relative mt-3 inline-block">
-          {attachment.kind === "video" ? (
-            <video src={URL.createObjectURL(attachment.file)} controls className="max-h-48 rounded-lg" />
-          ) : (
-            // eslint-disable-next-line @next/next/no-img-element -- local object URL preview, not a servable path yet
-            <img src={URL.createObjectURL(attachment.file)} alt="" className="max-h-48 rounded-lg object-cover" />
+      {open && (
+        <div className="fixed inset-0 z-50 flex flex-col bg-b2b-bg">
+          <div className="flex items-center justify-between border-b border-b2b-purple/10 px-4 py-3">
+            <button type="button" onClick={reset} className="text-sm font-medium text-b2b-ink/50 hover:text-b2b-ink/80">
+              Cancel
+            </button>
+            <p className="text-sm font-bold text-b2b-ink">Write on {destination}</p>
+            <button
+              type="button"
+              onClick={handleSubmit}
+              disabled={submitting || !hasContent}
+              className="rounded-full bg-b2b-pink px-4 py-1.5 text-sm font-medium text-white hover:bg-b2b-pink-dark disabled:opacity-50"
+            >
+              {submitting ? "Posting..." : "Post"}
+            </button>
+          </div>
+
+          <div className="flex items-start gap-2.5 px-4 py-3">
+            <Avatar photo={viewerPhoto} name={viewerName} size={36} />
+            <div>
+              <p className="text-sm font-semibold text-b2b-ink">{viewerName}</p>
+              <span className="mt-0.5 inline-flex items-center gap-1 rounded-full bg-b2b-ink/5 px-2 py-0.5 text-[10px] font-semibold text-b2b-ink/50">
+                <GlobeIcon className="h-2.5 w-2.5" />
+                Public wall
+              </span>
+            </div>
+          </div>
+
+          <MentionTextarea
+            value={text}
+            onChange={setText}
+            rows={6}
+            autoFocus
+            placeholder="What do you want to say? Type @ to tag someone..."
+            className="flex-1 resize-none border-none px-4 text-base text-b2b-ink focus:outline-none"
+          />
+
+          {attachment && (
+            <div className="grid grid-cols-3 gap-1.5 px-4 pb-3">
+              <div className="relative aspect-square overflow-hidden rounded-lg bg-b2b-ink/5">
+                {attachment.kind === "video" ? (
+                  <video src={URL.createObjectURL(attachment.file)} controls className="h-full w-full object-cover" />
+                ) : (
+                  // eslint-disable-next-line @next/next/no-img-element -- local object URL preview, not a servable path yet
+                  <img src={URL.createObjectURL(attachment.file)} alt="" className="h-full w-full object-cover" />
+                )}
+                <button
+                  type="button"
+                  onClick={() => setAttachment(null)}
+                  aria-label="Remove attachment"
+                  className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-xs text-white hover:bg-black/80"
+                >
+                  ×
+                </button>
+              </div>
+            </div>
           )}
-          <button
-            type="button"
-            onClick={() => setAttachment(null)}
-            aria-label="Remove attachment"
-            className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-b2b-ink/70 text-sm text-b2b-bg hover:bg-b2b-ink"
-          >
-            ×
-          </button>
+
+          {stagedGifUrl && (
+            <div className="grid grid-cols-3 gap-1.5 px-4 pb-3">
+              <div className="relative aspect-square overflow-hidden rounded-lg bg-b2b-ink/5">
+                {/* eslint-disable-next-line @next/next/no-img-element -- external, unsized GIF from Tenor */}
+                <img src={stagedGifUrl} alt="" className="h-full w-full object-cover" />
+                <button
+                  type="button"
+                  onClick={() => setStagedGifUrl(null)}
+                  aria-label="Remove GIF"
+                  className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-xs text-white hover:bg-black/80"
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+          )}
+
+          {error && <p className="px-4 pb-2 text-sm text-red-600">{error}</p>}
+
+          <input ref={fileInputRef} type="file" accept={MEDIA_ACCEPT} onChange={handleFileChange} className="hidden" />
+          <div className="relative flex items-center justify-between border-t border-b2b-purple/10 px-4 py-2.5">
+            <span className="text-xs font-semibold text-b2b-ink/45">Add to your post</span>
+            <div className="flex items-center gap-4">
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                aria-label="Add photo or video"
+                className="text-lg"
+              >
+                📷
+              </button>
+              <button
+                type="button"
+                onClick={() => setGifPickerOpen((v) => !v)}
+                className="text-xs font-extrabold text-b2b-pink-dark"
+              >
+                GIF
+              </button>
+            </div>
+            {gifPickerOpen && <GifPicker onSelect={pickGif} onClose={() => setGifPickerOpen(false)} />}
+          </div>
         </div>
       )}
-
-      {stagedGifUrl && (
-        <div className="relative mt-3 inline-block">
-          {/* eslint-disable-next-line @next/next/no-img-element -- external, unsized GIF from Tenor */}
-          <img src={stagedGifUrl} alt="" className="max-h-48 rounded-lg object-cover" />
-          <button
-            type="button"
-            onClick={() => setStagedGifUrl(null)}
-            aria-label="Remove GIF"
-            className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-b2b-ink/70 text-sm text-b2b-bg hover:bg-b2b-ink"
-          >
-            ×
-          </button>
-        </div>
-      )}
-
-      {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
-
-      <div className="relative mt-3 flex items-center justify-between">
-        <input ref={fileInputRef} type="file" accept={MEDIA_ACCEPT} onChange={handleFileChange} className="hidden" />
-        <AttachmentMenu
-          items={[
-            { key: "media", label: "📷 Photo / Video", onClick: () => fileInputRef.current?.click() },
-            { key: "gif", label: "GIF", onClick: () => setGifPickerOpen(true) },
-          ]}
-        />
-        {gifPickerOpen && <GifPicker onSelect={pickGif} onClose={() => setGifPickerOpen(false)} />}
-
-        <button
-          type="button"
-          onClick={handleSubmit}
-          disabled={submitting || !hasContent}
-          className="rounded-full bg-b2b-pink px-4 py-1.5 text-sm font-medium text-white hover:bg-b2b-pink-dark disabled:opacity-50"
-        >
-          {submitting ? "Posting..." : "Post"}
-        </button>
-      </div>
-    </div>
+    </>
   );
 }

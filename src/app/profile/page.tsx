@@ -244,7 +244,13 @@ export default async function ProfilePage() {
   const wallSection = (
     <SectionCard title="Wall">
       <div className="flex flex-col gap-4">
-        <WallComposer wallOwnerId={user.id} wallOwnerName={user.name} isOwnWall />
+        <WallComposer
+          wallOwnerId={user.id}
+          wallOwnerName={user.name}
+          isOwnWall
+          viewerPhoto={user.photo}
+          viewerName={user.name}
+        />
         {wallPosts.length === 0 ? (
           <p className="text-b2b-ink/40">No wall posts yet.</p>
         ) : (

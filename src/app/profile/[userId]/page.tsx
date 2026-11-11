@@ -66,7 +66,7 @@ export default async function UserProfilePage({
       where: { requesterId_targetId: { requesterId: session.user.id, targetId: user.id } },
     }),
     prisma.workout.count({ where: { userId: user.id } }),
-    prisma.user.findUnique({ where: { id: session.user.id }, select: { lookingFor: true } }),
+    prisma.user.findUnique({ where: { id: session.user.id }, select: { lookingFor: true, photo: true, name: true } }),
     prisma.block.findUnique({
       where: { blockerId_blockedId: { blockerId: session.user.id, blockedId: user.id } },
     }),
@@ -238,7 +238,13 @@ export default async function UserProfilePage({
     wallSection = (
       <SectionCard title="Wall">
         <div className="flex flex-col gap-4">
-          <WallComposer wallOwnerId={user.id} wallOwnerName={user.name} isOwnWall={false} />
+          <WallComposer
+            wallOwnerId={user.id}
+            wallOwnerName={user.name}
+            isOwnWall={false}
+            viewerPhoto={me?.photo ?? null}
+            viewerName={me?.name ?? session.user.name ?? "You"}
+          />
           {wallPosts.length === 0 ? (
             <p className="text-b2b-ink/40">No wall posts yet.</p>
           ) : (
