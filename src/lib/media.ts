@@ -1,5 +1,5 @@
 /** Shared between the client (composer) and server (upload validation). */
-export const MAX_VIDEO_SECONDS = 20;
+export const MAX_VIDEO_SECONDS = 60;
 
 // Every photo gets resized down to 1600px/quality 82 on the server regardless
 // of how it comes in (see resizePhoto in src/lib/uploads.ts), so this isn't
