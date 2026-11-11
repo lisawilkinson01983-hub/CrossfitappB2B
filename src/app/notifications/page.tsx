@@ -9,6 +9,7 @@ import { Avatar } from "@/components/Avatar";
 import { showsSingleBadge } from "@/lib/labels";
 import { formatDate } from "@/lib/dates";
 import { notificationText, notificationHref } from "@/lib/notifications";
+import { hiddenInAppTypes, parseNotificationPrefs } from "@/lib/notificationSettings";
 
 export default async function NotificationsPage() {
   const session = await getServerSession(authOptions);
@@ -21,8 +22,12 @@ export default async function NotificationsPage() {
   });
   if (newlyRead > 0) scheduleBadgeSync(session.user.id);
 
+  // Types switched off in Settings → Notifications aren't listed.
+  const me = await prisma.user.findUnique({ where: { id: session.user.id }, select: { notificationPrefs: true } });
+  const hidden = hiddenInAppTypes(parseNotificationPrefs(me?.notificationPrefs));
+
   const notifications = await prisma.notification.findMany({
-    where: { userId: session.user.id },
+    where: { userId: session.user.id, ...(hidden.length ? { type: { notIn: hidden } } : {}) },
     orderBy: { createdAt: "desc" },
     take: 50,
     include: {
@@ -41,7 +46,12 @@ export default async function NotificationsPage() {
   return (
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
       <NavBar />
-      <h1 className="mt-6 text-2xl font-bold">Notifications</h1>
+      <div className="mt-6 flex items-center justify-between gap-3">
+        <h1 className="text-2xl font-bold">Notifications</h1>
+        <Link href="/settings/notifications" className="text-sm text-b2b-pink underline">
+          Settings
+        </Link>
+      </div>
 
       <div className="mt-6">
         <SectionCard>

@@ -541,6 +541,10 @@ model User {
   // Opt-out for other people sharing this user's posts to their own feed
   // (see Post.sharedFromId / /api/posts/[id]/share) — defaulted on.
   allowPostShares Boolean @default(true)
+  // Which notifications this profile has switched off, as JSON:
+  // {"<setting key>": {"push": false, "inApp": false}} — keys are the rows
+  // in src/lib/notificationSettings.ts; anything missing is on.
+  notificationPrefs String?
 
   // Benchmark movement PBs (kg). Stored as individual nullable columns rather
   // than a JSON blob since SQLite has no native JSON column type. A user can
