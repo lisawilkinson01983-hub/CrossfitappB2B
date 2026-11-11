@@ -82,6 +82,8 @@ export async function sendFcm(tokens: string[], message: PushMessage): Promise<S
                   tag: message.threadId,
                   icon: "ic_stat_notify",
                   color: "#b8842a",
+                  // Launchers that show a number on the icon use this.
+                  notification_count: message.badge,
                 },
               },
             },

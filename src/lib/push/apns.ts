@@ -52,19 +52,33 @@ export function apnsProviderToken(now = Date.now()): string {
 const DEAD_TOKEN_REASONS = new Set(["BadDeviceToken", "Unregistered", "DeviceTokenNotForTopic"]);
 
 export async function sendApns(tokens: string[], message: PushMessage): Promise<SendResult[]> {
-  if (tokens.length === 0) return [];
-  const client = http2.connect(apnsHost());
-  client.on("error", () => {}); // surfaced per request below
-  const auth = `bearer ${apnsProviderToken()}`;
-  const body = JSON.stringify({
+  return postToApns(tokens, {
     aps: {
       alert: { title: message.title, body: message.body },
       sound: "default",
       "thread-id": message.threadId,
+      badge: message.badge,
     },
     // Read by the app when the notification is tapped (NativePush.tsx).
     url: message.url,
   });
+}
+
+/**
+ * A silent push that only changes the number on the app icon — sent when
+ * notifications or messages are read, so the icon doesn't keep showing a
+ * count for things already seen. No banner, no sound.
+ */
+export async function sendApnsBadge(tokens: string[], badge: number): Promise<SendResult[]> {
+  return postToApns(tokens, { aps: { badge } }, "5");
+}
+
+async function postToApns(tokens: string[], payload: object, priority = "10"): Promise<SendResult[]> {
+  if (tokens.length === 0) return [];
+  const client = http2.connect(apnsHost());
+  client.on("error", () => {}); // surfaced per request below
+  const auth = `bearer ${apnsProviderToken()}`;
+  const body = JSON.stringify(payload);
 
   try {
     return await Promise.all(
@@ -77,7 +91,7 @@ export async function sendApns(tokens: string[], message: PushMessage): Promise<
               authorization: auth,
               "apns-topic": process.env.APNS_BUNDLE_ID ?? "social.box2box.app",
               "apns-push-type": "alert",
-              "apns-priority": "10",
+              "apns-priority": priority,
               "content-type": "application/json",
             });
             let status = 0;

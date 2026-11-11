@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { unreadCounts } from "@/lib/unread";
 import { isProfileSetupComplete } from "@/lib/profileSetup";
 import { Logo } from "./Logo";
 import { BottomTabBar } from "./BottomTabBar";
@@ -12,18 +13,9 @@ import { SettingsIcon } from "./SettingsIcon";
 export async function NavBar() {
   const session = await getServerSession(authOptions);
 
-  const [unreadMessages, unreadNotifications, profile] = session?.user?.id
+  const [{ messages: unreadMessages, notifications: unreadNotifications }, profile] = session?.user?.id
     ? await Promise.all([
-        prisma.message.count({
-          where: {
-            conversation: { participants: { some: { userId: session.user.id } } },
-            senderId: { not: session.user.id },
-            readAt: null,
-          },
-        }),
-        prisma.notification.count({
-          where: { userId: session.user.id, readAt: null },
-        }),
+        unreadCounts(session.user.id),
         prisma.user.findUnique({
           where: { id: session.user.id },
           select: {
@@ -35,7 +27,7 @@ export async function NavBar() {
           },
         }),
       ])
-    : [0, 0, null];
+    : [{ messages: 0, notifications: 0 }, null];
 
   // Setup isn't done — every authenticated page bounces back to the setup
   // wizard until it is (the wizard itself, and /profile/edit's own redirect,

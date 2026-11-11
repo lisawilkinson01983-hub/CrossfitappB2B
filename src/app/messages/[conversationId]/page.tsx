@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect, notFound } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { prisma, scheduleBadgeSync } from "@/lib/prisma";
 import { NavBar } from "@/components/NavBar";
 import { Avatar } from "@/components/Avatar";
 import { ChatThread } from "@/components/ChatThread";
@@ -43,10 +43,11 @@ export default async function ConversationPage({
   const displayName = conversationDisplayName(conversation, others.filter((u) => !u.deletedAt).map((u) => u.name));
 
   // Viewing the thread marks the other participants' messages as read.
-  await prisma.message.updateMany({
+  const { count: newlyRead } = await prisma.message.updateMany({
     where: { conversationId, senderId: { not: session.user.id }, readAt: null },
     data: { readAt: new Date() },
   });
+  if (newlyRead > 0) scheduleBadgeSync(session.user.id);
 
   const messages = await prisma.message.findMany({
     where: { conversationId, ...messageVisibilityWhere(me) },

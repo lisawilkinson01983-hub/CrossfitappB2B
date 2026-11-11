@@ -18,6 +18,17 @@ function schedulePushDelivery() {
   }, 1500);
 }
 
+// When someone reads their notifications or messages, the number on their
+// iPhone app icon is brought down to match (src/lib/push → syncBadge). Same
+// start-up registration as above; a no-op without APNs credentials.
+export function scheduleBadgeSync(userId: string) {
+  const sync = (globalThis as { __b2bSyncBadge?: (userId: string) => Promise<void> }).__b2bSyncBadge;
+  if (!sync) return;
+  setTimeout(() => {
+    sync(userId).catch((err) => console.error("[push] badge sync failed:", err));
+  }, 0);
+}
+
 function createClient() {
   const afterCreate = {
     async $allOperations({ operation, args, query }: { operation: string; args: unknown; query: (args: unknown) => Promise<unknown> }) {

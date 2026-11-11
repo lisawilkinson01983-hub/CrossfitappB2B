@@ -10,6 +10,8 @@ export async function register() {
   if (process.env.NEXT_RUNTIME === "nodejs" && (process.env.APNS_KEY || process.env.FCM_SERVICE_ACCOUNT)) {
     const { deliverPendingPushes } = await import("./lib/pushDelivery");
     (globalThis as { __b2bDeliverPushes?: () => Promise<void> }).__b2bDeliverPushes = deliverPendingPushes;
+    const { syncBadge } = await import("./lib/push");
+    (globalThis as { __b2bSyncBadge?: (userId: string) => Promise<void> }).__b2bSyncBadge = syncBadge;
   }
 
   // Event reminders (src/lib/eventReminders.ts): checked every 30 minutes
