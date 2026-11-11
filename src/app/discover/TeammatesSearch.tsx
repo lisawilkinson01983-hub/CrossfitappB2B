@@ -16,10 +16,18 @@ import {
 import { TEAMMATE_DIVISIONS, TEAMMATE_GENDERS, type TeammateDivisionOption, type TeammateGenderOption } from "@/lib/validation";
 import { DiscoverTabs } from "@/components/DiscoverTabs";
 
+const SORT_OPTIONS = {
+  newest: "Newest posted",
+  date: "Event date (soonest first)",
+  distance: "Distance (nearest first)",
+} as const;
+type SortOption = keyof typeof SORT_OPTIONS;
+
 export type TeammateSearchParams = {
   division?: string;
   gender?: string;
   distance?: string;
+  sort?: string;
 };
 
 export async function TeammatesSearch({
@@ -32,6 +40,7 @@ export async function TeammatesSearch({
   const division = TEAMMATE_DIVISIONS.find((d) => d === sp.division);
   const gender = TEAMMATE_GENDERS.find((g) => g === sp.gender);
   const distance = DISTANCE_RANGES.find((d) => String(d) === sp.distance);
+  const sort: SortOption = sp.sort === "date" ? "date" : sp.sort === "distance" ? "distance" : "newest";
   const activeFilterCount = [division, gender, distance].filter(Boolean).length;
 
   const now = new Date();
@@ -87,7 +96,15 @@ export async function TeammatesSearch({
     })
   );
 
-  const visible = distance ? withDistance.filter(({ miles }) => miles !== null && miles <= distance) : withDistance;
+  const filtered = distance ? withDistance.filter(({ miles }) => miles !== null && miles <= distance) : withDistance;
+
+  // The DB query already sorts newest-first — only re-sort for the other options.
+  const visible =
+    sort === "distance" && myCoords
+      ? [...filtered].sort((a, b) => (a.miles ?? Infinity) - (b.miles ?? Infinity))
+      : sort === "date"
+        ? [...filtered].sort((a, b) => a.notice.event.date.getTime() - b.notice.event.date.getTime())
+        : filtered;
 
   return (
     <div className="mt-4 flex flex-col gap-4">
@@ -158,6 +175,23 @@ export async function TeammatesSearch({
               {!myCoords && (
                 <p className="mt-1 text-xs text-b2b-ink/40">Set your area on your profile to filter by distance.</p>
               )}
+            </div>
+            <div>
+              <label htmlFor="sort" className="block text-sm font-medium">
+                Sort by
+              </label>
+              <select
+                id="sort"
+                name="sort"
+                defaultValue={sort}
+                className="mt-1 w-full max-w-xs rounded border border-gray-300 bg-b2b-card px-3 py-2 focus:border-b2b-pink focus:outline-none"
+              >
+                {(Object.keys(SORT_OPTIONS) as SortOption[]).map((s) => (
+                  <option key={s} value={s} disabled={s === "distance" && !myCoords}>
+                    {SORT_OPTIONS[s]}
+                  </option>
+                ))}
+              </select>
             </div>
           </SearchFilters>
           <div className="flex gap-3">

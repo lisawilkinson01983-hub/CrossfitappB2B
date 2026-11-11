@@ -23,6 +23,12 @@ import { OpenLevelBadge } from "@/components/OpenLevelBadge";
 // "Prefer not to disclose" is a profile-level privacy choice, not a search filter.
 const SEARCHABLE_GENDERS = GENDERS.filter((g) => g !== "PREFER_NOT_TO_DISCLOSE");
 
+const SORT_OPTIONS = {
+  name: "Name (A–Z)",
+  distance: "Distance (nearest first)",
+} as const;
+type SortOption = keyof typeof SORT_OPTIONS;
+
 export type AthleteSearchParams = {
   q?: string;
   gym?: string;
@@ -31,6 +37,7 @@ export type AthleteSearchParams = {
   level?: string;
   lookingFor?: string | string[];
   hideFollowing?: string;
+  sort?: string;
 };
 
 export async function AthletesSearch({
@@ -49,6 +56,7 @@ export async function AthletesSearch({
     LOOKING_FOR_OPTIONS.includes(v as LookingForOption)
   );
   const hideFollowing = sp.hideFollowing === "1";
+  const sort: SortOption = sp.sort === "distance" ? "distance" : "name";
 
   const [blocked, currentUser, approvedGyms] = await Promise.all([
     prisma.block.findMany({ where: { blockerId: currentUserId }, select: { blockedId: true } }),
@@ -117,9 +125,16 @@ export async function AthletesSearch({
     })
   );
 
-  const results = distance
+  const filteredCandidates = distance
     ? candidatesWithDistance.filter(({ miles }) => miles !== null && miles <= distance)
     : candidatesWithDistance;
+
+  // The DB query already sorts by name — only re-sort when distance is
+  // explicitly chosen (and only possible once coords exist at all).
+  const results =
+    sort === "distance" && myCoords
+      ? [...filteredCandidates].sort((a, b) => (a.miles ?? Infinity) - (b.miles ?? Infinity))
+      : filteredCandidates;
 
   const resultIds = results.map(({ user }) => user.id);
   const [myFollows, myPendingRequests, myMutes] = await Promise.all([
@@ -241,6 +256,23 @@ export async function AthletesSearch({
                 {LEVELS.map((l) => (
                   <option key={l} value={l}>
                     {LEVEL_LABELS[l]}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label htmlFor="sort" className="block text-sm font-medium">
+                Sort by
+              </label>
+              <select
+                id="sort"
+                name="sort"
+                defaultValue={sort}
+                className="mt-1 w-full rounded border border-gray-300 bg-b2b-card px-3 py-2 focus:border-b2b-pink focus:outline-none"
+              >
+                {(Object.keys(SORT_OPTIONS) as SortOption[]).map((s) => (
+                  <option key={s} value={s} disabled={s === "distance" && !myCoords}>
+                    {SORT_OPTIONS[s]}
                   </option>
                 ))}
               </select>
