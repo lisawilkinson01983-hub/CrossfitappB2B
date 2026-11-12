@@ -4,6 +4,7 @@ import { WORKOUT_INTENSITY_BADGE_CLASSES, WORKOUT_INTENSITY_LABELS, WORKOUT_UNIT
 import type { WorkoutIntensityOption, WorkoutUnitOption } from "@/lib/validation";
 import { DeleteWorkoutButton } from "./DeleteWorkoutButton";
 import { PinButton } from "./PinButton";
+import { ShareWorkoutButton } from "./ShareWorkoutButton";
 import { WorkoutDescriptionToggle } from "./WorkoutDescriptionToggle";
 import { formatDate } from "@/lib/dates";
 import { EditIcon } from "./EditIcon";
@@ -132,6 +133,11 @@ export function WorkoutCard({
           {showPin && (
             <PinButton endpoint={`/api/workouts/${workout.id}/pin`} initialPinned={workout.pinned ?? false} />
           )}
+          <ShareWorkoutButton
+            workoutId={workout.id}
+            wodName={workout.wodName}
+            initialSharedToFeed={workout.sharedToFeed}
+          />
           {showDelete && (
             <>
               <Link href={`/workouts/${workout.id}/edit`} aria-label="Edit" className="text-b2b-pink hover:text-b2b-pink-dark">

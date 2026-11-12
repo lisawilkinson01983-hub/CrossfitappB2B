@@ -96,3 +96,51 @@ export async function loadFeedStoryData(
     },
   };
 }
+
+/**
+ * Same FeedStoryA/B/C shape as loadFeedStoryData, but sourced straight from
+ * a Workout row instead of a Post — so a workout that was never (and may
+ * never be) shared to the feed can still be shared to Stories/Instagram/a
+ * DM. Only the workout's own owner can render it; `userId` is the viewer
+ * from the session, checked against the row, not just used to look it up.
+ */
+export async function loadWorkoutCardData(
+  workoutId: string,
+  userId: string,
+  photoOverride: string | null
+): Promise<{ a: FeedStoryAProps; b: FeedStoryBProps; c: FeedStoryCProps } | null> {
+  const w = await prisma.workout.findUnique({
+    where: { id: workoutId },
+    include: { user: { select: { id: true, name: true, photo: true } } },
+  });
+  if (!w || w.userId !== userId) return null;
+
+  const cardPhotoUrl = photoOverride ?? w.photo ?? w.user.photo;
+  const avatarUrl = photoOverride ?? w.user.photo;
+  const [cardPhoto, avatar] = await Promise.all([photoToDataUri(cardPhotoUrl), photoToDataUri(avatarUrl)]);
+
+  const score = w.unit === "ROUNDS_REPS" ? `${w.rounds ?? 0} + ${w.reps ?? 0}` : w.score ?? "—";
+  const label = `${WORKOUT_UNIT_LABELS[w.unit]} · ${WORKOUT_INTENSITY_LABELS[w.intensity]}`;
+  const stats =
+    w.unit === "ROUNDS_REPS"
+      ? [
+          { value: String(w.rounds ?? 0), label: "Rounds" },
+          { value: String(w.reps ?? 0), label: "Reps" },
+        ]
+      : [];
+
+  return {
+    a: { name: w.user.name, photo: cardPhoto, score, label },
+    b: { name: w.user.name, photo: avatar, quote: w.notes ?? "" },
+    c: {
+      name: w.user.name,
+      photo: avatar,
+      date: formatDate(w.createdAt, { day: "numeric", month: "short" }),
+      scoreLabel: WORKOUT_UNIT_LABELS[w.unit],
+      score,
+      badge: WORKOUT_INTENSITY_LABELS[w.intensity],
+      description: w.description ?? null,
+      stats,
+    },
+  };
+}
