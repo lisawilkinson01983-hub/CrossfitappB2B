@@ -20,7 +20,7 @@ import {
   type NamedWorkout,
 } from "@/lib/wodDatabase";
 import { Avatar } from "@/components/Avatar";
-import type { GymWodSuggestion } from "@/lib/gymSuggestion";
+import type { GymWodWeek } from "@/lib/gymSuggestion";
 
 type Attachment = { kind: "photo" | "video"; file: File; thumbnail?: Blob | null };
 type UserOption = { id: string; name: string; photo: string | null };
@@ -73,23 +73,35 @@ const BLANK_INITIAL: Initial = {
 
 /**
  * Used both to log a new workout and to edit an existing one — pass
- * workoutId + initial to edit. `gymSuggestion` (new-workout page only — see
- * getGymWodSuggestion) offers today's already-logged gym WOD as a one-tap
- * fill, so a second person from the same box doesn't have to retype it.
+ * workoutId + initial to edit. `gymWodWeek` (new-workout page only — see
+ * getGymWodWeek) offers the last week's already-logged WODs, at your own
+ * gym or any other, as a one-tap fill, so logging late or copying a WOD
+ * someone else's box did doesn't mean retyping it. Hidden whenever `initial`
+ * already has a WOD name — e.g. arriving via a feed post's "Log this WOD"
+ * link, which has already picked one.
  */
 export function WorkoutForm({
   workoutId,
   initial,
-  gymSuggestion = null,
+  gymWodWeek = null,
+  prefillWod = null,
 }: {
   workoutId?: string;
   initial?: Initial;
-  gymSuggestion?: GymWodSuggestion | null;
+  gymWodWeek?: GymWodWeek | null;
+  /** New-workout page only, arriving via a feed post's "Log this WOD" link — fills the name/description, leaving everything else (score, intensity...) for the athlete to fill in themselves. Ignored once `initial` is set (editing). */
+  prefillWod?: { wodName: string; description: string } | null;
 }) {
   const router = useRouter();
   const isEditing = Boolean(workoutId);
-  const start = initial ?? BLANK_INITIAL;
-  const [suggestionVisible, setSuggestionVisible] = useState(!!gymSuggestion && !isEditing);
+  const start = initial ?? (prefillWod ? { ...BLANK_INITIAL, ...prefillWod } : BLANK_INITIAL);
+  const [suggestionVisible, setSuggestionVisible] = useState(!!gymWodWeek && !isEditing && !start.wodName);
+  const [selectedGymKey, setSelectedGymKey] = useState(gymWodWeek?.myGymKey ?? gymWodWeek?.gyms[0]?.key ?? null);
+  const [selectedDayKey, setSelectedDayKey] = useState<string | null>(null);
+  const [gymPickerOpen, setGymPickerOpen] = useState(false);
+
+  const selectedGym = gymWodWeek?.gyms.find((g) => g.key === selectedGymKey) ?? gymWodWeek?.gyms[0] ?? null;
+  const selectedDay = selectedGym?.days.find((d) => d.key === selectedDayKey) ?? selectedGym?.days[0] ?? null;
 
   const initialTime = start.unit === "TIME" ? splitTime(start.score ?? "") : ["", "", ""];
 
@@ -172,10 +184,10 @@ export function WorkoutForm({
   }
 
   function applyGymSuggestion() {
-    if (!gymSuggestion) return;
-    setWodName(gymSuggestion.wodName);
-    setDescription(gymSuggestion.description);
-    setAutoFilledDescription(gymSuggestion.description);
+    if (!selectedDay) return;
+    setWodName(selectedDay.wodName);
+    setDescription(selectedDay.description);
+    setAutoFilledDescription(selectedDay.description);
     setSuggestionVisible(false);
   }
 
@@ -256,14 +268,62 @@ export function WorkoutForm({
     <form onSubmit={handleSubmit} className="flex flex-col gap-5">
       {error && <p className="rounded bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
 
-      {suggestionVisible && gymSuggestion && (
+      {suggestionVisible && gymWodWeek && selectedGym && selectedDay && (
         <div className="rounded-lg border border-b2b-pink/30 bg-b2b-pink/5 p-3">
-          <p className="text-sm font-medium text-b2b-ink">
-            {gymSuggestion.authorName.split(" ")[0]} already logged today's WOD from your gym
+          <div className="flex items-baseline justify-between gap-2">
+            <p className="text-sm font-medium text-b2b-ink">WODs logged at {selectedGym.name} this week</p>
+            {gymWodWeek.gyms.length > 1 && (
+              <button
+                type="button"
+                onClick={() => setGymPickerOpen((v) => !v)}
+                className="shrink-0 text-xs font-semibold text-b2b-pink hover:underline"
+              >
+                Change gym
+              </button>
+            )}
+          </div>
+
+          {gymPickerOpen && (
+            <div className="mt-2 flex gap-1.5 overflow-x-auto pb-1">
+              {gymWodWeek.gyms.map((gym) => (
+                <button
+                  key={gym.key}
+                  type="button"
+                  onClick={() => {
+                    setSelectedGymKey(gym.key);
+                    setSelectedDayKey(null);
+                  }}
+                  className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold ${
+                    gym.key === selectedGym.key
+                      ? "bg-b2b-ink text-b2b-bg"
+                      : "border border-b2b-ink/15 bg-b2b-bg text-b2b-ink/70"
+                  }`}
+                >
+                  {gym.name}
+                </button>
+              ))}
+            </div>
+          )}
+
+          <div className="mt-2 flex gap-1.5 overflow-x-auto pb-1">
+            {selectedGym.days.map((day) => (
+              <button
+                key={day.key}
+                type="button"
+                onClick={() => setSelectedDayKey(day.key)}
+                className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold ${
+                  day.key === selectedDay.key ? "bg-b2b-pink text-white" : "bg-white text-b2b-ink"
+                }`}
+              >
+                {day.label}
+              </button>
+            ))}
+          </div>
+
+          <p className="mt-2 line-clamp-2 rounded-lg bg-white px-3 py-2 text-sm text-b2b-ink/70">
+            <span className="font-medium text-b2b-ink">{selectedDay.wodName}</span> — {selectedDay.description}
           </p>
-          <p className="mt-1 line-clamp-2 text-sm text-b2b-ink/60">
-            <span className="font-medium">{gymSuggestion.wodName}</span> — {gymSuggestion.description}
-          </p>
+
           <div className="mt-2 flex items-center gap-3">
             <button
               type="button"
