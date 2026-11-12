@@ -10,6 +10,7 @@ export type EventClaimData = {
   organizerName: string;
   requestedBy: { id: string; name: string; email: string };
   claimRequestedAt: string | Date;
+  note: string | null;
 };
 
 export function EventClaimCard({ claim }: { claim: EventClaimData }) {
@@ -42,6 +43,13 @@ export function EventClaimCard({ claim }: { claim: EventClaimData }) {
         Claim requested by <span className="font-medium">{claim.requestedBy.name}</span> ({claim.requestedBy.email})
       </p>
       <p className="mt-1 text-xs text-b2b-ink/40">Requested {formatDate(claim.claimRequestedAt)}</p>
+
+      {claim.note && (
+        <div className="mt-2 rounded-lg bg-b2b-bg p-2.5">
+          <p className="text-xs font-semibold uppercase tracking-wide text-b2b-ink/40">Their note</p>
+          <p className="mt-1 whitespace-pre-wrap text-sm text-b2b-ink">{claim.note}</p>
+        </div>
+      )}
 
       {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
 

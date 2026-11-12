@@ -1190,13 +1190,16 @@ export function PostCard({
                 controls
                 poster={post.videoThumbnail ?? undefined}
                 preload="metadata"
-                // No w-full/bg-black: forcing full width let the browser
-                // letterbox a vertical phone video inside a wide box, showing
-                // as black bars either side. Capping only the height and
-                // letting width follow the video's own aspect ratio (mx-auto
-                // to center what's left over) makes the box match the video
-                // itself, so there's nothing left to paint black.
-                className="mx-auto mt-2 block max-h-[32rem] w-auto max-w-full rounded"
+                // Width-driven, not height-driven: a vertical phone video
+                // previously got capped by height first, leaving it narrow
+                // with empty space either side in a wide feed card. Capping
+                // width instead (to a phone-sized column, mx-auto to center
+                // it in a wider card) and leaving height unconstrained lets
+                // a portrait video fill that column at its real aspect
+                // ratio, the same way Instagram/TikTok show one on desktop —
+                // a max-height here would otherwise have to pick between
+                // distorting the video or letterboxing it to hit the cap.
+                className="mx-auto mt-2 block w-full max-w-[420px] rounded"
               >
                 <source src={post.video} />
               </video>
@@ -1341,7 +1344,7 @@ export function PostCard({
 
       {shareSheetOpen && (
         <ShareSheet
-          target={{ kind: "post", postId: post.id, onShareToFeed: openShareComposer }}
+          target={{ kind: "post", postId: post.id, onShareToFeed: openShareComposer, isResult: post.type === "EVENT_RESULT" }}
           onClose={() => setShareSheetOpen(false)}
         />
       )}

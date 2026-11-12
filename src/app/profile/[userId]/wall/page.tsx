@@ -19,7 +19,7 @@ export default async function WallPage({ params }: { params: Promise<{ userId: s
   const { userId } = await params;
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { id: true, name: true, isPrivate: true },
+    select: { id: true, name: true, isPrivate: true, photo: true },
   });
   if (!user) notFound();
 
@@ -40,6 +40,9 @@ export default async function WallPage({ params }: { params: Promise<{ userId: s
   });
 
   const isOwnWall = userId === session.user.id;
+  const viewer = isOwnWall
+    ? user
+    : await prisma.user.findUnique({ where: { id: session.user.id }, select: { photo: true, name: true } });
 
   return (
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
@@ -50,7 +53,13 @@ export default async function WallPage({ params }: { params: Promise<{ userId: s
       <h1 className="mt-2 text-2xl font-bold">{isOwnWall ? "Your wall" : `${user.name}’s wall`}</h1>
 
       <div className="mt-6 flex flex-col gap-4">
-        <WallComposer wallOwnerId={user.id} wallOwnerName={user.name} isOwnWall={isOwnWall} />
+        <WallComposer
+          wallOwnerId={user.id}
+          wallOwnerName={user.name}
+          isOwnWall={isOwnWall}
+          viewerPhoto={viewer?.photo ?? null}
+          viewerName={viewer?.name ?? session.user.name ?? "You"}
+        />
         {wallPosts.length === 0 ? (
           <p className="text-b2b-ink/40">No wall posts yet.</p>
         ) : (

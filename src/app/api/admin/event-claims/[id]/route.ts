@@ -33,8 +33,13 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     where: { id },
     data:
       action === "approve"
-        ? { claimedById: event.claimRequestedById, claimRequestedById: null, claimRequestedAt: null }
-        : { claimRequestedById: null, claimRequestedAt: null },
+        ? {
+            claimedById: event.claimRequestedById,
+            claimRequestedById: null,
+            claimRequestedAt: null,
+            claimRequestNote: null,
+          }
+        : { claimRequestedById: null, claimRequestedAt: null, claimRequestNote: null },
   });
 
   if (event.claimRequestedById !== session.user.id) {

@@ -4,21 +4,39 @@ import { useRef, useState } from "react";
 import { ExpandableImage } from "@/components/ExpandableImage";
 import type { PostMediaItem } from "@/components/PostCard";
 
-function MediaItem({ item, className }: { item: PostMediaItem; className: string }) {
+// `heightClassName` only ever applies to the photo branch — a video sizes
+// its own height (see MediaItem) since the photo's cap would otherwise
+// recreate the narrow-with-empty-space problem a width-driven video avoids.
+function MediaItem({
+  item,
+  roundedClassName,
+  heightClassName,
+}: {
+  item: PostMediaItem;
+  roundedClassName: string;
+  heightClassName: string;
+}) {
   return item.kind === "VIDEO" ? (
-    // mx-auto + w-auto (not the photo's w-full/object-cover) so a vertical
-    // phone video sizes to its own aspect ratio instead of getting
-    // letterboxed with black bars inside a forced-wide box.
+    // Width-driven (capped to a phone-sized column, mx-auto to center it in
+    // a wider card), not the photo's w-full/object-cover — a vertical video
+    // otherwise gets capped by height first and ends up narrow with empty
+    // space either side. Height is left unconstrained so it follows the
+    // video's real aspect ratio rather than getting distorted or
+    // letterboxed to hit a height cap.
     <video
       controls
       poster={item.thumbnail ?? undefined}
       preload="metadata"
-      className={`mx-auto block w-auto max-w-full ${className}`}
+      className={`mx-auto block w-full max-w-[420px] ${roundedClassName}`}
     >
       <source src={item.url} />
     </video>
   ) : (
-    <ExpandableImage src={item.url} alt="Post photo" className={`w-full object-cover ${className}`} />
+    <ExpandableImage
+      src={item.url}
+      alt="Post photo"
+      className={`w-full object-cover ${heightClassName} ${roundedClassName}`}
+    />
   );
 }
 
@@ -30,7 +48,7 @@ export function PostMediaCarousel({ items }: { items: PostMediaItem[] }) {
   if (items.length === 0) return null;
 
   if (items.length === 1) {
-    return <MediaItem item={items[0]} className="mt-3 max-h-96 rounded" />;
+    return <MediaItem item={items[0]} roundedClassName="mt-3 rounded" heightClassName="max-h-96" />;
   }
 
   function handleScroll() {
@@ -48,7 +66,7 @@ export function PostMediaCarousel({ items }: { items: PostMediaItem[] }) {
       >
         {items.map((item) => (
           <div key={item.id} className="w-full shrink-0 snap-center">
-            <MediaItem item={item} className="max-h-96" />
+            <MediaItem item={item} roundedClassName="" heightClassName="max-h-96" />
           </div>
         ))}
       </div>

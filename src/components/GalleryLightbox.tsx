@@ -70,6 +70,7 @@ export function GalleryLightbox({
   canEdit = false,
   layout = "strip",
   columns = 3,
+  tight = false,
   autoOpenIndex,
   autoOpenComments = false,
 }: {
@@ -79,6 +80,8 @@ export function GalleryLightbox({
   layout?: "strip" | "grid";
   /** "grid" layout only — how many columns, fewer meaning bigger tiles. */
   columns?: keyof typeof GRID_COLS;
+  /** "grid" layout only — hairline gaps and square-cut tiles (no rounding), edge-to-edge like a Facebook/Instagram photo grid, instead of the default spaced, rounded-corner tiles. */
+  tight?: boolean;
   /** Set when arriving from a WORKOUT_COMMENT notification link (see /profile/[userId]/gallery?workout=) to open straight to that item. */
   autoOpenIndex?: number;
   autoOpenComments?: boolean;
@@ -146,7 +149,9 @@ export function GalleryLightbox({
     <>
       <div
         className={
-          layout === "grid" ? `grid ${GRID_COLS[columns]} gap-2` : "flex gap-3 overflow-x-auto pb-1"
+          layout === "grid"
+            ? `grid ${GRID_COLS[columns]} ${tight ? "gap-0.5" : "gap-2"}`
+            : "flex gap-3 overflow-x-auto pb-1"
         }
       >
         {items.map((item, i) => (
@@ -154,9 +159,9 @@ export function GalleryLightbox({
             <button
               type="button"
               onClick={() => setOpenIndex(i)}
-              className={`relative aspect-square overflow-hidden rounded-lg bg-b2b-bg ${
-                layout === "strip" ? "w-24" : "w-full"
-              }`}
+              className={`relative aspect-square overflow-hidden bg-b2b-bg ${
+                tight ? "" : "rounded-lg"
+              } ${layout === "strip" ? "w-24" : "w-full"}`}
             >
               {item.type === "video" ? (
                 <>
@@ -181,23 +186,13 @@ export function GalleryLightbox({
                 />
               )}
             </button>
-            {canEdit && (
-              <button
-                type="button"
-                onClick={() => setRemoveTargetKey(item.key)}
-                aria-label="Remove from gallery"
-                className="absolute -right-1.5 -top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-black/70 text-sm text-white hover:bg-black/90"
-              >
-                ×
-              </button>
-            )}
           </div>
         ))}
       </div>
 
       {openIndex !== null && (
         <div className="fixed inset-0 z-50 flex flex-col bg-black/95">
-          <div className="absolute right-4 top-4 z-10 flex gap-2">
+          <div className="absolute right-4 z-10 flex gap-2" style={{ top: "max(1rem, env(safe-area-inset-top))" }}>
             <button
               type="button"
               onClick={() => setCommentsOpen(true)}

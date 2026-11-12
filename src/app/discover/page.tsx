@@ -51,8 +51,7 @@ export default async function DiscoverPage({
           ]}
         />
       )}
-      <NavBar />
-      <p className="mt-3 text-xs font-bold uppercase tracking-wide text-b2b-ink/40">Discover</p>
+      <NavBar title="Discover" />
 
       {/* Each tab renders its own DiscoverTabs row (see that component) —
           sharing one row with its own search-icon trigger, rather than this

@@ -13,13 +13,13 @@ export default async function UserGalleryPage({
   searchParams,
 }: {
   params: Promise<{ userId: string }>;
-  searchParams: Promise<{ workout?: string }>;
+  searchParams: Promise<{ workout?: string; add?: string }>;
 }) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) redirect("/login");
 
   const { userId } = await params;
-  const { workout: openWorkoutId } = await searchParams;
+  const { workout: openWorkoutId, add: autoOpenAdd } = await searchParams;
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user) notFound();
 
@@ -48,24 +48,27 @@ export default async function UserGalleryPage({
 
       <h1 className="mt-2 text-2xl font-bold">{isOwner ? "Your" : `${user.name}'s`} gallery</h1>
 
-      <div className="mt-6">
-        {isOwner && <AddMediaButton />}
-        {items.length === 0 ? (
-          <p className="mt-4 text-b2b-ink/40">
-            No photos or videos yet — share one from the feed or log a workout with a photo.
-          </p>
-        ) : (
-          <div className="mt-4">
-            <GalleryLightbox
-              items={items.map(({ key, type, url, thumbnail, source }) => ({ key, type, url, thumbnail, source }))}
-              canEdit={isOwner}
-              layout="grid"
-              autoOpenIndex={openIndex >= 0 ? openIndex : undefined}
-              autoOpenComments={openIndex >= 0}
-            />
-          </div>
-        )}
-      </div>
+      {isOwner && <div className="mt-4"><AddMediaButton autoOpen={!!autoOpenAdd} /></div>}
+
+      {items.length === 0 ? (
+        <p className="mt-4 text-b2b-ink/40">
+          No photos or videos yet — share one from the feed or log a workout with a photo.
+        </p>
+      ) : (
+        // Edge-to-edge like a Facebook/Instagram photo grid — bleeds past the
+        // page's own side padding rather than sitting inset inside it.
+        <div className="-mx-4 mt-4">
+          <GalleryLightbox
+            items={items.map(({ key, type, url, thumbnail, source }) => ({ key, type, url, thumbnail, source }))}
+            canEdit={isOwner}
+            layout="grid"
+            columns={3}
+            tight
+            autoOpenIndex={openIndex >= 0 ? openIndex : undefined}
+            autoOpenComments={openIndex >= 0}
+          />
+        </div>
+      )}
     </main>
   );
 }

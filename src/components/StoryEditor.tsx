@@ -231,8 +231,20 @@ export const StoryEditor = forwardRef<StoryEditorHandle, { base: StoryBase }>(fu
                   onBlur={() => setEditingId(null)}
                   onClick={(e) => e.stopPropagation()}
                   rows={1}
-                  className="w-full resize-none border-none bg-transparent text-center outline-none"
-                  style={{ fontFamily: "inherit", fontWeight: "inherit", color: "inherit", fontSize: "inherit" }}
+                  className="w-full appearance-none resize-none border-none text-center outline-none"
+                  style={{
+                    fontFamily: "inherit",
+                    fontWeight: "inherit",
+                    color: "inherit",
+                    fontSize: "inherit",
+                    // globals.css sets a background on every textarea sitewide
+                    // (for light/dark form visibility elsewhere) — that rule
+                    // is unlayered CSS, so it beats bg-transparent regardless
+                    // of specificity. An inline style is the only thing that
+                    // outranks it, and this box needs to show whatever's
+                    // behind it (color/photo/video), never a solid fill.
+                    background: "transparent",
+                  }}
                 />
               ) : (
                 box.text

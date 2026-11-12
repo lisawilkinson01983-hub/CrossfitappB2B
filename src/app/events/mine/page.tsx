@@ -27,8 +27,10 @@ export default async function MyEventsPage({
   const userId = session.user.id;
 
   const sp = await searchParams;
+  // "socials" is accepted as an alias of "upcoming" so old links/bookmarks
+  // to the now-merged tab still land somewhere sensible.
   const tab =
-    sp.tab === "socials" ? "socials" : sp.tab === "past" ? "past" : sp.tab === "teams" ? "teams" : "comps";
+    sp.tab === "past" ? "past" : sp.tab === "teams" ? "teams" : "upcoming";
   const q = typeof sp.q === "string" ? sp.q.trim() : "";
 
   const now = new Date();
@@ -41,20 +43,10 @@ export default async function MyEventsPage({
       ? [{ endDate: null, date: { lt: now } }, { endDate: { lt: now } }]
       : [{ endDate: null, date: { gte: now } }, { endDate: { gte: now } }];
 
-  // Null eventKind predates this field and is treated as a competition
-  // everywhere else (see isCompetitionEvent) — kept consistent here.
-  const eventKindFilter: Prisma.EventWhereInput | null =
-    tab === "comps"
-      ? { OR: [{ eventKind: "COMPETITION" }, { eventKind: null }] }
-      : tab === "socials"
-        ? { eventKind: { in: ["SOCIAL", "OTHER"] } }
-        : null;
-
   const where: Prisma.EventWhereInput = {
     AND: [
       { OR: [{ participants: { some: { userId } } }, { interests: { some: { userId } } }] },
       { OR: effectiveEndFilter },
-      ...(eventKindFilter ? [eventKindFilter] : []),
       ...(q ? [{ OR: [{ name: { contains: q } }, { location: { contains: q } }] }] : []),
     ],
   };
@@ -127,16 +119,10 @@ export default async function MyEventsPage({
 
       <div className="mt-4 flex gap-4 border-b border-gray-200 text-sm font-medium">
         <Link
-          href="/events/mine?tab=comps"
-          className={`pb-2 ${tab === "comps" ? "border-b-2 border-b2b-purple text-b2b-purple" : "text-gray-500"}`}
+          href="/events/mine?tab=upcoming"
+          className={`pb-2 ${tab === "upcoming" ? "border-b-2 border-b2b-purple text-b2b-purple" : "text-gray-500"}`}
         >
-          Upcoming comps
-        </Link>
-        <Link
-          href="/events/mine?tab=socials"
-          className={`pb-2 ${tab === "socials" ? "border-b-2 border-b2b-purple text-b2b-purple" : "text-gray-500"}`}
-        >
-          Socials
+          Upcoming events
         </Link>
         <Link
           href="/events/mine?tab=past"
@@ -197,9 +183,7 @@ export default async function MyEventsPage({
               ? "No events match that search."
               : tab === "past"
                 ? "No past events yet."
-                : tab === "socials"
-                  ? "You're not participating in or interested in any upcoming socials yet."
-                  : "You're not participating in or interested in any upcoming comps yet."}
+                : "You're not participating in or interested in any upcoming events yet."}
           </p>
         ) : (
           <div className="flex flex-col gap-3">
@@ -213,7 +197,7 @@ export default async function MyEventsPage({
                     pinned ? "border-b2b-pink/40" : "border-b2b-purple/10"
                   } ${tab === "past" ? "opacity-75" : ""}`}
                 >
-                  {tab === "comps" && event.isPrivate && (
+                  {tab === "upcoming" && isCompetitionEvent(event) && event.isPrivate && (
                     <span
                       title="Private competition"
                       className="absolute -left-1.5 -top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-b2b-card text-sm shadow"

@@ -14,9 +14,17 @@ import { SwipeCardList, type SwipeCardItem } from "@/components/SwipeCardList";
 import { DiscoverMapLoader } from "@/components/DiscoverMapLoader";
 import type { MapMarker } from "@/components/DiscoverMap";
 
+const SORT_OPTIONS = {
+  name: "Name (A–Z)",
+  distance: "Distance (nearest first)",
+  athletes: "Most athletes",
+} as const;
+type SortOption = keyof typeof SORT_OPTIONS;
+
 export type AffiliateSearchParams = {
   q?: string;
   distance?: string;
+  sort?: string;
 };
 
 // Gyms in the fixed list may not have been geocoded yet — do it lazily on
@@ -93,6 +101,7 @@ export async function AffiliatesList({
 }) {
   const q = typeof sp.q === "string" ? sp.q.trim().toLowerCase() : "";
   const distance = DISTANCE_RANGES.find((d) => String(d) === sp.distance);
+  const sort: SortOption = sp.sort === "distance" ? "distance" : sp.sort === "athletes" ? "athletes" : "name";
   const activeFilterCount = distance ? 1 : 0;
 
   // Only create the curated gyms that are missing a row — upserting all of
@@ -174,11 +183,19 @@ export async function AffiliatesList({
     })
   );
 
-  const visibleGyms = gymsWithDistance.filter(({ gym, miles }) => {
+  const filteredGyms = gymsWithDistance.filter(({ gym, miles }) => {
     if (distance && (miles === null || miles > distance)) return false;
     if (!q) return true;
     return gym.name.toLowerCase().includes(q) || gym.address?.toLowerCase().includes(q);
   });
+
+  // The DB query already sorts by name — only re-sort for the other options.
+  const visibleGyms =
+    sort === "distance" && myCoords
+      ? [...filteredGyms].sort((a, b) => (a.miles ?? Infinity) - (b.miles ?? Infinity))
+      : sort === "athletes"
+        ? [...filteredGyms].sort((a, b) => (countByName.get(b.gym.name) ?? 0) - (countByName.get(a.gym.name) ?? 0))
+        : filteredGyms;
 
   return (
     <div className="mt-4 flex flex-col gap-4">
@@ -216,29 +233,48 @@ export async function AffiliatesList({
             />
           </div>
           <SearchFilters activeCount={activeFilterCount} defaultOpen={activeFilterCount > 0}>
-            <div>
-              <label htmlFor="distance" className="block text-sm font-medium">
-                Distance
-              </label>
-              <select
-                id="distance"
-                name="distance"
-                defaultValue={distance ? String(distance) : ""}
-                disabled={!myCoords}
-                className="mt-1 w-full max-w-xs rounded border border-gray-300 bg-b2b-card px-3 py-2 focus:border-b2b-pink focus:outline-none disabled:opacity-50"
-              >
-                <option value="">Any distance</option>
-                {DISTANCE_RANGES.map((d) => (
-                  <option key={d} value={d}>
-                    Within {d} miles
-                  </option>
-                ))}
-              </select>
-              {!myCoords && (
-                <p className="mt-1 text-xs text-b2b-ink/40">
-                  Set your area on your profile to filter affiliates by distance.
-                </p>
-              )}
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
+                <label htmlFor="distance" className="block text-sm font-medium">
+                  Distance
+                </label>
+                <select
+                  id="distance"
+                  name="distance"
+                  defaultValue={distance ? String(distance) : ""}
+                  disabled={!myCoords}
+                  className="mt-1 w-full rounded border border-gray-300 bg-b2b-card px-3 py-2 focus:border-b2b-pink focus:outline-none disabled:opacity-50"
+                >
+                  <option value="">Any distance</option>
+                  {DISTANCE_RANGES.map((d) => (
+                    <option key={d} value={d}>
+                      Within {d} miles
+                    </option>
+                  ))}
+                </select>
+                {!myCoords && (
+                  <p className="mt-1 text-xs text-b2b-ink/40">
+                    Set your area on your profile to filter affiliates by distance.
+                  </p>
+                )}
+              </div>
+              <div>
+                <label htmlFor="sort" className="block text-sm font-medium">
+                  Sort by
+                </label>
+                <select
+                  id="sort"
+                  name="sort"
+                  defaultValue={sort}
+                  className="mt-1 w-full rounded border border-gray-300 bg-b2b-card px-3 py-2 focus:border-b2b-pink focus:outline-none"
+                >
+                  {(Object.keys(SORT_OPTIONS) as SortOption[]).map((s) => (
+                    <option key={s} value={s} disabled={s === "distance" && !myCoords}>
+                      {SORT_OPTIONS[s]}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
           </SearchFilters>
           <div className="flex gap-3">

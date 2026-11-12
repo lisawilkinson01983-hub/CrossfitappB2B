@@ -252,7 +252,14 @@ export function MentionTextarea({
           onScroll={syncScroll}
           onKeyDown={onKeyDown}
           autoFocus={autoFocus}
-          className={`${className ?? ""} relative z-10 w-full appearance-none bg-transparent text-transparent caret-b2b-ink`}
+          className={`${className ?? ""} relative z-10 w-full appearance-none text-transparent caret-b2b-ink`}
+          // globals.css sets a background on every textarea sitewide, as
+          // unlayered CSS that beats bg-transparent regardless of
+          // specificity — only an inline style outranks it. This textarea's
+          // own text is invisible by design (see text-transparent above);
+          // the highlighted mention spans people actually see come from
+          // MentionBackdrop underneath, so a solid fill here would hide it.
+          style={{ background: "transparent" }}
         />
       </div>
       {suggestions.length > 0 && (

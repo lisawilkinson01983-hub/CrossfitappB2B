@@ -8,9 +8,10 @@ import { Avatar } from "@/components/Avatar";
 import { BackLink } from "@/components/BackLink";
 import { TeamResultRow } from "@/components/TeamResultRow";
 import { DeleteMyResultButton } from "@/components/DeleteMyResultButton";
+import { CaptainRemoveDuplicateButton } from "@/components/CaptainRemoveDuplicateButton";
 import { LogResultButton } from "@/components/LogResultButton";
 import { assertEventVisible } from "@/lib/eventVisibility";
-import { placeMedal, resultHeadline } from "@/lib/eventResults";
+import { ordinal, placeMedal, resultHeadline } from "@/lib/eventResults";
 
 export default async function EventResultsPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
@@ -48,6 +49,7 @@ export default async function EventResultsPage({ params }: { params: Promise<{ i
         select: {
           id: true,
           name: true,
+          createdById: true,
           members: { select: { user: { select: { id: true, name: true, photo: true } } } },
           // Invited but not yet accepted — shown in the roster popout too
           // (greyed out), so the team's intended full lineup is visible
@@ -75,6 +77,7 @@ export default async function EventResultsPage({ params }: { params: Promise<{ i
         placementType: "EXACT" | "COMPLETED";
         teamId: string;
         teamName: string;
+        createdById: string;
         members: { id: string; name: string; photo: string | null }[];
         pendingMembers: { id: string; name: string; photo: string | null }[];
         division: string | null;
@@ -87,6 +90,11 @@ export default async function EventResultsPage({ params }: { params: Promise<{ i
         userId: string;
         name: string;
         photo: string | null;
+        // Set when this is someone else's solo claim sitting at the same
+        // place a team the viewer created already holds — a likely leftover
+        // from before they joined the team. Lets the viewer clear it up
+        // themselves instead of asking me to edit the database by hand.
+        conflictingTeamName: string | null;
       };
 
   const seenTeamIds = new Set<string>();
@@ -101,6 +109,7 @@ export default async function EventResultsPage({ params }: { params: Promise<{ i
         placementType: r.placementType,
         teamId: r.teamId,
         teamName: r.team.name,
+        createdById: r.team.createdById,
         members: r.team.members.map((m) => m.user),
         pendingMembers: r.team.joinRequests.map((jr) => jr.user),
         division: r.division,
@@ -114,7 +123,24 @@ export default async function EventResultsPage({ params }: { params: Promise<{ i
         userId: r.userId,
         name: r.user.name,
         photo: r.user.photo,
+        conflictingTeamName: null,
       });
+    }
+  }
+
+  // Flag a solo result as a likely leftover duplicate when it sits at the
+  // exact place a team the viewer created already holds for this event —
+  // the Fortior-4-with-Georgia case, where she had her own solo entry from
+  // before being added to the team. Scoped to the viewer's own teams only.
+  const placesHeldByViewerTeams = new Map<number, string>();
+  for (const row of displayRows) {
+    if (row.kind === "team" && row.createdById === session.user.id && row.place != null) {
+      placesHeldByViewerTeams.set(row.place, row.teamName);
+    }
+  }
+  for (const row of displayRows) {
+    if (row.kind === "solo" && row.userId !== session.user.id && row.place != null) {
+      row.conflictingTeamName = placesHeldByViewerTeams.get(row.place) ?? null;
     }
   }
 
@@ -230,21 +256,36 @@ export default async function EventResultsPage({ params }: { params: Promise<{ i
             return (
               <div
                 key={r.resultId}
-                className={`flex items-center gap-2.5 rounded-xl px-3 py-2.5 ${
-                  rank === 1 ? "border border-b2b-pink/35 bg-b2b-pink/10" : "bg-b2b-card"
+                className={`rounded-xl px-3 py-2.5 ${
+                  r.conflictingTeamName
+                    ? "border-[1.5px] border-red-400 bg-red-50"
+                    : rank === 1
+                      ? "border border-b2b-pink/35 bg-b2b-pink/10"
+                      : "bg-b2b-card"
                 }`}
               >
-                <Link href={`/profile/${r.userId}`} className="flex min-w-0 flex-1 items-center gap-2.5">
-                  <span className={`w-6 text-center font-display text-xl ${rank === 1 ? "text-b2b-pink-dark" : "text-b2b-ink/40"}`}>
-                    {rank}
-                  </span>
-                  <Avatar photo={r.photo} name={r.name} size={32} />
-                  <span className={`flex-1 truncate text-sm ${rank === 1 ? "font-extrabold" : "font-semibold"} text-b2b-ink`}>
-                    {r.name}
-                  </span>
-                </Link>
-                {medal && <span className="text-sm">{medal}</span>}
-                {r.userId === session.user.id && <DeleteMyResultButton resultId={r.resultId} />}
+                <div className="flex items-center gap-2.5">
+                  <Link href={`/profile/${r.userId}`} className="flex min-w-0 flex-1 items-center gap-2.5">
+                    <span className={`w-6 text-center font-display text-xl ${rank === 1 ? "text-b2b-pink-dark" : "text-b2b-ink/40"}`}>
+                      {rank}
+                    </span>
+                    <Avatar photo={r.photo} name={r.name} size={32} />
+                    <span className={`flex-1 truncate text-sm ${rank === 1 ? "font-extrabold" : "font-semibold"} text-b2b-ink`}>
+                      {r.name}
+                    </span>
+                  </Link>
+                  {medal && <span className="text-sm">{medal}</span>}
+                  {r.userId === session.user.id && <DeleteMyResultButton resultId={r.resultId} />}
+                </div>
+                {r.conflictingTeamName && (
+                  <div className="mt-2">
+                    <p className="text-[11px] leading-snug text-red-700">
+                      ⚠️ Also claimed by <strong>{r.conflictingTeamName}</strong>, who hold {ordinal(rank)} as a
+                      team. Looks like a leftover solo entry from before {r.name.split(" ")[0]} joined.
+                    </p>
+                    <CaptainRemoveDuplicateButton resultId={r.resultId} personName={r.name} teamName={r.conflictingTeamName} />
+                  </div>
+                )}
               </div>
             );
           })

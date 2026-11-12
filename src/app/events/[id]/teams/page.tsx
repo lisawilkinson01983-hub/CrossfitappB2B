@@ -8,6 +8,7 @@ import { BackLink } from "@/components/BackLink";
 import { assertEventVisible } from "@/lib/eventVisibility";
 import { TeamJoinRequestButton } from "@/components/TeamJoinRequestButton";
 import { TeamRosterTrigger } from "@/components/TeamRosterTrigger";
+import { CreateTeamForm } from "@/components/CreateTeamForm";
 import { getOrCreateInviteCode } from "@/lib/inviteCode";
 
 export default async function EventTeamsPage({ params }: { params: Promise<{ id: string }> }) {
@@ -21,6 +22,7 @@ export default async function EventTeamsPage({ params }: { params: Promise<{ id:
     select: {
       id: true,
       name: true,
+      date: true,
       isPrivate: true,
       status: true,
       createdById: true,
@@ -59,9 +61,14 @@ export default async function EventTeamsPage({ params }: { params: Promise<{ id:
           {event.teams.length} {event.teams.length === 1 ? "team" : "teams"} registered
         </p>
 
+        <div className="mt-4">
+          <CreateTeamForm events={[{ id: event.id, name: event.name, date: event.date }]} />
+        </div>
+
         {event.teams.length === 0 ? (
           <p className="mt-4 text-b2b-ink/40">
-            No named teams yet — teams show up here once someone names theirs while marking "I'm participating."
+            No named teams yet — create one above, or teams show up here once someone names theirs while marking
+            "I'm participating."
           </p>
         ) : (
           <div className="mt-4 flex flex-col gap-3">

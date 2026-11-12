@@ -468,7 +468,7 @@ export function WallPostCard({ post, isWallOwner }: { post: WallPostCardData; is
   }
 
   return (
-    <div className="rounded-xl border border-b2b-purple/10 bg-b2b-card p-4">
+    <div className="rounded-2xl bg-b2b-card p-4 shadow-sm">
       <div className="flex items-start justify-between gap-4">
         <Link href={`/profile/${post.author.id}`} className="flex items-center gap-3">
           <Avatar photo={post.author.photo} name={post.author.name} size={40} />
