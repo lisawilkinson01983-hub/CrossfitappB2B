@@ -80,7 +80,6 @@ export async function getGymWodWeek(userId: string): Promise<GymWodWeek | null> 
 
   const byGym = new Map<string, { name: string; days: Map<string, GymWodDay> }>();
   for (const w of recent) {
-    if (!w.description?.trim()) continue;
     const key = gymKey(w.user.affiliateGym, w.user.affiliateGymOther);
     if (!key) continue;
 
@@ -98,7 +97,7 @@ export async function getGymWodWeek(userId: string): Promise<GymWodWeek | null> 
       key: dayKey,
       label: dayLabel(w.createdAt, today, yesterday),
       wodName: w.wodName,
-      description: w.description,
+      description: w.description ?? "",
     });
   }
 
