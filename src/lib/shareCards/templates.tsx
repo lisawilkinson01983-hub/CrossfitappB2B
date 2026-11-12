@@ -139,9 +139,15 @@ function PhotoLayer({
   );
 }
 
-export type FeedStoryAProps = { name: string; photo: string | null; score: string; label: string };
+export type FeedStoryAProps = {
+  name: string;
+  photo: string | null;
+  score: string;
+  label: string;
+  description: string | null;
+};
 
-export function FeedStoryA({ name, photo, score, label, scale }: FeedStoryAProps & { scale: number }) {
+export function FeedStoryA({ name, photo, score, label, description, scale }: FeedStoryAProps & { scale: number }) {
   return (
     <div
       style={{
@@ -194,6 +200,25 @@ export function FeedStoryA({ name, photo, score, label, scale }: FeedStoryAProps
         >
           {label}
         </div>
+        {description && (
+          <div
+            style={{
+              // Explicit width + flexWrap, same as every other wrapping text
+              // block here — without both, Satori lays the text out as one
+              // unbroken line and overlaps whatever comes after it instead
+              // of actually wrapping.
+              width: px(CARD_WIDTH - 32, scale),
+              marginTop: px(8, scale),
+              fontSize: px(11, scale),
+              lineHeight: 1.45,
+              color: "rgba(255,255,255,0.7)",
+              display: "flex",
+              flexWrap: "wrap",
+            }}
+          >
+            {description}
+          </div>
+        )}
       </div>
       <Footer scale={scale} dark domain />
     </div>
@@ -383,9 +408,10 @@ export function FeedStoryC({ name, photo, date, scoreLabel, score, badge, descri
           {description && (
             <div
               style={{
-                // Satori needs an explicit width to know where to wrap —
-                // without one this rendered as one unbroken line that
-                // overlapped the stats row below it instead of wrapping.
+                // Satori needs an explicit width AND flexWrap to know where
+                // to wrap — without flexWrap specifically, it laid the text
+                // out as one unbroken line that overlapped the stats row
+                // below it instead of actually wrapping.
                 width: px(CARD_WIDTH - 48 - 32, scale),
                 marginTop: px(12, scale),
                 fontSize: px(9, scale),
@@ -393,6 +419,8 @@ export function FeedStoryC({ name, photo, date, scoreLabel, score, badge, descri
                 textAlign: "center",
                 color: "rgba(255,255,255,0.55)",
                 display: "flex",
+                flexWrap: "wrap",
+                justifyContent: "center",
               }}
             >
               {description}
