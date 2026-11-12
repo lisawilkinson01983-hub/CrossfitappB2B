@@ -3,7 +3,6 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NavBar } from "@/components/NavBar";
-import { BackLink } from "@/components/BackLink";
 import { SectionCard } from "@/components/SectionCard";
 import { getGymWodWeek } from "@/lib/gymSuggestion";
 import { PB_FIELDS, type PbField } from "@/lib/validation";
@@ -38,7 +37,6 @@ export default async function NewWorkoutPage({
   return (
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
       <NavBar />
-      <BackLink href="/workouts" className="mt-6">Back to workouts</BackLink>
       <div className="mt-4">
         <SectionCard title="Log">
           <LogEntryChoice gymWodWeek={gymWodWeek} prefillWod={prefillWod} initialPbs={initialPbs} />

@@ -2,13 +2,23 @@
 
 import { useState } from "react";
 import { WorkoutForm } from "../WorkoutForm";
+import { BackLink } from "@/components/BackLink";
 import { SingleScoreForm } from "@/components/SingleScoreForm";
 import type { GymWodWeek } from "@/lib/gymSuggestion";
 import type { PbField } from "@/lib/validation";
 
 type Mode = "choice" | "workout" | "single";
 
-/** The new first step on /workouts/new — choose a full workout log or a quick single-score/PB entry. Arriving via a feed post's "Log this WOD" link (`prefillWod` set) skips straight to the workout form, already filled in. */
+/**
+ * The new first step on /workouts/new — choose a full workout log or a
+ * quick single-score/PB entry. Arriving via a feed post's "Log this WOD"
+ * link (`prefillWod` set) skips straight to the workout form, already
+ * filled in. Owns the page's one back control itself (rather than the
+ * page rendering a separate one above it) so there's never more than one
+ * on screen at once — "Back to workouts" on the choice step, or "← Back"
+ * to the choice step once a mode is picked (the workout-mode one here;
+ * single-score's own is inside SingleScoreForm).
+ */
 export function LogEntryChoice({
   gymWodWeek,
   prefillWod,
@@ -41,6 +51,7 @@ export function LogEntryChoice({
 
   return (
     <div className="flex flex-col gap-3.5">
+      <BackLink href="/workouts">Back to workouts</BackLink>
       <p className="text-sm font-medium text-b2b-ink/70">What do you want to log?</p>
 
       <button
