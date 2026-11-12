@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, type ChangeEvent } from "react";
+import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Avatar } from "@/components/Avatar";
 import { MentionTextarea } from "@/components/MentionTextarea";
@@ -44,6 +44,28 @@ export function WallComposer({
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // iOS Safari doesn't shrink a `fixed inset-0` overlay when the keyboard
+  // opens — it keeps laying out against the old full-screen height, which
+  // pushes "Add to your post" down past where the keyboard actually starts
+  // and leaves it stranded in dead space. Track the real visible area via
+  // VisualViewport and size/offset the overlay to match.
+  const [viewport, setViewport] = useState<{ top: number; height: number } | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const vv = window.visualViewport;
+    if (!vv) return;
+    function update() {
+      setViewport({ top: vv!.offsetTop, height: vv!.height });
+    }
+    update();
+    vv.addEventListener("resize", update);
+    vv.addEventListener("scroll", update);
+    return () => {
+      vv.removeEventListener("resize", update);
+      vv.removeEventListener("scroll", update);
+    };
+  }, [open]);
 
   function reset() {
     setText("");
@@ -140,8 +162,11 @@ export function WallComposer({
       </button>
 
       {open && (
-        <div className="fixed inset-0 z-50 flex flex-col bg-b2b-bg">
-          <div className="flex items-center justify-between border-b border-b2b-purple/10 px-4 py-3">
+        <div
+          className="fixed inset-0 z-50 flex flex-col overflow-hidden bg-b2b-bg"
+          style={viewport ? { top: viewport.top, height: viewport.height } : undefined}
+        >
+          <div className="flex items-center justify-between border-b border-b2b-purple/10 px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
             <button type="button" onClick={reset} className="text-sm font-medium text-b2b-ink/50 hover:text-b2b-ink/80">
               Cancel
             </button>

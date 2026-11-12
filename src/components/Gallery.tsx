@@ -31,7 +31,8 @@ export async function Gallery({ userId, canAdd = false }: { userId: string; canA
           items={items.map(({ key, type, url, thumbnail, source }) => ({ key, type, url, thumbnail, source }))}
           canEdit={canAdd}
           layout="grid"
-          columns={2}
+          columns={4}
+          tight
         />
       )}
     </SectionCard>
