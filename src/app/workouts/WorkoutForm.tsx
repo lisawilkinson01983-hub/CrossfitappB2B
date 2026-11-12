@@ -101,7 +101,13 @@ export function WorkoutForm({
   const [gymPickerOpen, setGymPickerOpen] = useState(false);
 
   const selectedGym = gymWodWeek?.gyms.find((g) => g.key === selectedGymKey) ?? gymWodWeek?.gyms[0] ?? null;
-  const selectedDay = selectedGym?.days.find((d) => d.key === selectedDayKey) ?? selectedGym?.days[0] ?? null;
+  // With no day explicitly picked, default to the most recent day this gym
+  // actually has something logged (same as before every gym always had a
+  // full week of days, empty ones included) rather than literally "Today",
+  // which might have nothing logged yet even when yesterday did.
+  const selectedDay = selectedDayKey
+    ? (selectedGym?.days.find((d) => d.key === selectedDayKey) ?? null)
+    : (selectedGym?.days.find((d) => d.wodName) ?? selectedGym?.days[0] ?? null);
 
   const initialTime = start.unit === "TIME" ? splitTime(start.score ?? "") : ["", "", ""];
 
@@ -184,10 +190,10 @@ export function WorkoutForm({
   }
 
   function applyGymSuggestion() {
-    if (!selectedDay) return;
+    if (!selectedDay?.wodName) return;
     setWodName(selectedDay.wodName);
-    setDescription(selectedDay.description);
-    setAutoFilledDescription(selectedDay.description);
+    setDescription(selectedDay.description ?? "");
+    setAutoFilledDescription(selectedDay.description ?? "");
     setSuggestionVisible(false);
   }
 
@@ -320,19 +326,25 @@ export function WorkoutForm({
             ))}
           </div>
 
-          <p className="mt-2 rounded-lg bg-white px-3 py-2 text-sm text-b2b-ink/70">
-            <span className="font-medium text-b2b-ink">{selectedDay.wodName}</span>
-            {selectedDay.description && ` — ${selectedDay.description}`}
-          </p>
+          {selectedDay.wodName ? (
+            <p className="mt-2 rounded-lg bg-white px-3 py-2 text-sm text-b2b-ink/70">
+              <span className="font-medium text-b2b-ink">{selectedDay.wodName}</span>
+              {selectedDay.description && ` — ${selectedDay.description}`}
+            </p>
+          ) : (
+            <p className="mt-2 rounded-lg bg-white px-3 py-2 text-sm italic text-b2b-ink/40">Nothing logged</p>
+          )}
 
           <div className="mt-2 flex items-center gap-3">
-            <button
-              type="button"
-              onClick={applyGymSuggestion}
-              className="rounded-full bg-b2b-pink px-3 py-1.5 text-xs font-semibold text-white hover:bg-b2b-pink-dark"
-            >
-              Use this — just add my score
-            </button>
+            {selectedDay.wodName && (
+              <button
+                type="button"
+                onClick={applyGymSuggestion}
+                className="rounded-full bg-b2b-pink px-3 py-1.5 text-xs font-semibold text-white hover:bg-b2b-pink-dark"
+              >
+                Use this — just add my score
+              </button>
+            )}
             <button
               type="button"
               onClick={() => setSuggestionVisible(false)}
