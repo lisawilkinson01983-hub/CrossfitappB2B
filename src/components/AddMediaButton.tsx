@@ -10,10 +10,10 @@ type Attachment = { kind: "photo" | "video"; file: File; thumbnail?: Blob | null
 const MAX_ATTACHMENTS = 10;
 const MEDIA_ACCEPT = "image/jpeg,image/png,image/webp,video/mp4,video/quicktime";
 
-/** Adds one or more photos/videos straight to the gallery, with an option to also post them to the feed. */
-export function AddMediaButton() {
+/** Adds one or more photos/videos straight to the gallery, with an option to also post them to the feed. `autoOpen` starts it expanded — used when linked to directly (see Gallery's "Add media" link, which lands here with `?add=1`). */
+export function AddMediaButton({ autoOpen = false }: { autoOpen?: boolean } = {}) {
   const router = useRouter();
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(autoOpen);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [sharedToFeed, setSharedToFeed] = useState(false);
   const [error, setError] = useState<string | null>(null);

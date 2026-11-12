@@ -13,13 +13,13 @@ export default async function UserGalleryPage({
   searchParams,
 }: {
   params: Promise<{ userId: string }>;
-  searchParams: Promise<{ workout?: string }>;
+  searchParams: Promise<{ workout?: string; add?: string }>;
 }) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) redirect("/login");
 
   const { userId } = await params;
-  const { workout: openWorkoutId } = await searchParams;
+  const { workout: openWorkoutId, add: autoOpenAdd } = await searchParams;
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user) notFound();
 
@@ -48,7 +48,7 @@ export default async function UserGalleryPage({
 
       <h1 className="mt-2 text-2xl font-bold">{isOwner ? "Your" : `${user.name}'s`} gallery</h1>
 
-      {isOwner && <div className="mt-4"><AddMediaButton /></div>}
+      {isOwner && <div className="mt-4"><AddMediaButton autoOpen={!!autoOpenAdd} /></div>}
 
       {items.length === 0 ? (
         <p className="mt-4 text-b2b-ink/40">

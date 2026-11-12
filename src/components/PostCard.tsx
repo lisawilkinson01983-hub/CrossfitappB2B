@@ -1344,7 +1344,7 @@ export function PostCard({
 
       {shareSheetOpen && (
         <ShareSheet
-          target={{ kind: "post", postId: post.id, onShareToFeed: openShareComposer }}
+          target={{ kind: "post", postId: post.id, onShareToFeed: openShareComposer, isResult: post.type === "EVENT_RESULT" }}
           onClose={() => setShareSheetOpen(false)}
         />
       )}

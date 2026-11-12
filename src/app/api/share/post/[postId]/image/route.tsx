@@ -2,8 +2,19 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { loadFeedStoryData } from "@/lib/shareCards/postData";
-import { FeedStoryA, FeedStoryB, FeedStoryC, type ShareCardFormat } from "@/lib/shareCards/templates";
+import {
+  FeedStoryA,
+  FeedStoryB,
+  FeedStoryC,
+  ResultCardA,
+  ResultCardB,
+  ResultCardC,
+  type ShareCardFormat,
+} from "@/lib/shareCards/templates";
 import { renderShareCard, FULL_SCALE, THUMB_SCALE } from "@/lib/shareCards/render";
+
+const DEFAULT_ACCENT = "#b8842a";
+const HEX_COLOR = /^#[0-9a-fA-F]{6}$/;
 
 export const runtime = "nodejs";
 
@@ -22,6 +33,9 @@ export async function GET(req: Request, { params }: { params: Promise<{ postId: 
   }
   const photoOverride = url.searchParams.get("photo");
   const scale = url.searchParams.get("size") === "thumb" ? THUMB_SCALE : FULL_SCALE;
+  const rawAccent = url.searchParams.get("accent");
+  const accent = rawAccent && HEX_COLOR.test(rawAccent) ? rawAccent : DEFAULT_ACCENT;
+  const pattern = url.searchParams.get("pattern") === "solid" ? "solid" : "stripes";
 
   const data = await loadFeedStoryData(postId, session.user.id, photoOverride);
   if (!data) {
@@ -29,7 +43,15 @@ export async function GET(req: Request, { params }: { params: Promise<{ postId: 
   }
 
   const node =
-    format === "A" ? (
+    data.kind === "result" ? (
+      format === "A" ? (
+        <ResultCardA {...data.result} scale={scale} />
+      ) : format === "B" ? (
+        <ResultCardB {...data.result} accent={accent} pattern={pattern} scale={scale} />
+      ) : (
+        <ResultCardC {...data.result} scale={scale} />
+      )
+    ) : format === "A" ? (
       <FeedStoryA {...data.a} scale={scale} />
     ) : format === "B" ? (
       <FeedStoryB {...data.b} scale={scale} />

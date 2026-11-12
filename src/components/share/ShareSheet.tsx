@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 import type { PbField } from "@/lib/validation";
 
 export type ShareTarget =
-  | { kind: "post"; postId: string; onShareToFeed: () => void }
+  | { kind: "post"; postId: string; onShareToFeed: () => void; isResult?: boolean }
   | { kind: "pb"; field: PbField; value: number; previous: number | null };
 
 type Format = "A" | "B" | "C";
@@ -21,12 +21,31 @@ const PB_FORMAT_LABELS: Record<Format, string> = {
   B: "Stat + delta",
   C: "Photo overlay",
 };
+// A competition result has no quote/caption of its own, so format B means
+// something different here than for a plain post — see ResultCardB.
+const RESULT_FORMAT_LABELS: Record<Format, string> = {
+  A: "Photo hero",
+  B: "Stat card",
+  C: "Certificate",
+};
+// Same swatches as the Stories text-colour picker (see StoryEditor) — kept
+// separate since that one's about story text, this is the result card's
+// accent (badge, divider, name) for ResultCardB specifically.
+const ACCENT_SWATCHES = ["#b8842a", "#b23a3a", "#2f5fa8", "#3a7a4f", "#9a9a9a"];
+const DEFAULT_ACCENT = ACCENT_SWATCHES[0];
 
 function imagePath(target: ShareTarget): string {
   return target.kind === "post" ? `/api/share/post/${target.postId}/image` : "/api/share/pb/image";
 }
 
-function imageUrl(target: ShareTarget, format: Format, photo: string | null, size: "thumb" | "full"): string {
+function imageUrl(
+  target: ShareTarget,
+  format: Format,
+  photo: string | null,
+  size: "thumb" | "full",
+  accent?: string,
+  pattern?: "stripes" | "solid"
+): string {
   const params = new URLSearchParams({ format });
   if (size === "thumb") params.set("size", "thumb");
   if (photo) params.set("photo", photo);
@@ -34,6 +53,10 @@ function imageUrl(target: ShareTarget, format: Format, photo: string | null, siz
     params.set("field", target.field);
     params.set("value", String(target.value));
     if (target.previous != null) params.set("previous", String(target.previous));
+  }
+  if (target.kind === "post" && target.isResult) {
+    params.set("accent", accent ?? DEFAULT_ACCENT);
+    params.set("pattern", pattern ?? "stripes");
   }
   return `${imagePath(target)}?${params.toString()}`;
 }
@@ -60,14 +83,19 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
   const [previewLoaded, setPreviewLoaded] = useState(false);
   const [feedBusy, setFeedBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [accent, setAccent] = useState(DEFAULT_ACCENT);
+  const [pattern, setPattern] = useState<"stripes" | "solid">("stripes");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
-  const labels = target.kind === "pb" ? PB_FORMAT_LABELS : FORMAT_LABELS;
+  const isResult = target.kind === "post" && !!target.isResult;
+  const labels = target.kind === "pb" ? PB_FORMAT_LABELS : isResult ? RESULT_FORMAT_LABELS : FORMAT_LABELS;
   // The feed-post quote card (format B) is dropped — its free-form caption
   // text didn't wrap reliably at render time. PBs keep all three formats;
-  // B there is the unrelated "Stat + delta" card, not a quote.
-  const formats: Format[] = target.kind === "pb" ? ["A", "B", "C"] : ["A", "C"];
+  // B there is the unrelated "Stat + delta" card, not a quote. A result has
+  // its own B (a colour-themeable stat card, no caption involved), so it
+  // keeps all three too.
+  const formats: Format[] = target.kind === "pb" || isResult ? ["A", "B", "C"] : ["A", "C"];
   const usesPhoto = format === "A" || format === "C";
 
   function openDestination(dest: Destination) {
@@ -125,7 +153,7 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
     setSharing(true);
     setError(null);
     try {
-      const res = await fetch(imageUrl(target, format, photo, "full"));
+      const res = await fetch(imageUrl(target, format, photo, "full", accent, pattern));
       if (!res.ok) throw new Error("render failed");
       const blob = await res.blob();
       const file = new File([blob], "box2box-share.png", { type: "image/png" });
@@ -264,7 +292,7 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                      src={imageUrl(target, f, photo, "thumb")}
+                      src={imageUrl(target, f, photo, "thumb", accent, pattern)}
                       alt={labels[f]}
                       width={72}
                       height={128}
@@ -282,6 +310,52 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
               ))}
             </div>
             <p className="text-center text-xs text-b2b-ink/50">{labels[format]} selected</p>
+
+            {isResult && format === "B" && (
+              <div className="flex flex-col items-center gap-2 rounded-lg bg-b2b-bg p-3">
+                <div className="flex items-center gap-2">
+                  {ACCENT_SWATCHES.map((c) => (
+                    <button
+                      key={c}
+                      type="button"
+                      aria-label={`Use colour ${c}`}
+                      onClick={() => setAccent(c)}
+                      className={`h-7 w-7 rounded-full border-2 ${accent === c ? "border-b2b-ink" : "border-transparent"}`}
+                      style={{ backgroundColor: c }}
+                    />
+                  ))}
+                  <label className="relative flex h-7 w-7 cursor-pointer items-center justify-center rounded-full border-2 border-b2b-ink/20 text-xs text-b2b-ink/60">
+                    +
+                    <input
+                      type="color"
+                      value={accent}
+                      onChange={(e) => setAccent(e.target.value)}
+                      className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                    />
+                  </label>
+                </div>
+                <div className="flex rounded-full bg-b2b-purple/10 p-1">
+                  <button
+                    type="button"
+                    onClick={() => setPattern("stripes")}
+                    className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
+                      pattern === "stripes" ? "bg-b2b-pink text-white" : "text-b2b-ink/55"
+                    }`}
+                  >
+                    Stripes
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPattern("solid")}
+                    className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
+                      pattern === "solid" ? "bg-b2b-pink text-white" : "text-b2b-ink/55"
+                    }`}
+                  >
+                    Solid
+                  </button>
+                </div>
+              </div>
+            )}
 
             {usesPhoto && (
               <button
@@ -319,7 +393,7 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
               )}
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={imageUrl(target, format, photo, "full")}
+                src={imageUrl(target, format, photo, "full", accent, pattern)}
                 alt="Preview of what will be posted"
                 onLoad={() => setPreviewLoaded(true)}
                 className={`h-full w-full object-cover transition-opacity ${previewLoaded ? "opacity-100" : "opacity-0"}`}
@@ -365,7 +439,7 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
                 <span className={`flex h-4 w-4 items-center justify-center rounded-full text-[10px] ${!photo ? "bg-b2b-pink text-white" : "border border-b2b-ink/25"}`}>
                   {!photo && "✓"}
                 </span>
-                Use profile picture
+                {isResult ? "Use event photo" : "Use profile picture"}
               </button>
               <button
                 type="button"

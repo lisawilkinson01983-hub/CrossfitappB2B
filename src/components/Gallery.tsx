@@ -1,27 +1,36 @@
 import Link from "next/link";
 import { SectionCard } from "@/components/SectionCard";
 import { GalleryLightbox } from "@/components/GalleryLightbox";
-import { AddMediaButton } from "@/components/AddMediaButton";
 import { getGalleryItems } from "@/lib/gallery";
 
 const GALLERY_PREVIEW_LIMIT = 6;
 
-/** A limited, most-recent-first strip of a user's uploaded photos/videos, pulled from their posts and logged workouts. */
+/** A limited, most-recent-first strip of a user's uploaded photos/videos, pulled from their posts and logged workouts. The "Gallery" title itself links to the full gallery — same destination "Add media"/"See all" do. */
 export async function Gallery({ userId, canAdd = false }: { userId: string; canAdd?: boolean }) {
   const items = await getGalleryItems(userId, GALLERY_PREVIEW_LIMIT);
+  const galleryHref = `/profile/${userId}/gallery`;
 
   return (
     <SectionCard
-      title="Gallery"
+      title={
+        <Link href={galleryHref} className="hover:underline">
+          Gallery
+        </Link>
+      }
       action={
-        items.length > 0 && (
-          <Link href={`/profile/${userId}/gallery`} className="text-sm text-b2b-pink underline">
-            See all
+        canAdd ? (
+          <Link href={`${galleryHref}?add=1`} className="text-sm text-b2b-pink underline">
+            Add media
           </Link>
+        ) : (
+          items.length > 0 && (
+            <Link href={galleryHref} className="text-sm text-b2b-pink underline">
+              See all
+            </Link>
+          )
         )
       }
     >
-      {canAdd && <AddMediaButton />}
       {items.length === 0 ? (
         <p className="text-b2b-ink/40">
           No photos or videos yet — share one from the feed or log a workout with a photo.
