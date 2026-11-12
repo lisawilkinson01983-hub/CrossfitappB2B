@@ -71,6 +71,11 @@ export default async function SettingsPage() {
               />
             )}
             <SettingsMenuLink
+              href="/settings/notifications"
+              label="Notifications"
+              description="Choose what you're notified about"
+            />
+            <SettingsMenuLink
               href="/settings/privacy"
               label="Privacy & Safety"
               description={`${blockCount} blocked · ${muteCount} muted`}
