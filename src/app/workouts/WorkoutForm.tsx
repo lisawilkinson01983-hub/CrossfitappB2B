@@ -320,7 +320,7 @@ export function WorkoutForm({
             ))}
           </div>
 
-          <p className="mt-2 line-clamp-2 rounded-lg bg-white px-3 py-2 text-sm text-b2b-ink/70">
+          <p className="mt-2 rounded-lg bg-white px-3 py-2 text-sm text-b2b-ink/70">
             <span className="font-medium text-b2b-ink">{selectedDay.wodName}</span>
             {selectedDay.description && ` — ${selectedDay.description}`}
           </p>
