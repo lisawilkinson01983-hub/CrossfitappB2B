@@ -243,101 +243,98 @@ export function SwipeCardList({
         </div>
       ) : (
         <div className="mt-3">
-          <div className="flex items-center gap-2">
+          <div
+            key={`card-${active.id}`}
+            ref={cardRef}
+            onPointerDown={onPointerDown}
+            onPointerMove={onPointerMove}
+            onPointerUp={onPointerUp}
+            className="relative w-full touch-none select-none overflow-hidden rounded-2xl shadow-lg"
+            style={{ height: 430 }}
+          >
+            <div className="absolute inset-0">
+              {active.image ? (
+                <Image
+                  src={active.image}
+                  alt=""
+                  fill
+                  draggable={false}
+                  sizes="(min-width: 640px) 600px, 100vw"
+                  className="pointer-events-none object-cover"
+                />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center bg-b2b-ink" style={NO_PHOTO_PATTERN}>
+                  <span className="font-display text-9xl leading-none text-b2b-pink/80">
+                    {active.initial.toUpperCase()}
+                  </span>
+                </div>
+              )}
+            </div>
+
             <button
               type="button"
               aria-label="Previous"
               onClick={goPrev}
               disabled={!canPrev}
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-b2b-purple/20 bg-b2b-card disabled:opacity-30"
+              onPointerDown={(e) => e.stopPropagation()}
+              className="absolute left-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm disabled:opacity-0"
             >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4" aria-hidden="true">
                 <path d="M15 18l-6-6 6-6" />
               </svg>
             </button>
-
-            <div className="flex flex-1 items-center justify-center overflow-hidden">
-              <div
-                key={active.id}
-                ref={cardRef}
-                onPointerDown={onPointerDown}
-                onPointerMove={onPointerMove}
-                onPointerUp={onPointerUp}
-                className="relative w-full max-w-[280px] touch-none select-none overflow-hidden rounded-2xl shadow-lg"
-                style={{ height: 430 }}
-              >
-                <div className="absolute inset-0">
-                  {active.image ? (
-                    <Image
-                      src={active.image}
-                      alt=""
-                      fill
-                      draggable={false}
-                      sizes="280px"
-                      className="pointer-events-none object-cover"
-                    />
-                  ) : (
-                    <div className="flex h-full w-full items-center justify-center bg-b2b-ink" style={NO_PHOTO_PATTERN}>
-                      <span className="font-display text-9xl leading-none text-b2b-pink/80">
-                        {active.initial.toUpperCase()}
-                      </span>
-                    </div>
-                  )}
-                </div>
-
-                {active.cornerAction && (
-                  <div
-                    className="absolute right-3 top-3 rounded-full bg-black/35 p-1.5 backdrop-blur-sm"
-                    onPointerDown={(e) => e.stopPropagation()}
-                  >
-                    {active.cornerAction}
-                  </div>
-                )}
-
-                {active.cornerBadge && <div className="absolute left-3 top-3">{active.cornerBadge}</div>}
-
-                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/45 to-transparent px-5 pb-5 pt-16 text-left">
-                  <p className="text-xl font-bold leading-tight text-white drop-shadow-sm">
-                    {active.href ? (
-                      <Link href={active.href} className="hover:underline">
-                        {active.title}
-                      </Link>
-                    ) : (
-                      active.title
-                    )}
-                  </p>
-                  {active.badges && active.badges.length > 0 && (
-                    <div className="mt-2 flex flex-wrap gap-1.5">
-                      {active.badges.map((badge) => (
-                        <span
-                          key={badge}
-                          className="rounded-full bg-white/15 px-2.5 py-0.5 text-[11px] font-semibold text-white ring-1 ring-inset ring-white/25 backdrop-blur-sm"
-                        >
-                          {badge}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                  {active.subtitle && <p className="mt-1.5 text-xs font-medium text-white/85">{active.subtitle}</p>}
-                </div>
-              </div>
-            </div>
-
             <button
               type="button"
               aria-label="Next"
               onClick={goNext}
               disabled={!canNext}
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-b2b-purple/20 bg-b2b-card disabled:opacity-30"
+              onPointerDown={(e) => e.stopPropagation()}
+              className="absolute right-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm disabled:opacity-0"
             >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4" aria-hidden="true">
                 <path d="M9 18l6-6-6-6" />
               </svg>
             </button>
+
+            {active.cornerAction && (
+              <div
+                className="absolute right-3 top-3 rounded-full bg-black/35 p-1.5 backdrop-blur-sm"
+                onPointerDown={(e) => e.stopPropagation()}
+              >
+                {active.cornerAction}
+              </div>
+            )}
+
+            {active.cornerBadge && <div className="absolute left-3 top-3">{active.cornerBadge}</div>}
+
+            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/45 to-transparent px-6 pb-5 pt-16 text-left">
+              <p className="text-2xl font-bold leading-tight text-white drop-shadow-sm">
+                {active.href ? (
+                  <Link href={active.href} className="hover:underline">
+                    {active.title}
+                  </Link>
+                ) : (
+                  active.title
+                )}
+              </p>
+              {active.badges && active.badges.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {active.badges.map((badge) => (
+                    <span
+                      key={badge}
+                      className="rounded-full bg-white/15 px-2.5 py-0.5 text-[11px] font-semibold text-white ring-1 ring-inset ring-white/25 backdrop-blur-sm"
+                    >
+                      {badge}
+                    </span>
+                  ))}
+                </div>
+              )}
+              {active.subtitle && <p className="mt-1.5 text-xs font-medium text-white/85">{active.subtitle}</p>}
+            </div>
           </div>
 
           {active.action && (
-            <div key={active.id} className="mt-3 flex justify-center">
+            <div key={`action-${active.id}`} className="mt-3 flex justify-center">
               {active.action}
             </div>
           )}
