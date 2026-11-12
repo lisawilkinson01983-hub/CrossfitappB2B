@@ -98,7 +98,6 @@ export function WorkoutForm({
   const [suggestionVisible, setSuggestionVisible] = useState(!!gymWodWeek && !isEditing && !start.wodName);
   const [selectedGymKey, setSelectedGymKey] = useState(gymWodWeek?.myGymKey ?? gymWodWeek?.gyms[0]?.key ?? null);
   const [selectedDayKey, setSelectedDayKey] = useState<string | null>(null);
-  const [gymPickerOpen, setGymPickerOpen] = useState(false);
 
   const selectedGym = gymWodWeek?.gyms.find((g) => g.key === selectedGymKey) ?? gymWodWeek?.gyms[0] ?? null;
   // With no day explicitly picked, default to the most recent day this gym
@@ -276,40 +275,33 @@ export function WorkoutForm({
 
       {suggestionVisible && gymWodWeek && selectedGym && selectedDay && (
         <div className="rounded-lg border border-b2b-pink/30 bg-b2b-pink/5 p-3">
-          <div className="flex items-baseline justify-between gap-2">
-            <p className="text-sm font-medium text-b2b-ink">WODs logged at {selectedGym.name} this week</p>
-            {gymWodWeek.gyms.length > 1 && (
-              <button
-                type="button"
-                onClick={() => setGymPickerOpen((v) => !v)}
-                className="shrink-0 text-xs font-semibold text-b2b-pink hover:underline"
+          <p className="text-sm font-medium text-b2b-ink">
+            WODs logged at{" "}
+            {gymWodWeek.gyms.length > 1 ? (
+              <select
+                value={selectedGym.key}
+                onChange={(e) => {
+                  setSelectedGymKey(e.target.value);
+                  setSelectedDayKey(null);
+                }}
+                aria-label="Change gym"
+                // A native select rather than a scrolling chip row — with
+                // every approved gym now listed (not just active ones) that
+                // row could run to dozens of chips; this gives a proper
+                // searchable/scrollable picker on every platform for free.
+                className="inline rounded border-0 bg-transparent p-0 font-semibold text-b2b-pink underline decoration-dotted underline-offset-2 focus:outline-none"
               >
-                Change gym
-              </button>
-            )}
-          </div>
-
-          {gymPickerOpen && (
-            <div className="mt-2 flex gap-1.5 overflow-x-auto pb-1">
-              {gymWodWeek.gyms.map((gym) => (
-                <button
-                  key={gym.key}
-                  type="button"
-                  onClick={() => {
-                    setSelectedGymKey(gym.key);
-                    setSelectedDayKey(null);
-                  }}
-                  className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold ${
-                    gym.key === selectedGym.key
-                      ? "bg-b2b-ink text-b2b-bg"
-                      : "border border-b2b-ink/15 bg-b2b-bg text-b2b-ink/70"
-                  }`}
-                >
-                  {gym.name}
-                </button>
-              ))}
-            </div>
-          )}
+                {gymWodWeek.gyms.map((gym) => (
+                  <option key={gym.key} value={gym.key}>
+                    {gym.name}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              selectedGym.name
+            )}{" "}
+            this week
+          </p>
 
           <div className="mt-2 flex gap-1.5 overflow-x-auto pb-1">
             {selectedGym.days.map((day) => (
