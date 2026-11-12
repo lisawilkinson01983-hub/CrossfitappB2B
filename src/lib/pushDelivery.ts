@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { notificationHref, notificationText } from "@/lib/notifications";
 import { pushConfigured, sendPushToUser, type PushMessage } from "@/lib/push";
+import { MESSAGES_KEY, isEnabled, parseNotificationPrefs, typeEnabled } from "@/lib/notificationSettings";
 
 /**
  * Turns new in-app notifications and direct messages into phone pushes.
@@ -41,6 +42,7 @@ async function deliverNotifications(since: Date) {
     take: 200,
     // Same shape the Notifications page renders, so the wording matches.
     include: {
+      user: { select: { notificationPrefs: true } },
       actor: { select: { id: true, name: true } },
       post: { select: { id: true, type: true, photo: true, video: true, media: { select: { kind: true } } } },
       comment: { select: { id: true } },
@@ -55,6 +57,9 @@ async function deliverNotifications(since: Date) {
 
   for (const n of pending) {
     if (!(await claim("notification", n.id))) continue;
+    // Switched off in Settings → Notifications (claimed anyway, so it's never retried).
+    const prefs = parseNotificationPrefs(n.user.notificationPrefs);
+    if (!typeEnabled(prefs, n.type, "push")) continue;
     const message: PushMessage =
       n.type === "SYSTEM_ANNOUNCEMENT"
         ? { title: n.notice?.title || "Box 2 Box", body: n.notice?.body ?? "", url: "/notifications" }
@@ -80,6 +85,16 @@ async function deliverMessages(since: Date) {
     if (recipients.length === 0) continue;
 
     // Someone who has blocked the sender never hears from them.
+    const mutedMessages = new Set(
+      (
+        await prisma.user.findMany({
+          where: { id: { in: recipients }, notificationPrefs: { not: null } },
+          select: { id: true, notificationPrefs: true },
+        })
+      )
+        .filter((u) => !isEnabled(parseNotificationPrefs(u.notificationPrefs), MESSAGES_KEY, "push"))
+        .map((u) => u.id)
+    );
     const blockers = new Set(
       (
         await prisma.block.findMany({
@@ -96,7 +111,7 @@ async function deliverMessages(since: Date) {
       threadId: m.conversation.id,
     };
     for (const userId of recipients) {
-      if (!blockers.has(userId)) await sendPushToUser(userId, message);
+      if (!blockers.has(userId) && !mutedMessages.has(userId)) await sendPushToUser(userId, message);
     }
   }
 }
