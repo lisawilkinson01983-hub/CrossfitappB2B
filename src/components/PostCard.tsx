@@ -36,6 +36,7 @@ import { CommentIcon } from "@/components/CommentIcon";
 import { ShareIcon } from "@/components/ShareIcon";
 import { ShareSheet } from "@/components/share/ShareSheet";
 import { SaveIcon } from "@/components/SaveIcon";
+import { LogThisWodIcon } from "@/components/LogThisWodIcon";
 import { formatEventDate } from "@/lib/eventDate";
 import { resultHeadline, isPodiumPlace, placeMedal } from "@/lib/eventResults";
 import { formatDateTime } from "@/lib/dates";
@@ -968,11 +969,24 @@ export function PostCard({
                 <p className="truncate text-xs font-semibold uppercase tracking-wide text-b2b-ink/40">
                   {post.linkedWorkout.wodName}
                 </p>
-                <span
-                  className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${WORKOUT_INTENSITY_BADGE_CLASSES[post.linkedWorkout.intensity]}`}
-                >
-                  {WORKOUT_INTENSITY_LABELS[post.linkedWorkout.intensity]}
-                </span>
+                <div className="flex shrink-0 items-center gap-1.5">
+                  <Link
+                    href={`/workouts/new?${new URLSearchParams({
+                      wodName: post.linkedWorkout.wodName,
+                      description: post.linkedWorkout.description ?? "",
+                    })}`}
+                    aria-label="Log this WOD"
+                    title="Log this WOD"
+                    className="flex h-6 w-6 items-center justify-center rounded-full border border-b2b-pink/30 bg-b2b-pink/5 text-b2b-pink hover:bg-b2b-pink/15"
+                  >
+                    <LogThisWodIcon className="h-3.5 w-3.5" />
+                  </Link>
+                  <span
+                    className={`rounded-full px-2.5 py-1 text-xs font-semibold ${WORKOUT_INTENSITY_BADGE_CLASSES[post.linkedWorkout.intensity]}`}
+                  >
+                    {WORKOUT_INTENSITY_LABELS[post.linkedWorkout.intensity]}
+                  </span>
+                </div>
               </div>
               {post.linkedWorkout.unit === "ROUNDS_REPS" ? (
                 <div className="mt-2.5 flex divide-x divide-b2b-purple/10">

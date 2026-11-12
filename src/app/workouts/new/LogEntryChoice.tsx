@@ -3,20 +3,22 @@
 import { useState } from "react";
 import { WorkoutForm } from "../WorkoutForm";
 import { SingleScoreForm } from "@/components/SingleScoreForm";
-import type { GymWodSuggestion } from "@/lib/gymSuggestion";
+import type { GymWodWeek } from "@/lib/gymSuggestion";
 import type { PbField } from "@/lib/validation";
 
 type Mode = "choice" | "workout" | "single";
 
-/** The new first step on /workouts/new — choose a full workout log or a quick single-score/PB entry. */
+/** The new first step on /workouts/new — choose a full workout log or a quick single-score/PB entry. Arriving via a feed post's "Log this WOD" link (`prefillWod` set) skips straight to the workout form, already filled in. */
 export function LogEntryChoice({
-  gymSuggestion,
+  gymWodWeek,
+  prefillWod,
   initialPbs,
 }: {
-  gymSuggestion: GymWodSuggestion | null;
+  gymWodWeek: GymWodWeek | null;
+  prefillWod?: { wodName: string; description: string } | null;
   initialPbs: Record<PbField, number | "">;
 }) {
-  const [mode, setMode] = useState<Mode>("choice");
+  const [mode, setMode] = useState<Mode>(prefillWod ? "workout" : "choice");
 
   if (mode === "workout") {
     return (
@@ -28,7 +30,7 @@ export function LogEntryChoice({
         >
           ← Back
         </button>
-        <WorkoutForm gymSuggestion={gymSuggestion} />
+        <WorkoutForm gymWodWeek={gymWodWeek} prefillWod={prefillWod} />
       </div>
     );
   }
