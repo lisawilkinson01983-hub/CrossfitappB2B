@@ -42,12 +42,14 @@ export async function NavBar({ title }: { title?: string } = {}) {
       {/* Sticky so the logo/notifications/messages/settings row — and, where
           a page passes `title`, its own section eyebrow right under it —
           stay on screen while the page's own content scrolls underneath.
-          `pt-[env(safe-area-inset-top)]` re-clears the notch/status bar: once
-          this sticks at the literal viewport top during scroll, it's past
-          the point where <body>'s own safe-area padding still applies. */}
-      <div className="sticky top-0 z-20 -mx-4 bg-b2b-page px-4 pt-[env(safe-area-inset-top)]">
+          <body> already pads for the notch/status bar once; once this
+          sticks at the literal viewport top during scroll it needs that
+          same clearance again, so the negative margin here cancels
+          <body>'s padding right back out before re-adding it as this
+          element's own padding — net zero at rest, correct once stuck. */}
+      <div className="sticky top-0 z-20 -mx-4 -mt-[env(safe-area-inset-top)] bg-b2b-page px-4 pt-[env(safe-area-inset-top)]">
         <nav className="flex items-center justify-between gap-3 pb-3">
-          <Logo size="sm" href="/feed" />
+          <Logo size="xs" href="/feed" />
           <div className="flex items-center gap-4">
             <Link href="/notifications" className="relative text-b2b-ink/70 hover:text-b2b-pink" aria-label="Notifications">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="h-6 w-6">

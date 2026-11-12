@@ -2,6 +2,9 @@ import Link from "next/link";
 import Image from "next/image";
 
 const SIZES = {
+  // NavBar only — small enough to sit comfortably beside the
+  // notifications/messages/settings icons in the sticky header.
+  xs: { icon: 22, wordmarkWidth: 110, layout: "row" as const, gap: "gap-1.5" },
   sm: { icon: 28, wordmarkWidth: 168, layout: "row" as const, gap: "gap-2" },
   md: { icon: 44, wordmarkWidth: 260, layout: "row" as const, gap: "gap-3" },
   lg: { icon: 96, wordmarkWidth: 340, layout: "col" as const, gap: "gap-4" },
@@ -35,7 +38,7 @@ export function Logo({
   href,
   wordmark: showWordmark = true,
 }: {
-  size?: "sm" | "md" | "lg";
+  size?: "xs" | "sm" | "md" | "lg";
   href?: string;
   /** False renders just the mark, no "BOX 2 BOX" wordmark — see NavBar. */
   wordmark?: boolean;

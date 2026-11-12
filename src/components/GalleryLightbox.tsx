@@ -186,23 +186,13 @@ export function GalleryLightbox({
                 />
               )}
             </button>
-            {canEdit && (
-              <button
-                type="button"
-                onClick={() => setRemoveTargetKey(item.key)}
-                aria-label="Remove from gallery"
-                className="absolute -right-1.5 -top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-black/70 text-sm text-white hover:bg-black/90"
-              >
-                ×
-              </button>
-            )}
           </div>
         ))}
       </div>
 
       {openIndex !== null && (
         <div className="fixed inset-0 z-50 flex flex-col bg-black/95">
-          <div className="absolute right-4 top-4 z-10 flex gap-2">
+          <div className="absolute right-4 z-10 flex gap-2" style={{ top: "max(1rem, env(safe-area-inset-top))" }}>
             <button
               type="button"
               onClick={() => setCommentsOpen(true)}
