@@ -200,7 +200,10 @@ export function StoryViewer({
         </div>
 
         {/* Header */}
-        <div className="absolute left-0 right-0 top-4 z-10 flex items-center justify-between px-3 pt-2">
+        <div
+          className="absolute left-0 right-0 z-10 flex items-center justify-between px-3 pt-2"
+          style={{ top: "max(1rem, env(safe-area-inset-top))" }}
+        >
           <div className="flex items-center gap-2">
             <Avatar photo={group.author.photo} name={group.author.name} size={32} />
             <span className="text-sm font-medium text-white">{group.author.name}</span>
