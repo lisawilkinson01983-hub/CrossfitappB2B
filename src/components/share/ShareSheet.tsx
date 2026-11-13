@@ -1,8 +1,9 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Avatar } from "@/components/Avatar";
 import { SendIcon } from "@/components/SendIcon";
+import { StoryEditor, type StoryBase, type StoryEditorHandle } from "@/components/StoryEditor";
 import type { PbField } from "@/lib/validation";
 
 export type ShareTarget =
@@ -101,6 +102,31 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
+  // The flattened result of the text-overlay editor below, once the person
+  // has added anything — takes over from the plain rendered template as
+  // "the thing that actually gets posted" everywhere a blob is needed.
+  // Cleared whenever the underlying template changes (format/photo/accent/
+  // pattern) since an edit made on one no longer lines up with another.
+  const [editedBlob, setEditedBlob] = useState<Blob | null>(null);
+  const [editedPreviewUrl, setEditedPreviewUrl] = useState<string | null>(null);
+  const [editorBase, setEditorBase] = useState<StoryBase | null>(null);
+  const [editorBusy, setEditorBusy] = useState(false);
+  const templateEditorRef = useRef<StoryEditorHandle>(null);
+
+  useEffect(() => {
+    setEditedBlob(null);
+  }, [format, photo, accent, pattern]);
+
+  useEffect(() => {
+    if (!editedBlob) {
+      setEditedPreviewUrl(null);
+      return;
+    }
+    const url = URL.createObjectURL(editedBlob);
+    setEditedPreviewUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [editedBlob]);
+
   const isResult = target.kind === "post" && !!target.isResult;
   const isWorkout = target.kind === "workout";
   const labels = target.kind === "pb" ? PB_FORMAT_LABELS : isResult ? RESULT_FORMAT_LABELS : FORMAT_LABELS;
@@ -124,6 +150,41 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
     }
     setPreviewLoaded(false);
     setStep("preview");
+  }
+
+  /** Whatever should actually be posted/sent right now — the text-edited version if there is one, otherwise the plain rendered template. */
+  async function resolveFinalBlob(): Promise<Blob> {
+    if (editedBlob) return editedBlob;
+    const res = await fetch(imageUrl(target, format, photo, "full", accent, pattern));
+    if (!res.ok) throw new Error("render failed");
+    return res.blob();
+  }
+
+  async function openTextEditor() {
+    setError(null);
+    setEditorBusy(true);
+    try {
+      const blob = await resolveFinalBlob();
+      setEditorBase({ kind: "photo", file: new File([blob], "template.png", { type: "image/png" }) });
+    } catch {
+      setError("Couldn't open the editor. Please try again.");
+    } finally {
+      setEditorBusy(false);
+    }
+  }
+
+  async function confirmTextEdit() {
+    if (!templateEditorRef.current) return;
+    setEditorBusy(true);
+    try {
+      const output = await templateEditorRef.current.export();
+      if (output.kind === "photo") setEditedBlob(output.blob);
+    } catch {
+      setError("Couldn't save that text. Please try again.");
+    } finally {
+      setEditorBusy(false);
+      setEditorBase(null);
+    }
   }
 
   async function shareToFeed() {
@@ -181,9 +242,7 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
     setSharing(true);
     setError(null);
     try {
-      const res = await fetch(imageUrl(target, format, photo, "full", accent, pattern));
-      if (!res.ok) throw new Error("render failed");
-      const blob = await res.blob();
+      const blob = await resolveFinalBlob();
       const file = new File([blob], "box2box-share.png", { type: "image/png" });
 
       const convRes = await fetch("/api/conversations", {
@@ -233,9 +292,7 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
     setSharing(true);
     setError(null);
     try {
-      const res = await fetch(imageUrl(target, format, photo, "full", accent, pattern));
-      if (!res.ok) throw new Error("render failed");
-      const blob = await res.blob();
+      const blob = await resolveFinalBlob();
       const file = new File([blob], "box2box-share.png", { type: "image/png" });
 
       if (destination === "story") {
@@ -550,13 +607,35 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
               )}
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={imageUrl(target, format, photo, "full", accent, pattern)}
+                src={editedPreviewUrl ?? imageUrl(target, format, photo, "full", accent, pattern)}
                 alt="Preview of what will be posted"
                 onLoad={() => setPreviewLoaded(true)}
-                className={`h-full w-full object-cover transition-opacity ${previewLoaded ? "opacity-100" : "opacity-0"}`}
+                className={`h-full w-full object-cover transition-opacity ${
+                  previewLoaded || editedPreviewUrl ? "opacity-100" : "opacity-0"
+                }`}
               />
             </div>
             <p className="text-center text-xs text-b2b-ink/50">This is exactly what will be posted</p>
+
+            <div className="flex justify-center gap-4">
+              <button
+                type="button"
+                onClick={openTextEditor}
+                disabled={editorBusy}
+                className="text-sm font-medium text-b2b-pink hover:underline disabled:opacity-50"
+              >
+                {editorBusy ? "Loading..." : editedBlob ? "Edit text" : "Add text"}
+              </button>
+              {editedBlob && (
+                <button
+                  type="button"
+                  onClick={() => setEditedBlob(null)}
+                  className="text-sm font-medium text-b2b-ink/50 hover:text-b2b-ink hover:underline"
+                >
+                  Remove text
+                </button>
+              )}
+            </div>
 
             <button
               type="button"
@@ -631,6 +710,33 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
           </div>
         )}
       </div>
+
+      {editorBase && (
+        <div className="fixed inset-0 z-[70] flex flex-col bg-black" onClick={(e) => e.stopPropagation()}>
+          <button
+            type="button"
+            onClick={() => setEditorBase(null)}
+            aria-label="Cancel"
+            className="absolute right-4 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-xl text-white hover:bg-white/20"
+            style={{ top: "max(1rem, env(safe-area-inset-top))" }}
+          >
+            ×
+          </button>
+          <div className="flex flex-1 flex-col overflow-hidden">
+            <StoryEditor ref={templateEditorRef} base={editorBase} />
+          </div>
+          <div className="p-4">
+            <button
+              type="button"
+              onClick={confirmTextEdit}
+              disabled={editorBusy}
+              className="w-full rounded-full bg-white py-3 text-center text-sm font-semibold text-b2b-ink disabled:opacity-50"
+            >
+              {editorBusy ? "Saving..." : "Done"}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
