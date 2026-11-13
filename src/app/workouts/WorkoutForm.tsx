@@ -98,6 +98,8 @@ export function WorkoutForm({
   const [suggestionVisible, setSuggestionVisible] = useState(!!gymWodWeek && !isEditing && !start.wodName);
   const [selectedGymKey, setSelectedGymKey] = useState(gymWodWeek?.myGymKey ?? gymWodWeek?.gyms[0]?.key ?? null);
   const [selectedDayKey, setSelectedDayKey] = useState<string | null>(null);
+  const [gymSearchOpen, setGymSearchOpen] = useState(false);
+  const [gymQuery, setGymQuery] = useState("");
 
   const selectedGym = gymWodWeek?.gyms.find((g) => g.key === selectedGymKey) ?? gymWodWeek?.gyms[0] ?? null;
   // With no day explicitly picked, default to the most recent day this gym
@@ -107,6 +109,9 @@ export function WorkoutForm({
   const selectedDay = selectedDayKey
     ? (selectedGym?.days.find((d) => d.key === selectedDayKey) ?? null)
     : (selectedGym?.days.find((d) => d.wodName) ?? selectedGym?.days[0] ?? null);
+
+  const filteredGyms =
+    gymWodWeek?.gyms.filter((g) => g.name.toLowerCase().includes(gymQuery.trim().toLowerCase())) ?? [];
 
   const initialTime = start.unit === "TIME" ? splitTime(start.score ?? "") : ["", "", ""];
 
@@ -275,33 +280,24 @@ export function WorkoutForm({
 
       {suggestionVisible && gymWodWeek && selectedGym && selectedDay && (
         <div className="rounded-lg border border-b2b-pink/30 bg-b2b-pink/5 p-3">
-          <p className="text-sm font-medium text-b2b-ink">
-            WODs logged at{" "}
-            {gymWodWeek.gyms.length > 1 ? (
-              <select
-                value={selectedGym.key}
-                onChange={(e) => {
-                  setSelectedGymKey(e.target.value);
-                  setSelectedDayKey(null);
+          <div className="flex flex-col gap-0.5">
+            {/* On its own line, not sharing a row with "Change gym" — fighting
+                for horizontal space with a sibling button is what pushed
+                "this week" onto its own orphaned line on narrow screens. */}
+            <p className="text-sm font-medium text-b2b-ink">WODs logged at {selectedGym.name} this week</p>
+            {gymWodWeek.gyms.length > 1 && (
+              <button
+                type="button"
+                onClick={() => {
+                  setGymSearchOpen(true);
+                  setGymQuery("");
                 }}
-                aria-label="Change gym"
-                // A native select rather than a scrolling chip row — with
-                // every approved gym now listed (not just active ones) that
-                // row could run to dozens of chips; this gives a proper
-                // searchable/scrollable picker on every platform for free.
-                className="inline rounded border-0 bg-transparent p-0 font-semibold text-b2b-pink underline decoration-dotted underline-offset-2 focus:outline-none"
+                className="self-start text-xs font-semibold text-b2b-pink hover:underline"
               >
-                {gymWodWeek.gyms.map((gym) => (
-                  <option key={gym.key} value={gym.key}>
-                    {gym.name}
-                  </option>
-                ))}
-              </select>
-            ) : (
-              selectedGym.name
-            )}{" "}
-            this week
-          </p>
+                Change gym
+              </button>
+            )}
+          </div>
 
           <div className="mt-2 flex gap-1.5 overflow-x-auto pb-1">
             {selectedGym.days.map((day) => (
@@ -343,6 +339,56 @@ export function WorkoutForm({
               className="text-xs text-b2b-ink/50 hover:underline"
             >
               Dismiss
+            </button>
+          </div>
+        </div>
+      )}
+
+      {gymSearchOpen && gymWodWeek && (
+        <div
+          className="fixed inset-0 z-[70] flex items-end justify-center bg-black/40 sm:items-center"
+          onClick={() => setGymSearchOpen(false)}
+        >
+          <div
+            className="flex max-h-[70vh] w-full max-w-sm flex-col gap-2 rounded-t-2xl bg-b2b-card p-4 sm:rounded-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="font-semibold text-b2b-ink">Change gym</p>
+            <input
+              type="text"
+              autoFocus
+              value={gymQuery}
+              onChange={(e) => setGymQuery(e.target.value)}
+              placeholder="Search gyms..."
+              className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-b2b-pink focus:outline-none"
+            />
+            <div className="flex-1 overflow-y-auto">
+              {filteredGyms.length === 0 && (
+                <p className="px-1 py-2 text-sm text-b2b-ink/40">No gyms match &ldquo;{gymQuery}&rdquo;</p>
+              )}
+              {filteredGyms.map((gym) => (
+                <button
+                  key={gym.key}
+                  type="button"
+                  onClick={() => {
+                    setSelectedGymKey(gym.key);
+                    setSelectedDayKey(null);
+                    setGymSearchOpen(false);
+                  }}
+                  className={`flex w-full items-center rounded-lg px-3 py-2.5 text-left text-sm ${
+                    gym.key === selectedGym?.key ? "bg-b2b-pink/10 font-semibold text-b2b-pink" : "text-b2b-ink hover:bg-b2b-bg"
+                  }`}
+                >
+                  {gym.name}
+                </button>
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={() => setGymSearchOpen(false)}
+              className="mt-1 rounded-full bg-b2b-ink px-4 py-2.5 text-center text-sm font-semibold text-b2b-bg"
+            >
+              Cancel
             </button>
           </div>
         </div>
