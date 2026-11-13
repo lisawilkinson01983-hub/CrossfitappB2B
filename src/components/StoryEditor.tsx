@@ -19,18 +19,30 @@ const OUTPUT_H = 1920;
 
 const TEXT_COLORS = ["#ffffff", "#232223", "#b8842a", "#ef4444", "#1d4ed8", "#047857"];
 const BG_SWATCHES = [...STORY_BACKGROUND_COLORS, "#ffffff", "#000000"];
+const BORDER_COLORS = ["#ffffff", "#232223", "#b8842a"];
+
+// How close the box's center has to come to the canvas's own horizontal/
+// vertical center (in % of that axis) before it snaps there and the guide
+// line lights up — same idea as Instagram/Canva's center-snap.
+const SNAP_THRESHOLD_PCT = 2.5;
+const MIN_WIDTH_PCT = 20;
+const MAX_WIDTH_PCT = 94;
 
 export type StoryBase = { kind: "color" } | { kind: "photo"; file: File } | { kind: "video"; file: File };
+export type TextAlign = "left" | "center" | "right";
 
 type TextBox = {
   id: string;
   text: string;
   xPct: number; // center position, 0-100
   yPct: number;
+  widthPct: number; // box width as a % of the output width — set by the two-finger resize gesture; height always just follows the wrapped text
   fontKey: StoryFontKey;
   color: string;
+  align: TextAlign;
   bgColor: string | null; // null = fully transparent
   bgOpacity: number; // 0-1, only meaningful when bgColor is set
+  borderColor: string | null; // null = no border
   sizePct: number; // font size as a % of the output height
 };
 
@@ -49,12 +61,81 @@ function newBox(fontKey: StoryFontKey): TextBox {
     text: "Tap to edit",
     xPct: 50,
     yPct: 50,
+    widthPct: 70,
     fontKey,
     color: "#ffffff",
+    align: "center",
     bgColor: null,
     bgOpacity: 0.6,
+    borderColor: null,
     sizePct: 6,
   };
+}
+
+/** A pinch (2-finger) in progress resizes the box; a single finger moves it, offset from wherever on the box it first touched down so the box never jumps to re-center under the finger. */
+type Gesture = {
+  boxId: string;
+  pointers: Map<number, { x: number; y: number }>;
+  grabOffsetPx: { x: number; y: number };
+  startWidthPct: number;
+  startDist: number | null;
+};
+
+function AlignIcon({ align }: { align: TextAlign }) {
+  const lines =
+    align === "left"
+      ? [
+          [3, 3, 21],
+          [3, 9, 15],
+          [3, 15, 18],
+          [3, 21, 12],
+        ]
+      : align === "right"
+        ? [
+            [3, 3, 21],
+            [9, 9, 21],
+            [6, 15, 21],
+            [12, 21, 21],
+          ]
+        : [
+            [3, 3, 21],
+            [6, 9, 18],
+            [4.5, 15, 19.5],
+            [7.5, 21, 16.5],
+          ];
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" className="h-4 w-4">
+      {lines.map(([x1, y, x2], i) => (
+        <line key={i} x1={x1} y1={y} x2={x2} y2={y} />
+      ))}
+    </svg>
+  );
+}
+
+/** Tracks how much the on-screen keyboard currently covers, via the VisualViewport API, so a toolbar that needs to stay reachable while typing can shift itself clear of it. Not every browser updates `visualViewport` on keyboard show/hide (notably older Safari), so this degrades to "no offset" there rather than breaking anything. */
+function useKeyboardOffset(active: boolean): number {
+  const [offset, setOffset] = useState(0);
+
+  useEffect(() => {
+    const vv = typeof window !== "undefined" ? window.visualViewport : null;
+    if (!active || !vv) {
+      setOffset(0);
+      return;
+    }
+    function update() {
+      if (!vv) return;
+      setOffset(Math.max(0, window.innerHeight - vv.height - vv.offsetTop));
+    }
+    update();
+    vv.addEventListener("resize", update);
+    vv.addEventListener("scroll", update);
+    return () => {
+      vv.removeEventListener("resize", update);
+      vv.removeEventListener("scroll", update);
+    };
+  }, [active]);
+
+  return offset;
 }
 
 export const StoryEditor = forwardRef<StoryEditorHandle, { base: StoryBase }>(function StoryEditor(
@@ -68,14 +149,25 @@ export const StoryEditor = forwardRef<StoryEditorHandle, { base: StoryBase }>(fu
   const [fontsReady, setFontsReady] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [exportProgress, setExportProgress] = useState(0);
+  // Lit up while a single-finger drag has the box's center within
+  // SNAP_THRESHOLD_PCT of the canvas's own horizontal/vertical center —
+  // the matching guide line (rendered in the preview) is the visible
+  // "yes, this is centered" confirmation.
+  const [guide, setGuide] = useState<{ x: boolean; y: boolean }>({ x: false, y: false });
 
   const previewRef = useRef<HTMLDivElement>(null);
-  const dragState = useRef<{ id: string; pointerId: number } | null>(null);
+  const gestureRef = useRef<Gesture | null>(null);
   const mediaUrl = useRef<string | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const keyboardOffset = useKeyboardOffset(!!editingId);
 
   useEffect(() => {
     ensureStoryFontsLoaded().then(() => setFontsReady(true));
   }, []);
+
+  useEffect(() => {
+    if (editingId && textareaRef.current) autoGrow(textareaRef.current);
+  }, [editingId]);
 
   useEffect(() => {
     if (base.kind === "color") return;
@@ -107,31 +199,91 @@ export const StoryEditor = forwardRef<StoryEditorHandle, { base: StoryBase }>(fu
     setEditingId(null);
   }
 
-  function cycleFont() {
-    if (!selected) return;
-    const idx = STORY_FONTS.findIndex((f) => f.key === selected.fontKey);
-    updateSelected({ fontKey: STORY_FONTS[(idx + 1) % STORY_FONTS.length].key });
-  }
-
   function onBoxPointerDown(e: ReactPointerEvent<HTMLDivElement>, id: string) {
     e.stopPropagation();
+    if (editingId === id) return; // typing — the textarea owns pointer events, not a drag/pinch
     setSelectedId(id);
-    (e.target as HTMLElement).setPointerCapture(e.pointerId);
-    dragState.current = { id, pointerId: e.pointerId };
+    const container = previewRef.current;
+    const box = boxes.find((b) => b.id === id);
+    if (!container || !box) return;
+    e.currentTarget.setPointerCapture(e.pointerId);
+
+    let g = gestureRef.current;
+    if (!g || g.boxId !== id) {
+      const rect = container.getBoundingClientRect();
+      const boxCenterPx = { x: (box.xPct / 100) * rect.width, y: (box.yPct / 100) * rect.height };
+      g = {
+        boxId: id,
+        pointers: new Map(),
+        // The offset between where this finger first landed and the box's
+        // actual center — preserved for the rest of the drag so the box
+        // keeps that same relative grab point instead of snapping its
+        // center under the finger the instant it moves.
+        grabOffsetPx: { x: e.clientX - rect.left - boxCenterPx.x, y: e.clientY - rect.top - boxCenterPx.y },
+        startWidthPct: box.widthPct,
+        startDist: null,
+      };
+      gestureRef.current = g;
+    }
+    g.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (g.pointers.size === 2) {
+      const [p1, p2] = [...g.pointers.values()];
+      g.startDist = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+      g.startWidthPct = box.widthPct;
+    }
   }
 
   function onBoxPointerMove(e: ReactPointerEvent<HTMLDivElement>) {
-    const drag = dragState.current;
+    const g = gestureRef.current;
     const container = previewRef.current;
-    if (!drag || drag.pointerId !== e.pointerId || !container) return;
+    if (!g || !g.pointers.has(e.pointerId) || !container) return;
+    g.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
     const rect = container.getBoundingClientRect();
-    const xPct = Math.min(96, Math.max(4, ((e.clientX - rect.left) / rect.width) * 100));
-    const yPct = Math.min(96, Math.max(4, ((e.clientY - rect.top) / rect.height) * 100));
-    setBoxes((prev) => prev.map((b) => (b.id === drag.id ? { ...b, xPct, yPct } : b)));
+
+    // Two fingers down — resize, don't also move.
+    if (g.pointers.size >= 2 && g.startDist) {
+      const [p1, p2] = [...g.pointers.values()];
+      const dist = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+      const widthPct = Math.min(MAX_WIDTH_PCT, Math.max(MIN_WIDTH_PCT, g.startWidthPct * (dist / g.startDist)));
+      setBoxes((prev) => prev.map((b) => (b.id === g.boxId ? { ...b, widthPct } : b)));
+      return;
+    }
+
+    const p = g.pointers.get(e.pointerId);
+    if (!p) return;
+    let xPct = ((p.x - rect.left - g.grabOffsetPx.x) / rect.width) * 100;
+    let yPct = ((p.y - rect.top - g.grabOffsetPx.y) / rect.height) * 100;
+    const nearCenterX = Math.abs(xPct - 50) < SNAP_THRESHOLD_PCT;
+    const nearCenterY = Math.abs(yPct - 50) < SNAP_THRESHOLD_PCT;
+    if (nearCenterX) xPct = 50;
+    if (nearCenterY) yPct = 50;
+    xPct = Math.min(96, Math.max(4, xPct));
+    yPct = Math.min(96, Math.max(4, yPct));
+    setGuide({ x: nearCenterX, y: nearCenterY });
+    setBoxes((prev) => prev.map((b) => (b.id === g.boxId ? { ...b, xPct, yPct } : b)));
   }
 
-  function onBoxPointerUp(e: ReactPointerEvent<HTMLDivElement>) {
-    if (dragState.current?.pointerId === e.pointerId) dragState.current = null;
+  function onBoxPointerEnd(e: ReactPointerEvent<HTMLDivElement>) {
+    const g = gestureRef.current;
+    if (!g) return;
+    g.pointers.delete(e.pointerId);
+    if (g.pointers.size === 0) {
+      gestureRef.current = null;
+      setGuide({ x: false, y: false });
+    } else {
+      // Dropped from a pinch back to one finger (or vice versa) — reset the
+      // reference points from here rather than jumping using stale ones.
+      const container = previewRef.current;
+      const box = boxes.find((b) => b.id === g.boxId);
+      if (container && box) {
+        const rect = container.getBoundingClientRect();
+        const boxCenterPx = { x: (box.xPct / 100) * rect.width, y: (box.yPct / 100) * rect.height };
+        const [remaining] = [...g.pointers.values()];
+        g.grabOffsetPx = { x: remaining.x - rect.left - boxCenterPx.x, y: remaining.y - rect.top - boxCenterPx.y };
+        g.startWidthPct = box.widthPct;
+      }
+      g.startDist = null;
+    }
   }
 
   useImperativeHandle(ref, () => ({
@@ -200,43 +352,55 @@ export const StoryEditor = forwardRef<StoryEditorHandle, { base: StoryBase }>(fu
               key={box.id}
               onPointerDown={(e) => onBoxPointerDown(e, box.id)}
               onPointerMove={onBoxPointerMove}
-              onPointerUp={onBoxPointerUp}
+              onPointerUp={onBoxPointerEnd}
+              onPointerCancel={onBoxPointerEnd}
               onClick={(e) => e.stopPropagation()}
               onDoubleClick={(e) => {
                 e.stopPropagation();
                 setSelectedId(box.id);
                 setEditingId(box.id);
               }}
-              className={`absolute max-w-[90%] -translate-x-1/2 -translate-y-1/2 cursor-move whitespace-pre-wrap break-words px-2 py-1 text-center ${
-                selectedId === box.id ? "outline outline-2 outline-dashed outline-white/80" : ""
-              }`}
+              // The box's own size/position never changes while editing — the
+              // textarea inside it grows instead (see its own auto-height
+              // effect below) — so the box always visibly expands with the
+              // text rather than clipping or scrolling it out of view.
+              className={`absolute -translate-x-1/2 -translate-y-1/2 whitespace-pre-wrap break-words px-2 py-1 ${
+                isEditing ? "cursor-text" : "cursor-move"
+              } ${selectedId === box.id ? "outline outline-2 outline-dashed outline-white/80" : ""}`}
               style={{
                 left: `${box.xPct}%`,
                 top: `${box.yPct}%`,
+                width: `${box.widthPct}%`,
+                textAlign: box.align,
                 fontFamily: `"${font.family}"`,
                 fontWeight: font.cssWeight,
                 color: box.color,
                 fontSize: `${box.sizePct}cqh`,
-                backgroundColor: box.bgColor
-                  ? hexToRgba(box.bgColor, box.bgOpacity)
-                  : "transparent",
-                borderRadius: box.bgColor ? 6 : 0,
+                backgroundColor: box.bgColor ? hexToRgba(box.bgColor, box.bgOpacity) : "transparent",
+                border: box.borderColor ? `2px solid ${box.borderColor}` : "none",
+                borderRadius: box.bgColor || box.borderColor ? 6 : 0,
               }}
             >
               {isEditing ? (
                 <textarea
+                  ref={textareaRef}
                   autoFocus
                   value={box.text}
-                  onChange={(e) => updateSelected({ text: e.target.value })}
+                  onChange={(e) => {
+                    updateSelected({ text: e.target.value });
+                    autoGrow(e.target);
+                  }}
                   onBlur={() => setEditingId(null)}
                   onClick={(e) => e.stopPropagation()}
+                  onPointerDown={(e) => e.stopPropagation()}
                   rows={1}
-                  className="w-full appearance-none resize-none border-none text-center outline-none"
+                  className="block w-full appearance-none resize-none overflow-hidden border-none outline-none"
                   style={{
                     fontFamily: "inherit",
                     fontWeight: "inherit",
                     color: "inherit",
                     fontSize: "inherit",
+                    textAlign: "inherit",
                     // globals.css sets a background on every textarea sitewide
                     // (for light/dark form visibility elsewhere) — that rule
                     // is unlayered CSS, so it beats bg-transparent regardless
@@ -252,6 +416,9 @@ export const StoryEditor = forwardRef<StoryEditorHandle, { base: StoryBase }>(fu
             </div>
           );
         })}
+
+        {guide.x && <div className="pointer-events-none absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-b2b-pink" />}
+        {guide.y && <div className="pointer-events-none absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-b2b-pink" />}
 
         {/* cqh (container query units) needs a query container — the preview
             div itself is sized to the real 9:16 box, so its own height is
@@ -313,15 +480,44 @@ export const StoryEditor = forwardRef<StoryEditorHandle, { base: StoryBase }>(fu
       )}
 
       {selected && (
-        <div className="flex flex-col gap-2 border-t border-white/10 px-4 py-3">
-          <div className="flex items-center justify-between">
-            <button
-              type="button"
-              onClick={cycleFont}
-              className="rounded-full bg-white/10 px-3 py-1.5 text-xs font-semibold text-white hover:bg-white/20"
-            >
-              Font: {storyFontByKey(selected.fontKey).label}
-            </button>
+        <div
+          className="flex flex-col gap-2 border-t border-white/10 bg-b2b-ink px-4 py-3 transition-transform"
+          style={{ transform: editingId === selected.id ? `translateY(-${keyboardOffset}px)` : undefined }}
+        >
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5">
+            <span className="shrink-0 text-[10px] uppercase tracking-wide text-white/50">Font</span>
+            {STORY_FONTS.map((f) => (
+              <button
+                key={f.key}
+                type="button"
+                onClick={() => updateSelected({ fontKey: f.key })}
+                className={`shrink-0 rounded-full px-3 py-1.5 text-sm ${
+                  selected.fontKey === f.key ? "bg-white text-b2b-ink" : "bg-white/10 text-white hover:bg-white/20"
+                }`}
+                style={{ fontFamily: `"${f.family}"`, fontWeight: f.cssWeight }}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-1">
+              {(["left", "center", "right"] as const).map((a) => (
+                <button
+                  key={a}
+                  type="button"
+                  onClick={() => updateSelected({ align: a })}
+                  aria-label={`Align ${a}`}
+                  aria-pressed={selected.align === a}
+                  className={`flex h-7 w-7 items-center justify-center rounded-full ${
+                    selected.align === a ? "bg-white text-b2b-ink" : "bg-white/10 text-white hover:bg-white/20"
+                  }`}
+                >
+                  <AlignIcon align={a} />
+                </button>
+              ))}
+            </div>
             <div className="flex items-center gap-2">
               <button
                 type="button"
@@ -404,11 +600,46 @@ export const StoryEditor = forwardRef<StoryEditorHandle, { base: StoryBase }>(fu
               />
             )}
           </div>
+
+          <div className="flex items-center gap-1.5">
+            <span className="mr-1 text-[10px] uppercase tracking-wide text-white/50">Border</span>
+            <button
+              type="button"
+              onClick={() => updateSelected({ borderColor: null })}
+              className={`flex h-6 w-6 items-center justify-center rounded-full border-2 text-[9px] text-white ${
+                selected.borderColor === null ? "border-white" : "border-white/20"
+              }`}
+              style={{
+                backgroundImage:
+                  "linear-gradient(45deg, rgba(255,255,255,0.3) 25%, transparent 25%, transparent 75%, rgba(255,255,255,0.3) 75%)",
+                backgroundSize: "6px 6px",
+              }}
+              aria-label="No border"
+            >
+              ∅
+            </button>
+            {BORDER_COLORS.map((color) => (
+              <button
+                key={color}
+                type="button"
+                aria-label={`Border color ${color}`}
+                onClick={() => updateSelected({ borderColor: color })}
+                className={`h-6 w-6 rounded-full border-2 ${selected.borderColor === color ? "border-white" : "border-white/20"}`}
+                style={{ backgroundColor: color }}
+              />
+            ))}
+          </div>
         </div>
       )}
     </div>
   );
 });
+
+/** Grows a textarea's own height to fit its content — the box around it has no fixed height of its own, so this is what actually makes the box "expand with the text" as lines are typed or wrapped. */
+function autoGrow(el: HTMLTextAreaElement) {
+  el.style.height = "auto";
+  el.style.height = `${el.scrollHeight}px`;
+}
 
 function hexToRgba(hex: string, alpha: number): string {
   const n = parseInt(hex.replace("#", ""), 16);
@@ -456,36 +687,42 @@ function drawTextBox(ctx: CanvasRenderingContext2D, box: TextBox, outputW: numbe
   const font = storyFontByKey(box.fontKey);
   const fontSizePx = (box.sizePct / 100) * outputH;
   ctx.font = `${font.cssWeight} ${fontSizePx}px "${font.family}"`;
-  ctx.textAlign = "center";
   ctx.textBaseline = "middle";
 
   const cx = (box.xPct / 100) * outputW;
   const cy = (box.yPct / 100) * outputH;
-  const maxWidth = outputW * 0.9;
-  const lines = wrapText(ctx, box.text, maxWidth);
+  const boxWidthPx = (box.widthPct / 100) * outputW;
+  const padX = fontSizePx * 0.3;
+  const padY = fontSizePx * 0.2;
+  const lines = wrapText(ctx, box.text, Math.max(10, boxWidthPx - padX * 2));
   const lineHeight = fontSizePx * 1.2;
   const totalHeight = lines.length * lineHeight;
 
+  // The background/border frame always matches the box's own set width —
+  // not just however wide the longest line happens to be — same as what's
+  // shown live, and the whole reason a border has a box to sit around.
+  const rectX = cx - boxWidthPx / 2;
+  const rectY = cy - totalHeight / 2 - padY;
+  const rectH = totalHeight + padY * 2;
+
   if (box.bgColor) {
-    const widest = Math.max(...lines.map((l) => ctx.measureText(l).width), 0);
     ctx.fillStyle = hexToRgba(box.bgColor, box.bgOpacity);
-    const padX = fontSizePx * 0.3;
-    const padY = fontSizePx * 0.2;
-    roundRect(
-      ctx,
-      cx - widest / 2 - padX,
-      cy - totalHeight / 2 - padY,
-      widest + padX * 2,
-      totalHeight + padY * 2,
-      fontSizePx * 0.15
-    );
+    roundRect(ctx, rectX, rectY, boxWidthPx, rectH, fontSizePx * 0.15);
     ctx.fill();
+  }
+  if (box.borderColor) {
+    ctx.strokeStyle = box.borderColor;
+    ctx.lineWidth = Math.max(2, fontSizePx * 0.03);
+    roundRect(ctx, rectX, rectY, boxWidthPx, rectH, fontSizePx * 0.15);
+    ctx.stroke();
   }
 
   ctx.fillStyle = box.color;
+  ctx.textAlign = box.align;
+  const textX = box.align === "left" ? rectX + padX : box.align === "right" ? rectX + boxWidthPx - padX : cx;
   lines.forEach((line, i) => {
     const y = cy - totalHeight / 2 + lineHeight * i + lineHeight / 2;
-    ctx.fillText(line, cx, y);
+    ctx.fillText(line, textX, y);
   });
 }
 
