@@ -13,7 +13,10 @@ export type ShareTarget =
 
 type Format = "A" | "B" | "C";
 type Step = "destination" | "format" | "photo" | "recipient" | "preview" | "posted";
-type Destination = "story" | "instagram" | "dm";
+// "share" covers Story and/or Instagram — which of those two is decided by
+// the toStory/toInstagram checkboxes below, not by this. "dm" is its own
+// separate, single-recipient flow (not combinable with the other two).
+type Destination = "share" | "dm";
 type RecipientOption = { id: string; name: string; photo: string | null };
 
 const FORMAT_LABELS: Record<Format, string> = {
@@ -84,7 +87,9 @@ function imageUrl(
  */
 export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: () => void }) {
   const [step, setStep] = useState<Step>("destination");
-  const [destination, setDestination] = useState<Destination>("story");
+  const [destination, setDestination] = useState<Destination>("share");
+  const [toStory, setToStory] = useState(true);
+  const [toInstagram, setToInstagram] = useState(false);
   const [format, setFormat] = useState<Format>("A");
   const [photo, setPhoto] = useState<string | null>(null);
   const [showPhotoPicker, setShowPhotoPicker] = useState(false);
@@ -137,6 +142,19 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
   // keeps all three too.
   const formats: Format[] = target.kind === "pb" || isResult ? ["A", "B", "C"] : ["A", "C"];
   const usesPhoto = format === "A" || format === "C";
+
+  // "Post" for Story (an in-app action) vs "Share" for Instagram (a hand-off
+  // to the OS share sheet) — kept as the original wording for either alone,
+  // folded into one phrase when both are picked.
+  function destinationHeading(): string {
+    if (destination === "dm") return "Send to someone";
+    if (toStory && toInstagram) return "Share to Story & Instagram";
+    return toInstagram ? "Share to Instagram" : "Share to Story";
+  }
+  function previewHeading(): string {
+    if (toStory && toInstagram) return "Share to Story & Instagram";
+    return toInstagram ? "Share to Instagram" : "Post to Story";
+  }
 
   function openDestination(dest: Destination) {
     setDestination(dest);
@@ -295,7 +313,7 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
       const blob = await resolveFinalBlob();
       const file = new File([blob], "box2box-share.png", { type: "image/png" });
 
-      if (destination === "story") {
+      if (toStory) {
         // A real in-app Story, same as the existing /api/stories feature —
         // not just a hand-off to the OS share sheet.
         const formData = new FormData();
@@ -306,34 +324,40 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
         // it on this page to refetch so the new story shows up without a
         // full reload (see StoriesBar's matching listener).
         window.dispatchEvent(new Event("b2b:story-posted"));
-        setStep("posted");
-        setTimeout(onClose, 1400);
-        return;
       }
 
-      // Instagram is a third-party app — there's no way to post into it
-      // directly, so this genuinely is just a hand-off to the OS share sheet.
-      const nav = navigator as Navigator & {
-        canShare?: (data: { files: File[] }) => boolean;
-        share?: (data: { files: File[]; title?: string }) => Promise<void>;
-      };
-      if (nav.canShare?.({ files: [file] }) && nav.share) {
-        await nav.share({ files: [file], title: "Box 2 Box" });
-      } else {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = "box2box-share.png";
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        URL.revokeObjectURL(url);
+      if (toInstagram) {
+        // Instagram is a third-party app — there's no way to post into it
+        // directly, so this genuinely is just a hand-off to the OS share sheet.
+        const nav = navigator as Navigator & {
+          canShare?: (data: { files: File[] }) => boolean;
+          share?: (data: { files: File[]; title?: string }) => Promise<void>;
+        };
+        if (nav.canShare?.({ files: [file] }) && nav.share) {
+          await nav.share({ files: [file], title: "Box 2 Box" });
+        } else {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = "box2box-share.png";
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          URL.revokeObjectURL(url);
+        }
       }
-      onClose();
+
+      if (toStory) {
+        // The in-app Story is the one with lasting on-screen state to
+        // confirm — Instagram's hand-off already showed its own share
+        // sheet, so there's nothing more to show for that half.
+        setStep("posted");
+        setTimeout(onClose, 1400);
+      } else {
+        onClose();
+      }
     } catch {
-      setError(
-        destination === "story" ? "Couldn't post that story. Please try again." : "Couldn't generate that image. Please try again."
-      );
+      setError(toStory ? "Couldn't post that story. Please try again." : "Couldn't generate that image. Please try again.");
     } finally {
       setSharing(false);
     }
@@ -382,35 +406,59 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
                 <span className="block text-xs text-b2b-ink/50">Posts a copy to your own feed</span>
               </span>
             </button>
-            <button
-              type="button"
-              onClick={() => openDestination("story")}
-              className="flex items-center gap-3 rounded-xl bg-b2b-pink/10 px-2 py-2.5 text-left hover:bg-b2b-pink/15"
-            >
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-b2b-pink text-base text-white">
-                ◎
-              </span>
-              <span>
-                <span className="block text-sm font-semibold text-b2b-pink">Share to Story</span>
-                <span className="block text-xs text-b2b-ink/50">Pick a format, then post to Stories</span>
-              </span>
-            </button>
-            <button
-              type="button"
-              onClick={() => openDestination("instagram")}
-              className="flex items-center gap-3 rounded-xl px-2 py-2.5 text-left hover:bg-b2b-bg"
-            >
-              <span
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-base text-white"
-                style={{ background: "linear-gradient(135deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888)" }}
+            <div className="flex flex-col gap-1 rounded-xl bg-b2b-bg p-1.5">
+              <button
+                type="button"
+                onClick={() => setToStory((v) => !v)}
+                className="flex items-center gap-3 rounded-lg px-1.5 py-2 text-left hover:bg-b2b-pink/10"
               >
-                ◇
-              </span>
-              <span>
-                <span className="block text-sm font-semibold text-b2b-ink">Share to Instagram</span>
-                <span className="block text-xs text-b2b-ink/50">Pick a format, opens your share sheet</span>
-              </span>
-            </button>
+                <span
+                  className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md border-2 text-[10px] font-bold ${
+                    toStory ? "border-b2b-pink bg-b2b-pink text-white" : "border-b2b-ink/25 text-transparent"
+                  }`}
+                >
+                  ✓
+                </span>
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-b2b-pink text-base text-white">
+                  ◎
+                </span>
+                <span>
+                  <span className="block text-sm font-semibold text-b2b-pink">Share to Story</span>
+                  <span className="block text-xs text-b2b-ink/50">Posts to your Box 2 Box story</span>
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setToInstagram((v) => !v)}
+                className="flex items-center gap-3 rounded-lg px-1.5 py-2 text-left hover:bg-b2b-pink/10"
+              >
+                <span
+                  className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md border-2 text-[10px] font-bold ${
+                    toInstagram ? "border-b2b-pink bg-b2b-pink text-white" : "border-b2b-ink/25 text-transparent"
+                  }`}
+                >
+                  ✓
+                </span>
+                <span
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-base text-white"
+                  style={{ background: "linear-gradient(135deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888)" }}
+                >
+                  ◇
+                </span>
+                <span>
+                  <span className="block text-sm font-semibold text-b2b-ink">Share to Instagram</span>
+                  <span className="block text-xs text-b2b-ink/50">Also opens your device's share sheet</span>
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => openDestination("share")}
+                disabled={!toStory && !toInstagram}
+                className="mx-1.5 mt-1 rounded-full bg-b2b-ink px-4 py-2.5 text-center text-sm font-semibold text-b2b-bg disabled:opacity-40"
+              >
+                Continue
+              </button>
+            </div>
             {isWorkout && (
               <button
                 type="button"
@@ -434,8 +482,7 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
 
         {step === "format" && (
           <>
-            <p className="font-semibold text-b2b-ink">
-              {destination === "instagram" ? "Share to Instagram" : destination === "dm" ? "Send to someone" : "Share to Story"}
+            <p className="font-semibold text-b2b-ink">{destinationHeading()}
             </p>
             <div className="flex justify-center gap-3">
               {formats.map((f) => (
@@ -593,9 +640,7 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
 
         {step === "preview" && (
           <>
-            <p className="font-semibold text-b2b-ink">
-              {destination === "instagram" ? "Share to Instagram" : "Post to Story"}
-            </p>
+            <p className="font-semibold text-b2b-ink">{previewHeading()}</p>
             <div
               className="relative mx-auto overflow-hidden rounded-xl bg-b2b-bg"
               style={{ width: 220, aspectRatio: "9 / 16" }}
@@ -643,7 +688,7 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
               disabled={sharing}
               className="mt-1 rounded-full bg-b2b-ink px-4 py-3 text-center text-sm font-semibold text-b2b-bg disabled:opacity-50"
             >
-              {sharing ? "Posting..." : destination === "instagram" ? "Share to Instagram" : "Post to Story"}
+              {sharing ? "Posting..." : previewHeading()}
             </button>
           </>
         )}
@@ -654,7 +699,11 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
               ✓
             </span>
             <p className="font-semibold text-b2b-ink">
-              {destination === "dm" ? `Sent to ${recipient?.name ?? "them"}` : "Posted to Story"}
+              {destination === "dm"
+                ? `Sent to ${recipient?.name ?? "them"}`
+                : toInstagram
+                  ? "Posted to Story & shared to Instagram"
+                  : "Posted to Story"}
             </p>
           </div>
         )}
