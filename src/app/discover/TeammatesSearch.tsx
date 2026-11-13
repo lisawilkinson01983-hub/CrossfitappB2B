@@ -10,11 +10,20 @@ import { formatDateTime } from "@/lib/dates";
 import {
   TEAMMATE_DIVISION_LABELS,
   TEAMMATE_GENDER_LABELS,
+  LEVEL_LABELS,
   formatTeammateRequest,
   parseTeammateRequests,
+  parseLevels,
 } from "@/lib/labels";
-import { TEAMMATE_DIVISIONS, TEAMMATE_GENDERS, type TeammateDivisionOption, type TeammateGenderOption } from "@/lib/validation";
+import { TEAMMATE_DIVISIONS, TEAMMATE_GENDERS, PB_FIELDS, type TeammateDivisionOption, type TeammateGenderOption, type PbField } from "@/lib/validation";
 import { DiscoverTabs } from "@/components/DiscoverTabs";
+import { scoreTeammateMatch, type MatchProfile, type MatchWorkout } from "@/lib/teammateMatchScore";
+import { SuggestedTeammates, type SuggestedTeammate } from "@/components/SuggestedTeammates";
+import type { FollowStatus } from "@/components/FollowButton";
+
+const MAX_SUGGESTIONS = 6;
+const workoutSelect = { wodName: true, unit: true, score: true, rounds: true, reps: true } as const;
+const pbSelect = Object.fromEntries(PB_FIELDS.map((f) => [f, true])) as Record<PbField, true>;
 
 const SORT_OPTIONS = {
   newest: "Newest posted",
@@ -28,6 +37,7 @@ export type TeammateSearchParams = {
   gender?: string;
   distance?: string;
   sort?: string;
+  event?: string;
 };
 
 export async function TeammatesSearch({
@@ -41,14 +51,12 @@ export async function TeammatesSearch({
   const gender = TEAMMATE_GENDERS.find((g) => g === sp.gender);
   const distance = DISTANCE_RANGES.find((d) => String(d) === sp.distance);
   const sort: SortOption = sp.sort === "date" ? "date" : sp.sort === "distance" ? "distance" : "newest";
-  const activeFilterCount = [division, gender, distance].filter(Boolean).length;
-
   const now = new Date();
   // Same "effective end" rule as every other event listing — a multi-day
   // event stays open until its last day, not just its start.
   const notPastFilter = [{ endDate: null, date: { gte: now } }, { endDate: { gte: now } }];
 
-  const [notices, currentUser] = await Promise.all([
+  const [notices, currentUser, candidateEvents] = await Promise.all([
     prisma.eventNotice.findMany({
       where: {
         // Null for a plain free-text notice — only ones carrying a structured
@@ -67,9 +75,118 @@ export async function TeammatesSearch({
     }),
     prisma.user.findUnique({
       where: { id: currentUserId },
-      select: { area: true, areaLat: true, areaLng: true },
+      select: {
+        id: true,
+        area: true,
+        areaLat: true,
+        areaLng: true,
+        levels: true,
+        openLevel: true,
+        workouts: { select: workoutSelect },
+        ...pbSelect,
+      },
+    }),
+    // The "narrow by event" options below — any event someone could
+    // plausibly want to narrow their teammate suggestions to.
+    prisma.event.findMany({
+      where: { AND: [eventVisibilityWhere(currentUserId), { OR: notPastFilter }] },
+      select: { id: true, name: true },
+      orderBy: { date: "asc" },
+      take: 200,
     }),
   ]);
+  const selectedEvent = candidateEvents.find((e) => e.id === sp.event) ?? null;
+  const activeFilterCount = [division, gender, distance, selectedEvent].filter(Boolean).length;
+
+  // --- Suggested for you: the same ability/distance/PB match used on an
+  // event's own find-a-teammate page (see scoreTeammateMatch, which needs
+  // no event data of its own) — scored here against every athlete with
+  // some competitive activity, or against one event's interested list once
+  // narrowed. A Follow button rides along, since surfacing someone you'd
+  // match well with is also exactly when you'd want to follow them.
+  let suggestedTeammates: SuggestedTeammate[] = [];
+  if (currentUser) {
+    const myCoords = await ensureUserAreaCoords(currentUser, { background: true });
+    const myProfile: MatchProfile & { coords: typeof myCoords; workouts: MatchWorkout[] } = {
+      id: currentUser.id,
+      levels: parseLevels(currentUser.levels),
+      openLevel: currentUser.openLevel,
+      pbs: Object.fromEntries(PB_FIELDS.map((f) => [f, currentUser[f]])) as Partial<Record<PbField, number | null>>,
+      coords: myCoords,
+      workouts: currentUser.workouts,
+    };
+
+    const candidateSelect = {
+      id: true,
+      name: true,
+      photo: true,
+      levels: true,
+      openLevel: true,
+      areaLat: true,
+      areaLng: true,
+      workouts: { select: workoutSelect },
+      ...pbSelect,
+    } as const;
+
+    const candidates = selectedEvent
+      ? (
+          await prisma.eventInterest.findMany({
+            where: { eventId: selectedEvent.id, userId: { not: currentUserId } },
+            select: { user: { select: candidateSelect } },
+          })
+        ).map((i) => i.user)
+      : await prisma.user.findMany({
+          where: {
+            id: { not: currentUserId },
+            deletedAt: null,
+            accountType: "ATHLETE",
+            // Anyone with some competitive activity — not every registered
+            // account, which would surface people who never engaged at all.
+            OR: [{ eventInterests: { some: {} } }, { eventParticipations: { some: {} } }],
+          },
+          select: candidateSelect,
+          take: 300,
+        });
+
+    suggestedTeammates = candidates
+      .map((u) => {
+        const candidateProfile: MatchProfile & { coords: Awaited<ReturnType<typeof ensureUserAreaCoords>>; workouts: MatchWorkout[] } = {
+          id: u.id,
+          levels: parseLevels(u.levels),
+          openLevel: u.openLevel,
+          pbs: Object.fromEntries(PB_FIELDS.map((f) => [f, u[f]])) as Partial<Record<PbField, number | null>>,
+          coords: u.areaLat != null && u.areaLng != null ? { lat: u.areaLat, lng: u.areaLng } : null,
+          workouts: u.workouts,
+        };
+        const { score, reasons } = scoreTeammateMatch(myProfile, candidateProfile);
+        const levelLabels = candidateProfile.levels.map((l) => LEVEL_LABELS[l]);
+        const subtitle =
+          [levelLabels.join("/"), u.openLevel != null ? `Level ${u.openLevel}` : null].filter(Boolean).join(" · ") || null;
+        return { id: u.id, name: u.name, photo: u.photo, score, subtitle, reasons };
+      })
+      .sort((a, b) => b.score - a.score)
+      .slice(0, MAX_SUGGESTIONS);
+
+    if (suggestedTeammates.length > 0) {
+      const ids = suggestedTeammates.map((s) => s.id);
+      const [myFollows, myPending] = await Promise.all([
+        prisma.follow.findMany({
+          where: { followerId: currentUserId, followingId: { in: ids } },
+          select: { followingId: true },
+        }),
+        prisma.followRequest.findMany({
+          where: { requesterId: currentUserId, targetId: { in: ids }, status: "PENDING" },
+          select: { targetId: true },
+        }),
+      ]);
+      const followingIds = new Set(myFollows.map((f) => f.followingId));
+      const pendingIds = new Set(myPending.map((r) => r.targetId));
+      suggestedTeammates = suggestedTeammates.map((s) => ({
+        ...s,
+        followStatus: (followingIds.has(s.id) ? "following" : pendingIds.has(s.id) ? "pending" : "none") as FollowStatus,
+      }));
+    }
+  }
 
   // The JSON-encoded column can't be queried by division/gender directly
   // (same reasoning as lookingFor elsewhere) — decode first, then filter in
@@ -86,7 +203,7 @@ export async function TeammatesSearch({
 
   const filteredByRequest = parsed.filter(({ requests }) => !division && !gender ? true : matchesFilters(requests));
 
-  const myCoords = currentUser ? await ensureUserAreaCoords({ id: currentUserId, ...currentUser }, { background: true }) : null;
+  const myCoords = currentUser ? await ensureUserAreaCoords(currentUser, { background: true }) : null;
 
   const withDistance = await Promise.all(
     filteredByRequest.map(async ({ notice, requests }) => {
@@ -111,6 +228,15 @@ export async function TeammatesSearch({
       <div className="border-b border-gray-200 pb-0.5">
         <DiscoverTabs active="teammates" />
       </div>
+
+      {suggestedTeammates.length > 0 && (
+        <SuggestedTeammates
+          items={suggestedTeammates}
+          heading={selectedEvent ? `Suggested for ${selectedEvent.name}` : "Suggested for you"}
+          clearHref={selectedEvent ? "/discover?view=teammates" : undefined}
+        />
+      )}
+
       <SectionCard>
         <form method="GET" className="flex flex-col gap-4">
           <input type="hidden" name="view" value="teammates" />
@@ -118,6 +244,27 @@ export async function TeammatesSearch({
             Open requests across every event — not just the ones you're already in.
           </p>
           <SearchFilters activeCount={activeFilterCount} defaultOpen={activeFilterCount > 0}>
+            <div>
+              <label htmlFor="event" className="block text-sm font-medium">
+                Event
+              </label>
+              <select
+                id="event"
+                name="event"
+                defaultValue={selectedEvent?.id ?? ""}
+                className="mt-1 w-full max-w-xs rounded border border-gray-300 bg-b2b-card px-3 py-2 focus:border-b2b-pink focus:outline-none"
+              >
+                <option value="">Any event</option>
+                {candidateEvents.map((e) => (
+                  <option key={e.id} value={e.id}>
+                    {e.name}
+                  </option>
+                ))}
+              </select>
+              <p className="mt-1 text-xs text-b2b-ink/40">
+                Narrows &ldquo;Suggested for you&rdquo; to people interested in that event.
+              </p>
+            </div>
             <div>
               <label htmlFor="division" className="block text-sm font-medium">
                 Division
