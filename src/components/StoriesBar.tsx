@@ -7,13 +7,12 @@ import { StoryViewer } from "@/components/StoryViewer";
 import { StoryEditor, type StoryBase, type StoryEditorHandle, type StoryEditorOutput } from "@/components/StoryEditor";
 import { MAX_VIDEO_SECONDS, MAX_PHOTO_BYTES, MAX_PHOTO_MB } from "@/lib/media";
 import { readVideoInfo } from "@/lib/readVideoInfo";
-import type { StoryGroup } from "@/lib/stories";
+import { MAX_STORY_MENTIONS, type StoryGroup } from "@/lib/stories";
 import { USER_STATUS_BADGE_CLASSES, USER_STATUS_EMOJI, USER_STATUS_LABELS } from "@/lib/labels";
 import { USER_STATUSES, type UserStatusOption } from "@/lib/validation";
 import { REACTION_EMOJIS, type ReactionSummary } from "@/lib/reactions";
 
 const MEDIA_ACCEPT = "image/jpeg,image/png,image/webp,video/mp4,video/quicktime";
-const MAX_STORY_MENTIONS = 10;
 
 type UserOption = { id: string; name: string; photo: string | null };
 

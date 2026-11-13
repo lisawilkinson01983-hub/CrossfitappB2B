@@ -14,13 +14,12 @@ import {
 import {
   activeStoryWhere,
   groupStoriesByAuthor,
+  MAX_STORY_MENTIONS,
   MAX_STORY_TEXT_LENGTH,
   STORY_BACKGROUND_COLORS,
   storyCardInclude,
   storyExpiresAt,
 } from "@/lib/stories";
-
-const MAX_STORY_MENTIONS = 10;
 
 /** All currently-active stories the viewer is allowed to see (everyone except blocked/muted), grouped by author — see StoriesBar. */
 export async function GET() {

@@ -10,6 +10,7 @@ import { showsSingleBadge } from "@/lib/labels";
 import { formatDate } from "@/lib/dates";
 import { notificationText, notificationHref } from "@/lib/notifications";
 import { hiddenInAppTypes, parseNotificationPrefs } from "@/lib/notificationSettings";
+import { ShareStoryButton } from "@/components/ShareStoryButton";
 
 export default async function NotificationsPage() {
   const session = await getServerSession(authOptions);
@@ -40,6 +41,7 @@ export default async function NotificationsPage() {
       eventWorkout: { select: { eventId: true, number: true } },
       wallPost: { select: { id: true, wallOwnerId: true } },
       eventResultTag: { select: { id: true } },
+      story: { select: { id: true, photo: true, videoThumbnail: true, expiresAt: true } },
     },
   });
 
@@ -72,6 +74,43 @@ export default async function NotificationsPage() {
                       </div>
                       <p className="mt-0.5 text-sm font-semibold">{n.notice?.title}</p>
                       <p className="mt-0.5 text-sm text-b2b-ink/70">{n.notice?.body}</p>
+                    </div>
+                  </div>
+                ) : n.type === "MENTION" && n.story ? (
+                  // Tagged in someone's story — like/comment notifications
+                  // don't preview the thing they're about, but this one's
+                  // worth it: a thumbnail of the actual story, plus a
+                  // one-tap way to put the same thing on your own story
+                  // (Instagram's own "share to your story" prompt), neither
+                  // of which fits inside a single wrapping <Link>.
+                  <div key={n.id} className="flex flex-col gap-2 py-3">
+                    <Link
+                      href={notificationHref(n, session.user.id)}
+                      className="flex items-center gap-3 hover:opacity-80"
+                    >
+                      <Avatar
+                        photo={n.actor.photo}
+                        name={n.actor.name}
+                        size={40}
+                        showSingleBadge={showsSingleBadge(n.actor)}
+                      />
+                      <p className="flex-1 text-sm">
+                        <span className="font-semibold">{n.actor.name}</span> {notificationText(n)}
+                      </p>
+                      <span className="whitespace-nowrap text-xs text-b2b-ink/40">
+                        {formatDate(n.createdAt)}
+                      </span>
+                    </Link>
+                    <div className="flex items-center gap-3 pl-[52px]">
+                      {(n.story.photo || n.story.videoThumbnail) && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={n.story.photo ?? n.story.videoThumbnail ?? ""}
+                          alt=""
+                          className="h-12 w-12 shrink-0 rounded-lg object-cover"
+                        />
+                      )}
+                      {n.story.expiresAt > new Date() && <ShareStoryButton storyId={n.story.id} />}
                     </div>
                   </div>
                 ) : (

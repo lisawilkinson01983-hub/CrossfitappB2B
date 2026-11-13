@@ -10,6 +10,9 @@ export const STORY_LIFESPAN_HOURS = 24;
 /** Max length of a text story's body — same ballpark as a status update, not an essay. */
 export const MAX_STORY_TEXT_LENGTH = 300;
 
+/** Most people taggable on one story — shared by every place that offers the tag-people picker (StoriesBar, ShareSheet) and by the route that actually saves them. */
+export const MAX_STORY_MENTIONS = 10;
+
 /** Preset backgrounds offered when writing a text story (see StoriesBar) — picked for contrast with the white text drawn over them. */
 export const STORY_BACKGROUND_COLORS = ["#232223", "#4a4a4a", "#b8842a", "#1d4ed8", "#be123c", "#047857"] as const;
 

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Avatar } from "@/components/Avatar";
 import { SendIcon } from "@/components/SendIcon";
 import { StoryEditor, type StoryBase, type StoryEditorHandle } from "@/components/StoryEditor";
+import { MAX_STORY_MENTIONS } from "@/lib/stories";
 import type { PbField } from "@/lib/validation";
 
 export type ShareTarget =
@@ -104,6 +105,14 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
   const [recipientResults, setRecipientResults] = useState<RecipientOption[]>([]);
   const [recipient, setRecipient] = useState<RecipientOption | null>(null);
   const recipientRequestId = useRef(0);
+  // Who to tag on the Story itself (only meaningful for toStory — Instagram
+  // is just a hand-off to the OS share sheet, with no mention data to carry
+  // along) — same search endpoint and MAX as StoriesBar's own tagging.
+  const [tagging, setTagging] = useState(false);
+  const [tagQuery, setTagQuery] = useState("");
+  const [tagResults, setTagResults] = useState<RecipientOption[]>([]);
+  const [taggedUsers, setTaggedUsers] = useState<RecipientOption[]>([]);
+  const tagRequestId = useRef(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
@@ -255,6 +264,31 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
     }
   }
 
+  async function handleTagQueryChange(value: string) {
+    setTagQuery(value);
+    if (!value.trim()) {
+      setTagResults([]);
+      return;
+    }
+    const thisRequest = ++tagRequestId.current;
+    const res = await fetch(`/api/users/search?q=${encodeURIComponent(value.trim())}`);
+    if (thisRequest !== tagRequestId.current) return;
+    if (res.ok) {
+      const body = await res.json();
+      setTagResults((body.users ?? []).filter((u: RecipientOption) => !taggedUsers.some((t) => t.id === u.id)));
+    }
+  }
+
+  function addTag(user: RecipientOption) {
+    setTaggedUsers((prev) => (prev.length >= MAX_STORY_MENTIONS || prev.some((u) => u.id === user.id) ? prev : [...prev, user]));
+    setTagQuery("");
+    setTagResults([]);
+  }
+
+  function removeTag(userId: string) {
+    setTaggedUsers((prev) => prev.filter((u) => u.id !== userId));
+  }
+
   async function sendDm() {
     if (!recipient || sharing) return;
     setSharing(true);
@@ -318,6 +352,7 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
         // not just a hand-off to the OS share sheet.
         const formData = new FormData();
         formData.set("photo", file);
+        taggedUsers.forEach((u) => formData.append("mentionedUserIds", u.id));
         const storyRes = await fetch("/api/stories", { method: "POST", body: formData });
         if (!storyRes.ok) throw new Error("story post failed");
         // StoriesBar only loads its list once on mount — tell any copy of
@@ -681,6 +716,78 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
                 </button>
               )}
             </div>
+
+            {toStory && (
+              <div className="flex flex-col gap-2">
+                {taggedUsers.length > 0 && (
+                  <div className="flex flex-wrap justify-center gap-2">
+                    {taggedUsers.map((u) => (
+                      <span
+                        key={u.id}
+                        className="flex items-center gap-1.5 rounded-full bg-b2b-bg py-1 pl-1.5 pr-2 text-sm text-b2b-ink"
+                      >
+                        <Avatar photo={u.photo} name={u.name} size={20} />
+                        {u.name}
+                        <button
+                          type="button"
+                          onClick={() => removeTag(u.id)}
+                          aria-label={`Remove ${u.name} from tags`}
+                          className="text-b2b-ink/40 hover:text-b2b-ink"
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+                {tagging ? (
+                  <div className="relative">
+                    <input
+                      type="text"
+                      autoFocus
+                      value={tagQuery}
+                      onChange={(e) => handleTagQueryChange(e.target.value)}
+                      placeholder="Search people to tag..."
+                      className="w-full rounded-full border border-gray-300 px-4 py-2 text-sm focus:border-b2b-pink focus:outline-none"
+                    />
+                    {tagResults.length > 0 && (
+                      <div className="absolute z-10 mt-1 w-full overflow-hidden rounded-lg border border-gray-200 bg-b2b-card shadow-lg">
+                        {tagResults.map((user) => (
+                          <button
+                            key={user.id}
+                            type="button"
+                            onClick={() => addTag(user)}
+                            className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-b2b-bg"
+                          >
+                            <Avatar photo={user.photo} name={user.name} size={28} />
+                            {user.name}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setTagging(false);
+                        setTagQuery("");
+                        setTagResults([]);
+                      }}
+                      className="mt-1 block text-center text-xs text-b2b-ink/50 hover:underline"
+                    >
+                      Done tagging
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setTagging(true)}
+                    className="text-center text-sm font-medium text-b2b-pink hover:underline"
+                  >
+                    {taggedUsers.length > 0 ? "Tag someone else" : "Tag people"}
+                  </button>
+                )}
+              </div>
+            )}
 
             <button
               type="button"
