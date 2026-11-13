@@ -5,7 +5,6 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NavBar } from "@/components/NavBar";
 import { Avatar } from "@/components/Avatar";
-import { BackLink } from "@/components/BackLink";
 import { TeamResultRow } from "@/components/TeamResultRow";
 import { DeleteMyResultButton } from "@/components/DeleteMyResultButton";
 import { CaptainRemoveDuplicateButton } from "@/components/CaptainRemoveDuplicateButton";
@@ -201,20 +200,11 @@ export default async function EventResultsPage({ params }: { params: Promise<{ i
 
   return (
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
-      <NavBar />
+      <NavBar title="Results" back={{ href: `/events/${event.id}`, label: `Back to ${event.name}` }} />
 
-      <BackLink href={`/events/${event.id}`} className="mt-6">
-        Back to {event.name}
-      </BackLink>
-
-      <div className="mt-4 flex items-center justify-between gap-2">
-        <div>
-          <h1 className="font-display text-2xl text-b2b-ink">🏆 Results</h1>
-          <p className="mt-1 text-xs text-b2b-ink/50">
-            {event.name} · {loggedCount} of {fieldSize ?? loggedCount} logged
-          </p>
-        </div>
-      </div>
+      <p className="mt-4 text-xs text-b2b-ink/50">
+        {event.name} · {loggedCount} of {fieldSize ?? loggedCount} logged
+      </p>
 
       {showLogResultButton && (
         <div className="mt-3">

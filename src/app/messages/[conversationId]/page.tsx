@@ -58,18 +58,21 @@ export default async function ConversationPage({
   return (
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
       <NavBar />
-      <BackLink href="/messages" className="mt-6">All messages</BackLink>
       {conversation.isGroup ? (
-        <div className="mt-3">
-          <GroupHeader
-            conversationId={conversationId}
-            displayName={displayName}
-            initialPhoto={conversation.photo}
-            memberCount={conversation.participants.filter((p) => !p.user.deletedAt).length}
-          />
+        <div className="mt-6 flex items-center gap-3">
+          <BackLink href="/messages" className="shrink-0">All messages</BackLink>
+          <div className="min-w-0 flex-1">
+            <GroupHeader
+              conversationId={conversationId}
+              displayName={displayName}
+              initialPhoto={conversation.photo}
+              memberCount={conversation.participants.filter((p) => !p.user.deletedAt).length}
+            />
+          </div>
         </div>
       ) : (
-        <div className="mt-3 flex items-center gap-3">
+        <div className="mt-6 flex items-center gap-3">
+          <BackLink href="/messages" className="shrink-0">All messages</BackLink>
           {others[0] && !others[0].deletedAt ? (
             <Link href={`/profile/${others[0].id}`} className="flex min-w-0 items-center gap-3">
               <Avatar

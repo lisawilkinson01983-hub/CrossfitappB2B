@@ -6,7 +6,6 @@ import { parseLookingFor } from "@/lib/labels";
 import { isProfileSetupComplete } from "@/lib/profileSetup";
 import { NavBar } from "@/components/NavBar";
 import { SectionCard } from "@/components/SectionCard";
-import { BackLink } from "@/components/BackLink";
 import { InterestedInEditorPage } from "./InterestedInEditorPage";
 
 export default async function InterestedInPage() {
@@ -20,11 +19,10 @@ export default async function InterestedInPage() {
 
   return (
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
-      <NavBar />
-      <BackLink href="/profile/edit" className="mt-6">Edit profile</BackLink>
+      <NavBar title="Interested In" back={{ href: "/profile/edit", label: "Edit profile" }} />
 
       <div className="mt-4">
-        <SectionCard title="Interested in">
+        <SectionCard>
           <InterestedInEditorPage
             initial={{
               lookingFor: parseLookingFor(user.lookingFor),

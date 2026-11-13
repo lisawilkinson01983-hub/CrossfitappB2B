@@ -12,7 +12,6 @@ import { CollapsibleSearch } from "@/components/CollapsibleSearch";
 import { GENDER_LABELS, LEVEL_LABELS, isCompetitionEvent, parseLevels } from "@/lib/labels";
 import { GENDERS, LEVELS } from "@/lib/validation";
 import { assertEventVisible } from "@/lib/eventVisibility";
-import { BackLink } from "@/components/BackLink";
 
 // "Prefer not to disclose" is a profile-level privacy choice, not a search filter.
 const SEARCHABLE_GENDERS = GENDERS.filter((g) => g !== "PREFER_NOT_TO_DISCLOSE");
@@ -87,9 +86,7 @@ export default async function EventParticipantsPage({
 
   return (
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
-      <NavBar />
-
-      <BackLink href={`/events/${event.id}`} className="mt-6">Back to {event.name}</BackLink>
+      <NavBar title="Participants" back={{ href: `/events/${event.id}`, label: `Back to ${event.name}` }} />
 
       <div className="mt-4 flex flex-col gap-4">
         <CollapsibleSearch label={`Search ${noun}s by name`} defaultOpen={hasFilters}>

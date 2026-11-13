@@ -5,7 +5,6 @@ import { prisma } from "@/lib/prisma";
 import { NavBar } from "@/components/NavBar";
 import { SectionCard } from "@/components/SectionCard";
 import { PbTile } from "@/components/PbTile";
-import { BackLink } from "@/components/BackLink";
 import { PB_CATEGORIES, type PbField } from "@/lib/validation";
 import { PB_LABELS, parseDisplayedPbs } from "@/lib/labels";
 
@@ -44,11 +43,10 @@ export default async function UserPbsPage({
 
   return (
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
-      <NavBar />
-
-      <BackLink href={`/profile/${userId}`} className="mt-6">Back to profile</BackLink>
-
-      <h1 className="mt-2 text-2xl font-bold">{user.name}&rsquo;s PBs</h1>
+      <NavBar
+        title={`${user.name}'s PBs`}
+        back={{ href: `/profile/${userId}`, label: "Back to profile" }}
+      />
 
       <div className="mt-6 flex flex-col gap-4">
         {categories.length === 0 ? (

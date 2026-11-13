@@ -6,7 +6,6 @@ import { prisma } from "@/lib/prisma";
 import { NavBar } from "@/components/NavBar";
 import { SectionCard } from "@/components/SectionCard";
 import { GymSubmitForm } from "@/components/GymSubmitForm";
-import { BackLink } from "@/components/BackLink";
 
 const STATUS_BADGE: Record<string, string> = {
   PENDING: "bg-yellow-100 text-yellow-800",
@@ -31,9 +30,7 @@ export default async function SubmitGymPage() {
 
   return (
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
-      <NavBar />
-
-      <BackLink href="/discover?view=affiliates" className="mt-6">Back to affiliates</BackLink>
+      <NavBar title="Submit an Affiliate" back={{ href: "/discover?view=affiliates", label: "Back to affiliates" }} />
 
       <div className="mt-4 flex flex-col gap-6">
         {mySubmissions.length > 0 && (

@@ -4,11 +4,12 @@ import { useState } from "react";
 import { CreateTeamForm } from "@/components/CreateTeamForm";
 
 /**
- * The Teams page's heading row and "Create a team" trigger — a thin client
- * wrapper so the (small) trigger button can sit inline with "Teams" like
- * every other section's add-new action (e.g. "Log a workout"), while the
- * full form still expands full-width below once opened, instead of inside
- * the heading row itself.
+ * The Teams page's team-count caption and "Create a team" trigger — the
+ * page's own "Teams" heading now lives in NavBar's title row instead, so
+ * this only needs the count plus the trigger. A thin client wrapper so the
+ * (small) trigger button's open/closed state can sit next to the count,
+ * while the full form still expands full-width below once opened, instead
+ * of inside this row itself.
  */
 export function EventTeamsHeader({
   eventId,
@@ -26,12 +27,9 @@ export function EventTeamsHeader({
   return (
     <>
       <div className="flex items-center justify-between gap-3">
-        <div>
-          <h1 className="font-display text-2xl text-b2b-ink">Teams</h1>
-          <p className="mt-1 text-xs text-b2b-ink/50">
-            {teamCount} {teamCount === 1 ? "team" : "teams"} registered
-          </p>
-        </div>
+        <p className="text-xs text-b2b-ink/50">
+          {teamCount} {teamCount === 1 ? "team" : "teams"} registered
+        </p>
         {!open && (
           <button
             type="button"

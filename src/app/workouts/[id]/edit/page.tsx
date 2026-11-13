@@ -3,7 +3,6 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NavBar } from "@/components/NavBar";
-import { BackLink } from "@/components/BackLink";
 import { SectionCard } from "@/components/SectionCard";
 import { WorkoutForm } from "../../WorkoutForm";
 
@@ -20,10 +19,9 @@ export default async function EditWorkoutPage({ params }: { params: Promise<{ id
 
   return (
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
-      <NavBar />
-      <BackLink href="/workouts" className="mt-6">Back to workouts</BackLink>
+      <NavBar title="Edit Workout" back={{ href: "/workouts", label: "Back to workouts" }} />
       <div className="mt-4">
-        <SectionCard title="Edit workout">
+        <SectionCard>
           <WorkoutForm
             workoutId={workout.id}
             initial={{

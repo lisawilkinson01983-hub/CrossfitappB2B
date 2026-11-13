@@ -6,7 +6,6 @@ import { NavBar } from "@/components/NavBar";
 import { GalleryLightbox } from "@/components/GalleryLightbox";
 import { AddMediaButton } from "@/components/AddMediaButton";
 import { getGalleryItems } from "@/lib/gallery";
-import { BackLink } from "@/components/BackLink";
 
 export default async function UserGalleryPage({
   params,
@@ -42,11 +41,10 @@ export default async function UserGalleryPage({
 
   return (
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
-      <NavBar />
-
-      <BackLink href={isOwner ? "/profile" : `/profile/${userId}`} className="mt-6">Back to profile</BackLink>
-
-      <h1 className="mt-2 text-2xl font-bold">{isOwner ? "Your" : `${user.name}'s`} gallery</h1>
+      <NavBar
+        title={`${isOwner ? "Your" : `${user.name}'s`} Gallery`}
+        back={{ href: isOwner ? "/profile" : `/profile/${userId}`, label: "Back to profile" }}
+      />
 
       {isOwner && <div className="mt-4"><AddMediaButton autoOpen={!!autoOpenAdd} /></div>}
 

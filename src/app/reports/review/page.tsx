@@ -6,7 +6,6 @@ import { NavBar } from "@/components/NavBar";
 import { SectionCard } from "@/components/SectionCard";
 import { ReportModerationCard } from "@/components/ReportModerationCard";
 import { resolveReportTarget } from "@/lib/reports";
-import { BackLink } from "@/components/BackLink";
 
 export default async function ReportReviewPage() {
   const session = await getServerSession(authOptions);
@@ -62,9 +61,7 @@ export default async function ReportReviewPage() {
 
   return (
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
-      <NavBar />
-
-      <BackLink href="/settings/admin" className="mt-6">Back to settings</BackLink>
+      <NavBar title="Review Reports" back={{ href: "/settings/admin", label: "Back to settings" }} />
 
       <div className="mt-4">
         <SectionCard title={`${cards.length} ${cards.length === 1 ? "report" : "reports"} to review`}>

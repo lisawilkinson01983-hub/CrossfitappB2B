@@ -5,7 +5,6 @@ import { prisma } from "@/lib/prisma";
 import { NavBar } from "@/components/NavBar";
 import { PostCard } from "@/components/PostCard";
 import { postCardInclude, toPostCardData } from "@/lib/posts";
-import { BackLink } from "@/components/BackLink";
 
 // A generous cap rather than real pagination — plenty for how this app is
 // used today, and simpler than building "load more" for a limit unlikely to
@@ -41,11 +40,10 @@ export default async function UserPostsPage({ params }: { params: Promise<{ user
 
   return (
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
-      <NavBar />
-
-      <BackLink href={`/profile/${userId}`} className="mt-6">Back to profile</BackLink>
-
-      <h1 className="mt-2 text-2xl font-bold">{user.name}&rsquo;s posts</h1>
+      <NavBar
+        title={`${user.name}'s Posts`}
+        back={{ href: `/profile/${userId}`, label: "Back to profile" }}
+      />
 
       <div className="mt-6 flex flex-col gap-4">
         {posts.length === 0 ? (

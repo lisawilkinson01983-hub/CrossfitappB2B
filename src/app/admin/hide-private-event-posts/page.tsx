@@ -4,7 +4,6 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NavBar } from "@/components/NavBar";
 import { SectionCard } from "@/components/SectionCard";
-import { BackLink } from "@/components/BackLink";
 import { HidePrivateEventPostsButton } from "./HidePrivateEventPostsButton";
 
 export default async function HidePrivateEventPostsPage() {
@@ -18,11 +17,10 @@ export default async function HidePrivateEventPostsPage() {
 
   return (
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
-      <NavBar />
-      <BackLink href="/settings/admin" className="mt-6">Admin</BackLink>
+      <NavBar title="Hide Private-Event Posts" back={{ href: "/settings/admin", label: "Admin" }} />
 
       <div className="mt-4">
-        <SectionCard title="Hide private-event posts from the feed">
+        <SectionCard>
           <p className="text-sm text-b2b-ink/70">
             Joining a private event used to post to the main feed the same as any other event — fixed so a private
             event's join post never shows up there, but posts made before that fix are still showing. This finds and

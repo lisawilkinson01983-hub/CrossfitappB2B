@@ -6,7 +6,6 @@ import { prisma } from "@/lib/prisma";
 import { NavBar } from "@/components/NavBar";
 import { SectionCard } from "@/components/SectionCard";
 import { EventSubmitForm } from "@/components/EventSubmitForm";
-import { BackLink } from "@/components/BackLink";
 
 export default async function SubmitEventPage() {
   const session = await getServerSession(authOptions);
@@ -21,12 +20,10 @@ export default async function SubmitEventPage() {
 
   return (
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
-      <NavBar />
-
-      <BackLink href="/discover?view=events" className="mt-6">Back to events</BackLink>
+      <NavBar title="Submit an Event" back={{ href: "/discover?view=events", label: "Back to events" }} />
 
       <div className="mt-4">
-        <SectionCard title="Submit an event">
+        <SectionCard>
           <EventSubmitForm gymOptions={gymOptions} />
         </SectionCard>
       </div>

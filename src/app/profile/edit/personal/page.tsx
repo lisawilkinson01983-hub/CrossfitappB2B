@@ -9,7 +9,6 @@ import { isProfileSetupComplete } from "@/lib/profileSetup";
 import type { Country } from "@/lib/countries";
 import { NavBar } from "@/components/NavBar";
 import { SectionCard } from "@/components/SectionCard";
-import { BackLink } from "@/components/BackLink";
 import { PersonalInfoForm } from "./PersonalInfoForm";
 
 function toDateInputValue(date: Date | null): string {
@@ -43,11 +42,10 @@ export default async function PersonalInfoPage() {
 
   return (
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
-      <NavBar />
-      <BackLink href="/profile/edit" className="mt-6">Edit profile</BackLink>
+      <NavBar title="Personal Info" back={{ href: "/profile/edit", label: "Edit profile" }} />
 
       <div className="mt-4">
-        <SectionCard title="Personal info">
+        <SectionCard>
           <PersonalInfoForm
             gymOptions={gymOptions}
             initial={{

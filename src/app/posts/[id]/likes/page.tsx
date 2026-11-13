@@ -7,7 +7,6 @@ import { NavBar } from "@/components/NavBar";
 import { Avatar } from "@/components/Avatar";
 import { FollowButton, type FollowStatus } from "@/components/FollowButton";
 import { showsSingleBadge } from "@/lib/labels";
-import { BackLink } from "@/components/BackLink";
 
 export default async function PostLikesPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
@@ -43,15 +42,12 @@ export default async function PostLikesPage({ params }: { params: Promise<{ id: 
 
   return (
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
-      <NavBar />
-      <BackLink href="/feed" className="mt-6">Back to feed</BackLink>
-
-      <h1 className="mt-4 text-2xl font-bold">Liked by</h1>
+      <NavBar title="Liked By" back={{ href: "/feed", label: "Back to feed" }} />
 
       {likers.length === 0 ? (
-        <p className="mt-6 text-gray-500">No one has liked this post yet.</p>
+        <p className="mt-4 text-gray-500">No one has liked this post yet.</p>
       ) : (
-        <div className="mt-6 flex flex-col gap-3">
+        <div className="mt-4 flex flex-col gap-3">
           {likers.map((user) => {
             const isMe = user.id === session.user.id;
             const status: FollowStatus = myFollowingIds.has(user.id)

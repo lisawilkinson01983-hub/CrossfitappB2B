@@ -8,7 +8,6 @@ import { EventSubmitForm } from "@/components/EventSubmitForm";
 import { EventWorkoutsEditor } from "@/components/EventWorkoutsEditor";
 import { DeleteEventButton } from "@/components/DeleteEventButton";
 import { parseJsonArray } from "@/lib/labels";
-import { BackLink } from "@/components/BackLink";
 import { canEditEvent } from "@/lib/eventVisibility";
 import type { EventDivisionOption, EventGenderCategoryOption, EventTeamFormatOption } from "@/lib/validation";
 
@@ -38,12 +37,10 @@ export default async function EditEventPage({ params }: { params: Promise<{ id: 
 
   return (
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
-      <NavBar />
-
-      <BackLink href={`/events/${event.id}`} className="mt-6">Back to event</BackLink>
+      <NavBar title={`Edit "${event.name}"`} back={{ href: `/events/${event.id}`, label: "Back to event" }} />
 
       <div className="mt-4">
-        <SectionCard title={`Edit "${event.name}"`}>
+        <SectionCard>
           <EventSubmitForm
             mode="edit"
             eventId={event.id}

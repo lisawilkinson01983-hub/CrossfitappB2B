@@ -4,7 +4,6 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NavBar } from "@/components/NavBar";
 import { Avatar } from "@/components/Avatar";
-import { BackLink } from "@/components/BackLink";
 import { assertEventVisible } from "@/lib/eventVisibility";
 import { TeamJoinRequestButton } from "@/components/TeamJoinRequestButton";
 import { TeamRosterTrigger } from "@/components/TeamRosterTrigger";
@@ -51,9 +50,7 @@ export default async function EventTeamsPage({ params }: { params: Promise<{ id:
 
   return (
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
-      <NavBar />
-
-      <BackLink href={`/events/${event.id}`} className="mt-6">Back to {event.name}</BackLink>
+      <NavBar title="Teams" back={{ href: `/events/${event.id}`, label: `Back to ${event.name}` }} />
 
       <div className="mt-4">
         <EventTeamsHeader

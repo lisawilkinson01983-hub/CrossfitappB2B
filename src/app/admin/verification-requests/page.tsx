@@ -5,7 +5,6 @@ import { prisma } from "@/lib/prisma";
 import { NavBar } from "@/components/NavBar";
 import { SectionCard } from "@/components/SectionCard";
 import { VerificationRequestCard } from "@/components/VerificationRequestCard";
-import { BackLink } from "@/components/BackLink";
 
 export default async function VerificationRequestsPage() {
   const session = await getServerSession(authOptions);
@@ -28,9 +27,7 @@ export default async function VerificationRequestsPage() {
 
   return (
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
-      <NavBar />
-
-      <BackLink href="/settings/admin" className="mt-6">Back to settings</BackLink>
+      <NavBar title="Verification Requests" back={{ href: "/settings/admin", label: "Back to settings" }} />
 
       <div className="mt-4">
         <SectionCard

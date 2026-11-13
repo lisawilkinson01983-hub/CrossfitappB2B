@@ -6,7 +6,6 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NavBar } from "@/components/NavBar";
 import { SectionCard } from "@/components/SectionCard";
-import { BackLink } from "@/components/BackLink";
 import { BackIcon } from "@/components/BackIcon";
 import { assertEventVisible } from "@/lib/eventVisibility";
 import { EventWorkoutReactions } from "@/components/EventWorkoutReactions";
@@ -47,7 +46,13 @@ export default async function EventWorkoutPage({
 
   return (
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
-      <NavBar />
+      <NavBar
+        back={
+          workout.photo
+            ? undefined
+            : { href: `/events/${eventId}`, label: `Back to ${event.name}` }
+        }
+      />
 
       {workout.photo ? (
         <div className="relative -mx-4 mt-6 h-[200px] overflow-hidden sm:-mx-0 sm:rounded-2xl">
@@ -69,9 +74,7 @@ export default async function EventWorkoutPage({
             </h1>
           </div>
         </div>
-      ) : (
-        <BackLink href={`/events/${eventId}`} className="mt-6">Back to {event.name}</BackLink>
-      )}
+      ) : null}
 
       <div className="mt-4">
         <SectionCard>

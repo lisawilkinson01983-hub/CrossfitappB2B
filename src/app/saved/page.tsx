@@ -5,7 +5,6 @@ import { prisma } from "@/lib/prisma";
 import { NavBar } from "@/components/NavBar";
 import { PostCard } from "@/components/PostCard";
 import { postCardInclude, toPostCardData } from "@/lib/posts";
-import { BackLink } from "@/components/BackLink";
 
 // Same generous cap as a profile's full post history — see
 // /profile/[userId]/posts.
@@ -34,13 +33,9 @@ export default async function SavedPostsPage() {
 
   return (
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
-      <NavBar />
+      <NavBar title="Saved Posts" back={{ href: "/profile", label: "Back to profile" }} />
 
-      <BackLink href="/profile" className="mt-6">Back to profile</BackLink>
-
-      <h1 className="mt-2 text-2xl font-bold">Saved posts</h1>
-
-      <div className="mt-6 flex flex-col gap-4">
+      <div className="mt-4 flex flex-col gap-4">
         {posts.length === 0 ? (
           <p className="text-b2b-ink/40">Nothing saved yet — tap the bookmark on a post to save it here.</p>
         ) : (

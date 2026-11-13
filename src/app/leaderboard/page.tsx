@@ -5,7 +5,6 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NavBar } from "@/components/NavBar";
 import { SectionCard } from "@/components/SectionCard";
-import { BackLink } from "@/components/BackLink";
 import { TestGroupInput } from "@/components/TestGroupInput";
 import { buildLeaderboard } from "@/lib/leaderboard";
 
@@ -51,12 +50,9 @@ export default async function LeaderboardPage({
 
   return (
     <main className="mx-auto max-w-4xl px-4 pt-8 pb-28">
-      <NavBar />
+      <NavBar title="Activity Leaderboard" back={{ href: "/settings/admin", label: "Back to settings" }} />
 
-      <BackLink href="/settings/admin" className="mt-6">Back to settings</BackLink>
-
-      <h1 className="mt-3 text-2xl font-bold">Activity Leaderboard</h1>
-      <p className="mt-1 text-sm text-b2b-ink/50">
+      <p className="mt-4 text-sm text-b2b-ink/50">
         Every column is a straight count of that activity. Total is an unweighted sum — use the breakdown, not just
         the total, to judge who's actually earned a prize.
       </p>

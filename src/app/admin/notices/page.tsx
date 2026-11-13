@@ -7,7 +7,6 @@ import { SectionCard } from "@/components/SectionCard";
 import { UNAFFILIATED } from "@/lib/gyms";
 import { ComposeNoticeForm } from "./ComposeNoticeForm";
 import { formatDate } from "@/lib/dates";
-import { BackLink } from "@/components/BackLink";
 
 export default async function AdminNoticesPage() {
   const session = await getServerSession(authOptions);
@@ -29,12 +28,9 @@ export default async function AdminNoticesPage() {
 
   return (
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
-      <NavBar />
+      <NavBar title="Send a Notice" back={{ href: "/settings/admin", label: "Back to settings" }} />
 
-      <BackLink href="/settings/admin" className="mt-6">Back to settings</BackLink>
-
-      <h1 className="mt-4 text-2xl font-bold">Send a notice</h1>
-      <p className="mt-1 text-sm text-b2b-ink/60">
+      <p className="mt-4 text-sm text-b2b-ink/60">
         Broadcasts a message from Box 2 Box to the notifications feed of everyone it matches. There's no
         undo once sent, so double check the audience count before sending.
       </p>

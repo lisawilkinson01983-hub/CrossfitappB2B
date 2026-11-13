@@ -4,7 +4,6 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NavBar } from "@/components/NavBar";
 import { SectionCard } from "@/components/SectionCard";
-import { BackLink } from "@/components/BackLink";
 import { CleanupDeletedButton } from "./CleanupDeletedButton";
 
 export default async function CleanupDeletedPage() {
@@ -18,11 +17,10 @@ export default async function CleanupDeletedPage() {
 
   return (
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
-      <NavBar />
-      <BackLink href="/settings/admin" className="mt-6">Admin</BackLink>
+      <NavBar title="Clean Up Deleted Users’ Content" back={{ href: "/settings/admin", label: "Admin" }} />
 
       <div className="mt-4">
-        <SectionCard title="Clean up deleted users' content">
+        <SectionCard>
           <p className="text-sm text-b2b-ink/70">
             Deleting an account now fully removes everything it posted or left behind — feed posts, event message
             board posts, comments, reactions, workout-partner tags, team memberships, and still-active stories —

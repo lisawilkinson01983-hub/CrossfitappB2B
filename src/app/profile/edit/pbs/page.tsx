@@ -7,7 +7,6 @@ import { PB_FIELDS } from "@/lib/validation";
 import { isProfileSetupComplete } from "@/lib/profileSetup";
 import { NavBar } from "@/components/NavBar";
 import { SectionCard } from "@/components/SectionCard";
-import { BackLink } from "@/components/BackLink";
 import { PbsEditorPage } from "./PbsEditorPage";
 
 export default async function PbsPage() {
@@ -21,11 +20,10 @@ export default async function PbsPage() {
 
   return (
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
-      <NavBar />
-      <BackLink href="/profile/edit" className="mt-6">Edit profile</BackLink>
+      <NavBar title="PBs" back={{ href: "/profile/edit", label: "Edit profile" }} />
 
       <div className="mt-4">
-        <SectionCard title="PBs">
+        <SectionCard>
           <PbsEditorPage
             initial={{
               pbs: Object.fromEntries(PB_FIELDS.map((field) => [field, user[field] ?? ""])) as Record<

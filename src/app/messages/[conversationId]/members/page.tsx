@@ -5,7 +5,6 @@ import { prisma } from "@/lib/prisma";
 import { NavBar } from "@/components/NavBar";
 import { ManageMembersPanel } from "@/components/ManageMembersPanel";
 import { conversationDisplayName } from "@/lib/conversations";
-import { BackLink } from "@/components/BackLink";
 
 /**
  * A dedicated "admin" screen for a group's membership — deliberately
@@ -39,11 +38,12 @@ export default async function ManageMembersPage({ params }: { params: Promise<{ 
 
   return (
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
-      <NavBar />
-      <BackLink href={`/messages/${conversationId}`} className="mt-6">Back to {displayName}</BackLink>
-      <h1 className="mt-2 text-2xl font-bold">Manage members</h1>
+      <NavBar
+        title="Manage Members"
+        back={{ href: `/messages/${conversationId}`, label: `Back to ${displayName}` }}
+      />
 
-      <div className="mt-6">
+      <div className="mt-4">
         <ManageMembersPanel
           conversationId={conversationId}
           currentUserId={session.user.id}

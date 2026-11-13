@@ -5,7 +5,6 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NavBar } from "@/components/NavBar";
 import { SectionCard } from "@/components/SectionCard";
-import { BackLink } from "@/components/BackLink";
 
 export default async function AdminSettingsPage() {
   const session = await getServerSession(authOptions);
@@ -24,11 +23,10 @@ export default async function AdminSettingsPage() {
 
   return (
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
-      <NavBar />
-      <BackLink href="/settings" className="mt-6">Settings</BackLink>
+      <NavBar title="Admin" back={{ href: "/settings", label: "Settings" }} />
 
       <div className="mt-4">
-        <SectionCard title="Admin">
+        <SectionCard>
           <div className="flex flex-col gap-2">
             <AdminLink href="/reports/review" label="Review reports" count={openReportCount} />
             <AdminLink href="/admin/stats" label="Stats" />

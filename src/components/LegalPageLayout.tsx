@@ -19,9 +19,10 @@ export function LegalPageLayout({
     <main className="mx-auto max-w-2xl px-4 pb-28 pt-8">
       <Logo size="sm" href="/" />
 
-      <BackLink href="/" className="mt-6">Back</BackLink>
-
-      <h1 className="mt-3 text-2xl font-bold">{title}</h1>
+      <div className="mt-6 flex items-center gap-2.5">
+        <BackLink href="/" className="shrink-0">Back</BackLink>
+        <h1 className="truncate text-2xl font-bold">{title}</h1>
+      </div>
       <p className="mt-1 text-sm text-b2b-ink/40">Last updated {updatedAt}</p>
 
       <div className="mt-6 rounded-lg border border-b2b-purple/20 bg-b2b-purple/5 p-4 text-sm text-b2b-ink/70">

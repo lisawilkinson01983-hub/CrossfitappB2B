@@ -7,7 +7,6 @@ import { NavBar } from "@/components/NavBar";
 import { SectionCard } from "@/components/SectionCard";
 import { GrantAccessForm } from "./GrantAccessForm";
 import { RevokeAccessButton } from "./RevokeAccessButton";
-import { BackLink } from "@/components/BackLink";
 
 export default async function BrandAccessPage() {
   const session = await getServerSession(authOptions);
@@ -32,11 +31,9 @@ export default async function BrandAccessPage() {
 
   return (
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
-      <NavBar />
-      <BackLink href="/settings/admin" className="mt-6">Back to settings</BackLink>
+      <NavBar title="Box 2 Box Profile Access" back={{ href: "/settings/admin", label: "Back to settings" }} />
 
-      <h1 className="mt-4 text-2xl font-bold">Box 2 Box profile access</h1>
-      <p className="mt-1 text-sm text-b2b-ink/60">
+      <p className="mt-4 text-sm text-b2b-ink/60">
         Admins listed here can switch to the Box 2 Box profile from their own login (see Settings → Profiles),
         without sharing its password. The brand account itself keeps working as normal — auto-follow on
         signup and admin broadcast notices still come from it either way.

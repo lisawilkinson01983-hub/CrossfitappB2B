@@ -6,7 +6,6 @@ import { parseLevels } from "@/lib/labels";
 import { isProfileSetupComplete } from "@/lib/profileSetup";
 import { NavBar } from "@/components/NavBar";
 import { SectionCard } from "@/components/SectionCard";
-import { BackLink } from "@/components/BackLink";
 import { AbilityEditor } from "@/components/AbilityEditor";
 import { CompetitionStatsSection } from "./CompetitionStatsSection";
 
@@ -26,11 +25,10 @@ export default async function AbilityPage() {
 
   return (
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
-      <NavBar />
-      <BackLink href="/profile/edit" className="mt-6">Edit profile</BackLink>
+      <NavBar title="Ability" back={{ href: "/profile/edit", label: "Edit profile" }} />
 
       <div className="mt-4">
-        <SectionCard title="Ability">
+        <SectionCard>
           <AbilityEditor
             initial={{
               levels: parseLevels(user.levels),

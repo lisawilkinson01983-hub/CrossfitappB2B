@@ -6,7 +6,6 @@ import { NavBar } from "@/components/NavBar";
 import { SectionCard } from "@/components/SectionCard";
 import { getOrCreateInviteCode } from "@/lib/inviteCode";
 import { InviteCodeCard } from "./InviteCodeCard";
-import { BackLink } from "@/components/BackLink";
 
 export default async function InviteSettingsPage() {
   const session = await getServerSession(authOptions);
@@ -22,11 +21,10 @@ export default async function InviteSettingsPage() {
 
   return (
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
-      <NavBar />
-      <BackLink href="/settings" className="mt-6">Settings</BackLink>
+      <NavBar title="Invite Friends" back={{ href: "/settings", label: "Settings" }} />
 
       <div className="mt-4">
-        <SectionCard title="Invite Friends">
+        <SectionCard>
           <InviteCodeCard code={inviteCode} referralCount={user._count.referrals} />
         </SectionCard>
       </div>

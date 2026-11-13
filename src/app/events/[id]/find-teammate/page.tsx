@@ -10,7 +10,6 @@ import { SuggestedTeammates, type SuggestedTeammate } from "@/components/Suggest
 import { SuggestedTeams } from "@/components/SuggestedTeams";
 import { parseLevels, parseJsonArray, LEVEL_LABELS } from "@/lib/labels";
 import { assertEventVisible } from "@/lib/eventVisibility";
-import { BackLink } from "@/components/BackLink";
 import { PB_FIELDS, type EventGenderCategoryOption, type EventTeamFormatOption, type PbField } from "@/lib/validation";
 import { ensureUserAreaCoords } from "@/lib/geocode";
 import { scoreTeammateMatch, type MatchProfile, type MatchWorkout } from "@/lib/teammateMatchScore";
@@ -165,9 +164,7 @@ export default async function FindTeammatePage({ params }: { params: Promise<{ i
 
   return (
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
-      <NavBar />
-
-      <BackLink href={`/events/${event.id}`} className="mt-6">Back to {event.name}</BackLink>
+      <NavBar title="Find a Teammate" back={{ href: `/events/${event.id}`, label: `Back to ${event.name}` }} />
 
       <div className="mt-4 flex flex-col gap-4">
         {suggestedTeammates.length > 0 && (
@@ -182,7 +179,7 @@ export default async function FindTeammatePage({ params }: { params: Promise<{ i
           </SectionCard>
         )}
 
-        <SectionCard title="Find a teammate">
+        <SectionCard>
           <p className="mb-3 text-sm text-b2b-ink/50">Browse who's interested, or post your own request below.</p>
 
           <InterestedAthletesCarousel athletes={athletes} />

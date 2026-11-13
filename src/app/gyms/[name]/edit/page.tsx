@@ -7,7 +7,6 @@ import { SectionCard } from "@/components/SectionCard";
 import { GymSubmitForm } from "@/components/GymSubmitForm";
 import { DeleteGymButton } from "@/components/DeleteGymButton";
 import { AFFILIATE_GYMS } from "@/lib/gyms";
-import { BackLink } from "@/components/BackLink";
 
 export default async function EditGymPage({ params }: { params: Promise<{ name: string }> }) {
   const session = await getServerSession(authOptions);
@@ -24,12 +23,13 @@ export default async function EditGymPage({ params }: { params: Promise<{ name: 
 
   return (
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
-      <NavBar />
-
-      <BackLink href={`/gyms/${encodeURIComponent(gym.name)}`} className="mt-6">Back to affiliate</BackLink>
+      <NavBar
+        title={`Edit "${gym.name}"`}
+        back={{ href: `/gyms/${encodeURIComponent(gym.name)}`, label: "Back to affiliate" }}
+      />
 
       <div className="mt-4">
-        <SectionCard title={`Edit "${gym.name}"`}>
+        <SectionCard>
           <GymSubmitForm
             mode="edit"
             gymId={gym.id}

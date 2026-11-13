@@ -6,7 +6,6 @@ import { NavBar } from "@/components/NavBar";
 import { SectionCard } from "@/components/SectionCard";
 import { ChangeEmailForm } from "./ChangeEmailForm";
 import { ChangePasswordForm } from "./ChangePasswordForm";
-import { BackLink } from "@/components/BackLink";
 
 export default async function AccountSettingsPage() {
   const session = await getServerSession(authOptions);
@@ -14,18 +13,18 @@ export default async function AccountSettingsPage() {
 
   return (
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
-      <NavBar />
-      <BackLink href="/settings" className="mt-6">Settings</BackLink>
+      <NavBar
+        title="Account"
+        back={{ href: "/settings", label: "Settings" }}
+        action={
+          <Link href="/profile/edit" className="text-sm text-b2b-pink underline">
+            Edit your profile
+          </Link>
+        }
+      />
 
       <div className="mt-4">
-        <SectionCard
-          title="Account"
-          action={
-            <Link href="/profile/edit" className="text-sm text-b2b-pink underline">
-              Edit your profile
-            </Link>
-          }
-        >
+        <SectionCard>
           <div className="flex flex-col gap-4">
             <div className="rounded-lg border border-b2b-purple/10 bg-b2b-bg p-4">
               <h3 className="text-xs font-semibold uppercase tracking-wide text-b2b-ink/50">Change email</h3>

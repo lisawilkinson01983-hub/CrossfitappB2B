@@ -6,7 +6,6 @@ import { NavBar } from "@/components/NavBar";
 import { SectionCard } from "@/components/SectionCard";
 import { EventModerationCard } from "@/components/EventModerationCard";
 import { parseJsonArray } from "@/lib/labels";
-import { BackLink } from "@/components/BackLink";
 
 export default async function EventReviewPage() {
   const session = await getServerSession(authOptions);
@@ -23,9 +22,7 @@ export default async function EventReviewPage() {
 
   return (
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
-      <NavBar />
-
-      <BackLink href="/discover?view=events" className="mt-6">Back to events</BackLink>
+      <NavBar title="Review Events" back={{ href: "/discover?view=events", label: "Back to events" }} />
 
       <div className="mt-4">
         <SectionCard title={`${pending.length} ${pending.length === 1 ? "submission" : "submissions"} to review`}>

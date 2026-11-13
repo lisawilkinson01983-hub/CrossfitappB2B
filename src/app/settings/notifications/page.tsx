@@ -4,7 +4,6 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NavBar } from "@/components/NavBar";
 import { SectionCard } from "@/components/SectionCard";
-import { BackLink } from "@/components/BackLink";
 import { NOTIFICATION_SECTIONS, isEnabled, parseNotificationPrefs } from "@/lib/notificationSettings";
 import { NotificationSettingRow } from "./NotificationSettingRow";
 
@@ -29,10 +28,8 @@ export default async function NotificationSettingsPage() {
 
   return (
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
-      <NavBar />
-      <BackLink href="/settings" className="mt-6">Settings</BackLink>
-      <h1 className="mt-4 text-2xl font-bold">Notifications</h1>
-      <p className="mt-2 text-sm text-b2b-ink/60">
+      <NavBar title="Notifications" back={{ href: "/settings", label: "Settings" }} />
+      <p className="mt-4 text-sm text-b2b-ink/60">
         Choose what you hear about. <span className="font-medium text-b2b-ink/80">Push</span> is an alert on your phone
         from the Box 2 Box app; <span className="font-medium text-b2b-ink/80">In app</span> is your notifications list
         and its red dot. These settings are for this profile only.

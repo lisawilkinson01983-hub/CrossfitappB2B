@@ -7,7 +7,6 @@ import { NavBar } from "@/components/NavBar";
 import { SectionCard } from "@/components/SectionCard";
 import { GymBookingForm } from "@/components/GymBookingForm";
 import { UNAFFILIATED, OTHER_GYM } from "@/lib/gyms";
-import { BackLink } from "@/components/BackLink";
 
 export default async function GymBookingSettingsPage() {
   const session = await getServerSession(authOptions);
@@ -24,12 +23,10 @@ export default async function GymBookingSettingsPage() {
 
   return (
     <main className="mx-auto max-w-2xl px-4 pt-8 pb-28">
-      <NavBar />
-
-      <BackLink href="/settings" className="mt-6">Back to settings</BackLink>
+      <NavBar title="Bookings" back={{ href: "/settings", label: "Back to settings" }} />
 
       <div className="mt-4">
-        <SectionCard title="Bookings">
+        <SectionCard>
           {!gym ? (
             <p className="text-b2b-ink/70">
               Set your gym in{" "}

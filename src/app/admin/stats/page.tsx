@@ -4,7 +4,6 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NavBar } from "@/components/NavBar";
 import { SectionCard } from "@/components/SectionCard";
-import { BackLink } from "@/components/BackLink";
 import { buildStats, type Stats } from "@/lib/stats";
 import { DailyBarChart } from "./DailyBarChart";
 
@@ -44,11 +43,9 @@ export default async function AdminStatsPage({
 
   return (
     <main className="mx-auto max-w-3xl px-4 pt-8 pb-28">
-      <NavBar />
-      <BackLink href="/settings/admin" className="mt-6">Admin</BackLink>
+      <NavBar title="Stats" back={{ href: "/settings/admin", label: "Admin" }} />
 
-      <h1 className="mt-3 text-2xl font-bold">Stats</h1>
-      <p className="mt-1 text-sm text-b2b-ink/50">
+      <p className="mt-4 text-sm text-b2b-ink/50">
         Counts people, not profiles. &ldquo;Active&rdquo; means they opened the app that day (UK time).
       </p>
 
