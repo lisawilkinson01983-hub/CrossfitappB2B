@@ -362,7 +362,7 @@ export function WorkoutForm({
               placeholder="Search gyms..."
               className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-b2b-pink focus:outline-none"
             />
-            <div className="flex-1 overflow-y-auto">
+            <div className="min-h-0 flex-1 overflow-y-auto">
               {filteredGyms.length === 0 && (
                 <p className="px-1 py-2 text-sm text-b2b-ink/40">No gyms match &ldquo;{gymQuery}&rdquo;</p>
               )}
