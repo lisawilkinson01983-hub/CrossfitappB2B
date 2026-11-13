@@ -360,7 +360,12 @@ export function WorkoutForm({
               value={gymQuery}
               onChange={(e) => setGymQuery(e.target.value)}
               placeholder="Search gyms..."
-              className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-b2b-pink focus:outline-none"
+              // text-base (16px), not text-sm — iOS Safari auto-zooms the
+              // whole page on focusing any input under 16px, which with
+              // autoFocus firing the instant this popover opens looked like
+              // the app itself blowing up to a huge, frozen, wider-than-
+              // screen state.
+              className="w-full rounded border border-gray-300 px-3 py-2 text-base focus:border-b2b-pink focus:outline-none"
             />
             <div className="min-h-0 flex-1 overflow-y-auto">
               {filteredGyms.length === 0 && (
