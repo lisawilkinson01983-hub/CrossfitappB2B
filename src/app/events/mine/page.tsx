@@ -106,16 +106,17 @@ export default async function MyEventsPage({
           ]}
         />
       )}
-      <NavBar />
-      <div className="mt-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold">My Events</h1>
-        <Link
-          href="/events/submit"
-          className="rounded bg-b2b-pink px-4 py-2 text-sm font-medium text-white hover:bg-b2b-pink-dark"
-        >
-          Create Event
-        </Link>
-      </div>
+      <NavBar
+        title="My Events"
+        action={
+          <Link
+            href="/events/submit"
+            className="rounded bg-b2b-pink px-3 py-1.5 text-sm font-medium text-white hover:bg-b2b-pink-dark"
+          >
+            Create Event
+          </Link>
+        }
+      />
 
       <div className="mt-4 flex gap-4 border-b border-gray-200 text-sm font-medium">
         <Link

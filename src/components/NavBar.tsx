@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -11,7 +12,10 @@ import { SettingsIcon } from "./SettingsIcon";
 import { HelpButton } from "./HelpButton";
 
 /** Rendered on every authenticated page. An incomplete profile never reaches a page that renders this — both /profile/edit and the setup wizard at /profile/setup redirect an incomplete profile to the wizard before rendering anything else — so this never needs to bypass its own redirect. */
-export async function NavBar({ title }: { title?: string } = {}) {
+export async function NavBar({
+  title,
+  action,
+}: { title?: string; action?: ReactNode } = {}) {
   const session = await getServerSession(authOptions);
 
   const [{ messages: unreadMessages, notifications: unreadNotifications }, profile] = session?.user?.id
@@ -41,8 +45,9 @@ export async function NavBar({ title }: { title?: string } = {}) {
   return (
     <>
       {/* Sticky so the logo/notifications/messages/settings row — and, where
-          a page passes `title`, its own section eyebrow right under it —
-          stay on screen while the page's own content scrolls underneath.
+          a page passes `title`, its own heading (plus an optional primary
+          action alongside it) right under it — stay on screen while the
+          page's own content scrolls underneath.
           <body> already pads for the notch/status bar once; once this
           sticks at the literal viewport top during scroll it needs that
           same clearance again, so the negative margin here cancels
@@ -79,7 +84,12 @@ export async function NavBar({ title }: { title?: string } = {}) {
             <HelpButton />
           </div>
         </nav>
-        {title && <p className="pb-3 pt-0.5 text-xs font-bold uppercase tracking-wide text-b2b-ink/40">{title}</p>}
+        {(title || action) && (
+          <div className="flex items-center justify-between gap-3 pb-3 pt-0.5">
+            {title && <h1 className="font-display text-2xl leading-none text-b2b-ink">{title}</h1>}
+            {action}
+          </div>
+        )}
         <div className="border-b border-b2b-purple/10" />
       </div>
       <BottomTabBar />

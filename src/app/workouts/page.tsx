@@ -53,9 +53,19 @@ export default async function WorkoutsPage({
           ]}
         />
       )}
-      <NavBar />
+      <NavBar
+        title="My Workouts"
+        action={
+          <Link
+            href="/workouts/new"
+            className="rounded bg-b2b-pink px-3 py-1.5 text-sm font-medium text-white hover:bg-b2b-pink-dark"
+          >
+            Log a workout
+          </Link>
+        }
+      />
 
-      <div className="mt-6 flex flex-col gap-6">
+      <div className="mt-4 flex flex-col gap-6">
         <CollapsibleSearch label="Search workouts by name or notes" defaultOpen={!!q || !!intensity}>
         <SectionCard>
           <form method="GET" className="flex flex-col gap-4">
@@ -105,17 +115,7 @@ export default async function WorkoutsPage({
         </SectionCard>
         </CollapsibleSearch>
 
-        <SectionCard
-          title="My workouts"
-          action={
-            <Link
-              href="/workouts/new"
-              className="rounded bg-b2b-pink px-3 py-1.5 text-sm font-medium text-white hover:bg-b2b-pink-dark"
-            >
-              Log a workout
-            </Link>
-          }
-        >
+        <SectionCard>
           {workouts.length === 0 ? (
             <p className="text-b2b-ink/40">
               {q || intensity ? "No workouts match those filters." : "No workouts logged yet."}
