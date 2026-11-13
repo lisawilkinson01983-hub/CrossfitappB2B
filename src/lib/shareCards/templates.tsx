@@ -2,6 +2,8 @@
 // are kept at the same scale as the approved 270x480 mockups (see the
 // Design canvas this was built from) and multiplied by SCALE at render time
 // — change CARD_WIDTH/SCALE together if the target resolution ever changes.
+import type { CSSProperties } from "react";
+
 export const CARD_WIDTH = 270;
 export const CARD_HEIGHT = 480;
 
@@ -139,6 +141,30 @@ function PhotoLayer({
   );
 }
 
+/**
+ * A free-text workout description (typed into a multi-line textarea) often
+ * carries real "\n" line breaks. Handing the whole string to a single
+ * `flexWrap` text node — the normal fix for Satori not knowing where to
+ * wrap — mixes those hard breaks with Satori's own word-wrapping and
+ * renders adjacent lines on top of each other instead of stacked, exactly
+ * the overlap this is meant to fix. Splitting on "\n" ourselves and giving
+ * each line its own flexWrap row sidesteps that entirely: a hard break and
+ * a word-wrapped break end up with identical, correct line spacing, since
+ * each row is just as tall as its own (possibly wrapped) content.
+ */
+function MultiLineText({ text, style }: { text: string; style: CSSProperties }) {
+  const { marginTop, width, ...lineStyle } = style;
+  return (
+    <div style={{ display: "flex", flexDirection: "column", width, marginTop }}>
+      {text.split("\n").map((line, i) => (
+        <div key={i} style={{ ...lineStyle, width, display: "flex", flexWrap: "wrap" }}>
+          {line}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export type FeedStoryAProps = {
   name: string;
   photo: string | null;
@@ -201,23 +227,16 @@ export function FeedStoryA({ name, photo, score, label, description, scale }: Fe
           {label}
         </div>
         {description && (
-          <div
+          <MultiLineText
+            text={description}
             style={{
-              // Explicit width + flexWrap, same as every other wrapping text
-              // block here — without both, Satori lays the text out as one
-              // unbroken line and overlaps whatever comes after it instead
-              // of actually wrapping.
               width: px(CARD_WIDTH - 32, scale),
               marginTop: px(8, scale),
               fontSize: px(11, scale),
               lineHeight: 1.45,
               color: "rgba(255,255,255,0.7)",
-              display: "flex",
-              flexWrap: "wrap",
             }}
-          >
-            {description}
-          </div>
+          />
         )}
       </div>
       <Footer scale={scale} dark domain />
@@ -406,25 +425,18 @@ export function FeedStoryC({ name, photo, date, scoreLabel, score, badge, descri
             {badge}
           </div>
           {description && (
-            <div
+            <MultiLineText
+              text={description}
               style={{
-                // Satori needs an explicit width AND flexWrap to know where
-                // to wrap — without flexWrap specifically, it laid the text
-                // out as one unbroken line that overlapped the stats row
-                // below it instead of actually wrapping.
                 width: px(CARD_WIDTH - 48 - 32, scale),
                 marginTop: px(12, scale),
                 fontSize: px(9, scale),
                 lineHeight: 1.5,
                 textAlign: "center",
                 color: "rgba(255,255,255,0.55)",
-                display: "flex",
-                flexWrap: "wrap",
                 justifyContent: "center",
               }}
-            >
-              {description}
-            </div>
+            />
           )}
         </div>
 
