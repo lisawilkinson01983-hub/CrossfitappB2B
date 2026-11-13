@@ -15,9 +15,16 @@ export async function getSiteAccountId(): Promise<string | null> {
 
   const account = await prisma.account.findUnique({
     where: { email },
-    include: { profiles: { select: { id: true }, orderBy: { createdAt: "asc" }, take: 1 } },
+    include: { profiles: { select: { id: true, name: true }, orderBy: { createdAt: "asc" } } },
   });
-  return account?.profiles[0]?.id ?? null;
+  if (!account) return null;
+
+  // Prefer a profile actually named "Box 2 Box" over just the oldest one —
+  // an account that signed up a personal profile before adding this brand
+  // one (see /settings/profiles) would otherwise point everyone at the
+  // wrong profile.
+  const named = account.profiles.find((p) => p.name.trim().toLowerCase() === "box 2 box");
+  return (named ?? account.profiles[0])?.id ?? null;
 }
 
 function configuredSiteAccountEmail(): string | undefined {
