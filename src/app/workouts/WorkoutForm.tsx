@@ -346,11 +346,13 @@ export function WorkoutForm({
 
       {gymSearchOpen && gymWodWeek && (
         <div
-          className="fixed inset-0 z-[70] flex items-end justify-center bg-black/40 sm:items-center"
+          className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40 p-4"
           onClick={() => setGymSearchOpen(false)}
         >
           <div
-            className="flex max-h-[70vh] w-full max-w-sm flex-col gap-2 rounded-t-2xl bg-b2b-card p-4 sm:rounded-2xl"
+            // Always a centered, edge-padded dialog — never a bottom sheet —
+            // on every screen size, not just above a breakpoint.
+            className="flex max-h-[70vh] w-full max-w-sm flex-col gap-2 rounded-2xl bg-b2b-card p-4"
             onClick={(e) => e.stopPropagation()}
           >
             <p className="font-semibold text-b2b-ink">Change gym</p>
