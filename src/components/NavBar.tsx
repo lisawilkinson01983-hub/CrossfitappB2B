@@ -10,12 +10,22 @@ import { Logo } from "./Logo";
 import { BottomTabBar } from "./BottomTabBar";
 import { SettingsIcon } from "./SettingsIcon";
 import { HelpButton } from "./HelpButton";
+import { BackLink } from "./BackLink";
 
 /** Rendered on every authenticated page. An incomplete profile never reaches a page that renders this — both /profile/edit and the setup wizard at /profile/setup redirect an incomplete profile to the wizard before rendering anything else — so this never needs to bypass its own redirect. */
 export async function NavBar({
   title,
   action,
-}: { title?: string; action?: ReactNode } = {}) {
+  back,
+}: {
+  title?: string;
+  action?: ReactNode;
+  // A page that used to pair a bare `<NavBar />` with its own `<BackLink>`
+  // on the next line (the arrow floating alone, no title next to it) passes
+  // this instead — `label` is the link's accessible name, same text that
+  // BackLink's children used to supply.
+  back?: { href: string; label: string };
+} = {}) {
   const session = await getServerSession(authOptions);
 
   const [{ messages: unreadMessages, notifications: unreadNotifications }, profile] = session?.user?.id
@@ -84,9 +94,12 @@ export async function NavBar({
             <HelpButton />
           </div>
         </nav>
-        {(title || action) && (
+        {(title || action || back) && (
           <div className="flex items-center justify-between gap-3 pb-3 pt-0.5">
-            {title && <h1 className="font-display text-2xl leading-none text-b2b-ink">{title}</h1>}
+            <div className="flex min-w-0 items-center gap-2.5">
+              {back && <BackLink href={back.href} className="shrink-0">{back.label}</BackLink>}
+              {title && <h1 className="truncate font-display text-2xl leading-none text-b2b-ink">{title}</h1>}
+            </div>
             {action}
           </div>
         )}
