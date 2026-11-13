@@ -1358,7 +1358,15 @@ export function PostCard({
 
       {shareSheetOpen && (
         <ShareSheet
-          target={{ kind: "post", postId: post.id, onShareToFeed: openShareComposer, isResult: post.type === "EVENT_RESULT" }}
+          target={{
+            kind: "post",
+            postId: post.id,
+            onShareToFeed: openShareComposer,
+            // Same Result-card family as an EVENT_RESULT post — an
+            // "attending"/team-join post (linkedEvent, no workout of its
+            // own) has no score either, see loadFeedStoryData.
+            isResult: post.type === "EVENT_RESULT" || (!!post.linkedEvent && post.type !== "TEAMMATE_REQUEST"),
+          }}
           onClose={() => setShareSheetOpen(false)}
         />
       )}

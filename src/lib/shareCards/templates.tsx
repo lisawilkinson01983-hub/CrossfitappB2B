@@ -780,16 +780,21 @@ function hexToRgba(hex: string, alpha: number): string {
 // src/lib/shareCards/postData.ts). `headline` and `competitorsLine` come
 // pre-formatted from src/lib/eventResults.ts (resultHeadline etc.) so these
 // templates don't need to know about placement/placementType themselves.
+// Also reused for an "attending"/event-join share, which has no
+// division/placement of its own — see loadFeedStoryData for how each field
+// gets repurposed there, and badgeLabel for the pill text override.
 export type ResultCardProps = {
   name: string;
   photo: string | null;
   headline: string;
   competitorsLine: string | null;
-  eventName: string;
-  divisionLocation: string;
+  eventName: string | null;
+  divisionLocation: string | null;
+  /** Small pill above the headline. Defaults per format below ("Result"/"Competition Result") when unset. */
+  badgeLabel?: string;
 };
 
-export function ResultCardA({ name, photo, headline, competitorsLine, eventName, divisionLocation, scale }: ResultCardProps & { scale: number }) {
+export function ResultCardA({ name, photo, headline, competitorsLine, eventName, divisionLocation, badgeLabel, scale }: ResultCardProps & { scale: number }) {
   return (
     <div
       style={{
@@ -805,7 +810,12 @@ export function ResultCardA({ name, photo, headline, competitorsLine, eventName,
       <PhotoLayer
         photo={photo}
         scale={scale}
-        gradient="linear-gradient(to top, #000 0%, #000 24%, rgba(0,0,0,0.75) 34%, rgba(0,0,0,0.25) 46%, transparent 58%)"
+        // Taller than FeedStoryA's — this card's bottom text block can grow
+        // to 3+ lines (a long event name wrapping, plus a note line, see
+        // loadFeedStoryData's "attending" case) where a result's headline
+        // never used to, so the dark area needs more headroom to still
+        // read against a bright photo.
+        gradient="linear-gradient(to top, #000 0%, #000 30%, rgba(0,0,0,0.75) 42%, rgba(0,0,0,0.25) 56%, transparent 70%)"
       />
       <div
         style={{
@@ -822,7 +832,7 @@ export function ResultCardA({ name, photo, headline, competitorsLine, eventName,
       >
         <TrophyIcon size={px(14, scale)} color="#fff" />
         <div style={{ fontSize: px(11, scale), fontWeight: 800, letterSpacing: "0.06em", textTransform: "uppercase", color: "#fff", display: "flex" }}>
-          Result
+          {badgeLabel ?? "Result"}
         </div>
       </div>
       <div
@@ -836,16 +846,44 @@ export function ResultCardA({ name, photo, headline, competitorsLine, eventName,
         }}
       >
         <div style={{ fontSize: px(12, scale), fontWeight: 700, display: "flex" }}>{name}</div>
-        <div style={{ fontFamily: "Bebas Neue", fontSize: px(44, scale), lineHeight: 0.95, marginTop: px(4, scale), display: "flex" }}>
-          {headline}
-        </div>
+        <MultiLineText
+          text={headline}
+          style={{ width: px(CARD_WIDTH - 32, scale), fontFamily: "Bebas Neue", fontSize: px(44, scale), lineHeight: 1, marginTop: px(4, scale) }}
+        />
         {competitorsLine && (
-          <div style={{ fontSize: px(12, scale), fontWeight: 600, color: "rgba(255,255,255,0.65)", marginTop: px(2, scale), display: "flex" }}>
+          <div
+            style={{
+              width: px(CARD_WIDTH - 32, scale),
+              fontSize: px(12, scale),
+              fontWeight: 600,
+              color: "rgba(255,255,255,0.65)",
+              marginTop: px(2, scale),
+              display: "flex",
+              flexWrap: "wrap",
+            }}
+          >
             {competitorsLine}
           </div>
         )}
-        <div style={{ fontSize: px(13, scale), fontWeight: 700, marginTop: px(10, scale), display: "flex" }}>{eventName}</div>
-        <div style={{ fontSize: px(11, scale), color: "rgba(255,255,255,0.75)", marginTop: px(2, scale), display: "flex" }}>{divisionLocation}</div>
+        {eventName && (
+          <div
+            style={{
+              width: px(CARD_WIDTH - 32, scale),
+              fontSize: px(13, scale),
+              fontWeight: 700,
+              marginTop: px(10, scale),
+              display: "flex",
+              flexWrap: "wrap",
+            }}
+          >
+            {eventName}
+          </div>
+        )}
+        {divisionLocation && (
+          <div style={{ fontSize: px(11, scale), color: "rgba(255,255,255,0.75)", marginTop: px(2, scale), display: "flex" }}>
+            {divisionLocation}
+          </div>
+        )}
       </div>
       <Footer scale={scale} dark domain />
     </div>
@@ -854,7 +892,7 @@ export function ResultCardA({ name, photo, headline, competitorsLine, eventName,
 
 export type ResultCardBProps = ResultCardProps & { accent: string; pattern: "stripes" | "solid" };
 
-export function ResultCardB({ name, headline, competitorsLine, eventName, divisionLocation, accent, pattern, scale }: ResultCardBProps & { scale: number }) {
+export function ResultCardB({ name, headline, competitorsLine, eventName, divisionLocation, accent, pattern, badgeLabel, scale }: ResultCardBProps & { scale: number }) {
   return (
     <div
       style={{
@@ -906,42 +944,57 @@ export function ResultCardB({ name, headline, competitorsLine, eventName, divisi
           }}
         >
           <TrophyIcon size={px(16, scale)} color={accent} />
-          Result
+          {badgeLabel ?? "Result"}
         </div>
-        <div
+        <MultiLineText
+          text={headline}
           style={{
             marginTop: px(16, scale),
             width: px(CARD_WIDTH - 48, scale),
             fontFamily: "Bebas Neue",
             fontSize: px(42, scale),
-            lineHeight: 0.95,
+            lineHeight: 1,
             textAlign: "center",
-            display: "flex",
             justifyContent: "center",
           }}
-        >
-          {headline}
-        </div>
+        />
         {competitorsLine && (
-          <div style={{ marginTop: px(4, scale), fontSize: px(11, scale), fontWeight: 600, color: "rgba(255,255,255,0.55)", display: "flex" }}>
+          <div
+            style={{
+              marginTop: px(4, scale),
+              width: px(CARD_WIDTH - 48, scale),
+              fontSize: px(11, scale),
+              fontWeight: 600,
+              color: "rgba(255,255,255,0.55)",
+              textAlign: "center",
+              display: "flex",
+              flexWrap: "wrap",
+              justifyContent: "center",
+            }}
+          >
             {competitorsLine}
           </div>
         )}
         <div style={{ marginTop: px(14, scale), width: px(32, scale), height: px(1, scale) || 1, background: accent, display: "flex" }} />
-        <div
-          style={{
-            marginTop: px(14, scale),
-            width: px(CARD_WIDTH - 48, scale),
-            fontSize: px(13, scale),
-            fontWeight: 700,
-            textAlign: "center",
-            display: "flex",
-            justifyContent: "center",
-          }}
-        >
-          {eventName}
-        </div>
-        <div style={{ marginTop: px(3, scale), fontSize: px(10, scale), color: "rgba(255,255,255,0.6)", display: "flex" }}>{divisionLocation}</div>
+        {eventName && (
+          <div
+            style={{
+              marginTop: px(14, scale),
+              width: px(CARD_WIDTH - 48, scale),
+              fontSize: px(13, scale),
+              fontWeight: 700,
+              textAlign: "center",
+              display: "flex",
+              flexWrap: "wrap",
+              justifyContent: "center",
+            }}
+          >
+            {eventName}
+          </div>
+        )}
+        {divisionLocation && (
+          <div style={{ marginTop: px(3, scale), fontSize: px(10, scale), color: "rgba(255,255,255,0.6)", display: "flex" }}>{divisionLocation}</div>
+        )}
         <div
           style={{
             marginTop: px(10, scale),
@@ -961,7 +1014,7 @@ export function ResultCardB({ name, headline, competitorsLine, eventName, divisi
   );
 }
 
-export function ResultCardC({ name, photo, headline, competitorsLine, eventName, divisionLocation, scale }: ResultCardProps & { scale: number }) {
+export function ResultCardC({ name, photo, headline, competitorsLine, eventName, divisionLocation, badgeLabel, scale }: ResultCardProps & { scale: number }) {
   const medallionSize = 84;
   return (
     <div
@@ -1000,7 +1053,7 @@ export function ResultCardC({ name, photo, headline, competitorsLine, eventName,
         }}
       >
         <div style={{ fontSize: px(9, scale), fontWeight: 800, letterSpacing: "0.18em", textTransform: "uppercase", color: "rgba(35,34,35,0.45)", display: "flex" }}>
-          Competition Result
+          {badgeLabel ?? "Competition Result"}
         </div>
         <div
           style={{
@@ -1036,22 +1089,32 @@ export function ResultCardC({ name, photo, headline, competitorsLine, eventName,
             </div>
           )}
         </div>
-        <div
+        <MultiLineText
+          text={headline}
           style={{
             marginTop: px(16, scale),
             width: px(CARD_WIDTH - 44, scale),
             fontFamily: "Bebas Neue",
             fontSize: px(46, scale),
-            lineHeight: 0.9,
+            lineHeight: 1,
             textAlign: "center",
-            display: "flex",
             justifyContent: "center",
           }}
-        >
-          {headline}
-        </div>
+        />
         {competitorsLine && (
-          <div style={{ marginTop: px(3, scale), fontSize: px(10, scale), fontWeight: 600, color: "rgba(35,34,35,0.5)", display: "flex" }}>
+          <div
+            style={{
+              marginTop: px(3, scale),
+              width: px(CARD_WIDTH - 44, scale),
+              fontSize: px(10, scale),
+              fontWeight: 600,
+              color: "rgba(35,34,35,0.5)",
+              textAlign: "center",
+              display: "flex",
+              flexWrap: "wrap",
+              justifyContent: "center",
+            }}
+          >
             {competitorsLine}
           </div>
         )}
@@ -1068,20 +1131,25 @@ export function ResultCardC({ name, photo, headline, competitorsLine, eventName,
         >
           {name}
         </div>
-        <div
-          style={{
-            marginTop: px(10, scale),
-            width: px(CARD_WIDTH - 44, scale),
-            fontSize: px(13, scale),
-            fontWeight: 700,
-            textAlign: "center",
-            display: "flex",
-            justifyContent: "center",
-          }}
-        >
-          {eventName}
-        </div>
-        <div style={{ marginTop: px(2, scale), fontSize: px(9, scale), color: "rgba(35,34,35,0.55)", display: "flex" }}>{divisionLocation}</div>
+        {eventName && (
+          <div
+            style={{
+              marginTop: px(10, scale),
+              width: px(CARD_WIDTH - 44, scale),
+              fontSize: px(13, scale),
+              fontWeight: 700,
+              textAlign: "center",
+              display: "flex",
+              flexWrap: "wrap",
+              justifyContent: "center",
+            }}
+          >
+            {eventName}
+          </div>
+        )}
+        {divisionLocation && (
+          <div style={{ marginTop: px(2, scale), fontSize: px(9, scale), color: "rgba(35,34,35,0.55)", display: "flex" }}>{divisionLocation}</div>
+        )}
       </div>
       <Footer scale={scale} dark={false} />
     </div>

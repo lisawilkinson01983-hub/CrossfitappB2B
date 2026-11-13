@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { WORKOUT_INTENSITY_LABELS, WORKOUT_UNIT_LABELS } from "@/lib/labels";
 import { formatDate } from "@/lib/dates";
+import { formatEventDate } from "@/lib/eventDate";
+import { stripMentionMarkup } from "@/lib/mentions";
 import { resultHeadline, isPodiumPlace } from "@/lib/eventResults";
 import { photoToDataUri } from "./photo";
 import type { FeedStoryAProps, FeedStoryBProps, FeedStoryCProps, ResultCardProps } from "./templates";
@@ -37,6 +39,9 @@ export async function loadFeedStoryData(
           event: { select: { name: true, photo: true, isOnline: true, location: true } },
         },
       },
+      linkedEvent: {
+        select: { name: true, photo: true, date: true, endDate: true, isOnline: true, location: true },
+      },
       media: { orderBy: { order: "asc" }, take: 1, where: { kind: "PHOTO" } },
     },
   });
@@ -58,6 +63,32 @@ export async function loadFeedStoryData(
             : null,
         eventName: r.event.name,
         divisionLocation: [r.division, r.event.isOnline ? "Online" : r.event.location].filter(Boolean).join(" · "),
+      },
+    };
+  }
+
+  // A "joined this event"/"started a team" post (see POST
+  // /api/events/[id]/participate) has no workout score of its own either —
+  // same Result-card family, just reusing its slots differently: the
+  // event's own name is the headline (the one thing worth sharing), the
+  // date/location sits under it, and contentText (e.g. a team-formed note)
+  // takes the "eventName" slot, when there is one, as a bold line of its
+  // own. TEAMMATE_REQUEST posts are excluded, same as the feed's own
+  // linkedEvent card (see PostCard) — that type gets its own share flow.
+  if (post.linkedEvent && post.type !== "TEAMMATE_REQUEST") {
+    const e = post.linkedEvent;
+    const photoUrl = photoOverride ?? e.photo;
+    const photo = await photoToDataUri(photoUrl);
+    return {
+      kind: "result",
+      result: {
+        name: post.user.name,
+        photo,
+        headline: e.name,
+        competitorsLine: [formatEventDate(e), e.isOnline ? "Online" : e.location].filter(Boolean).join(" · "),
+        eventName: post.contentText ? stripMentionMarkup(post.contentText) : null,
+        divisionLocation: null,
+        badgeLabel: "Attending",
       },
     };
   }
