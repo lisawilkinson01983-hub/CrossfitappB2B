@@ -8,7 +8,7 @@ import { BackLink } from "@/components/BackLink";
 import { assertEventVisible } from "@/lib/eventVisibility";
 import { TeamJoinRequestButton } from "@/components/TeamJoinRequestButton";
 import { TeamRosterTrigger } from "@/components/TeamRosterTrigger";
-import { CreateTeamForm } from "@/components/CreateTeamForm";
+import { EventTeamsHeader } from "@/components/EventTeamsHeader";
 import { getOrCreateInviteCode } from "@/lib/inviteCode";
 
 export default async function EventTeamsPage({ params }: { params: Promise<{ id: string }> }) {
@@ -56,14 +56,12 @@ export default async function EventTeamsPage({ params }: { params: Promise<{ id:
       <BackLink href={`/events/${event.id}`} className="mt-6">Back to {event.name}</BackLink>
 
       <div className="mt-4">
-        <h1 className="font-display text-2xl text-b2b-ink">Teams</h1>
-        <p className="mt-1 text-xs text-b2b-ink/50">
-          {event.teams.length} {event.teams.length === 1 ? "team" : "teams"} registered
-        </p>
-
-        <div className="mt-4">
-          <CreateTeamForm events={[{ id: event.id, name: event.name, date: event.date }]} />
-        </div>
+        <EventTeamsHeader
+          eventId={event.id}
+          eventName={event.name}
+          eventDate={event.date}
+          teamCount={event.teams.length}
+        />
 
         {event.teams.length === 0 ? (
           <p className="mt-4 text-b2b-ink/40">

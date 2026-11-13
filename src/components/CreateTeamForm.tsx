@@ -21,9 +21,22 @@ const MAX_TEAMMATES = 20;
  * same as tagging one through "I'm participating" (see
  * EventEngagementButtons' TeamTagPrompt, which this mirrors).
  */
-export function CreateTeamForm({ events }: { events: EventOption[] }) {
+export function CreateTeamForm({
+  events,
+  open: controlledOpen,
+  onOpenChange,
+}: {
+  events: EventOption[];
+  // Uncontrolled by default (MyTeamsTab's standalone use); the event Teams
+  // page controls these itself so it can place the trigger button inline
+  // with its "Teams" heading instead of stacked below it.
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+}) {
   const router = useRouter();
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = controlledOpen ?? internalOpen;
+  const setOpen = onOpenChange ?? setInternalOpen;
   const [eventId, setEventId] = useState(events[0]?.id ?? "");
   const [name, setName] = useState("");
   const [query, setQuery] = useState("");
@@ -111,13 +124,19 @@ export function CreateTeamForm({ events }: { events: EventOption[] }) {
   }
 
   if (!open) {
+    // Controlled (the event Teams page): the caller renders its own
+    // trigger button inline with its heading — see EventTeamsHeader —
+    // instead of this one, so there's never two on screen at once.
+    if (onOpenChange) return null;
     return (
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="rounded-xl border border-dashed border-b2b-purple/25 px-4 py-3 text-center text-sm font-medium text-b2b-purple hover:border-b2b-purple/40"
+        // Same compact pill as every other "add new thing" action button
+        // (e.g. "Log a workout") — not a big standalone box.
+        className="self-start rounded bg-b2b-pink px-3 py-1.5 text-sm font-medium text-white hover:bg-b2b-pink-dark"
       >
-        + Create a team
+        Create a team
       </button>
     );
   }
