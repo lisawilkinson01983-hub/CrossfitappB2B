@@ -2,7 +2,6 @@ import { prisma } from "@/lib/prisma";
 import { WORKOUT_INTENSITY_LABELS, WORKOUT_UNIT_LABELS } from "@/lib/labels";
 import { formatDate } from "@/lib/dates";
 import { formatEventDate } from "@/lib/eventDate";
-import { stripMentionMarkup } from "@/lib/mentions";
 import { resultHeadline, isPodiumPlace } from "@/lib/eventResults";
 import { photoToDataUri } from "./photo";
 import type { FeedStoryAProps, FeedStoryBProps, FeedStoryCProps, ResultCardProps } from "./templates";
@@ -70,10 +69,10 @@ export async function loadFeedStoryData(
   // A "joined this event"/"started a team" post (see POST
   // /api/events/[id]/participate) has no workout score of its own either —
   // same Result-card family, just reusing its slots differently: the
-  // event's own name is the headline (the one thing worth sharing), the
-  // date/location sits under it, and contentText (e.g. a team-formed note)
-  // takes the "eventName" slot, when there is one, as a bold line of its
-  // own. TEAMMATE_REQUEST posts are excluded, same as the feed's own
+  // event's own name is the headline (the one thing worth sharing) and the
+  // date/location sits under it. Deliberately not showing contentText (a
+  // team-formed note) here — just the plain "attending" card, per
+  // feedback. TEAMMATE_REQUEST posts are excluded, same as the feed's own
   // linkedEvent card (see PostCard) — that type gets its own share flow.
   if (post.linkedEvent && post.type !== "TEAMMATE_REQUEST") {
     const e = post.linkedEvent;
@@ -86,7 +85,7 @@ export async function loadFeedStoryData(
         photo,
         headline: e.name,
         competitorsLine: [formatEventDate(e), e.isOnline ? "Online" : e.location].filter(Boolean).join(" · "),
-        eventName: post.contentText ? stripMentionMarkup(post.contentText) : null,
+        eventName: null,
         divisionLocation: null,
         badgeLabel: "Attending",
       },
