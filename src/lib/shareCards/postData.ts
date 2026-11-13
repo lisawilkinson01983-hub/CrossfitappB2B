@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { WORKOUT_INTENSITY_LABELS, WORKOUT_UNIT_LABELS } from "@/lib/labels";
 import { formatDate } from "@/lib/dates";
 import { formatEventDate } from "@/lib/eventDate";
+import { assertEventVisible } from "@/lib/eventVisibility";
 import { resultHeadline, isPodiumPlace } from "@/lib/eventResults";
 import { photoToDataUri } from "./photo";
 import type { FeedStoryAProps, FeedStoryBProps, FeedStoryCProps, ResultCardProps } from "./templates";
@@ -172,5 +173,52 @@ export async function loadWorkoutCardData(
       description: w.description ?? null,
       stats,
     },
+  };
+}
+
+/**
+ * Same Result-card shape as loadFeedStoryData's `result` branch, but sourced
+ * straight from an EventResult row instead of a Post — lets the leaderboard
+ * on /events/[id]/results offer a share action for any row, not only the one
+ * (if any) its logger has already posted to the feed. Visibility matches the
+ * results page itself (same private-event rule as viewing it there), not
+ * ownership — the card shows nothing the viewer couldn't already see listed
+ * on that page. A team row uses the team's own name/roster photo instead of
+ * a single person's, same simplification TeamResultRow itself makes.
+ */
+export async function loadEventResultCardData(
+  resultId: string,
+  viewerId: string,
+  photoOverride: string | null
+): Promise<ResultCardProps | null> {
+  const r = await prisma.eventResult.findUnique({
+    where: { id: resultId },
+    select: {
+      place: true,
+      placementType: true,
+      totalCompetitors: true,
+      division: true,
+      user: { select: { name: true } },
+      team: { select: { name: true } },
+      event: {
+        select: { id: true, name: true, photo: true, isOnline: true, location: true, isPrivate: true, status: true, createdById: true, submittedById: true },
+      },
+    },
+  });
+  if (!r) return null;
+  if (!(await assertEventVisible(r.event, viewerId))) return null;
+
+  const photoUrl = photoOverride ?? r.event.photo;
+  const photo = await photoToDataUri(photoUrl);
+  return {
+    name: r.team ? r.team.name : r.user.name,
+    photo,
+    headline: resultHeadline(r),
+    competitorsLine:
+      r.placementType === "EXACT" && r.place != null && r.totalCompetitors != null && !isPodiumPlace(r.place)
+        ? `of ${r.totalCompetitors} competitors`
+        : null,
+    eventName: r.event.name,
+    divisionLocation: [r.division, r.event.isOnline ? "Online" : r.event.location].filter(Boolean).join(" · "),
   };
 }

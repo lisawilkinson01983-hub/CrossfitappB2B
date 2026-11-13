@@ -10,7 +10,8 @@ import type { PbField } from "@/lib/validation";
 export type ShareTarget =
   | { kind: "post"; postId: string; onShareToFeed: () => void; isResult?: boolean }
   | { kind: "pb"; field: PbField; value: number; previous: number | null }
-  | { kind: "workout"; workoutId: string; wodName: string; sharedToFeed: boolean; onSharedToFeed: () => void };
+  | { kind: "workout"; workoutId: string; wodName: string; sharedToFeed: boolean; onSharedToFeed: () => void }
+  | { kind: "result"; resultId: string };
 
 type Format = "A" | "B" | "C";
 type Step = "destination" | "format" | "photo" | "recipient" | "preview" | "posted";
@@ -46,6 +47,7 @@ const DEFAULT_ACCENT = ACCENT_SWATCHES[0];
 function imagePath(target: ShareTarget): string {
   if (target.kind === "post") return `/api/share/post/${target.postId}/image`;
   if (target.kind === "workout") return "/api/share/workout/image";
+  if (target.kind === "result") return "/api/share/result/image";
   return "/api/share/pb/image";
 }
 
@@ -68,7 +70,10 @@ function imageUrl(
   if (target.kind === "workout") {
     params.set("workoutId", target.workoutId);
   }
-  if (target.kind === "post" && target.isResult) {
+  if (target.kind === "result") {
+    params.set("resultId", target.resultId);
+  }
+  if ((target.kind === "post" && target.isResult) || target.kind === "result") {
     params.set("accent", accent ?? DEFAULT_ACCENT);
     params.set("pattern", pattern ?? "stripes");
   }
@@ -141,8 +146,12 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
     return () => URL.revokeObjectURL(url);
   }, [editedBlob]);
 
-  const isResult = target.kind === "post" && !!target.isResult;
+  const isResult = (target.kind === "post" && !!target.isResult) || target.kind === "result";
   const isWorkout = target.kind === "workout";
+  // A leaderboard row has no "your feed" of its own to post to here — that
+  // flow already exists right after logging a result (see ResultsPrompt);
+  // this entry point is Story/Instagram/DM only.
+  const canShareToFeed = target.kind !== "result";
   const labels = target.kind === "pb" ? PB_FORMAT_LABELS : isResult ? RESULT_FORMAT_LABELS : FORMAT_LABELS;
   // The feed-post quote card (format B) is dropped — its free-form caption
   // text didn't wrap reliably at render time. PBs keep all three formats;
@@ -215,6 +224,7 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
   }
 
   async function shareToFeed() {
+    if (target.kind === "result") return;
     if (target.kind === "post") {
       target.onShareToFeed();
       onClose();
@@ -419,28 +429,36 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
         {step === "destination" && (
           <>
             <p className="font-semibold text-b2b-ink">
-              {target.kind === "pb" ? "Share your PB" : isWorkout ? "Share this workout" : "Share this post"}
+              {target.kind === "pb"
+                ? "Share your PB"
+                : isWorkout
+                  ? "Share this workout"
+                  : target.kind === "result"
+                    ? "Share this result"
+                    : "Share this post"}
             </p>
-            <button
-              type="button"
-              onClick={shareToFeed}
-              disabled={feedBusy || (isWorkout && target.sharedToFeed)}
-              className="flex items-center gap-3 rounded-xl px-2 py-2.5 text-left hover:bg-b2b-bg disabled:opacity-50"
-            >
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-b2b-bg text-base">
-                ↪
-              </span>
-              <span>
-                <span className="block text-sm font-semibold text-b2b-ink">
-                  {isWorkout && target.sharedToFeed
-                    ? "Already on your feed"
-                    : feedBusy
-                      ? "Posting..."
-                      : "Share to Feed"}
+            {canShareToFeed && (
+              <button
+                type="button"
+                onClick={shareToFeed}
+                disabled={feedBusy || (isWorkout && target.sharedToFeed)}
+                className="flex items-center gap-3 rounded-xl px-2 py-2.5 text-left hover:bg-b2b-bg disabled:opacity-50"
+              >
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-b2b-bg text-base">
+                  ↪
                 </span>
-                <span className="block text-xs text-b2b-ink/50">Posts a copy to your own feed</span>
-              </span>
-            </button>
+                <span>
+                  <span className="block text-sm font-semibold text-b2b-ink">
+                    {isWorkout && target.sharedToFeed
+                      ? "Already on your feed"
+                      : feedBusy
+                        ? "Posting..."
+                        : "Share to Feed"}
+                  </span>
+                  <span className="block text-xs text-b2b-ink/50">Posts a copy to your own feed</span>
+                </span>
+              </button>
+            )}
             <div className="flex flex-col gap-1 rounded-xl bg-b2b-bg p-1.5">
               <button
                 type="button"

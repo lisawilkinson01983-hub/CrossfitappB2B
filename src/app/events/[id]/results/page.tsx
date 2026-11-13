@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { NavBar } from "@/components/NavBar";
 import { Avatar } from "@/components/Avatar";
 import { TeamResultRow } from "@/components/TeamResultRow";
+import { ShareResultButton } from "@/components/ShareResultButton";
 import { DeleteMyResultButton } from "@/components/DeleteMyResultButton";
 import { CaptainRemoveDuplicateButton } from "@/components/CaptainRemoveDuplicateButton";
 import { LogResultButton } from "@/components/LogResultButton";
@@ -80,6 +81,10 @@ export default async function EventResultsPage({ params }: { params: Promise<{ i
         members: { id: string; name: string; photo: string | null }[];
         pendingMembers: { id: string; name: string; photo: string | null }[];
         division: string | null;
+        // Any one of the team's own per-member EventResult rows — they all
+        // carry the same placement, so the first one encountered works fine
+        // as "the" result to render/share for this team (see ShareResultButton).
+        resultId: string;
       }
     | {
         kind: "solo";
@@ -112,6 +117,7 @@ export default async function EventResultsPage({ params }: { params: Promise<{ i
         members: r.team.members.map((m) => m.user),
         pendingMembers: r.team.joinRequests.map((jr) => jr.user),
         division: r.division,
+        resultId: r.id,
       });
     } else {
       displayRows.push({
@@ -239,6 +245,7 @@ export default async function EventResultsPage({ params }: { params: Promise<{ i
                   pendingMembers={r.pendingMembers}
                   placementLabel={r.division ?? "—"}
                   resultHeadline={resultHeadline(r)}
+                  resultId={r.resultId}
                 />
               );
             }
@@ -265,6 +272,7 @@ export default async function EventResultsPage({ params }: { params: Promise<{ i
                     </span>
                   </Link>
                   {medal && <span className="text-sm">{medal}</span>}
+                  <ShareResultButton resultId={r.resultId} />
                   {r.userId === session.user.id && <DeleteMyResultButton resultId={r.resultId} />}
                 </div>
                 {r.conflictingTeamName && (
