@@ -55,10 +55,16 @@ export type StoryEditorHandle = {
   export: () => Promise<StoryEditorOutput>;
 };
 
+// Real text content, not a true HTML placeholder (so it still shows on the
+// flattened export if someone genuinely never touches it) — selected whole
+// on first focus (see the textarea's onFocus below) so typing immediately
+// replaces it instead of inserting into the middle of it.
+const PLACEHOLDER_TEXT = "Tap to edit";
+
 function newBox(fontKey: StoryFontKey): TextBox {
   return {
     id: Math.random().toString(36).slice(2),
-    text: "Tap to edit",
+    text: PLACEHOLDER_TEXT,
     xPct: 50,
     yPct: 50,
     widthPct: 70,
@@ -322,12 +328,22 @@ export const StoryEditor = forwardRef<StoryEditorHandle, { base: StoryBase }>(fu
     <div className="flex h-full flex-col">
       <div
         ref={previewRef}
-        className="relative mx-auto aspect-[9/16] h-full max-h-full touch-none overflow-hidden"
+        className="relative mx-auto aspect-[9/16] h-full max-h-full touch-none overflow-hidden transition-[max-height]"
         onClick={() => {
           setSelectedId(null);
           setEditingId(null);
         }}
-        style={base.kind === "color" ? { backgroundColor } : undefined}
+        style={{
+          ...(base.kind === "color" ? { backgroundColor } : null),
+          // Shrinks the preview (and, since it's aspect-ratio locked, the
+          // whole column with it) by exactly however much on-screen
+          // keyboard is covering the bottom of the real viewport right
+          // now — freeing that same amount of room so the toolbar below
+          // it (font/size/color/border) lands above the keyboard on its
+          // own, in normal document flow, rather than needing to be
+          // shoved up over the top of the preview with a transform.
+          maxHeight: editingId ? `calc(100% - ${keyboardOffset}px)` : undefined,
+        }}
       >
         {base.kind === "photo" && mediaUrl.current && (
           // eslint-disable-next-line @next/next/no-img-element
@@ -386,6 +402,9 @@ export const StoryEditor = forwardRef<StoryEditorHandle, { base: StoryBase }>(fu
                   ref={textareaRef}
                   autoFocus
                   value={box.text}
+                  onFocus={(e) => {
+                    if (box.text === PLACEHOLDER_TEXT) e.target.select();
+                  }}
                   onChange={(e) => {
                     updateSelected({ text: e.target.value });
                     autoGrow(e.target);
@@ -480,10 +499,7 @@ export const StoryEditor = forwardRef<StoryEditorHandle, { base: StoryBase }>(fu
       )}
 
       {selected && (
-        <div
-          className="flex flex-col gap-2 border-t border-white/10 bg-b2b-ink px-4 py-3 transition-transform"
-          style={{ transform: editingId === selected.id ? `translateY(-${keyboardOffset}px)` : undefined }}
-        >
+        <div className="flex flex-col gap-2 border-t border-white/10 bg-b2b-ink px-4 py-3">
           <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5">
             <span className="shrink-0 text-[10px] uppercase tracking-wide text-white/50">Font</span>
             {STORY_FONTS.map((f) => (
