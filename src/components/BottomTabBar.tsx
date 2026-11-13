@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { HelpButton } from "@/components/HelpButton";
 
 const TABS = [
   {
@@ -94,7 +93,6 @@ export function BottomTabBar() {
             </Link>
           );
         })}
-        <HelpButton />
       </div>
     </nav>
   );

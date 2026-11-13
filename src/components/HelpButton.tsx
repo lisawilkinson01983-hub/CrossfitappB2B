@@ -15,13 +15,12 @@ function QuestionMarkIcon() {
 }
 
 /**
- * The bottom nav's 6th item — not a page to navigate to like the other
- * five, so it's a button that pops a short explainer + a "Message us"
- * action instead of a Link. Portal'd to document.body rather than left
- * inside <nav> (see BottomTabBar), whose backdrop-blur creates its own
- * stacking context and would otherwise cap this modal's effective
- * z-index to the nav bar's own (z-20), letting other page content paint
- * over it.
+ * The top nav's icon row, right of Settings — not a page to navigate to
+ * like the other icons there, so it's a button that pops a short
+ * explainer + a "Message us" action instead of a Link. Portal'd to
+ * document.body rather than left inside NavBar's sticky header, whose
+ * own stacking context would otherwise cap this modal's effective
+ * z-index to the header's, letting other page content paint over it.
  */
 export function HelpButton() {
   const router = useRouter();
@@ -55,17 +54,17 @@ export function HelpButton() {
           setError(null);
           setOpen(true);
         }}
-        className="relative flex flex-1 flex-col items-center gap-0.5 px-0.5 py-1 text-center text-[10px] font-medium leading-tight text-b2b-ink/50 hover:text-b2b-ink"
+        aria-label="Help"
+        className="text-b2b-ink/70 hover:text-b2b-pink"
       >
         <QuestionMarkIcon />
-        Help
       </button>
 
       {open &&
         mounted &&
         createPortal(
           <div
-            className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-4 sm:items-center"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
             onClick={() => setOpen(false)}
           >
             <div

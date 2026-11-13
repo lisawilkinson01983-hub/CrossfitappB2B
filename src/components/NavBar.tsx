@@ -8,6 +8,7 @@ import { isProfileSetupComplete } from "@/lib/profileSetup";
 import { Logo } from "./Logo";
 import { BottomTabBar } from "./BottomTabBar";
 import { SettingsIcon } from "./SettingsIcon";
+import { HelpButton } from "./HelpButton";
 
 /** Rendered on every authenticated page. An incomplete profile never reaches a page that renders this — both /profile/edit and the setup wizard at /profile/setup redirect an incomplete profile to the wizard before rendering anything else — so this never needs to bypass its own redirect. */
 export async function NavBar({ title }: { title?: string } = {}) {
@@ -75,6 +76,7 @@ export async function NavBar({ title }: { title?: string } = {}) {
             <Link href="/settings" aria-label="Settings" className="text-b2b-ink/70 hover:text-b2b-pink">
               <SettingsIcon />
             </Link>
+            <HelpButton />
           </div>
         </nav>
         {title && <p className="pb-3 pt-0.5 text-xs font-bold uppercase tracking-wide text-b2b-ink/40">{title}</p>}
