@@ -85,6 +85,12 @@ export default async function EventResultsPage({ params }: { params: Promise<{ i
         // carry the same placement, so the first one encountered works fine
         // as "the" result to render/share for this team (see ShareResultButton).
         resultId: string;
+        // The viewer's OWN row within this team, if they're a member who's
+        // logged one — every member has their own independent EventResult
+        // row (see the DELETE route's own doc comment), so this is never the
+        // same id as resultId above unless the viewer happens to be whoever
+        // that was. Null hides the delete option for a non-member viewer.
+        viewerResultId: string | null;
       }
     | {
         kind: "solo";
@@ -100,6 +106,15 @@ export default async function EventResultsPage({ params }: { params: Promise<{ i
         // themselves instead of asking me to edit the database by hand.
         conflictingTeamName: string | null;
       };
+
+  // Each team member logs their own independent EventResult row sharing the
+  // team's placement (see the DELETE route's own doc comment) — find the
+  // viewer's own one, if any, before collapsing every member's row down to a
+  // single display row per team below.
+  const viewerTeamResultIds = new Map<string, string>();
+  for (const r of results) {
+    if (r.teamId && r.userId === session.user.id) viewerTeamResultIds.set(r.teamId, r.id);
+  }
 
   const seenTeamIds = new Set<string>();
   const displayRows: DisplayRow[] = [];
@@ -118,6 +133,7 @@ export default async function EventResultsPage({ params }: { params: Promise<{ i
         pendingMembers: r.team.joinRequests.map((jr) => jr.user),
         division: r.division,
         resultId: r.id,
+        viewerResultId: viewerTeamResultIds.get(r.teamId) ?? null,
       });
     } else {
       displayRows.push({
@@ -246,6 +262,7 @@ export default async function EventResultsPage({ params }: { params: Promise<{ i
                   placementLabel={r.division ?? "—"}
                   resultHeadline={resultHeadline(r)}
                   resultId={r.resultId}
+                  viewerResultId={r.viewerResultId}
                 />
               );
             }

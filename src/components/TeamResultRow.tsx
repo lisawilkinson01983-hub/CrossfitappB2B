@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Avatar } from "@/components/Avatar";
 import { ShareResultButton } from "@/components/ShareResultButton";
+import { DeleteMyResultButton } from "@/components/DeleteMyResultButton";
 import { placeMedal } from "@/lib/eventResults";
 
 type Member = { id: string; name: string; photo: string | null };
@@ -21,6 +22,7 @@ export function TeamResultRow({
   placementLabel,
   resultHeadline,
   resultId,
+  viewerResultId,
 }: {
   rank: number;
   teamName: string;
@@ -31,6 +33,8 @@ export function TeamResultRow({
   resultHeadline: string;
   /** Any one of the team's own per-member EventResult rows (they all carry the same placement) — see ShareResultButton. */
   resultId: string;
+  /** The viewer's OWN row among the team's per-member results, if they logged one — null for a non-member viewer, in which case no delete option shows. */
+  viewerResultId: string | null;
 }) {
   const [open, setOpen] = useState(false);
   const medal = placeMedal(rank <= 3 ? rank : null);
@@ -64,6 +68,7 @@ export function TeamResultRow({
           <span className="text-xs text-b2b-ink/30">›</span>
         </button>
         <ShareResultButton resultId={resultId} />
+        {viewerResultId && <DeleteMyResultButton resultId={viewerResultId} />}
       </div>
 
       {open && (
