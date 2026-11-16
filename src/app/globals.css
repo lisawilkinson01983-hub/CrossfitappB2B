@@ -67,10 +67,19 @@
    viewport itself zoom/scroll out on mobile. Doesn't touch an element's own
    deliberate `overflow-x-auto` (a horizontally scrolling row still scrolls
    within itself exactly as before) — only stops that behavior from
-   escaping up to the page level. */
+   escaping up to the page level.
+
+   `clip`, not `hidden`: the two axes aren't independent for `hidden` — a
+   UA must promote a `visible` overflow-y to `auto` the moment overflow-x
+   isn't `visible` (so body-as-a-whole becomes a vertical clip container
+   too), which is exactly what cropped the Stories ring's own top padding
+   right under the navbar the one time this was `hidden`. `clip` has no
+   such pairing rule, so overflow-y stays genuinely `visible` — nothing
+   above the very top of the page gets cut off. */
 html,
 body {
-  overflow-x: hidden;
+  overflow-x: clip;
+  overflow-y: visible;
 }
 
 body {
