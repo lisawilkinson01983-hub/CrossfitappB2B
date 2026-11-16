@@ -15,7 +15,7 @@ export function CollapsibleText({ text, className = "" }: { text: string; classN
 
   return (
     <div>
-      <p ref={ref} className={`whitespace-pre-wrap ${expanded ? "" : "line-clamp-2"} ${className}`}>
+      <p ref={ref} className={`whitespace-pre-wrap break-words ${expanded ? "" : "line-clamp-2"} ${className}`}>
         {text}
       </p>
       {overflowing && (

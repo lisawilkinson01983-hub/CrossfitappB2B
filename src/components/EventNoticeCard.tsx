@@ -592,7 +592,7 @@ export function EventNoticeCard({
           onClose={() => setEditingNotice(false)}
         />
       )}
-      {text && <MentionText text={text} className="mt-2 block whitespace-pre-wrap text-b2b-ink" />}
+      {text && <MentionText text={text} className="mt-2 block whitespace-pre-wrap break-words text-b2b-ink" />}
 
       {notice.gifUrl && (
         // eslint-disable-next-line @next/next/no-img-element -- external, unsized GIF from Tenor

@@ -78,7 +78,7 @@ export function ReportModerationCard({ report }: { report: ReportModerationData 
 
       {(report.contentSnapshot || report.mediaSnapshot) && (
         <div className="mt-3 rounded-lg border border-b2b-purple/10 bg-b2b-bg p-3 text-sm">
-          {report.contentSnapshot && <p className="whitespace-pre-wrap text-b2b-ink/80">{report.contentSnapshot}</p>}
+          {report.contentSnapshot && <p className="whitespace-pre-wrap break-words text-b2b-ink/80">{report.contentSnapshot}</p>}
           {report.mediaSnapshot &&
             (isVideo ? (
               <video src={report.mediaSnapshot} controls className="mt-2 max-h-60 rounded" />

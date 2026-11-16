@@ -665,7 +665,7 @@ export function PostCard({
         )}
         {!isEditing && (
           <div className="text-sm">
-            <p>
+            <p className="break-words">
               <span className="font-semibold">{comment.author.name}</span>{" "}
               {comment.text && <MentionText text={comment.text} className="text-gray-800" />}
             </p>
@@ -905,7 +905,7 @@ export function PostCard({
         />
       )}
       {post.sharedBy && !editingShareMessage && shareMessage && (
-        <p className="mt-2 whitespace-pre-wrap text-b2b-ink">
+        <p className="mt-2 whitespace-pre-wrap break-words text-b2b-ink">
           <MentionText text={shareMessage} />
         </p>
       )}
@@ -1027,7 +1027,7 @@ export function PostCard({
                 {post.linkedEventWorkout.title}
               </p>
               {post.linkedEventWorkout.workout && (
-                <p className="mt-2 whitespace-pre-wrap text-sm text-b2b-ink/70">
+                <p className="mt-2 whitespace-pre-wrap break-words text-sm text-b2b-ink/70">
                   {post.linkedEventWorkout.workout}
                 </p>
               )}
@@ -1173,7 +1173,7 @@ export function PostCard({
           />
         )}
         {!editingPost && contentText && (
-          <p className={`whitespace-pre-wrap text-b2b-ink ${post.sharedBy ? "" : "mt-2"}`}>
+          <p className={`whitespace-pre-wrap break-words text-b2b-ink ${post.sharedBy ? "" : "mt-2"}`}>
             <MentionText text={contentText} />
           </p>
         )}

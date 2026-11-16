@@ -200,7 +200,7 @@ export default async function GymPage({ params }: { params: Promise<{ name: stri
             )}
 
             {gym.description && (
-              <p className="mt-4 whitespace-pre-wrap border-t border-b2b-purple/10 pt-4 text-b2b-ink/80">
+              <p className="mt-4 whitespace-pre-wrap break-words border-t border-b2b-purple/10 pt-4 text-b2b-ink/80">
                 {gym.description}
               </p>
             )}

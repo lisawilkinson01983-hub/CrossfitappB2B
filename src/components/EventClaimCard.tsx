@@ -47,7 +47,7 @@ export function EventClaimCard({ claim }: { claim: EventClaimData }) {
       {claim.note && (
         <div className="mt-2 rounded-lg bg-b2b-bg p-2.5">
           <p className="text-xs font-semibold uppercase tracking-wide text-b2b-ink/40">Their note</p>
-          <p className="mt-1 whitespace-pre-wrap text-sm text-b2b-ink">{claim.note}</p>
+          <p className="mt-1 whitespace-pre-wrap break-words text-sm text-b2b-ink">{claim.note}</p>
         </div>
       )}
 

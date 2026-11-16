@@ -498,7 +498,7 @@ export function WallPostCard({ post, isWallOwner }: { post: WallPostCardData; is
         )}
       </div>
 
-      {post.text && <MentionText text={post.text} className="mt-2 block whitespace-pre-wrap text-b2b-ink" />}
+      {post.text && <MentionText text={post.text} className="mt-2 block whitespace-pre-wrap break-words text-b2b-ink" />}
 
       {post.gifUrl && (
         // eslint-disable-next-line @next/next/no-img-element -- external, unsized GIF from Tenor

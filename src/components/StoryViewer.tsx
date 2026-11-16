@@ -280,7 +280,7 @@ export function StoryViewer({
                 className="flex h-full w-full items-center justify-center p-8"
                 style={{ backgroundColor: story.backgroundColor ?? "#232223" }}
               >
-                <p className="whitespace-pre-wrap text-center text-2xl font-semibold text-white">{story.text}</p>
+                <p className="whitespace-pre-wrap break-words text-center text-2xl font-semibold text-white">{story.text}</p>
               </div>
             )
           )}

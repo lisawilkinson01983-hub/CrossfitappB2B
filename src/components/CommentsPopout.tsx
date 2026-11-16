@@ -365,7 +365,7 @@ export function CommentsPopout({
         )}
         {!isEditing && (
           <div className="text-sm">
-            <p>
+            <p className="break-words">
               <span className="font-semibold">{comment.author.name}</span>{" "}
               {comment.text && <MentionText text={comment.text} className="text-gray-800" />}
             </p>

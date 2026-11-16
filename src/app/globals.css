@@ -59,6 +59,20 @@
   --logo-filter: invert(1) hue-rotate(180deg);
 }
 
+/* Safety net: nothing in this app is meant to make the page itself wider
+   than the viewport — any element that does (one long unbroken word in
+   user-generated text being the recurring cause, see the various
+   `break-words` additions alongside this) should just get clipped at the
+   page edge instead of pushing the whole layout sideways and letting the
+   viewport itself zoom/scroll out on mobile. Doesn't touch an element's own
+   deliberate `overflow-x-auto` (a horizontally scrolling row still scrolls
+   within itself exactly as before) — only stops that behavior from
+   escaping up to the page level. */
+html,
+body {
+  overflow-x: hidden;
+}
+
 body {
   background-color: var(--color-b2b-page);
   color: var(--color-b2b-ink);

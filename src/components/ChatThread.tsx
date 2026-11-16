@@ -294,12 +294,12 @@ export function ChatThread({
               id={`message-${message.id}`}
               className={`flex ${isMine ? "justify-end" : "justify-start"} ${flashedId === message.id ? "animate-pulse" : ""}`}
             >
-              <div className={`max-w-[75%] ${isMine ? "items-end" : "items-start"} flex flex-col`}>
+              <div className={`min-w-0 max-w-[75%] ${isMine ? "items-end" : "items-start"} flex flex-col`}>
                 {isGroup && !isMine && (
                   <span className="mb-0.5 px-1 text-xs font-medium text-b2b-ink/50">{message.sender.name}</span>
                 )}
                 <div
-                  className={`rounded-2xl shadow-sm ${isMine ? "rounded-br-md" : "rounded-bl-md"} ${
+                  className={`min-w-0 max-w-full rounded-2xl shadow-sm ${isMine ? "rounded-br-md" : "rounded-bl-md"} ${
                     hasMedia || hasGif
                       ? "overflow-hidden bg-b2b-card"
                       : `px-4 py-2.5 text-sm ${isMine ? "bg-b2b-pink text-white" : "bg-b2b-card text-b2b-ink"}`
@@ -366,7 +366,7 @@ export function ChatThread({
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={message.photo} alt="" className="block max-h-80 w-full object-cover" />
                   ) : (
-                    <p className="whitespace-pre-wrap">
+                    <p className="whitespace-pre-wrap break-words">
                       <MentionText
                         text={message.text}
                         linkClassName={isMine ? "font-medium underline" : "font-medium text-b2b-pink hover:underline"}
@@ -375,7 +375,7 @@ export function ChatThread({
                   )}
 
                   {hasMedia && message.text && (
-                    <p className="whitespace-pre-wrap px-3 pb-2 pt-1.5 text-sm text-b2b-ink">{message.text}</p>
+                    <p className="whitespace-pre-wrap break-words px-3 pb-2 pt-1.5 text-sm text-b2b-ink">{message.text}</p>
                   )}
                 </div>
                 {isEditing && (

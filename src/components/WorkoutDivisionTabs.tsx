@@ -40,17 +40,17 @@ export function WorkoutDivisionTabs({ rx, scaled }: { rx: DivisionContent; scale
 
       <div className="mt-4 border-t border-b2b-purple/10 pt-4">
         <h2 className="text-xs font-semibold uppercase tracking-wider text-b2b-ink/50">Workout</h2>
-        <p className="mt-1.5 whitespace-pre-wrap text-sm text-b2b-ink/80">{active.workout ?? "Not released yet."}</p>
+        <p className="mt-1.5 whitespace-pre-wrap break-words text-sm text-b2b-ink/80">{active.workout ?? "Not released yet."}</p>
       </div>
 
       <div className="mt-5 border-t border-b2b-purple/10 pt-4">
         <h2 className="text-xs font-semibold uppercase tracking-wider text-b2b-ink/50">Standards</h2>
-        <p className="mt-1.5 whitespace-pre-wrap text-sm text-b2b-ink/80">{active.standards ?? "Not released yet."}</p>
+        <p className="mt-1.5 whitespace-pre-wrap break-words text-sm text-b2b-ink/80">{active.standards ?? "Not released yet."}</p>
       </div>
 
       <div className="mt-5 border-t border-b2b-purple/10 pt-4">
         <h2 className="text-xs font-semibold uppercase tracking-wider text-b2b-ink/50">Workflow</h2>
-        <p className="mt-1.5 whitespace-pre-wrap text-sm text-b2b-ink/80">{active.workflow ?? "Not released yet."}</p>
+        <p className="mt-1.5 whitespace-pre-wrap break-words text-sm text-b2b-ink/80">{active.workflow ?? "Not released yet."}</p>
       </div>
     </>
   );
