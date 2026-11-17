@@ -1,9 +1,9 @@
 import Link from "next/link";
+import Image from "next/image";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { EventEngagementButtons } from "@/components/EventEngagementButtons";
 import { SectionCard } from "@/components/SectionCard";
-import { Avatar } from "@/components/Avatar";
 import { distanceMiles, ensureUserAreaCoords, ensureEventCoords, DISTANCE_RANGES } from "@/lib/geocode";
 import { formatEventDate } from "@/lib/eventDate";
 import { SearchSuggestInput } from "@/components/SearchSuggestInput";
@@ -23,6 +23,14 @@ import { SwipeCardList, type SwipeCardItem } from "@/components/SwipeCardList";
 import { ListOrCarousel } from "@/components/ListOrCarousel";
 import { DiscoverMapLoader } from "@/components/DiscoverMapLoader";
 import type { MapMarker } from "@/components/DiscoverMap";
+
+// Shown behind a list card's thumbnail when the event has no photo — same
+// gold-stripe-on-ink pattern as the event page's own hero and SwipeCardList's
+// carousel cards, so a photo-less event reads as "on brand" here too.
+const NO_PHOTO_PATTERN = {
+  backgroundImage:
+    "repeating-linear-gradient(135deg, rgba(184,132,42,0.22) 0px, rgba(184,132,42,0.22) 2px, transparent 2px, transparent 18px)",
+};
 
 const TIME_RANGES = {
   week: { label: "Next 7 days", days: 7 },
@@ -383,11 +391,25 @@ export async function EventsList({
                     const isParticipating = event.participants.some((p) => p.userId === currentUserId);
                     const isInterested = event.interests.some((i) => i.userId === currentUserId);
                     return (
-                      <div key={event.id} className="rounded-xl border border-b2b-purple/10 bg-b2b-card p-4">
+                      <div
+                        key={event.id}
+                        className="rounded-2xl bg-b2b-card p-3.5 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_18px_-14px_rgba(35,34,35,0.3)]"
+                      >
                         <div className="flex items-start justify-between gap-3">
-                          <div className="flex items-center gap-3">
-                            <Avatar photo={event.photo} name={event.name} size={48} />
-                            <div>
+                          <div className="flex items-start gap-3">
+                            <div
+                              className="relative h-[84px] w-[84px] shrink-0 overflow-hidden rounded-2xl bg-b2b-ink"
+                              style={event.photo ? undefined : NO_PHOTO_PATTERN}
+                            >
+                              {event.photo ? (
+                                <Image src={event.photo} alt="" fill sizes="84px" className="object-cover" />
+                              ) : (
+                                <span className="absolute inset-0 flex items-center justify-center font-display text-4xl text-b2b-pink/40">
+                                  {event.name.charAt(0).toUpperCase()}
+                                </span>
+                              )}
+                            </div>
+                            <div className="min-w-0">
                               <p className="font-semibold">
                                 <Link href={`/events/${event.id}`} className="hover:underline">
                                   {event.name}
@@ -415,7 +437,7 @@ export async function EventsList({
                           )}
                         </div>
                         {event.description && (
-                          <p className="mt-2 line-clamp-2 text-sm text-b2b-ink/70">{event.description}</p>
+                          <p className="mt-2.5 line-clamp-2 text-sm text-b2b-ink/70">{event.description}</p>
                         )}
                         <p className="mt-2 text-xs text-b2b-ink/40">
                           {event.participants.length}{" "}
