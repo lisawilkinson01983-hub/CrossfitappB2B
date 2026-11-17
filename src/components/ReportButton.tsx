@@ -111,7 +111,7 @@ export function ReportButton({
               maxLength={1000}
               value={details}
               onChange={(e) => setDetails(e.target.value)}
-              className="mt-1 w-full resize-none rounded border border-gray-300 px-2 py-1.5 text-sm focus:border-b2b-pink focus:outline-none"
+              className="mt-1 w-full resize-none rounded border border-gray-300 px-2 py-1.5 text-base focus:border-b2b-pink focus:outline-none"
             />
 
             {error && <p className="mt-2 text-sm text-red-600">{error}</p>}

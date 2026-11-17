@@ -37,7 +37,7 @@ export function GymBookingForm({ gymId, initialEmail }: { gymId: string; initial
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="bookings@yourgym.com"
-          className="mt-1 w-full rounded border border-b2b-purple/20 px-3 py-2 text-sm"
+          className="mt-1 w-full rounded border border-b2b-purple/20 px-3 py-2 text-base"
         />
         <p className="mt-1 text-xs text-b2b-ink/50">
           {email.trim()

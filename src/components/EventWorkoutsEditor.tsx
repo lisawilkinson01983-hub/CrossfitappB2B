@@ -264,7 +264,7 @@ function WorkoutFieldsModal({
                 max={99}
                 value={fields.number}
                 onChange={(e) => setFields((f) => ({ ...f, number: e.target.value }))}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-b2b-pink focus:outline-none"
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-base focus:border-b2b-pink focus:outline-none"
               />
             </label>
             <label className="flex flex-1 flex-col gap-1">
@@ -318,7 +318,7 @@ function WorkoutFieldsModal({
                   division === "rx" ? { ...f, workout: e.target.value } : { ...f, scaledWorkout: e.target.value }
                 )
               }
-              className="w-full resize-none rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-b2b-pink focus:outline-none"
+              className="w-full resize-none rounded-lg border border-gray-300 px-3 py-2 text-base focus:border-b2b-pink focus:outline-none"
             />
           </label>
 
@@ -332,7 +332,7 @@ function WorkoutFieldsModal({
                   division === "rx" ? { ...f, standards: e.target.value } : { ...f, scaledStandards: e.target.value }
                 )
               }
-              className="w-full resize-none rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-b2b-pink focus:outline-none"
+              className="w-full resize-none rounded-lg border border-gray-300 px-3 py-2 text-base focus:border-b2b-pink focus:outline-none"
             />
           </label>
 
@@ -346,7 +346,7 @@ function WorkoutFieldsModal({
                   division === "rx" ? { ...f, workflow: e.target.value } : { ...f, scaledWorkflow: e.target.value }
                 )
               }
-              className="w-full resize-none rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-b2b-pink focus:outline-none"
+              className="w-full resize-none rounded-lg border border-gray-300 px-3 py-2 text-base focus:border-b2b-pink focus:outline-none"
             />
           </label>
 

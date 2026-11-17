@@ -554,7 +554,7 @@ function BasicsStep({
               value={firstName}
               onChange={(e) => onFirstName(e.target.value)}
               placeholder="First"
-              className="w-full rounded-xl border border-gray-200 px-3.5 py-3 text-sm focus:border-b2b-pink focus:outline-none"
+              className="w-full rounded-xl border border-gray-200 px-3.5 py-3 text-base focus:border-b2b-pink focus:outline-none"
             />
           </div>
           <div className="flex-1">
@@ -566,7 +566,7 @@ function BasicsStep({
               value={lastName}
               onChange={(e) => onLastName(e.target.value)}
               placeholder="Last"
-              className="w-full rounded-xl border border-gray-200 px-3.5 py-3 text-sm focus:border-b2b-pink focus:outline-none"
+              className="w-full rounded-xl border border-gray-200 px-3.5 py-3 text-base focus:border-b2b-pink focus:outline-none"
             />
           </div>
         </div>
@@ -581,7 +581,7 @@ function BasicsStep({
             type="date"
             value={dateOfBirth}
             onChange={(e) => onDateOfBirth(e.target.value)}
-            className="w-full rounded-xl border border-gray-200 px-3.5 py-3 text-sm focus:border-b2b-pink focus:outline-none"
+            className="w-full rounded-xl border border-gray-200 px-3.5 py-3 text-base focus:border-b2b-pink focus:outline-none"
           />
           <p className="mt-1.5 text-xs text-b2b-ink/40">Only shown on your profile if you choose to.</p>
         </div>
@@ -594,7 +594,7 @@ function BasicsStep({
           onChange={(e) => onBio(e.target.value.slice(0, 160))}
           placeholder="A line about your training, your goals, anything."
           rows={3}
-          className="w-full resize-none rounded-xl border border-gray-200 px-3.5 py-3 text-sm focus:border-b2b-pink focus:outline-none"
+          className="w-full resize-none rounded-xl border border-gray-200 px-3.5 py-3 text-base focus:border-b2b-pink focus:outline-none"
         />
         <p className="mt-1 text-right text-xs text-b2b-ink/30">{bio.length}/160</p>
       </div>
@@ -665,7 +665,7 @@ function LocationStep({
             onFocus={onAreaFocus}
             onBlur={onAreaBlurSoon}
             placeholder="Town or postcode"
-            className="w-full rounded-xl border border-gray-200 px-3.5 py-3 text-sm focus:border-b2b-pink focus:outline-none"
+            className="w-full rounded-xl border border-gray-200 px-3.5 py-3 text-base focus:border-b2b-pink focus:outline-none"
           />
           {areaFocused && areaSuggestions.length > 0 && (
             <div className="absolute z-10 mt-1 w-full overflow-hidden rounded-xl border border-gray-200 bg-b2b-bg shadow-lg">
@@ -696,7 +696,7 @@ function LocationStep({
             disabled={gymDisabled}
             onChange={(e) => onGymQueryChange(e.target.value)}
             placeholder="Search for your box"
-            className={`w-full rounded-xl border px-3.5 py-3 text-sm focus:border-b2b-pink focus:outline-none ${
+            className={`w-full rounded-xl border px-3.5 py-3 text-base focus:border-b2b-pink focus:outline-none ${
               gymDisabled ? "border-gray-200 bg-b2b-card text-b2b-ink/30" : "border-gray-200"
             }`}
           />
@@ -732,7 +732,7 @@ function LocationStep({
             value={otherGymName}
             onChange={(e) => onOtherGymName(e.target.value)}
             placeholder="Gym name"
-            className="mt-2 w-full rounded-xl border border-gray-200 px-3.5 py-3 text-sm focus:border-b2b-pink focus:outline-none"
+            className="mt-2 w-full rounded-xl border border-gray-200 px-3.5 py-3 text-base focus:border-b2b-pink focus:outline-none"
           />
         )}
 

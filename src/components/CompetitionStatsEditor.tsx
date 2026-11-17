@@ -49,7 +49,7 @@ export function communityCupResultRowsToPayload(rows: CommunityCupResultRow[]) {
 
 const LABEL_CLASS = "block text-[10px] font-semibold uppercase tracking-wide text-b2b-ink/45";
 const FIELD_CLASS =
-  "mt-1 w-full rounded-lg border border-b2b-purple/15 bg-b2b-bg px-2.5 py-1.5 text-sm text-b2b-ink focus:border-b2b-pink focus:outline-none";
+  "mt-1 w-full rounded-lg border border-b2b-purple/15 bg-b2b-bg px-2.5 py-1.5 text-base text-b2b-ink focus:border-b2b-pink focus:outline-none";
 
 function RemoveButton({ onClick, label }: { onClick: () => void; label: string }) {
   return (

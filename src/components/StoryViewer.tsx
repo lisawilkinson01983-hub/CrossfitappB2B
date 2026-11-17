@@ -330,7 +330,7 @@ export function StoryViewer({
                 onFocus={() => setPaused(true)}
                 onBlur={() => setPaused(false)}
                 placeholder={`Reply to ${group.author.name.split(" ")[0]}...`}
-                className="flex-1 rounded-full border border-white/30 bg-white/10 px-4 py-2.5 text-sm text-white placeholder:text-white/50 focus:border-white/60 focus:outline-none"
+                className="flex-1 rounded-full border border-white/30 bg-white/10 px-4 py-2.5 text-base text-white placeholder:text-white/50 focus:border-white/60 focus:outline-none"
               />
               <button
                 type="button"

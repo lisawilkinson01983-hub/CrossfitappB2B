@@ -206,7 +206,7 @@ export function ComposeNoticeForm({ gymOptions }: { gymOptions: string[] }) {
               max={120}
               value={audience.minAge}
               onChange={(e) => setField("minAge", e.target.value)}
-              className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-b2b-pink focus:outline-none"
+              className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-base focus:border-b2b-pink focus:outline-none"
             />
           </div>
 
@@ -221,7 +221,7 @@ export function ComposeNoticeForm({ gymOptions }: { gymOptions: string[] }) {
               max={120}
               value={audience.maxAge}
               onChange={(e) => setField("maxAge", e.target.value)}
-              className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-b2b-pink focus:outline-none"
+              className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-base focus:border-b2b-pink focus:outline-none"
             />
           </div>
 
@@ -275,7 +275,7 @@ export function ComposeNoticeForm({ gymOptions }: { gymOptions: string[] }) {
               placeholder="e.g. Uckfield"
               value={audience.areaQuery}
               onChange={(e) => setField("areaQuery", e.target.value)}
-              className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-b2b-pink focus:outline-none"
+              className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-base focus:border-b2b-pink focus:outline-none"
             />
           </div>
           <div>

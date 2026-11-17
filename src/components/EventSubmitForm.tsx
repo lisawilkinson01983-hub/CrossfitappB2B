@@ -351,7 +351,7 @@ export function EventSubmitForm({
                 value={inviteQuery}
                 onChange={(e) => handleInviteQueryChange(e.target.value)}
                 placeholder="Search people by name..."
-                className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-b2b-pink focus:outline-none"
+                className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-base focus:border-b2b-pink focus:outline-none"
               />
               {inviteResults.length > 0 && (
                 <div className="absolute z-10 mt-1 w-full overflow-hidden rounded border border-gray-200 bg-b2b-card shadow-lg">
@@ -439,7 +439,7 @@ export function EventSubmitForm({
             onChange={(e) => setEventKindOther(e.target.value)}
             placeholder="Describe the event type"
             maxLength={100}
-            className="mt-2 w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-b2b-pink focus:outline-none"
+            className="mt-2 w-full rounded border border-gray-300 px-3 py-2 text-base focus:border-b2b-pink focus:outline-none"
           />
         )}
       </fieldset>

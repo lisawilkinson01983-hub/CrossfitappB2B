@@ -411,7 +411,7 @@ export function ResultsPrompt({
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search your connections..."
-                className="w-full rounded-lg border border-b2b-purple/15 bg-b2b-card px-3 py-2 text-sm text-b2b-ink placeholder:text-b2b-ink/35"
+                className="w-full rounded-lg border border-b2b-purple/15 bg-b2b-card px-3 py-2 text-base text-b2b-ink placeholder:text-b2b-ink/35"
               />
               {searchResults.length > 0 && (
                 <div className="mt-1 flex w-full flex-col gap-1 rounded-lg border border-b2b-purple/10 bg-b2b-card p-1">
@@ -616,7 +616,7 @@ export function ResultsPrompt({
                 rows={2}
                 maxLength={280}
                 placeholder="PR'd my clean & jerk on the last event..."
-                className="w-full resize-none rounded-lg border border-b2b-purple/15 bg-b2b-card px-3 py-2 text-sm text-b2b-ink placeholder:text-b2b-ink/35"
+                className="w-full resize-none rounded-lg border border-b2b-purple/15 bg-b2b-card px-3 py-2 text-base text-b2b-ink placeholder:text-b2b-ink/35"
               />
             </div>
 
@@ -648,7 +648,7 @@ export function ResultsPrompt({
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search your connections..."
-              className="mt-3 w-full rounded-lg border border-b2b-purple/15 bg-b2b-card px-3 py-2 text-sm text-b2b-ink placeholder:text-b2b-ink/35"
+              className="mt-3 w-full rounded-lg border border-b2b-purple/15 bg-b2b-card px-3 py-2 text-base text-b2b-ink placeholder:text-b2b-ink/35"
             />
             {searchResults.length > 0 && (
               <div className="mt-1 flex w-full flex-col gap-1 rounded-lg border border-b2b-purple/10 bg-b2b-card p-1">

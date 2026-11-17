@@ -65,7 +65,7 @@ export function ClaimEventButton({ eventId }: { eventId: string }) {
         onChange={(e) => setNote(e.target.value.slice(0, MAX_NOTE_LENGTH))}
         rows={3}
         placeholder="e.g. I run CrossFit Uckfield, here's our Instagram @..."
-        className="mt-2 w-full resize-none rounded border border-gray-300 px-2 py-1.5 text-xs focus:border-b2b-pink focus:outline-none"
+        className="mt-2 w-full resize-none rounded border border-gray-300 px-2 py-1.5 text-base focus:border-b2b-pink focus:outline-none"
       />
       {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
       <div className="mt-2 flex justify-end gap-2">

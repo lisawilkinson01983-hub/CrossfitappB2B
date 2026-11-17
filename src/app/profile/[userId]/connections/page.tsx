@@ -101,7 +101,7 @@ export default async function ConnectionsPage({
           name="q"
           placeholder={`Search ${activeTab}`}
           defaultValue={q}
-          className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-b2b-pink focus:outline-none"
+          className="w-full rounded border border-gray-300 px-3 py-2 text-base focus:border-b2b-pink focus:outline-none"
         />
         <button
           type="submit"

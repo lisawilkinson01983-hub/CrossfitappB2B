@@ -103,7 +103,7 @@ export default async function EventInterestedPage({
                 type="text"
                 placeholder="Search by name"
                 defaultValue={q}
-                className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-b2b-pink focus:outline-none"
+                className="w-full rounded border border-gray-300 px-3 py-2 text-base focus:border-b2b-pink focus:outline-none"
               />
             </div>
             <div className="grid grid-cols-2 gap-3">

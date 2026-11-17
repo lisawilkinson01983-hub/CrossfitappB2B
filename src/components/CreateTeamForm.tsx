@@ -185,7 +185,7 @@ export function CreateTeamForm({
           onChange={(e) => setName(e.target.value)}
           placeholder="e.g. Iron Wolves"
           maxLength={60}
-          className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-b2b-pink focus:outline-none"
+          className="w-full rounded border border-gray-300 px-3 py-2 text-base focus:border-b2b-pink focus:outline-none"
         />
       </label>
 
@@ -235,7 +235,7 @@ export function CreateTeamForm({
           onChange={(e) => handleQueryChange(e.target.value)}
           placeholder="Search teammates by name..."
           disabled={totalTagged >= MAX_TEAMMATES}
-          className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-b2b-pink focus:outline-none disabled:opacity-50"
+          className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-base focus:border-b2b-pink focus:outline-none disabled:opacity-50"
         />
         {results.length > 0 && (
           <div className="absolute z-10 mt-1 w-full overflow-hidden rounded border border-gray-200 bg-b2b-card shadow-lg">
@@ -274,7 +274,7 @@ export function CreateTeamForm({
             }}
             placeholder="Type their name..."
             disabled={totalTagged >= MAX_TEAMMATES}
-            className="flex-1 rounded border border-gray-300 px-3 py-2 text-sm focus:border-b2b-pink focus:outline-none disabled:opacity-50"
+            className="flex-1 rounded border border-gray-300 px-3 py-2 text-base focus:border-b2b-pink focus:outline-none disabled:opacity-50"
           />
           <button
             type="button"

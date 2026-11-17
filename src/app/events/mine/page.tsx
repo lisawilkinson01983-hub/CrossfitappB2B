@@ -156,7 +156,7 @@ export default async function MyEventsPage({
               type="text"
               placeholder="Search my events by name or area"
               defaultValue={q}
-              className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-b2b-pink focus:outline-none"
+              className="w-full rounded border border-gray-300 px-3 py-2 text-base focus:border-b2b-pink focus:outline-none"
             />
             <div className="flex items-center gap-3">
               <button

@@ -216,7 +216,7 @@ export function SingleScoreForm({
                     min={0}
                     value={previousOverride}
                     onChange={(e) => setPreviousOverride(e.target.value)}
-                    className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-b2b-pink focus:outline-none"
+                    className="w-full rounded border border-gray-300 px-3 py-2 text-base focus:border-b2b-pink focus:outline-none"
                   />
                   <span className="text-sm font-semibold text-b2b-ink/50">kg</span>
                 </div>

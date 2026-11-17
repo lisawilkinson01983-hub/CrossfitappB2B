@@ -27,7 +27,7 @@ export function TestGroupInput({ userId, initialValue }: { userId: string; initi
       onBlur={() => value !== (initialValue ?? "") && save()}
       disabled={saving}
       placeholder="unassigned"
-      className="w-24 rounded border border-b2b-purple/15 bg-b2b-bg px-2 py-1 text-xs focus:border-b2b-pink focus:outline-none disabled:opacity-50"
+      className="w-24 rounded border border-b2b-purple/15 bg-b2b-bg px-2 py-1 text-base focus:border-b2b-pink focus:outline-none disabled:opacity-50"
     />
   );
 }

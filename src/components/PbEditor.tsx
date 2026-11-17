@@ -96,7 +96,7 @@ export function PbEditor({ initial, onSaved }: { initial: PbEditorInitial; onSav
                 min={0}
                 value={pbs[field]}
                 onChange={(e) => setPbs((prev) => ({ ...prev, [field]: e.target.value }))}
-                className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-b2b-pink focus:outline-none"
+                className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-base focus:border-b2b-pink focus:outline-none"
               />
             </div>
           ))}
@@ -138,7 +138,7 @@ export function PbEditor({ initial, onSaved }: { initial: PbEditorInitial; onSav
                         min={0}
                         value={pbs[field]}
                         onChange={(e) => setPbs((prev) => ({ ...prev, [field]: e.target.value }))}
-                        className="w-24 rounded border border-gray-300 px-2 py-1.5 text-sm focus:border-b2b-pink focus:outline-none"
+                        className="w-24 rounded border border-gray-300 px-2 py-1.5 text-base focus:border-b2b-pink focus:outline-none"
                       />
                       <button
                         type="button"
