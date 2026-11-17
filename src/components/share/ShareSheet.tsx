@@ -9,7 +9,17 @@ import { useVisualViewportBox } from "@/lib/useVisualViewportBox";
 import type { PbField } from "@/lib/validation";
 
 export type ShareTarget =
-  | { kind: "post"; postId: string; onShareToFeed: () => void; isResult?: boolean }
+  | {
+      kind: "post";
+      postId: string;
+      onShareToFeed: () => void;
+      isResult?: boolean;
+      // Set when the post being shared is a video — there's no rendered
+      // share-card template to offer for footage (loadFeedStoryData has
+      // nothing to draw from), so the sheet shares the real file instead,
+      // skipping the format-card step entirely.
+      video?: { url: string; thumbnail: string | null } | null;
+    }
   | { kind: "pb"; field: PbField; value: number; previous: number | null }
   | { kind: "workout"; workoutId: string; wodName: string; sharedToFeed: boolean; onSharedToFeed: () => void }
   | { kind: "result"; resultId: string };
@@ -130,6 +140,12 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
   // pattern) since an edit made on one no longer lines up with another.
   const [editedBlob, setEditedBlob] = useState<Blob | null>(null);
   const [editedPreviewUrl, setEditedPreviewUrl] = useState<string | null>(null);
+  // The video equivalent of editedBlob/editedPreviewUrl above — set once the
+  // text-overlay editor has exported a with-text version of the real video
+  // (see StoryEditor's "video" base kind), taking over as the thing that
+  // actually gets posted/sent for a video target.
+  const [editedVideo, setEditedVideo] = useState<{ file: File; thumbnail: Blob | null } | null>(null);
+  const [editedVideoPreviewUrl, setEditedVideoPreviewUrl] = useState<string | null>(null);
   const [editorBase, setEditorBase] = useState<StoryBase | null>(null);
   const [editorBusy, setEditorBusy] = useState(false);
   const templateEditorRef = useRef<StoryEditorHandle>(null);
@@ -148,8 +164,23 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
     return () => URL.revokeObjectURL(url);
   }, [editedBlob]);
 
+  useEffect(() => {
+    if (!editedVideo) {
+      setEditedVideoPreviewUrl(null);
+      return;
+    }
+    const url = URL.createObjectURL(editedVideo.file);
+    setEditedVideoPreviewUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [editedVideo]);
+
   const isResult = (target.kind === "post" && !!target.isResult) || target.kind === "result";
   const isWorkout = target.kind === "workout";
+  // A video post skips the format-card step entirely and shares the real
+  // video file for every destination (Story, Instagram, DM) instead of a
+  // rendered template — see the `video` field on ShareTarget.
+  const video = target.kind === "post" ? (target.video ?? null) : null;
+  const isVideo = video !== null;
   // A leaderboard row has no "your feed" of its own to post to here — that
   // flow already exists right after logging a result (see ResultsPrompt);
   // this entry point is Story/Instagram/DM only.
@@ -178,6 +209,17 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
 
   function openDestination(dest: Destination) {
     setDestination(dest);
+    // A video has no format-card to choose — skip straight to recipient
+    // picking (dm) or the preview (share), same as goToPreview below.
+    if (isVideo) {
+      if (dest === "dm") {
+        setStep("recipient");
+        return;
+      }
+      setPreviewLoaded(false);
+      setStep("preview");
+      return;
+    }
     setStep("format");
   }
 
@@ -198,12 +240,33 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
     return res.blob();
   }
 
+  /** Same idea as resolveFinalBlob, for a video target — the text-edited video if there is one, otherwise the original post's own video file (plus its poster frame, if any). */
+  async function resolveFinalVideo(): Promise<{ file: File; thumbnail: Blob | null }> {
+    if (editedVideo) return editedVideo;
+    if (!video) throw new Error("no video on this target");
+    const res = await fetch(video.url);
+    if (!res.ok) throw new Error("video fetch failed");
+    const blob = await res.blob();
+    const file = new File([blob], "box2box-share.mp4", { type: blob.type || "video/mp4" });
+    let thumbnail: Blob | null = null;
+    if (video.thumbnail) {
+      const thumbRes = await fetch(video.thumbnail);
+      if (thumbRes.ok) thumbnail = await thumbRes.blob();
+    }
+    return { file, thumbnail };
+  }
+
   async function openTextEditor() {
     setError(null);
     setEditorBusy(true);
     try {
-      const blob = await resolveFinalBlob();
-      setEditorBase({ kind: "photo", file: new File([blob], "template.png", { type: "image/png" }) });
+      if (isVideo) {
+        const { file } = await resolveFinalVideo();
+        setEditorBase({ kind: "video", file });
+      } else {
+        const blob = await resolveFinalBlob();
+        setEditorBase({ kind: "photo", file: new File([blob], "template.png", { type: "image/png" }) });
+      }
     } catch {
       setError("Couldn't open the editor. Please try again.");
     } finally {
@@ -217,6 +280,7 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
     try {
       const output = await templateEditorRef.current.export();
       if (output.kind === "photo") setEditedBlob(output.blob);
+      else setEditedVideo({ file: output.file, thumbnail: output.thumbnail });
     } catch {
       setError("Couldn't save that text. Please try again.");
     } finally {
@@ -306,9 +370,6 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
     setSharing(true);
     setError(null);
     try {
-      const blob = await resolveFinalBlob();
-      const file = new File([blob], "box2box-share.png", { type: "image/png" });
-
       const convRes = await fetch("/api/conversations", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -319,7 +380,14 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
 
       const formData = new FormData();
       formData.set("text", target.kind === "workout" ? `Check out my workout — ${target.wodName}` : "Check this out");
-      formData.set("photo", file);
+      if (isVideo) {
+        const { file, thumbnail } = await resolveFinalVideo();
+        formData.set("video", file);
+        if (thumbnail) formData.set("thumbnail", new File([thumbnail], "thumb.jpg", { type: thumbnail.type || "image/jpeg" }));
+      } else {
+        const blob = await resolveFinalBlob();
+        formData.set("photo", new File([blob], "box2box-share.png", { type: "image/png" }));
+      }
       const msgRes = await fetch(`/api/messages/${conversationId}`, { method: "POST", body: formData });
       if (!msgRes.ok) throw new Error("message failed");
 
@@ -356,14 +424,17 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
     setSharing(true);
     setError(null);
     try {
-      const blob = await resolveFinalBlob();
-      const file = new File([blob], "box2box-share.png", { type: "image/png" });
+      const videoResult = isVideo ? await resolveFinalVideo() : null;
+      const file = videoResult ? videoResult.file : new File([await resolveFinalBlob()], "box2box-share.png", { type: "image/png" });
 
       if (toStory) {
         // A real in-app Story, same as the existing /api/stories feature —
         // not just a hand-off to the OS share sheet.
         const formData = new FormData();
-        formData.set("photo", file);
+        formData.set(isVideo ? "video" : "photo", file);
+        if (videoResult?.thumbnail) {
+          formData.set("thumbnail", new File([videoResult.thumbnail], "thumb.jpg", { type: videoResult.thumbnail.type || "image/jpeg" }));
+        }
         taggedUsers.forEach((u) => formData.append("mentionedUserIds", u.id));
         const storyRes = await fetch("/api/stories", { method: "POST", body: formData });
         if (!storyRes.ok) throw new Error("story post failed");
@@ -383,10 +454,10 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
         if (nav.canShare?.({ files: [file] }) && nav.share) {
           await nav.share({ files: [file], title: "Box 2 Box" });
         } else {
-          const url = URL.createObjectURL(blob);
+          const url = URL.createObjectURL(file);
           const a = document.createElement("a");
           a.href = url;
-          a.download = "box2box-share.png";
+          a.download = isVideo ? "box2box-share.mp4" : "box2box-share.png";
           document.body.appendChild(a);
           a.click();
           a.remove();
@@ -423,7 +494,7 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
         {step !== "destination" && step !== "posted" && (
           <button
             type="button"
-            onClick={() => setStep(step === "preview" || step === "recipient" ? "format" : "destination")}
+            onClick={() => setStep(!isVideo && (step === "preview" || step === "recipient") ? "format" : "destination")}
             className="self-start text-sm text-b2b-ink/50 hover:text-b2b-ink"
           >
             ← Back
@@ -701,23 +772,41 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
           <>
             <p className="font-semibold text-b2b-ink">{previewHeading()}</p>
             <div
-              className="relative mx-auto overflow-hidden rounded-xl bg-b2b-bg"
+              className={`relative mx-auto overflow-hidden rounded-xl ${isVideo ? "bg-black" : "bg-b2b-bg"}`}
               style={{ width: 220, aspectRatio: "9 / 16" }}
             >
-              {!previewLoaded && (
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="text-xs text-b2b-ink/40">Loading preview...</span>
-                </div>
+              {isVideo ? (
+                // key forces a fresh <video> element when the source URL
+                // changes (e.g. text added) — reusing one across sources
+                // can leave it stuck showing the previous poster frame.
+                <video
+                  key={editedVideoPreviewUrl ?? video!.url}
+                  src={editedVideoPreviewUrl ?? video!.url}
+                  poster={editedVideoPreviewUrl ? undefined : video!.thumbnail ?? undefined}
+                  controls
+                  playsInline
+                  muted
+                  loop
+                  className="h-full w-full object-contain"
+                />
+              ) : (
+                <>
+                  {!previewLoaded && (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <span className="text-xs text-b2b-ink/40">Loading preview...</span>
+                    </div>
+                  )}
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={editedPreviewUrl ?? imageUrl(target, format, photo, "full", accent, pattern)}
+                    alt="Preview of what will be posted"
+                    onLoad={() => setPreviewLoaded(true)}
+                    className={`h-full w-full object-cover transition-opacity ${
+                      previewLoaded || editedPreviewUrl ? "opacity-100" : "opacity-0"
+                    }`}
+                  />
+                </>
               )}
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={editedPreviewUrl ?? imageUrl(target, format, photo, "full", accent, pattern)}
-                alt="Preview of what will be posted"
-                onLoad={() => setPreviewLoaded(true)}
-                className={`h-full w-full object-cover transition-opacity ${
-                  previewLoaded || editedPreviewUrl ? "opacity-100" : "opacity-0"
-                }`}
-              />
             </div>
             <p className="text-center text-xs text-b2b-ink/50">This is exactly what will be posted</p>
 
@@ -728,12 +817,15 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
                 disabled={editorBusy}
                 className="text-sm font-medium text-b2b-pink hover:underline disabled:opacity-50"
               >
-                {editorBusy ? "Loading..." : editedBlob ? "Edit text" : "Add text"}
+                {editorBusy ? "Loading..." : editedBlob || editedVideo ? "Edit text" : "Add text"}
               </button>
-              {editedBlob && (
+              {(editedBlob || editedVideo) && (
                 <button
                   type="button"
-                  onClick={() => setEditedBlob(null)}
+                  onClick={() => {
+                    setEditedBlob(null);
+                    setEditedVideo(null);
+                  }}
                   className="text-sm font-medium text-b2b-ink/50 hover:text-b2b-ink hover:underline"
                 >
                   Remove text

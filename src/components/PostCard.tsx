@@ -1368,6 +1368,16 @@ export function PostCard({
             // "attending"/team-join post (linkedEvent, no workout of its
             // own) has no score either, see loadFeedStoryData.
             isResult: post.type === "EVENT_RESULT" || (!!post.linkedEvent && post.type !== "TEAMMATE_REQUEST"),
+            // A video post has no rendered share-card template to offer
+            // (loadFeedStoryData has no footage of its own to draw from) —
+            // ShareSheet shares the real video file instead when this is
+            // set, skipping the format-card step entirely.
+            video: post.video
+              ? { url: post.video, thumbnail: post.videoThumbnail }
+              : (() => {
+                  const videoItem = post.media.find((m) => m.kind === "VIDEO");
+                  return videoItem ? { url: videoItem.url, thumbnail: videoItem.thumbnail } : null;
+                })(),
           }}
           onClose={() => setShareSheetOpen(false)}
         />
