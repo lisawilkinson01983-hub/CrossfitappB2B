@@ -10,6 +10,7 @@ import { SendIcon } from "@/components/SendIcon";
 import { MoreIcon } from "@/components/MoreIcon";
 import { EyeIcon } from "@/components/EyeIcon";
 import { DeleteIcon } from "@/components/DeleteIcon";
+import { MuteIcon } from "@/components/MuteIcon";
 import type { StoryGroup } from "@/lib/stories";
 
 // How long a photo story stays up before auto-advancing — a video's own
@@ -53,6 +54,18 @@ export function StoryViewer({
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [justLiked, setJustLiked] = useState(false);
+  // Videos always start muted — mobile browsers/WebViews only guarantee
+  // autoplay for a muted video, and a video that autoPlay can't actually
+  // start on (no sound, no motion, just the poster or nothing at all) is
+  // what "it's just black" / "doesn't play" were actually reports of. A
+  // header toggle lets anyone turn sound on per-story, same convention as
+  // Instagram/TikTok.
+  const [videoMuted, setVideoMuted] = useState(true);
+  // Set when autoplay still got rejected (an unanticipated browser/WebView
+  // policy) or the file failed to load — shows a tappable fallback instead
+  // of leaving the screen silently black with no way to recover.
+  const [videoStalled, setVideoStalled] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   const pausedRef = useRef(paused);
   useEffect(() => {
@@ -98,6 +111,28 @@ export function StoryViewer({
 
   // Photo/text auto-advance timer — a video drives its own progress via its
   // `timeupdate`/`onEnded` events instead (see the <video> below).
+  useEffect(() => {
+    setVideoStalled(false);
+  }, [groupIndex, storyIndex]);
+
+  // Drives the actual <video> element's play/pause state from `paused` —
+  // kept as its own effect (rather than an inline ref callback re-running
+  // every render, which is what this used to be) so a `play()` call isn't
+  // re-issued on every timeupdate tick while scrubbing through a story.
+  // play() returns a Promise that rejects if the browser still refuses
+  // autoplay even muted — caught here (never left to crash/reject
+  // silently into the void) and surfaced as a tap-to-play fallback instead
+  // of an indefinitely black, unresponsive screen.
+  useEffect(() => {
+    const el = videoRef.current;
+    if (!el || !story?.video) return;
+    if (paused) {
+      el.pause();
+      return;
+    }
+    el.play().catch(() => setVideoStalled(true));
+  }, [paused, story?.id, story?.video, videoMuted]);
+
   useEffect(() => {
     setProgress(0);
     setReplyText("");
@@ -210,6 +245,16 @@ export function StoryViewer({
             <span className="text-xs text-white/60">{timeAgo(story.createdAt)}</span>
           </div>
           <div className="flex items-center gap-1">
+            {story.video && (
+              <button
+                type="button"
+                onClick={() => setVideoMuted((v) => !v)}
+                aria-label={videoMuted ? "Unmute" : "Mute"}
+                className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20"
+              >
+                <MuteIcon muted={videoMuted} className="h-5 w-5" />
+              </button>
+            )}
             {isOwn && (
               <button
                 type="button"
@@ -255,22 +300,41 @@ export function StoryViewer({
           onTouchEnd={() => setPaused(false)}
         >
           {story.video ? (
-            <video
-              key={story.id}
-              src={story.video}
-              poster={story.videoThumbnail ?? undefined}
-              autoPlay
-              playsInline
-              className="h-full w-full object-contain"
-              onTimeUpdate={(e) => {
-                const v = e.currentTarget;
-                if (v.duration > 0) setProgress((v.currentTime / v.duration) * 100);
-              }}
-              onEnded={() => goNextRef.current()}
-              ref={(el) => {
-                if (el) paused ? el.pause() : el.play().catch(() => {});
-              }}
-            />
+            <>
+              <video
+                key={story.id}
+                ref={videoRef}
+                src={story.video}
+                poster={story.videoThumbnail ?? undefined}
+                muted={videoMuted}
+                autoPlay
+                playsInline
+                preload="auto"
+                className="h-full w-full object-contain"
+                onTimeUpdate={(e) => {
+                  const v = e.currentTarget;
+                  if (v.duration > 0) setProgress((v.currentTime / v.duration) * 100);
+                }}
+                onPlaying={() => setVideoStalled(false)}
+                onEnded={() => goNextRef.current()}
+                onError={() => setVideoStalled(true)}
+              />
+              {videoStalled && (
+                <button
+                  type="button"
+                  aria-label="Play video"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setVideoStalled(false);
+                    videoRef.current?.play().catch(() => setVideoStalled(true));
+                  }}
+                  className="absolute inset-0 z-[5] flex flex-col items-center justify-center gap-2 bg-black/40 text-white"
+                >
+                  <span className="flex h-14 w-14 items-center justify-center rounded-full bg-white/20 text-2xl">▶</span>
+                  <span className="text-sm font-medium">Tap to play</span>
+                </button>
+              )}
+            </>
           ) : story.photo ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={story.photo} alt="" className="h-full w-full object-contain" />
