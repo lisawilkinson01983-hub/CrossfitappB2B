@@ -65,7 +65,20 @@ export function StoryViewer({
   // policy) or the file failed to load — shows a tappable fallback instead
   // of leaving the screen silently black with no way to recover.
   const [videoStalled, setVideoStalled] = useState(false);
+  // True from mount until the video actually starts playing (or errors) —
+  // a lightweight spinner for normal buffering time, distinct from
+  // videoStalled's "tap to recover" state for an actual failure.
+  const [videoLoading, setVideoLoading] = useState(true);
   const videoRef = useRef<HTMLVideoElement>(null);
+  // Same failure/retry treatment as video, for a photo that fails to load
+  // (a bad URL, a dropped connection mid-fetch) — without this a broken
+  // photo story was just the browser's default broken-image icon forever,
+  // the same "silently stuck" failure mode the video fix addressed.
+  const [photoStalled, setPhotoStalled] = useState(false);
+  // Bumped on retry to force the <img> to remount with a fresh fetch — just
+  // clearing photoStalled wouldn't re-attempt a load the browser already
+  // marked as failed on that exact element.
+  const [photoRetryToken, setPhotoRetryToken] = useState(0);
 
   const pausedRef = useRef(paused);
   useEffect(() => {
@@ -113,6 +126,14 @@ export function StoryViewer({
   // `timeupdate`/`onEnded` events instead (see the <video> below).
   useEffect(() => {
     setVideoStalled(false);
+    setVideoLoading(true);
+    setPhotoStalled(false);
+    setPhotoRetryToken(0);
+    // A press-and-hold that's still active exactly when a video ends and
+    // auto-advances (or the viewer is opened mid-gesture) must not leave
+    // the next, unrelated story permanently paused with no visible reason
+    // why — each story starts fresh.
+    setPaused(false);
   }, [groupIndex, storyIndex]);
 
   // Drives the actual <video> element's play/pause state from `paused` —
@@ -177,6 +198,13 @@ export function StoryViewer({
   }, []);
 
   if (!group || !story) return null;
+
+  // The next story in line, if any — preloaded below (hidden, off-screen)
+  // so advancing to it plays instantly from cache instead of visibly
+  // buffering again, the same seamless feel Instagram's own story bar has.
+  const nextStoryInGroup = group.stories[storyIndex + 1];
+  const nextGroupFirstStory = localGroups[groupIndex + 1]?.stories[0];
+  const nextStory = nextStoryInGroup ?? nextGroupFirstStory ?? null;
 
   async function sendReply(text: string, isHeart = false) {
     if (!text.trim() || sending || isOwn) return;
@@ -298,6 +326,11 @@ export function StoryViewer({
           onMouseLeave={() => setPaused(false)}
           onTouchStart={() => setPaused(true)}
           onTouchEnd={() => setPaused(false)}
+          // Mobile browsers fire touchcancel instead of touchend once they
+          // decide a touch became a scroll/pan rather than a tap-and-hold —
+          // without this, that reclassification left `paused` stuck true
+          // with nothing left to ever set it back to false.
+          onTouchCancel={() => setPaused(false)}
         >
           {story.video ? (
             <>
@@ -315,10 +348,22 @@ export function StoryViewer({
                   const v = e.currentTarget;
                   if (v.duration > 0) setProgress((v.currentTime / v.duration) * 100);
                 }}
-                onPlaying={() => setVideoStalled(false)}
+                onPlaying={() => {
+                  setVideoStalled(false);
+                  setVideoLoading(false);
+                }}
+                onLoadedData={() => setVideoLoading(false)}
                 onEnded={() => goNextRef.current()}
-                onError={() => setVideoStalled(true)}
+                onError={() => {
+                  setVideoStalled(true);
+                  setVideoLoading(false);
+                }}
               />
+              {videoLoading && !videoStalled && (
+                <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                  <span className="h-8 w-8 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                </div>
+              )}
               {videoStalled && (
                 <button
                   type="button"
@@ -336,8 +381,33 @@ export function StoryViewer({
               )}
             </>
           ) : story.photo ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={story.photo} alt="" className="h-full w-full object-contain" />
+            <>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                key={`${story.id}-${photoRetryToken}`}
+                src={story.photo}
+                alt=""
+                className="h-full w-full object-contain"
+                onError={() => setPhotoStalled(true)}
+                onLoad={() => setPhotoStalled(false)}
+              />
+              {photoStalled && (
+                <div className="absolute inset-0 z-[5] flex flex-col items-center justify-center gap-2 bg-black/40 text-white">
+                  <span className="text-sm font-medium">Couldn't load this photo</span>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setPhotoStalled(false);
+                      setPhotoRetryToken((t) => t + 1);
+                    }}
+                    className="rounded-full bg-white/20 px-4 py-1.5 text-sm font-medium hover:bg-white/30"
+                  >
+                    Retry
+                  </button>
+                </div>
+              )}
+            </>
           ) : (
             story.text && (
               <div
@@ -458,6 +528,16 @@ export function StoryViewer({
         onCancel={() => setDeleteOpen(false)}
         confirming={deleting}
       />
+
+      {/* Invisible — exists purely so the browser fetches the next story's
+          media into cache ahead of time, see `nextStory` above. */}
+      {nextStory?.video && (
+        <video key={`preload-${nextStory.video}`} src={nextStory.video} preload="auto" muted playsInline aria-hidden className="absolute h-0 w-0 opacity-0" />
+      )}
+      {nextStory?.photo && !nextStory.video && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img key={`preload-${nextStory.photo}`} src={nextStory.photo} alt="" aria-hidden className="absolute h-0 w-0 opacity-0" />
+      )}
     </div>
   );
 }
