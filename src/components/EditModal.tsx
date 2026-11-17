@@ -59,7 +59,9 @@ export function EditModal({
             onChange={setValue}
             placeholder={placeholder}
             autoFocus
-            className="w-full resize-none rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-b2b-pink focus:outline-none"
+            // text-base, not text-sm — see ComposerModal's own note; same
+            // autoFocus-under-16px iOS zoom-lock risk.
+            className="w-full resize-none rounded-lg border border-gray-300 px-3 py-2 text-base focus:border-b2b-pink focus:outline-none"
           />
           <div className="mt-3 flex justify-end gap-2">
             <button

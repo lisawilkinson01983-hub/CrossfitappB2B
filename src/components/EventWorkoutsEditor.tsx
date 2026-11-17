@@ -273,7 +273,7 @@ function WorkoutFieldsModal({
                 value={fields.title}
                 onChange={(e) => setFields((f) => ({ ...f, title: e.target.value }))}
                 autoFocus
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-b2b-pink focus:outline-none"
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-base focus:border-b2b-pink focus:outline-none"
               />
             </label>
           </div>

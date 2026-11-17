@@ -1389,7 +1389,10 @@ export function PostCard({
               value={shareMessageDraft}
               onChange={setShareMessageDraft}
               placeholder="Say something about this (optional)..."
-              className="mt-3 w-full rounded border border-gray-300 px-2 py-1.5 text-sm focus:border-b2b-pink focus:outline-none"
+              // text-base, not text-sm — autoFocus + a sub-16px input is
+              // the trigger for iOS Safari's auto-zoom-on-focus, which can
+              // get stuck past closing this modal (see ComposerModal).
+              className="mt-3 w-full rounded border border-gray-300 px-2 py-1.5 text-base focus:border-b2b-pink focus:outline-none"
               autoFocus
             />
             <div className="mt-4 flex justify-end gap-3">

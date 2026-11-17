@@ -140,7 +140,7 @@ export function TeamRosterTrigger({
                       autoFocus
                       maxLength={60}
                       disabled={savingName}
-                      className="min-w-0 flex-1 rounded border border-gray-300 px-2 py-1 text-sm focus:border-b2b-pink focus:outline-none disabled:opacity-50"
+                      className="min-w-0 flex-1 rounded border border-gray-300 px-2 py-1 text-base focus:border-b2b-pink focus:outline-none disabled:opacity-50"
                     />
                     <button
                       type="button"

@@ -77,7 +77,12 @@ export function ComposerModal({
           onChange={onChange}
           placeholder={placeholder}
           autoFocus
-          className="w-full resize-none rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:border-b2b-pink focus:outline-none"
+          // text-base (16px), not text-sm — with autoFocus firing the
+          // instant this modal opens, anything under 16px makes iOS
+          // Safari auto-zoom the whole page in, and that zoom can get
+          // stuck well past closing this modal (see WorkoutForm's gym
+          // search input, the first place this got fixed).
+          className="w-full resize-none rounded-lg border border-gray-300 px-3 py-2.5 text-base focus:border-b2b-pink focus:outline-none"
         />
 
         <div className="flex items-center justify-between gap-3">

@@ -516,7 +516,7 @@ export function StoriesBar({
                   value={tagQuery}
                   onChange={(e) => handleTagQueryChange(e.target.value)}
                   placeholder="Search people to tag..."
-                  className="w-full rounded-full border border-white/30 bg-white/10 px-4 py-2.5 text-sm text-white placeholder:text-white/50 focus:border-white/60 focus:outline-none"
+                  className="w-full rounded-full border border-white/30 bg-white/10 px-4 py-2.5 text-base text-white placeholder:text-white/50 focus:border-white/60 focus:outline-none"
                 />
                 {tagResults.length > 0 && (
                   <div className="absolute bottom-full z-10 mb-1 w-full overflow-hidden rounded-lg border border-white/10 bg-b2b-ink shadow-lg">

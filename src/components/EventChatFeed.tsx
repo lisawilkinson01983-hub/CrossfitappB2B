@@ -224,7 +224,7 @@ function EventChatComposerModal({ eventId, onClose }: { eventId: string; onClose
               value={text}
               onChange={setText}
               onKeyDown={handleKeyDown}
-              className="flex-1 resize-none rounded border border-gray-300 px-3 py-2 text-sm focus:border-b2b-pink focus:outline-none"
+              className="flex-1 resize-none rounded border border-gray-300 px-3 py-2 text-base focus:border-b2b-pink focus:outline-none"
               autoFocus
             />
             <button

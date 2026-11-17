@@ -50,7 +50,7 @@ export function EmojiPicker({
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search emoji"
           autoFocus
-          className="w-full rounded-full border border-b2b-purple/15 bg-b2b-bg px-3.5 py-2 text-sm text-b2b-ink placeholder:text-b2b-ink/40 focus:border-b2b-pink focus:outline-none"
+          className="w-full rounded-full border border-b2b-purple/15 bg-b2b-bg px-3.5 py-2 text-base text-b2b-ink placeholder:text-b2b-ink/40 focus:border-b2b-pink focus:outline-none"
         />
       </div>
 

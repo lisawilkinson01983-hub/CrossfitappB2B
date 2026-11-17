@@ -400,7 +400,7 @@ export function ResultsPrompt({
                 onChange={(e) => setTeamName(e.target.value)}
                 placeholder="e.g. The Hailsham Heavies"
                 maxLength={60}
-                className="w-full rounded-lg border border-b2b-purple/15 bg-b2b-card px-3 py-2 text-sm text-b2b-ink placeholder:text-b2b-ink/35"
+                className="w-full rounded-lg border border-b2b-purple/15 bg-b2b-card px-3 py-2 text-base text-b2b-ink placeholder:text-b2b-ink/35"
               />
             </div>
 
@@ -486,7 +486,7 @@ export function ResultsPrompt({
                   onChange={(e) => setFreeformInput(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && addFreeform()}
                   placeholder="Their name"
-                  className="flex-1 rounded-lg border border-b2b-purple/15 bg-b2b-card px-3 py-1.5 text-sm text-b2b-ink"
+                  className="flex-1 rounded-lg border border-b2b-purple/15 bg-b2b-card px-3 py-1.5 text-base text-b2b-ink"
                 />
                 <button type="button" onClick={addFreeform} className="text-xs font-semibold text-b2b-pink">
                   Add
@@ -719,7 +719,7 @@ export function ResultsPrompt({
                   onChange={(e) => setFreeformInput(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && addFreeform()}
                   placeholder="Their name"
-                  className="flex-1 rounded-lg border border-b2b-purple/15 bg-b2b-card px-3 py-1.5 text-sm text-b2b-ink"
+                  className="flex-1 rounded-lg border border-b2b-purple/15 bg-b2b-card px-3 py-1.5 text-base text-b2b-ink"
                 />
                 <button type="button" onClick={addFreeform} className="text-xs font-semibold text-b2b-pink">
                   Add
