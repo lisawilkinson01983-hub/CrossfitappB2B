@@ -1,4 +1,4 @@
-import { mkdir, writeFile } from "fs/promises";
+import { mkdir, readFile, writeFile } from "fs/promises";
 import path from "path";
 import crypto from "crypto";
 import sharp from "sharp";
@@ -168,6 +168,33 @@ export async function saveVideoThumbnailUpload(file: File, ownerId: string): Pro
   const original = Buffer.from(await file.arrayBuffer());
   const bytes = await resizePhoto(original, "jpg");
   return saveUpload(ownerId, "jpg", bytes);
+}
+
+/**
+ * Copies an already-uploaded file served at `servedPath` (e.g.
+ * "/media/xyz.mp4") into a brand new file under `ownerId` — used to post an
+ * existing post's own video/photo straight to Story (see
+ * /api/stories/from-post) without the browser ever fetching the file into a
+ * Blob and re-uploading it. That round trip was where real "share this
+ * video to Story" failures turned out to be coming from: nothing stood
+ * between a dropped connection mid-fetch and silently finishing with a
+ * truncated copy — fetch() doesn't reject just because the stream closed
+ * early. A plain filesystem copy can't fail that way, and skips re-running
+ * saveVideoUpload's duration/size checks against a file that's already
+ * known-good from when it was first uploaded. Returns null if the source
+ * file is missing.
+ */
+export async function copyServedMedia(servedPath: string, ownerId: string): Promise<string | null> {
+  const safeName = path.basename(servedPath);
+  const ext = path.extname(safeName).replace(/^\./, "").toLowerCase();
+  if (!ext) return null;
+  let bytes: Buffer;
+  try {
+    bytes = await readFile(path.join(uploadsDir(), safeName));
+  } catch {
+    return null;
+  }
+  return saveUpload(ownerId, ext, bytes);
 }
 
 /**

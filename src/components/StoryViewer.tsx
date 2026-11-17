@@ -61,23 +61,27 @@ export function StoryViewer({
   // header toggle lets anyone turn sound on per-story, same convention as
   // Instagram/TikTok.
   const [videoMuted, setVideoMuted] = useState(true);
-  // Set when autoplay still got rejected (an unanticipated browser/WebView
-  // policy) or the file failed to load — shows a tappable fallback instead
-  // of leaving the screen silently black with no way to recover.
-  const [videoStalled, setVideoStalled] = useState(false);
-  // True from mount until the video actually starts playing (or errors) —
-  // a lightweight spinner for normal buffering time, distinct from
-  // videoStalled's "tap to recover" state for an actual failure.
+  // True from mount until the video actually starts playing (or it's given
+  // up on, see handleVideoFailure below) — a plain spinner, not a "tap to
+  // retry" control: a real video story never asks for a tap, it just
+  // plays, so a failure is handled silently (retried, then skipped) rather
+  // than surfaced as something to interact with.
   const [videoLoading, setVideoLoading] = useState(true);
   const videoRef = useRef<HTMLVideoElement>(null);
-  // Same failure/retry treatment as video, for a photo that fails to load
-  // (a bad URL, a dropped connection mid-fetch) — without this a broken
-  // photo story was just the browser's default broken-image icon forever,
-  // the same "silently stuck" failure mode the video fix addressed.
-  const [photoStalled, setPhotoStalled] = useState(false);
-  // Bumped on retry to force the <img> to remount with a fresh fetch — just
-  // clearing photoStalled wouldn't re-attempt a load the browser already
-  // marked as failed on that exact element.
+  // How many silent retries this exact story's video has had — reset
+  // per-story below. Capped so a genuinely broken file can't spin forever;
+  // see handleVideoFailure.
+  const videoRetriesRef = useRef(0);
+  // Same silent retry-then-skip treatment as video, for a photo that fails
+  // to load (a bad URL, a dropped connection mid-fetch) — without this a
+  // broken photo story was just the browser's default broken-image icon
+  // forever, the same "silently stuck" failure mode the video fix
+  // addressed, and a visible "retry" button is just as out of place on a
+  // story as the video one was.
+  const photoRetriesRef = useRef(0);
+  // Bumped to force the <img> to remount with a fresh fetch attempt — the
+  // browser won't re-attempt a load it already marked as failed on the
+  // same element otherwise.
   const [photoRetryToken, setPhotoRetryToken] = useState(0);
 
   const pausedRef = useRef(paused);
@@ -125,9 +129,9 @@ export function StoryViewer({
   // Photo/text auto-advance timer — a video drives its own progress via its
   // `timeupdate`/`onEnded` events instead (see the <video> below).
   useEffect(() => {
-    setVideoStalled(false);
+    videoRetriesRef.current = 0;
     setVideoLoading(true);
-    setPhotoStalled(false);
+    photoRetriesRef.current = 0;
     setPhotoRetryToken(0);
     // A press-and-hold that's still active exactly when a video ends and
     // auto-advances (or the viewer is opened mid-gesture) must not leave
@@ -136,14 +140,39 @@ export function StoryViewer({
     setPaused(false);
   }, [groupIndex, storyIndex]);
 
+  // A real video story never shows a "tap to retry" control — if play()
+  // rejects (an unanticipated autoplay policy) or the file errors out, it
+  // retries silently a couple of times, then gives up and moves on to the
+  // next story rather than leaving the viewer stuck on a dead, unplayable
+  // one. Capped at 2 retries so a genuinely broken file can't loop forever.
+  function handleVideoFailure() {
+    const el = videoRef.current;
+    if (!el) return;
+    if (videoRetriesRef.current >= 2) {
+      goNextRef.current();
+      return;
+    }
+    videoRetriesRef.current += 1;
+    setTimeout(() => {
+      el.play().catch(handleVideoFailure);
+    }, 500);
+  }
+
+  // Same idea as handleVideoFailure, for a photo: one silent retry, then
+  // move on rather than sit on a broken image with nothing to do about it.
+  function handlePhotoFailure() {
+    if (photoRetriesRef.current >= 1) {
+      goNextRef.current();
+      return;
+    }
+    photoRetriesRef.current += 1;
+    setPhotoRetryToken((t) => t + 1);
+  }
+
   // Drives the actual <video> element's play/pause state from `paused` —
   // kept as its own effect (rather than an inline ref callback re-running
   // every render, which is what this used to be) so a `play()` call isn't
   // re-issued on every timeupdate tick while scrubbing through a story.
-  // play() returns a Promise that rejects if the browser still refuses
-  // autoplay even muted — caught here (never left to crash/reject
-  // silently into the void) and surfaced as a tap-to-play fallback instead
-  // of an indefinitely black, unresponsive screen.
   useEffect(() => {
     const el = videoRef.current;
     if (!el || !story?.video) return;
@@ -151,7 +180,8 @@ export function StoryViewer({
       el.pause();
       return;
     }
-    el.play().catch(() => setVideoStalled(true));
+    el.play().catch(handleVideoFailure);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [paused, story?.id, story?.video, videoMuted]);
 
   useEffect(() => {
@@ -349,65 +379,28 @@ export function StoryViewer({
                   if (v.duration > 0) setProgress((v.currentTime / v.duration) * 100);
                 }}
                 onPlaying={() => {
-                  setVideoStalled(false);
+                  videoRetriesRef.current = 0;
                   setVideoLoading(false);
                 }}
                 onLoadedData={() => setVideoLoading(false)}
                 onEnded={() => goNextRef.current()}
-                onError={() => {
-                  setVideoStalled(true);
-                  setVideoLoading(false);
-                }}
+                onError={handleVideoFailure}
               />
-              {videoLoading && !videoStalled && (
+              {videoLoading && (
                 <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
                   <span className="h-8 w-8 animate-spin rounded-full border-2 border-white/30 border-t-white" />
                 </div>
               )}
-              {videoStalled && (
-                <button
-                  type="button"
-                  aria-label="Play video"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setVideoStalled(false);
-                    videoRef.current?.play().catch(() => setVideoStalled(true));
-                  }}
-                  className="absolute inset-0 z-[5] flex flex-col items-center justify-center gap-2 bg-black/40 text-white"
-                >
-                  <span className="flex h-14 w-14 items-center justify-center rounded-full bg-white/20 text-2xl">▶</span>
-                  <span className="text-sm font-medium">Tap to play</span>
-                </button>
-              )}
             </>
           ) : story.photo ? (
-            <>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                key={`${story.id}-${photoRetryToken}`}
-                src={story.photo}
-                alt=""
-                className="h-full w-full object-contain"
-                onError={() => setPhotoStalled(true)}
-                onLoad={() => setPhotoStalled(false)}
-              />
-              {photoStalled && (
-                <div className="absolute inset-0 z-[5] flex flex-col items-center justify-center gap-2 bg-black/40 text-white">
-                  <span className="text-sm font-medium">Couldn't load this photo</span>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setPhotoStalled(false);
-                      setPhotoRetryToken((t) => t + 1);
-                    }}
-                    className="rounded-full bg-white/20 px-4 py-1.5 text-sm font-medium hover:bg-white/30"
-                  >
-                    Retry
-                  </button>
-                </div>
-              )}
-            </>
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              key={`${story.id}-${photoRetryToken}`}
+              src={story.photo}
+              alt=""
+              className="h-full w-full object-contain"
+              onError={handlePhotoFailure}
+            />
           ) : (
             story.text && (
               <div

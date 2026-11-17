@@ -424,14 +424,40 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
     setSharing(true);
     setError(null);
     try {
-      const videoResult = isVideo ? await resolveFinalVideo() : null;
-      const file = videoResult ? videoResult.file : new File([await resolveFinalBlob()], "box2box-share.png", { type: "image/png" });
+      // Posting an unedited video straight to Story: have the server copy
+      // the file itself rather than fetching it into a Blob here and
+      // re-uploading it — see /api/stories/from-post's own comment for why
+      // that client round trip turned out to be where real "shared a video
+      // to Story and it never plays" failures were actually coming from
+      // (nothing stood between a dropped connection mid-fetch and quietly
+      // finishing with a truncated copy). Once on-video text has been
+      // added (editedVideo), that file only exists client-side, so it
+      // still goes through the regular upload below.
+      const usesServerVideoCopy = isVideo && !editedVideo && toStory && target.kind === "post";
 
-      if (toStory) {
+      if (usesServerVideoCopy && target.kind === "post") {
+        const storyRes = await fetch("/api/stories/from-post", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ postId: target.postId, mentionedUserIds: taggedUsers.map((u) => u.id) }),
+        });
+        if (!storyRes.ok) throw new Error("story post failed");
+        window.dispatchEvent(new Event("b2b:story-posted"));
+      }
+
+      // Instagram's hand-off and the client-side Story upload both need an
+      // actual file in the browser — the server-copy path above doesn't.
+      const needsClientFile = toInstagram || (toStory && !usesServerVideoCopy);
+      const videoResult = needsClientFile && isVideo ? await resolveFinalVideo() : null;
+      const file = needsClientFile
+        ? (videoResult ? videoResult.file : new File([await resolveFinalBlob()], "box2box-share.png", { type: "image/png" }))
+        : null;
+
+      if (toStory && !usesServerVideoCopy) {
         // A real in-app Story, same as the existing /api/stories feature —
         // not just a hand-off to the OS share sheet.
         const formData = new FormData();
-        formData.set(isVideo ? "video" : "photo", file);
+        formData.set(isVideo ? "video" : "photo", file!);
         if (videoResult?.thumbnail) {
           formData.set("thumbnail", new File([videoResult.thumbnail], "thumb.jpg", { type: videoResult.thumbnail.type || "image/jpeg" }));
         }
@@ -451,10 +477,10 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
           canShare?: (data: { files: File[] }) => boolean;
           share?: (data: { files: File[]; title?: string }) => Promise<void>;
         };
-        if (nav.canShare?.({ files: [file] }) && nav.share) {
-          await nav.share({ files: [file], title: "Box 2 Box" });
+        if (nav.canShare?.({ files: [file!] }) && nav.share) {
+          await nav.share({ files: [file!], title: "Box 2 Box" });
         } else {
-          const url = URL.createObjectURL(file);
+          const url = URL.createObjectURL(file!);
           const a = document.createElement("a");
           a.href = url;
           a.download = isVideo ? "box2box-share.mp4" : "box2box-share.png";
