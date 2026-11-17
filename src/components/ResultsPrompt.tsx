@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Avatar } from "@/components/Avatar";
 import { formatEventDate } from "@/lib/eventDate";
 import { divisionOptionsForEvent, resultHeadline } from "@/lib/eventResults";
+import { useVisualViewportBox } from "@/lib/useVisualViewportBox";
 
 type Prompt =
   | {
@@ -173,6 +174,8 @@ export function ResultsPrompt({
     return () => clearTimeout(handle);
   }, [query, step]);
 
+  const viewport = useVisualViewportBox(!!prompt);
+
   if (!prompt) return null;
 
   async function dismiss() {
@@ -299,7 +302,10 @@ export function ResultsPrompt({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      style={viewport ? { top: viewport.top, height: viewport.height } : undefined}
+    >
       <div className="flex w-full max-w-xs flex-col items-center gap-1 rounded-2xl bg-b2b-card p-6 text-center shadow-lg">
         {step === "ask" && totalAtStart != null && totalAtStart > 1 && (
           <div className="mb-2 flex items-center gap-1.5">

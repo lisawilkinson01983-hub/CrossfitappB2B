@@ -8,6 +8,7 @@ import { MentionTextarea } from "@/components/MentionTextarea";
 import { Avatar } from "@/components/Avatar";
 import { AttachmentMenu } from "@/components/AttachmentMenu";
 import { GifPicker } from "@/components/GifPicker";
+import { useVisualViewportBox } from "@/lib/useVisualViewportBox";
 
 type Attachment = { kind: "photo" | "video"; file: File; thumbnail?: Blob | null };
 
@@ -60,6 +61,7 @@ function PostComposerModal({ onClose, canPostWorkout }: { onClose: () => void; c
   const [gifPickerOpen, setGifPickerOpen] = useState(false);
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const viewport = useVisualViewportBox(true);
 
   function pickGif(gifUrl: string) {
     setGifPickerOpen(false);
@@ -159,7 +161,11 @@ function PostComposerModal({ onClose, canPostWorkout }: { onClose: () => void; c
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      style={viewport ? { top: viewport.top, height: viewport.height } : undefined}
+      onClick={onClose}
+    >
       <div
         className="w-full max-w-lg rounded-xl bg-b2b-bg p-4 shadow-lg"
         onClick={(e) => e.stopPropagation()}

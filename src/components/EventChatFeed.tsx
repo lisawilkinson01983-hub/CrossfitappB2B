@@ -11,6 +11,7 @@ import { Avatar } from "@/components/Avatar";
 import { SectionCard } from "@/components/SectionCard";
 import { MAX_VIDEO_SECONDS, MAX_PHOTO_BYTES, MAX_PHOTO_MB } from "@/lib/media";
 import { readVideoInfo } from "@/lib/readVideoInfo";
+import { useVisualViewportBox } from "@/lib/useVisualViewportBox";
 
 const MEDIA_ACCEPT = "image/jpeg,image/png,image/webp,video/mp4,video/quicktime";
 
@@ -75,6 +76,7 @@ function EventChatComposerModal({ eventId, onClose }: { eventId: string; onClose
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [gifPickerOpen, setGifPickerOpen] = useState(false);
+  const viewport = useVisualViewportBox(true);
 
   function handleKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -161,7 +163,11 @@ function EventChatComposerModal({ eventId, onClose }: { eventId: string; onClose
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      style={viewport ? { top: viewport.top, height: viewport.height } : undefined}
+      onClick={onClose}
+    >
       <div className="w-full max-w-lg rounded-xl bg-b2b-bg p-4 shadow-lg" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between border-b border-b2b-purple/10 pb-3">
           <p className="font-semibold text-b2b-ink">Message board</p>

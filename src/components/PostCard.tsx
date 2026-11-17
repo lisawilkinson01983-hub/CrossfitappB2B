@@ -43,6 +43,7 @@ import { formatDateTime } from "@/lib/dates";
 import type { ReactionSummary } from "@/lib/reactions";
 import { readVideoInfo } from "@/lib/readVideoInfo";
 import { MAX_VIDEO_SECONDS, MAX_PHOTO_BYTES, MAX_PHOTO_MB } from "@/lib/media";
+import { useVisualViewportBox } from "@/lib/useVisualViewportBox";
 
 export type CommentData = {
   id: string;
@@ -202,6 +203,7 @@ export function PostCard({
   const [shareBusy, setShareBusy] = useState(false);
   const [unsharing, setUnsharing] = useState(false);
   const [composingShare, setComposingShare] = useState(false);
+  const composingShareViewport = useVisualViewportBox(composingShare);
   const [shareSheetOpen, setShareSheetOpen] = useState(false);
   const [shareMessageDraft, setShareMessageDraft] = useState("");
   const [shareMessage, setShareMessage] = useState(post.sharedBy?.message ?? null);
@@ -1374,6 +1376,7 @@ export function PostCard({
       {composingShare && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          style={composingShareViewport ? { top: composingShareViewport.top, height: composingShareViewport.height } : undefined}
           onClick={() => setComposingShare(false)}
         >
           <div

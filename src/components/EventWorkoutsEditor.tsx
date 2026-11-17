@@ -3,6 +3,7 @@
 import { useRef, useState, type ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import { useVisualViewportBox } from "@/lib/useVisualViewportBox";
 
 export type EventWorkoutEditData = {
   id: string;
@@ -188,6 +189,7 @@ function WorkoutFieldsModal({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const viewport = useVisualViewportBox(true);
 
   function handlePhotoChange(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -205,7 +207,11 @@ function WorkoutFieldsModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      style={viewport ? { top: viewport.top, height: viewport.height } : undefined}
+      onClick={onClose}
+    >
       <div
         className="w-full max-w-lg rounded-xl bg-b2b-bg p-4 shadow-lg"
         onClick={(e) => e.stopPropagation()}

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Avatar } from "@/components/Avatar";
 import { EditIcon } from "@/components/EditIcon";
+import { useVisualViewportBox } from "@/lib/useVisualViewportBox";
 
 type RosterMember = { id: string; name: string; photo: string | null };
 type UserOption = { id: string; name: string; photo: string | null };
@@ -61,6 +62,7 @@ export function TeamRosterTrigger({
   const [savingName, setSavingName] = useState(false);
   const [nameError, setNameError] = useState<string | null>(null);
   const total = members.length + freeformNames.length;
+  const viewport = useVisualViewportBox(open);
 
   async function saveName() {
     const trimmed = nameInput.trim().slice(0, 60);
@@ -112,6 +114,7 @@ export function TeamRosterTrigger({
       {open && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          style={viewport ? { top: viewport.top, height: viewport.height } : undefined}
           onClick={() => setOpen(false)}
         >
           <div

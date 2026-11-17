@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import { MentionTextarea } from "@/components/MentionTextarea";
 import { AttachmentMenu, type AttachmentMenuItem } from "@/components/AttachmentMenu";
+import { useVisualViewportBox } from "@/lib/useVisualViewportBox";
 
 /**
  * The full-size popout a comment/reply bar opens into — same centered-modal
@@ -41,10 +42,17 @@ export function ComposerModal({
   /** The caller's own GifPicker, rendered open/closed by its own state — kept outside this modal's concerns since the caller owns which GIF gets sent. */
   gifPicker?: ReactNode;
 }) {
+  // Called unconditionally (rules of hooks) — `open` as `active` means it
+  // just does nothing until there's actually an overlay to size.
+  const viewport = useVisualViewportBox(open);
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      style={viewport ? { top: viewport.top, height: viewport.height } : undefined}
+      onClick={onClose}
+    >
       <div
         className="flex w-full max-w-lg flex-col gap-3 rounded-2xl bg-b2b-card p-4 shadow-lg"
         onClick={(e) => e.stopPropagation()}

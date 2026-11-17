@@ -5,6 +5,7 @@ import { Avatar } from "@/components/Avatar";
 import { SendIcon } from "@/components/SendIcon";
 import { StoryEditor, type StoryBase, type StoryEditorHandle } from "@/components/StoryEditor";
 import { MAX_STORY_MENTIONS } from "@/lib/stories";
+import { useVisualViewportBox } from "@/lib/useVisualViewportBox";
 import type { PbField } from "@/lib/validation";
 
 export type ShareTarget =
@@ -92,6 +93,7 @@ function imageUrl(
  * text-only PR post through /api/profile/pbs/share.
  */
 export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: () => void }) {
+  const viewport = useVisualViewportBox(true);
   const [step, setStep] = useState<Step>("destination");
   const [destination, setDestination] = useState<Destination>("share");
   const [toStory, setToStory] = useState(true);
@@ -409,7 +411,11 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      style={viewport ? { top: viewport.top, height: viewport.height } : undefined}
+      onClick={onClose}
+    >
       <div
         className="flex w-full max-w-sm flex-col gap-3 rounded-2xl bg-b2b-card p-4 shadow-lg"
         onClick={(e) => e.stopPropagation()}

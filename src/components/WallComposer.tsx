@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type ChangeEvent } from "react";
+import { useRef, useState, type ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Avatar } from "@/components/Avatar";
 import { MentionTextarea } from "@/components/MentionTextarea";
@@ -8,6 +8,7 @@ import { GifPicker } from "@/components/GifPicker";
 import { GlobeIcon } from "@/components/GlobeIcon";
 import { MAX_VIDEO_SECONDS, MAX_PHOTO_BYTES, MAX_PHOTO_MB } from "@/lib/media";
 import { readVideoInfo } from "@/lib/readVideoInfo";
+import { useVisualViewportBox } from "@/lib/useVisualViewportBox";
 
 const MEDIA_ACCEPT = "image/jpeg,image/png,image/webp,video/mp4,video/quicktime";
 
@@ -48,24 +49,9 @@ export function WallComposer({
   // opens — it keeps laying out against the old full-screen height, which
   // pushes "Add to your post" down past where the keyboard actually starts
   // and leaves it stranded in dead space. Track the real visible area via
-  // VisualViewport and size/offset the overlay to match.
-  const [viewport, setViewport] = useState<{ top: number; height: number } | null>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const vv = window.visualViewport;
-    if (!vv) return;
-    function update() {
-      setViewport({ top: vv!.offsetTop, height: vv!.height });
-    }
-    update();
-    vv.addEventListener("resize", update);
-    vv.addEventListener("scroll", update);
-    return () => {
-      vv.removeEventListener("resize", update);
-      vv.removeEventListener("scroll", update);
-    };
-  }, [open]);
+  // VisualViewport and size/offset the overlay to match (see
+  // useVisualViewportBox — this was the first place this bug got fixed).
+  const viewport = useVisualViewportBox(open);
 
   function reset() {
     setText("");

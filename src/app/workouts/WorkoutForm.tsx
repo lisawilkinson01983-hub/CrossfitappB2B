@@ -21,6 +21,7 @@ import {
 } from "@/lib/wodDatabase";
 import { Avatar } from "@/components/Avatar";
 import type { GymWodWeek } from "@/lib/gymSuggestion";
+import { useVisualViewportBox } from "@/lib/useVisualViewportBox";
 
 type Attachment = { kind: "photo" | "video"; file: File; thumbnail?: Blob | null };
 type UserOption = { id: string; name: string; photo: string | null };
@@ -99,6 +100,7 @@ export function WorkoutForm({
   const [selectedGymKey, setSelectedGymKey] = useState(gymWodWeek?.myGymKey ?? gymWodWeek?.gyms[0]?.key ?? null);
   const [selectedDayKey, setSelectedDayKey] = useState<string | null>(null);
   const [gymSearchOpen, setGymSearchOpen] = useState(false);
+  const gymSearchViewport = useVisualViewportBox(gymSearchOpen);
   const [gymQuery, setGymQuery] = useState("");
 
   const selectedGym = gymWodWeek?.gyms.find((g) => g.key === selectedGymKey) ?? gymWodWeek?.gyms[0] ?? null;
@@ -347,6 +349,7 @@ export function WorkoutForm({
       {gymSearchOpen && gymWodWeek && (
         <div
           className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40 p-4"
+          style={gymSearchViewport ? { top: gymSearchViewport.top, height: gymSearchViewport.height } : undefined}
           onClick={() => setGymSearchOpen(false)}
         >
           <div
