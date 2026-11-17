@@ -2,8 +2,8 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 
 function navItemClass(active: boolean) {
-  return `shrink-0 whitespace-nowrap pb-2.5 text-xs font-bold border-b-2 ${
-    active ? "border-b2b-pink text-b2b-ink" : "border-transparent text-b2b-ink/45 hover:text-b2b-ink/70"
+  return `flex-1 whitespace-nowrap rounded-[10px] px-2 py-2 text-center text-xs font-bold transition-colors ${
+    active ? "bg-b2b-card text-b2b-ink shadow-[0_1px_3px_rgba(0,0,0,0.12)]" : "text-b2b-ink/45 hover:text-b2b-ink/70"
   }`;
 }
 
@@ -29,14 +29,14 @@ export function EventTabs({
 }) {
   return (
     <div>
-      <div className="flex gap-4 overflow-x-auto border-b border-b2b-purple/15">
+      <div className="flex gap-1 rounded-[14px] bg-b2b-ink/[0.06] p-1">
         <span className={navItemClass(true)}>Overview</span>
         {findTeamHref && (
           <Link href={findTeamHref} className={navItemClass(false)}>
             Find a Team
           </Link>
         )}
-        <Link href={noticesHref} className={`${navItemClass(false)} flex items-center gap-1.5`}>
+        <Link href={noticesHref} className={`${navItemClass(false)} flex items-center justify-center gap-1.5`}>
           Message board
           {noticesCount > 0 && (
             <span className="flex h-[15px] min-w-[15px] items-center justify-center rounded-full bg-b2b-pink px-1 text-[9px] font-bold text-white">

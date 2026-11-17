@@ -138,18 +138,19 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
 
   const overviewContent = (
     <div className="flex flex-col gap-4">
-      {event.description && <CollapsibleText text={event.description} className="text-sm text-b2b-ink/70" />}
+      {(event.description || categoryTags.length > 0) && (
+        <div className="flex flex-col gap-3 rounded-[18px] bg-b2b-card p-4 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_12px_26px_-18px_rgba(35,34,35,0.35)]">
+          {event.description && <CollapsibleText text={event.description} className="text-sm text-b2b-ink/70" />}
 
-      {categoryTags.length > 0 && (
-        <div className="flex flex-wrap gap-1.5">
-          {categoryTags.map((tag) => (
-            <span
-              key={tag}
-              className="rounded-full border border-b2b-purple/20 px-2.5 py-0.5 text-xs text-b2b-ink/60"
-            >
-              {tag}
-            </span>
-          ))}
+          {categoryTags.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {categoryTags.map((tag) => (
+                <span key={tag} className="rounded-full bg-b2b-pink/10 px-2.5 py-1 text-xs font-semibold text-b2b-pink-dark">
+                  {tag}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
@@ -159,24 +160,6 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
           defaultView="list"
           list={<EventWorkoutsList eventId={event.id} workouts={event.workouts} />}
           carousel={<SwipeCardList items={workoutCarouselItems} emptyMessage="Check back soon." hideHeader />}
-        />
-      )}
-
-      {event.websiteUrl && (
-        <a
-          href={event.websiteUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="block rounded-xl border-[1.5px] border-b2b-pink px-4 py-3 text-center text-sm font-bold text-b2b-pink hover:bg-b2b-pink/5"
-        >
-          Visit event website &#8599;
-        </a>
-      )}
-
-      {!event.isPrivate && (
-        <ShareEventButton
-          eventId={event.id}
-          className="w-full rounded-xl border border-b2b-purple/20 px-4 py-3 text-center text-sm font-semibold text-b2b-ink/60 hover:bg-b2b-bg"
         />
       )}
 
@@ -294,41 +277,66 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
           initialInterested={isInterested}
           isCompetition={isCompetitionEvent(event)}
         />
+
+        {(event.websiteUrl || !event.isPrivate) && (
+          <div className="flex gap-2.5">
+            {event.websiteUrl && (
+              <a
+                href={event.websiteUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-b2b-pink px-4 py-3 text-center text-sm font-bold text-white shadow-[0_10px_20px_-10px_rgba(184,132,42,0.6)] hover:bg-b2b-pink-dark"
+              >
+                Register
+              </a>
+            )}
+            {!event.isPrivate && <ShareEventButton eventId={event.id} iconOnly />}
+          </div>
+        )}
+
         {showAskAgain && <AskMeAgainLink eventId={event.id} />}
 
         <div className={`grid gap-2 ${isPrivateSocial ? "grid-cols-2" : "grid-cols-4"}`}>
           <Link
             href={`/events/${event.id}/participants`}
-            className="flex flex-col items-center gap-0.5 rounded-2xl border border-b2b-purple/10 bg-b2b-card py-3 hover:border-b2b-pink/30"
+            className="flex flex-col items-center gap-0.5 rounded-[14px] bg-b2b-card py-2.5 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_16px_-14px_rgba(35,34,35,0.3)] hover:shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_16px_-14px_rgba(184,132,42,0.5)]"
           >
-            <span className="font-display text-2xl text-b2b-pink">{event.participants.length}</span>
+            <span className={`font-display text-2xl ${event.participants.length === 0 ? "text-b2b-ink/30" : "text-b2b-pink"}`}>
+              {event.participants.length}
+            </span>
             <span className="text-[10px] font-semibold uppercase tracking-wide text-b2b-ink/45">
               {isPrivateSocial ? "Attendees" : "Athletes"}
             </span>
           </Link>
           <Link
             href={`/events/${event.id}/interested`}
-            className="flex flex-col items-center gap-0.5 rounded-2xl border border-b2b-purple/10 bg-b2b-card py-3 hover:border-b2b-pink/30"
+            className="flex flex-col items-center gap-0.5 rounded-[14px] bg-b2b-card py-2.5 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_16px_-14px_rgba(35,34,35,0.3)] hover:shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_16px_-14px_rgba(184,132,42,0.5)]"
           >
-            <span className="font-display text-2xl text-b2b-pink">{event._count.interests}</span>
+            <span className={`font-display text-2xl ${event._count.interests === 0 ? "text-b2b-ink/30" : "text-b2b-pink"}`}>
+              {event._count.interests}
+            </span>
             <span className="text-[10px] font-semibold uppercase tracking-wide text-b2b-ink/45">Interested</span>
           </Link>
           {!isPrivateSocial && (
             <Link
               href={`/events/${event.id}/teams`}
-              className="flex flex-col items-center gap-0.5 rounded-2xl border border-b2b-purple/10 bg-b2b-card py-3 hover:border-b2b-pink/30"
+              className="flex flex-col items-center gap-0.5 rounded-[14px] bg-b2b-card py-2.5 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_16px_-14px_rgba(35,34,35,0.3)] hover:shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_16px_-14px_rgba(184,132,42,0.5)]"
             >
-              <span className="font-display text-2xl text-b2b-pink">{event._count.teams}</span>
+              <span className={`font-display text-2xl ${event._count.teams === 0 ? "text-b2b-ink/30" : "text-b2b-pink"}`}>
+                {event._count.teams}
+              </span>
               <span className="text-[10px] font-semibold uppercase tracking-wide text-b2b-ink/45">Teams</span>
             </Link>
           )}
           {!isPrivateSocial && (
             <Link
               href={`/events/${event.id}/results`}
-              className="flex flex-col items-center gap-0.5 rounded-2xl border border-b2b-purple/10 bg-b2b-card py-3 hover:border-b2b-pink/30"
+              className="flex flex-col items-center gap-0.5 rounded-[14px] bg-b2b-card py-2.5 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_16px_-14px_rgba(35,34,35,0.3)] hover:shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_16px_-14px_rgba(184,132,42,0.5)]"
             >
-              <span className="font-display text-2xl text-b2b-pink">{event._count.results}</span>
-              <span className="text-[10px] font-semibold uppercase tracking-wide text-b2b-ink/45">🏆 Results</span>
+              <span className={`font-display text-2xl ${event._count.results === 0 ? "text-b2b-ink/30" : "text-b2b-pink"}`}>
+                {event._count.results}
+              </span>
+              <span className="text-[10px] font-semibold uppercase tracking-wide text-b2b-ink/45">Results</span>
             </Link>
           )}
         </div>
