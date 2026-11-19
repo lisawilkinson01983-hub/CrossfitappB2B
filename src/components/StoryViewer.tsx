@@ -373,7 +373,14 @@ export function StoryViewer({
                 autoPlay
                 playsInline
                 preload="auto"
-                className="h-full w-full object-contain"
+                // object-cover, not object-contain — Instagram crops a
+                // non-matching aspect to fill the whole screen edge to
+                // edge rather than letterboxing it; object-contain here
+                // preserved the full, uncropped frame instead, which for
+                // most phone video/photo aspects left an empty gap (the
+                // header already overlaps/hides a same-sized gap at the
+                // top, so in practice it only ever showed at the bottom).
+                className="h-full w-full object-cover"
                 onTimeUpdate={(e) => {
                   const v = e.currentTarget;
                   if (v.duration > 0) setProgress((v.currentTime / v.duration) * 100);
@@ -398,7 +405,7 @@ export function StoryViewer({
               key={`${story.id}-${photoRetryToken}`}
               src={story.photo}
               alt=""
-              className="h-full w-full object-contain"
+              className="h-full w-full object-cover"
               onError={handlePhotoFailure}
             />
           ) : (
