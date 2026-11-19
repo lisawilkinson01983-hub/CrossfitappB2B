@@ -2,7 +2,15 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { loadWorkoutCardData } from "@/lib/shareCards/postData";
-import { FeedStoryA, FeedStoryB, FeedStoryC, type ShareCardFormat } from "@/lib/shareCards/templates";
+import {
+  FeedStoryA,
+  FeedStoryB,
+  FeedStoryC,
+  FeedPostA,
+  FeedPostC,
+  SQUARE_CARD_HEIGHT,
+  type ShareCardFormat,
+} from "@/lib/shareCards/templates";
 import { renderShareCard, FULL_SCALE, THUMB_SCALE } from "@/lib/shareCards/render";
 
 export const runtime = "nodejs";
@@ -31,20 +39,28 @@ export async function GET(req: Request) {
   }
   const photoOverride = url.searchParams.get("photo");
   const scale = url.searchParams.get("size") === "thumb" ? THUMB_SCALE : FULL_SCALE;
+  // A workout shared to the Feed gets the square card (see ShareSheet's
+  // previewLayout) — Story/Instagram, and anything that's format B (the
+  // "Quote card" format, never offered for a workout — see FORMAT_LABELS),
+  // keep the regular 9:16 story card.
+  const isSquare = url.searchParams.get("layout") === "feed" && format !== "B";
 
   const data = await loadWorkoutCardData(workoutId, session.user.id, photoOverride);
   if (!data) {
     return NextResponse.json({ error: "Workout not found" }, { status: 404 });
   }
 
-  const node =
-    format === "A" ? (
-      <FeedStoryA {...data.a} scale={scale} />
-    ) : format === "B" ? (
-      <FeedStoryB {...data.b} scale={scale} />
-    ) : (
-      <FeedStoryC {...data.c} scale={scale} />
-    );
+  const node = isSquare
+    ? format === "A"
+      ? <FeedPostA {...data.a} scale={scale} />
+      : <FeedPostC {...data.c} scale={scale} />
+    : format === "A" ? (
+        <FeedStoryA {...data.a} scale={scale} />
+      ) : format === "B" ? (
+        <FeedStoryB {...data.b} scale={scale} />
+      ) : (
+        <FeedStoryC {...data.c} scale={scale} />
+      );
 
-  return renderShareCard(node, scale);
+  return renderShareCard(node, scale, isSquare ? SQUARE_CARD_HEIGHT : undefined);
 }

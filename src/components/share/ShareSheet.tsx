@@ -70,11 +70,15 @@ function imageUrl(
   photo: string | null,
   size: "thumb" | "full",
   accent?: string,
-  pattern?: "stripes" | "solid"
+  pattern?: "stripes" | "solid",
+  // Only meaningful for a workout, and only for format A/C (see
+  // FeedPostA/FeedPostC) — every other target kind ignores this param.
+  layout: "story" | "feed" = "story"
 ): string {
   const params = new URLSearchParams({ format });
   if (size === "thumb") params.set("size", "thumb");
   if (photo) params.set("photo", photo);
+  if (layout === "feed") params.set("layout", "feed");
   if (target.kind === "pb") {
     params.set("field", target.field);
     params.set("value", String(target.value));
@@ -177,10 +181,16 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
   // next open so the same text is still there, in place and still
   // editable, rather than gone the moment "Done" flattened it once.
   const [textBoxes, setTextBoxes] = useState<TextBox[]>([]);
+  // Feed's own square render (see getFeedSquareFile) — kept separate from
+  // rawPhotoFile above, which is always the tall Story/Instagram card, since
+  // the two can both be in play at once for the same workout (Feed+Story
+  // checked together) and need their own independent renders.
+  const [feedSquareFile, setFeedSquareFile] = useState<File | null>(null);
 
   useEffect(() => {
     setEditedBlob(null);
     setRawPhotoFile(null);
+    setFeedSquareFile(null);
     setTextBoxes([]);
   }, [format, photo, accent, pattern]);
 
@@ -239,6 +249,13 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
   // the format step only offers the two template cards, same as before
   // Feed could be combined with them at all.
   const textFormatAvailable = isWorkout && toFeed && !toStory && !toInstagram;
+  // The format thumbnails/preview show whichever shape is actually new here
+  // — the Feed's own square card — whenever Feed is checked at all; Story
+  // and Instagram's tall card is the long-familiar one and doesn't need a
+  // live preview of its own on top. Feed still gets its own square render
+  // at share time (see getFeedSquareFile) even when combined with Story/
+  // Instagram, which keep using the tall render regardless (see doShare).
+  const previewLayout: "story" | "feed" = isWorkout && toFeed ? "feed" : "story";
 
   useEffect(() => {
     if (!textFormatAvailable && format === "TEXT") setFormat("A");
@@ -324,6 +341,23 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
     const blob = await res.blob();
     const file = new File([blob], "template.png", { type: "image/png" });
     setRawPhotoFile(file);
+    return file;
+  }
+
+  /**
+   * Feed's own square render — fetched and cached separately from
+   * getRawPhotoFile's tall one (see feedSquareFile), since Feed and Story/
+   * Instagram can be checked together and each needs its own shape. Never
+   * reached for the "Text" format (see handleFormatContinue), so `format`
+   * is a real template here despite its wider type.
+   */
+  async function getFeedSquareFile(): Promise<File> {
+    if (feedSquareFile) return feedSquareFile;
+    const res = await fetch(imageUrl(target, format as Format, photo, "full", accent, pattern, "feed"));
+    if (!res.ok) throw new Error("render failed");
+    const blob = await res.blob();
+    const file = new File([blob], "feed-card.png", { type: "image/png" });
+    setFeedSquareFile(file);
     return file;
   }
 
@@ -536,16 +570,15 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
     setSharing(true);
     setError(null);
     try {
-      // Feed gets whatever template render Story/Instagram are also using
-      // (resolveFinalBlob caches the raw render after its first fetch, so
-      // this doesn't trigger a second server round trip when Story/
-      // Instagram use it too) — the "Text" format never reaches doShare at
-      // all (see handleFormatContinue), so by the time we're here a
-      // template was actually chosen.
+      // Feed gets its own square render (see getFeedSquareFile) regardless
+      // of what Story/Instagram are doing with the tall one below — the
+      // "Text" format never reaches doShare at all (see
+      // handleFormatContinue), so by the time we're here a template was
+      // actually chosen.
       if (toFeed && target.kind === "workout" && !target.sharedToFeed) {
-        const blob = await resolveFinalBlob();
+        const blob = await getFeedSquareFile();
         const formData = new FormData();
-        formData.set("photo", new File([blob], "feed-share.jpg", { type: blob.type || "image/jpeg" }));
+        formData.set("photo", new File([blob], "feed-share.png", { type: blob.type || "image/png" }));
         const feedRes = await fetch(`/api/workouts/${target.workoutId}/share-to-feed`, {
           method: "POST",
           body: formData,
@@ -805,7 +838,10 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
                     className={`flex items-center justify-center overflow-hidden rounded-lg border-2 bg-b2b-bg font-display text-2xl text-b2b-ink/50 ${
                       format === "TEXT" ? "border-b2b-pink" : "border-transparent"
                     }`}
-                    style={{ width: 72, height: 128 }}
+                    // Only ever shown when Feed is the sole destination
+                    // (see textFormatAvailable), where previewLayout is
+                    // always "feed" — square, matching the other swatches.
+                    style={{ width: 72, height: 72 }}
                   >
                     Aa
                   </span>
@@ -824,14 +860,14 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
                     className={`block overflow-hidden rounded-lg border-2 ${
                       format === f ? "border-b2b-pink" : "border-transparent"
                     }`}
-                    style={{ width: 72, height: 128 }}
+                    style={previewLayout === "feed" ? { width: 72, height: 72 } : { width: 72, height: 128 }}
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                      src={imageUrl(target, f, photo, "thumb", accent, pattern)}
+                      src={imageUrl(target, f, photo, "thumb", accent, pattern, previewLayout)}
                       alt={labels[f]}
                       width={72}
-                      height={128}
+                      height={previewLayout === "feed" ? 72 : 128}
                       className="h-full w-full object-cover"
                     />
                   </span>
@@ -977,7 +1013,7 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
             <p className="font-semibold text-b2b-ink">{previewHeading()}</p>
             <div
               className={`relative mx-auto overflow-hidden rounded-xl ${isVideo ? "bg-black" : "bg-b2b-bg"}`}
-              style={{ width: 220, aspectRatio: "9 / 16" }}
+              style={previewLayout === "feed" ? { width: 220, aspectRatio: "1 / 1" } : { width: 220, aspectRatio: "9 / 16" }}
             >
               {isVideo ? (
                 // key forces a fresh <video> element when the source URL
@@ -1002,7 +1038,7 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
                   )}
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src={editedPreviewUrl ?? imageUrl(target, format as Format, photo, "full", accent, pattern)}
+                    src={editedPreviewUrl ?? imageUrl(target, format as Format, photo, "full", accent, pattern, previewLayout)}
                     alt="Preview of what will be posted"
                     onLoad={() => setPreviewLoaded(true)}
                     className={`h-full w-full object-cover transition-opacity ${
@@ -1012,31 +1048,37 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
                 </>
               )}
             </div>
-            <p className="text-center text-xs text-b2b-ink/50">This is exactly what will be posted</p>
+            <p className="text-center text-xs text-b2b-ink/50">
+              {previewLayout === "feed" && (toStory || toInstagram)
+                ? "This is what Feed will get — Story/Instagram use the full card"
+                : "This is exactly what will be posted"}
+            </p>
 
-            <div className="flex justify-center gap-4">
-              <button
-                type="button"
-                onClick={openTextEditor}
-                disabled={editorBusy}
-                className="text-sm font-medium text-b2b-pink hover:underline disabled:opacity-50"
-              >
-                {editorBusy ? "Loading..." : editedBlob || editedVideo ? "Edit text" : "Add text"}
-              </button>
-              {(editedBlob || editedVideo) && (
+            {previewLayout === "story" && (
+              <div className="flex justify-center gap-4">
                 <button
                   type="button"
-                  onClick={() => {
-                    setEditedBlob(null);
-                    setEditedVideo(null);
-                    setTextBoxes([]);
-                  }}
-                  className="text-sm font-medium text-b2b-ink/50 hover:text-b2b-ink hover:underline"
+                  onClick={openTextEditor}
+                  disabled={editorBusy}
+                  className="text-sm font-medium text-b2b-pink hover:underline disabled:opacity-50"
                 >
-                  Remove text
+                  {editorBusy ? "Loading..." : editedBlob || editedVideo ? "Edit text" : "Add text"}
                 </button>
-              )}
-            </div>
+                {(editedBlob || editedVideo) && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditedBlob(null);
+                      setEditedVideo(null);
+                      setTextBoxes([]);
+                    }}
+                    className="text-sm font-medium text-b2b-ink/50 hover:text-b2b-ink hover:underline"
+                  >
+                    Remove text
+                  </button>
+                )}
+              </div>
+            )}
 
             {toStory && (
               <div className="flex flex-col gap-2">
@@ -1225,14 +1267,17 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
             onCancel={handleCropCancel}
             onCropped={handleCropped}
             // Format C's photo is a small square badge/medallion (see
-            // ResultCardC/FeedStoryC); every other format (A) is the
-            // full-bleed 9:16 card itself, rendered server-side at
-            // FULL_SCALE (see shareCards/render.ts — a server-only module,
-            // not importable here) — 4x CARD_WIDTH/CARD_HEIGHT, i.e. 1080x1920.
-            aspect={format === "C" ? 1 : CARD_WIDTH / CARD_HEIGHT}
+            // ResultCardC/FeedStoryC); format A is the full-bleed card
+            // itself, rendered server-side at FULL_SCALE (see
+            // shareCards/render.ts — a server-only module, not importable
+            // here) — 4x CARD_WIDTH, and 4x CARD_HEIGHT (1920, tall) for
+            // Story/Instagram or 4x CARD_WIDTH again (1080, square) when
+            // Feed's own square card (see previewLayout) is what's actually
+            // getting this photo.
+            aspect={format === "C" || previewLayout === "feed" ? 1 : CARD_WIDTH / CARD_HEIGHT}
             cropShape={format === "C" ? "round" : "rect"}
             outputWidth={format === "C" ? 720 : CARD_WIDTH * 4}
-            outputHeight={format === "C" ? 720 : CARD_HEIGHT * 4}
+            outputHeight={format === "C" ? 720 : (previewLayout === "feed" ? CARD_WIDTH : CARD_HEIGHT) * 4}
             enableFilters
           />
         </div>

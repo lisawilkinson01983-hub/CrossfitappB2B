@@ -1201,15 +1201,15 @@ export function PostCard({
               <ExpandableImage
                 src={post.photo}
                 alt="Post photo"
-                // A share-card is baked at its own 9:16 card aspect (see
-                // Post.isShareCard) — the generic photo frame's landscape-ish
-                // max-height crop would cut off whatever's near its top or
-                // bottom, so it gets its own box sized to that aspect
-                // instead, capped to a phone-card width rather than
-                // stretching full-bleed across a wide feed column.
+                // A share-card is baked at its own square aspect (see
+                // Post.isShareCard, and FeedPostA/FeedPostC in
+                // shareCards/templates.tsx) — a dedicated feed-shaped
+                // template, not the tall Story/Instagram card cropped down,
+                // so it gets its own square box instead of the generic
+                // photo frame's landscape-ish max-height crop.
                 className={
                   post.isShareCard
-                    ? `mx-auto block aspect-[9/16] w-full max-w-[280px] rounded object-cover ${post.sharedBy ? "mt-2" : "mt-3"}`
+                    ? `block aspect-square w-full rounded object-cover ${post.sharedBy ? "mt-2" : "mt-3"}`
                     : `w-full rounded object-cover ${post.sharedBy ? "mt-2 max-h-72" : "mt-3 max-h-96"}`
                 }
               />

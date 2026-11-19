@@ -7,11 +7,11 @@ export const FULL_SCALE = 4; // 1080x1920
 /** Small enough to load fast as a format-picker thumbnail, still sharp at the ~72x128 display size used there. */
 export const THUMB_SCALE = 1.5; // 405x720
 
-export async function renderShareCard(node: React.ReactNode, scale: number) {
+export async function renderShareCard(node: React.ReactNode, scale: number, cardHeight: number = CARD_HEIGHT) {
   const fonts = await loadShareCardFonts();
   return new ImageResponse(node as React.ReactElement, {
     width: Math.round(CARD_WIDTH * scale),
-    height: Math.round(CARD_HEIGHT * scale),
+    height: Math.round(cardHeight * scale),
     fonts,
   });
 }

@@ -6,6 +6,10 @@ import type { CSSProperties } from "react";
 
 export const CARD_WIDTH = 270;
 export const CARD_HEIGHT = 480;
+// The feed's own square card format (see FeedPostA/FeedPostC below) — same
+// width as the 9:16 story card, just a square frame instead, since a full
+// story-height card was taking up far too much of the feed.
+export const SQUARE_CARD_HEIGHT = CARD_WIDTH;
 
 export const COLORS = {
   bg: "#e9e6df",
@@ -109,11 +113,14 @@ function PhotoLayer({
   scale,
   gradient,
   objectPosition = "50% 30%",
+  height = CARD_HEIGHT,
 }: {
   photo: string | null;
   scale: number;
   gradient: string;
   objectPosition?: string;
+  /** Defaults to the 9:16 story card's height — the square feed cards below pass SQUARE_CARD_HEIGHT instead. */
+  height?: number;
 }) {
   return (
     <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, display: "flex" }}>
@@ -122,7 +129,7 @@ function PhotoLayer({
         <img
           src={photo}
           width={px(CARD_WIDTH, scale)}
-          height={px(CARD_HEIGHT, scale)}
+          height={px(height, scale)}
           style={{ position: "absolute", top: 0, left: 0, objectFit: "cover", objectPosition }}
         />
       )}
@@ -471,6 +478,211 @@ export function FeedStoryC({ name, photo, date, scoreLabel, score, badge, descri
         )}
 
         <div style={{ paddingBottom: px(14, scale), display: "flex", justifyContent: "center" }}>
+          <Footer scale={scale} dark inset />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Square (1:1) counterparts to FeedStoryA/FeedStoryC above, used only when
+ * a workout is shared to the Feed (see /api/share/workout/image's `layout`
+ * param) — Story and Instagram keep the full 9:16 card. Same content, same
+ * CARD_WIDTH, just reflowed into SQUARE_CARD_HEIGHT with tighter type and
+ * spacing; no room left for the optional description either format can
+ * carry, so it's accepted (same prop types) but not rendered here.
+ */
+export function FeedPostA({ name, photo, score, label, scale }: FeedStoryAProps & { scale: number }) {
+  return (
+    <div
+      style={{
+        width: px(CARD_WIDTH, scale),
+        height: px(SQUARE_CARD_HEIGHT, scale),
+        position: "relative",
+        display: "flex",
+        background: COLORS.darkest,
+        color: "#fff",
+        fontFamily: "Inter",
+      }}
+    >
+      <PhotoLayer
+        photo={photo}
+        scale={scale}
+        height={SQUARE_CARD_HEIGHT}
+        gradient="linear-gradient(to top, #000 0%, #000 20%, rgba(0,0,0,0.78) 32%, rgba(0,0,0,0.3) 48%, transparent 62%)"
+      />
+      <div
+        style={{
+          position: "absolute",
+          left: px(14, scale),
+          right: px(14, scale),
+          // Same clearance above the footer as FeedStoryA's own 48-vs-14 —
+          // Footer is always anchored at bottom:14 regardless of card
+          // height, so the gap this needs is fixed, not proportional to
+          // the (now much shorter) card.
+          bottom: px(48, scale),
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
+        <div style={{ fontSize: px(11, scale), fontWeight: 700, display: "flex" }}>{name}</div>
+        <div
+          style={{
+            fontFamily: "Bebas Neue",
+            fontSize: px(36, scale),
+            lineHeight: 0.95,
+            marginTop: px(2, scale),
+            display: "flex",
+          }}
+        >
+          {score}
+        </div>
+        <div
+          style={{
+            fontSize: px(10, scale),
+            fontWeight: 700,
+            letterSpacing: "0.06em",
+            textTransform: "uppercase",
+            color: "rgba(255,255,255,0.8)",
+            marginTop: px(1, scale),
+            display: "flex",
+          }}
+        >
+          {label}
+        </div>
+      </div>
+      <Footer scale={scale} dark domain />
+    </div>
+  );
+}
+
+export function FeedPostC({ name, photo, date, scoreLabel, score, badge, stats, scale }: FeedStoryCProps & { scale: number }) {
+  return (
+    <div
+      style={{
+        width: px(CARD_WIDTH, scale),
+        height: px(SQUARE_CARD_HEIGHT, scale),
+        position: "relative",
+        display: "flex",
+        background: COLORS.bg,
+        color: COLORS.ink,
+        fontFamily: "Inter",
+      }}
+    >
+      <div
+        style={{
+          position: "absolute",
+          left: px(12, scale),
+          right: px(12, scale),
+          top: px(12, scale),
+          bottom: px(12, scale),
+          borderRadius: px(16, scale),
+          background: COLORS.ink,
+          color: "#fff",
+          display: "flex",
+          flexDirection: "column",
+          overflow: "hidden",
+        }}
+      >
+        <div
+          style={{
+            padding: `${px(12, scale)}px ${px(14, scale)}px 0`,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: px(5, scale) }}>
+            {photo && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={photo}
+                width={px(16, scale)}
+                height={px(16, scale)}
+                style={{ borderRadius: 999, objectFit: "cover", objectPosition: "50% 20%" }}
+              />
+            )}
+            <div style={{ fontSize: px(10, scale), fontWeight: 600, display: "flex" }}>{name}</div>
+          </div>
+          <div style={{ fontSize: px(8, scale), color: "rgba(255,255,255,0.4)", display: "flex" }}>{date}</div>
+        </div>
+
+        <div
+          style={{
+            flex: 1,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: `0 ${px(14, scale)}px`,
+            textAlign: "center",
+          }}
+        >
+          <div
+            style={{
+              fontSize: px(9, scale),
+              fontWeight: 700,
+              letterSpacing: "0.08em",
+              textTransform: "uppercase",
+              color: COLORS.gold,
+              display: "flex",
+            }}
+          >
+            {scoreLabel}
+          </div>
+          <div style={{ fontFamily: "Bebas Neue", fontSize: px(34, scale), lineHeight: 0.9, marginTop: px(2, scale), display: "flex" }}>
+            {score}
+          </div>
+          <div
+            style={{
+              marginTop: px(6, scale),
+              background: "rgba(184,132,42,0.15)",
+              color: COLORS.gold,
+              fontSize: px(8, scale),
+              fontWeight: 800,
+              letterSpacing: "0.05em",
+              textTransform: "uppercase",
+              padding: `${px(2, scale)}px ${px(8, scale)}px`,
+              borderRadius: 999,
+              display: "flex",
+            }}
+          >
+            {badge}
+          </div>
+        </div>
+
+        {stats.length > 0 && (
+          <div
+            style={{
+              padding: `${px(8, scale)}px ${px(14, scale)}px ${px(10, scale)}px`,
+              margin: `0 ${px(12, scale)}px ${px(10, scale)}px`,
+              display: "flex",
+              justifyContent: "space-around",
+              borderTop: `${px(1, scale)}px solid rgba(255,255,255,0.1)`,
+            }}
+          >
+            {stats.map((s, i) => (
+              <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                <div style={{ fontSize: px(12, scale), fontWeight: 700, display: "flex" }}>{s.value}</div>
+                <div
+                  style={{
+                    marginTop: px(1, scale),
+                    fontSize: px(7, scale),
+                    color: "rgba(255,255,255,0.4)",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.04em",
+                    display: "flex",
+                  }}
+                >
+                  {s.label}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div style={{ paddingBottom: px(10, scale), display: "flex", justifyContent: "center" }}>
           <Footer scale={scale} dark inset />
         </div>
       </div>
