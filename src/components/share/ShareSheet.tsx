@@ -2,8 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Avatar } from "@/components/Avatar";
+import { AvatarCropper } from "@/components/AvatarCropper";
 import { SendIcon } from "@/components/SendIcon";
-import { StoryEditor, type StoryBase, type StoryEditorHandle } from "@/components/StoryEditor";
+import { StoryEditor, type StoryBase, type StoryEditorHandle, type TextBox } from "@/components/StoryEditor";
+import { CARD_WIDTH, CARD_HEIGHT } from "@/lib/shareCards/templates";
 import { MAX_STORY_MENTIONS } from "@/lib/stories";
 import { useVisualViewportBox } from "@/lib/useVisualViewportBox";
 import type { PbField } from "@/lib/validation";
@@ -111,6 +113,14 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
   const [format, setFormat] = useState<Format>("A");
   const [photo, setPhoto] = useState<string | null>(null);
   const [showPhotoPicker, setShowPhotoPicker] = useState(false);
+  // A newly-picked replacement photo's object URL, awaiting the crop/zoom
+  // step below — the server always renders the template's photo area with
+  // a fixed object-fit/position (see PhotoLayer in shareCards/templates),
+  // so reframing a photo that doesn't already match that area's aspect
+  // (full-bleed 9:16 for format A, a small square for format C) has to
+  // happen client-side before it's uploaded, same as every other
+  // photo-into-a-fixed-frame spot in the app (see AvatarCropper).
+  const [cropSource, setCropSource] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [sharing, setSharing] = useState(false);
   const [previewLoaded, setPreviewLoaded] = useState(false);
@@ -126,6 +136,7 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
   // is just a hand-off to the OS share sheet, with no mention data to carry
   // along) — same search endpoint and MAX as StoriesBar's own tagging.
   const [tagging, setTagging] = useState(false);
+  const tagResultsRef = useRef<HTMLDivElement>(null);
   const [tagQuery, setTagQuery] = useState("");
   const [tagResults, setTagResults] = useState<RecipientOption[]>([]);
   const [taggedUsers, setTaggedUsers] = useState<RecipientOption[]>([]);
@@ -149,9 +160,24 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
   const [editorBase, setEditorBase] = useState<StoryBase | null>(null);
   const [editorBusy, setEditorBusy] = useState(false);
   const templateEditorRef = useRef<StoryEditorHandle>(null);
+  // The plain, never-text-edited template render/video — cached the first
+  // time the editor opens (see getRawPhotoFile/getRawVideoFile) and reused
+  // as its `base` on every later open, so "Edit text" a second time edits
+  // from the clean original instead of re-exporting an already-flattened
+  // export (which would bake text on top of text, and for video, re-encode
+  // a re-encode).
+  const [rawPhotoFile, setRawPhotoFile] = useState<File | null>(null);
+  const [rawVideoFile, setRawVideoFile] = useState<File | null>(null);
+  // The live text boxes from the editor's last export (see
+  // StoryEditorOutput) — fed back in as the editor's initialBoxes on the
+  // next open so the same text is still there, in place and still
+  // editable, rather than gone the moment "Done" flattened it once.
+  const [textBoxes, setTextBoxes] = useState<TextBox[]>([]);
 
   useEffect(() => {
     setEditedBlob(null);
+    setRawPhotoFile(null);
+    setTextBoxes([]);
   }, [format, photo, accent, pattern]);
 
   useEffect(() => {
@@ -173,6 +199,16 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
     setEditedVideoPreviewUrl(url);
     return () => URL.revokeObjectURL(url);
   }, [editedVideo]);
+
+  // The results dropdown renders below the tag-search input, which on a
+  // small phone screen can already sit low enough that the on-screen
+  // keyboard covers where it appears — scrolling it into view (within the
+  // now-scrollable modal panel, see its className) makes the names
+  // reachable without the person having to realize they can scroll there
+  // themselves.
+  useEffect(() => {
+    if (tagResults.length > 0) tagResultsRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }, [tagResults]);
 
   const isResult = (target.kind === "post" && !!target.isResult) || target.kind === "result";
   const isWorkout = target.kind === "workout";
@@ -232,24 +268,40 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
     setStep("preview");
   }
 
-  /** Whatever should actually be posted/sent right now — the text-edited version if there is one, otherwise the plain rendered template. */
-  async function resolveFinalBlob(): Promise<Blob> {
-    if (editedBlob) return editedBlob;
+  /** The plain template render, fetched once and cached — see rawPhotoFile. */
+  async function getRawPhotoFile(): Promise<File> {
+    if (rawPhotoFile) return rawPhotoFile;
     const res = await fetch(imageUrl(target, format, photo, "full", accent, pattern));
     if (!res.ok) throw new Error("render failed");
-    return res.blob();
+    const blob = await res.blob();
+    const file = new File([blob], "template.png", { type: "image/png" });
+    setRawPhotoFile(file);
+    return file;
   }
 
-  /** Same idea as resolveFinalBlob, for a video target — the text-edited video if there is one, otherwise the original post's own video file (plus its poster frame, if any). */
-  async function resolveFinalVideo(): Promise<{ file: File; thumbnail: Blob | null }> {
-    if (editedVideo) return editedVideo;
+  /** Same idea as getRawPhotoFile, for a video target's own original file. */
+  async function getRawVideoFile(): Promise<File> {
+    if (rawVideoFile) return rawVideoFile;
     if (!video) throw new Error("no video on this target");
     const res = await fetch(video.url);
     if (!res.ok) throw new Error("video fetch failed");
     const blob = await res.blob();
     const file = new File([blob], "box2box-share.mp4", { type: blob.type || "video/mp4" });
+    setRawVideoFile(file);
+    return file;
+  }
+
+  /** Whatever should actually be posted/sent right now — the text-edited version if there is one, otherwise the plain rendered template. */
+  async function resolveFinalBlob(): Promise<Blob> {
+    return editedBlob ?? getRawPhotoFile();
+  }
+
+  /** Same idea as resolveFinalBlob, for a video target — the text-edited video if there is one, otherwise the original post's own video file (plus its poster frame, if any). */
+  async function resolveFinalVideo(): Promise<{ file: File; thumbnail: Blob | null }> {
+    if (editedVideo) return editedVideo;
+    const file = await getRawVideoFile();
     let thumbnail: Blob | null = null;
-    if (video.thumbnail) {
+    if (video?.thumbnail) {
       const thumbRes = await fetch(video.thumbnail);
       if (thumbRes.ok) thumbnail = await thumbRes.blob();
     }
@@ -261,11 +313,11 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
     setEditorBusy(true);
     try {
       if (isVideo) {
-        const { file } = await resolveFinalVideo();
+        const file = await getRawVideoFile();
         setEditorBase({ kind: "video", file });
       } else {
-        const blob = await resolveFinalBlob();
-        setEditorBase({ kind: "photo", file: new File([blob], "template.png", { type: "image/png" }) });
+        const file = await getRawPhotoFile();
+        setEditorBase({ kind: "photo", file });
       }
     } catch {
       setError("Couldn't open the editor. Please try again.");
@@ -279,6 +331,7 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
     setEditorBusy(true);
     try {
       const output = await templateEditorRef.current.export();
+      setTextBoxes(output.boxes);
       if (output.kind === "photo") setEditedBlob(output.blob);
       else setEditedVideo({ file: output.file, thumbnail: output.thumbnail });
     } catch {
@@ -400,14 +453,26 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
     }
   }
 
-  async function handlePhotoFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
+  function handlePhotoFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0] ?? null;
     e.target.value = "";
     if (!file) return;
+    setShowPhotoPicker(false);
+    setCropSource(URL.createObjectURL(file));
+  }
+
+  function handleCropCancel() {
+    if (cropSource) URL.revokeObjectURL(cropSource);
+    setCropSource(null);
+  }
+
+  async function handleCropped(blob: Blob) {
+    if (cropSource) URL.revokeObjectURL(cropSource);
+    setCropSource(null);
     setUploading(true);
     setError(null);
     const formData = new FormData();
-    formData.set("photo", file);
+    formData.set("photo", new File([blob], "share-photo.jpg", { type: "image/jpeg" }));
     const res = await fetch("/api/share/upload-photo", { method: "POST", body: formData });
     setUploading(false);
     if (!res.ok) {
@@ -417,7 +482,6 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
     }
     const body = await res.json();
     setPhoto(body.url);
-    setShowPhotoPicker(false);
   }
 
   async function doShare() {
@@ -514,7 +578,14 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
       onClick={onClose}
     >
       <div
-        className="flex w-full max-w-sm flex-col gap-3 rounded-2xl bg-b2b-card p-4 shadow-lg"
+        // max-h-full + overflow-y-auto (bounded by the viewport-aware style
+        // above) so this can actually scroll once the on-screen keyboard
+        // shrinks the visible area below the panel's natural height —
+        // without it, content past whatever fit in that shrunk area (e.g.
+        // the tag-search results below the "Search people to tag..."
+        // input) was simply unreachable, hidden under the keyboard with no
+        // way to scroll to it.
+        className="flex max-h-full w-full max-w-sm flex-col gap-3 overflow-y-auto rounded-2xl bg-b2b-card p-4 shadow-lg"
         onClick={(e) => e.stopPropagation()}
       >
         {step !== "destination" && step !== "posted" && (
@@ -851,6 +922,7 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
                   onClick={() => {
                     setEditedBlob(null);
                     setEditedVideo(null);
+                    setTextBoxes([]);
                   }}
                   className="text-sm font-medium text-b2b-ink/50 hover:text-b2b-ink hover:underline"
                 >
@@ -893,7 +965,10 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
                       className="w-full rounded-full border border-gray-300 px-4 py-2 text-base focus:border-b2b-pink focus:outline-none"
                     />
                     {tagResults.length > 0 && (
-                      <div className="absolute z-10 mt-1 w-full overflow-hidden rounded-lg border border-gray-200 bg-b2b-card shadow-lg">
+                      <div
+                        ref={tagResultsRef}
+                        className="absolute z-10 mt-1 w-full overflow-hidden rounded-lg border border-gray-200 bg-b2b-card shadow-lg"
+                      >
                         {tagResults.map((user) => (
                           <button
                             key={user.id}
@@ -1021,7 +1096,7 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
             ×
           </button>
           <div className="flex flex-1 flex-col overflow-hidden">
-            <StoryEditor ref={templateEditorRef} base={editorBase} />
+            <StoryEditor ref={templateEditorRef} base={editorBase} initialBoxes={textBoxes} />
           </div>
           <div className="p-4">
             <button
@@ -1033,6 +1108,31 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
               {editorBusy ? "Saving..." : "Done"}
             </button>
           </div>
+        </div>
+      )}
+
+      {cropSource && (
+        // AvatarCropper's own root has no click handler of its own (its
+        // other call sites never sit inside another backdrop's onClick) —
+        // without stopping propagation here, tapping any of its buttons
+        // (including "Use photo") bubbled up to this sheet's own outer
+        // backdrop div and closed the entire sheet instead of just the
+        // cropper.
+        <div onClick={(e) => e.stopPropagation()}>
+          <AvatarCropper
+            imageSrc={cropSource}
+            onCancel={handleCropCancel}
+            onCropped={handleCropped}
+            // Format C's photo is a small square badge/medallion (see
+            // ResultCardC/FeedStoryC); every other format (A) is the
+            // full-bleed 9:16 card itself, rendered server-side at
+            // FULL_SCALE (see shareCards/render.ts — a server-only module,
+            // not importable here) — 4x CARD_WIDTH/CARD_HEIGHT, i.e. 1080x1920.
+            aspect={format === "C" ? 1 : CARD_WIDTH / CARD_HEIGHT}
+            cropShape={format === "C" ? "round" : "rect"}
+            outputWidth={format === "C" ? 720 : CARD_WIDTH * 4}
+            outputHeight={format === "C" ? 720 : CARD_HEIGHT * 4}
+          />
         </div>
       )}
     </div>

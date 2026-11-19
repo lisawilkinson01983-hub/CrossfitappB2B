@@ -7,6 +7,8 @@ export const MAX_VIDEO_SECONDS = 60;
 // enough that a real phone camera photo (a modern phone's default JPEG
 // routinely runs 6-10MB+, more on a high-megapixel sensor) doesn't get
 // rejected outright. 5MB was too tight for that and caused an otherwise
-// perfectly good multi-photo post to fail outright over one oversized photo.
-export const MAX_PHOTO_MB = 15;
+// perfectly good multi-photo post to fail outright over one oversized photo;
+// 15MB still wasn't enough for some phones' full-resolution/ProRAW-adjacent
+// JPEGs, so raised again.
+export const MAX_PHOTO_MB = 50;
 export const MAX_PHOTO_BYTES = MAX_PHOTO_MB * 1024 * 1024;

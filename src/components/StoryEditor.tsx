@@ -31,7 +31,7 @@ const MAX_WIDTH_PCT = 94;
 export type StoryBase = { kind: "color" } | { kind: "photo"; file: File } | { kind: "video"; file: File };
 export type TextAlign = "left" | "center" | "right";
 
-type TextBox = {
+export type TextBox = {
   id: string;
   text: string;
   xPct: number; // center position, 0-100
@@ -47,8 +47,8 @@ type TextBox = {
 };
 
 export type StoryEditorOutput =
-  | { kind: "photo"; blob: Blob }
-  | { kind: "video"; file: File; thumbnail: Blob | null };
+  | { kind: "photo"; blob: Blob; boxes: TextBox[] }
+  | { kind: "video"; file: File; thumbnail: Blob | null; boxes: TextBox[] };
 
 export type StoryEditorHandle = {
   /** Flattens the current background + every text box into the final shareable media. */
@@ -144,12 +144,15 @@ function useKeyboardOffset(active: boolean): number {
   return offset;
 }
 
-export const StoryEditor = forwardRef<StoryEditorHandle, { base: StoryBase }>(function StoryEditor(
-  { base },
-  ref
-) {
+export const StoryEditor = forwardRef<StoryEditorHandle, { base: StoryBase; initialBoxes?: TextBox[] }>(
+  function StoryEditor({ base, initialBoxes }, ref) {
   const [backgroundColor, setBackgroundColor] = useState<string>(STORY_BACKGROUND_COLORS[0]);
-  const [boxes, setBoxes] = useState<TextBox[]>([]);
+  // Seeded from a previous export's own output (see StoryEditorOutput) so
+  // reopening the editor on the same base restores the exact text boxes
+  // already placed, live and still editable, instead of starting over —
+  // the export flattens them into pixels, so without this, "Edit text" a
+  // second time had nothing left to actually edit.
+  const [boxes, setBoxes] = useState<TextBox[]>(initialBoxes ?? []);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [fontsReady, setFontsReady] = useState(false);
@@ -297,7 +300,7 @@ export const StoryEditor = forwardRef<StoryEditorHandle, { base: StoryBase }>(fu
       await ensureStoryFontsLoaded();
 
       if (base.kind === "video") {
-        return { kind: "video", ...(await exportVideo(base.file, boxes, setExportProgress)) };
+        return { kind: "video", ...(await exportVideo(base.file, boxes, setExportProgress)), boxes };
       }
 
       const canvas = document.createElement("canvas");
@@ -319,7 +322,7 @@ export const StoryEditor = forwardRef<StoryEditorHandle, { base: StoryBase }>(fu
       const blob: Blob = await new Promise((resolve, reject) =>
         canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("Export failed"))), "image/jpeg", 0.92)
       );
-      return { kind: "photo", blob };
+      return { kind: "photo", blob, boxes };
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }));
