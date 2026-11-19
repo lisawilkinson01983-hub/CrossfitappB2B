@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, type ChangeEvent, type FormEvent } from "react";
+import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
@@ -144,6 +144,15 @@ export function WorkoutForm({
 
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const errorRef = useRef<HTMLParagraphElement>(null);
+
+  // The error message (e.g. "Select Rx or Scaled") renders at the very top
+  // of this long, full-page form — invisible with no indication anything
+  // went wrong if the submit button (and whatever field was actually
+  // missing) are further down the page than the user has scrolled.
+  useEffect(() => {
+    if (error) errorRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [error]);
 
   async function handlePartnerQueryChange(value: string) {
     setPartnerQuery(value);
@@ -278,7 +287,11 @@ export function WorkoutForm({
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-      {error && <p className="rounded bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
+      {error && (
+        <p ref={errorRef} className="rounded bg-red-50 px-3 py-2 text-sm text-red-700">
+          {error}
+        </p>
+      )}
 
       {suggestionVisible && gymWodWeek && selectedGym && selectedDay && (
         <div className="rounded-lg border border-b2b-pink/30 bg-b2b-pink/5 p-3">
@@ -536,7 +549,6 @@ export function WorkoutForm({
               <input
                 type="radio"
                 name="intensity"
-                required
                 checked={intensity === option}
                 onChange={() => setIntensity(option)}
               />
