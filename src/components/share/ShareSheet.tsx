@@ -1132,6 +1132,7 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
             cropShape={format === "C" ? "round" : "rect"}
             outputWidth={format === "C" ? 720 : CARD_WIDTH * 4}
             outputHeight={format === "C" ? 720 : CARD_HEIGHT * 4}
+            enableFilters
           />
         </div>
       )}

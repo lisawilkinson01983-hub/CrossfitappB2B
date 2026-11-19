@@ -443,6 +443,7 @@ function PostComposerModal({ onClose, canPostWorkout }: { onClose: () => void; c
             cropShape="rect"
             outputWidth={1200}
             outputHeight={1200}
+            enableFilters
           />
         </div>
       )}
