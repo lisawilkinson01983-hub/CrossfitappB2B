@@ -20,6 +20,7 @@ import {
   type NamedWorkout,
 } from "@/lib/wodDatabase";
 import { Avatar } from "@/components/Avatar";
+import { ShareSheet } from "@/components/share/ShareSheet";
 import type { GymWodWeek } from "@/lib/gymSuggestion";
 import { useVisualViewportBox } from "@/lib/useVisualViewportBox";
 
@@ -145,6 +146,14 @@ export function WorkoutForm({
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const errorRef = useRef<HTMLParagraphElement>(null);
+  // Set once a brand-new workout saves successfully — opens the same
+  // destination/format share flow as tapping the Share icon on an already-
+  // logged workout later (see ShareWorkoutButton), just surfaced right
+  // away so logging a workout always asks where (or whether) to share it,
+  // instead of deciding that upfront via a plain checkbox. Editing an
+  // existing workout keeps today's simple "Share to feed" checkbox below —
+  // this is only for the moment a workout is first logged.
+  const [newWorkout, setNewWorkout] = useState<{ id: string; wodName: string } | null>(null);
 
   // The error message (e.g. "Select Rx or Scaled") renders at the very top
   // of this long, full-page form — invisible with no indication anything
@@ -259,7 +268,10 @@ export function WorkoutForm({
     formData.set("description", description);
     formData.set("notes", notes);
     if (isPb) formData.set("isPb", "on");
-    if (sharedToFeed) formData.set("sharedToFeed", "on");
+    // Only meaningful on an edit — a brand-new workout decides this through
+    // the ShareSheet prompt below instead (see newWorkout), not a checkbox
+    // ticked before the workout even exists yet.
+    if (isEditing && sharedToFeed) formData.set("sharedToFeed", "on");
     partners.forEach((p) => formData.append("partnerUserIds", p.id));
     if (attachment) {
       formData.set(attachment.kind, attachment.file);
@@ -281,11 +293,18 @@ export function WorkoutForm({
       return;
     }
 
-    router.push("/workouts");
-    router.refresh();
+    if (isEditing) {
+      router.push("/workouts");
+      router.refresh();
+      return;
+    }
+
+    const body = await res.json().catch(() => ({}));
+    setNewWorkout({ id: body.id, wodName });
   }
 
   return (
+    <>
     <form onSubmit={handleSubmit} className="flex flex-col gap-5">
       {error && (
         <p ref={errorRef} className="rounded bg-red-50 px-3 py-2 text-sm text-red-700">
@@ -740,14 +759,16 @@ export function WorkoutForm({
         This was a PB
       </label>
 
-      <label className="flex items-center gap-2 text-sm">
-        <input
-          type="checkbox"
-          checked={sharedToFeed}
-          onChange={(e) => setSharedToFeed(e.target.checked)}
-        />
-        Share to feed
-      </label>
+      {isEditing && (
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={sharedToFeed}
+            onChange={(e) => setSharedToFeed(e.target.checked)}
+          />
+          Share to feed
+        </label>
+      )}
 
       <button
         type="submit"
@@ -757,5 +778,22 @@ export function WorkoutForm({
         {submitting ? "Saving..." : isEditing ? "Save changes" : "Log workout"}
       </button>
     </form>
+
+    {newWorkout && (
+      <ShareSheet
+        target={{
+          kind: "workout",
+          workoutId: newWorkout.id,
+          wodName: newWorkout.wodName,
+          sharedToFeed: false,
+          onSharedToFeed: () => {},
+        }}
+        onClose={() => {
+          router.push("/workouts");
+          router.refresh();
+        }}
+      />
+    )}
+    </>
   );
 }

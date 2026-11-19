@@ -108,9 +108,13 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
   const viewport = useVisualViewportBox(true);
   const [step, setStep] = useState<Step>("destination");
   const [destination, setDestination] = useState<Destination>("share");
+  // Only meaningful for a workout — every other target kind keeps its own
+  // separate, instant "Share to Feed" button below (see canShareToFeed),
+  // never touching this.
+  const [toFeed, setToFeed] = useState(target.kind === "workout" && !target.sharedToFeed);
   const [toStory, setToStory] = useState(true);
   const [toInstagram, setToInstagram] = useState(false);
-  const [format, setFormat] = useState<Format>("A");
+  const [format, setFormat] = useState<Format | "TEXT">("A");
   const [photo, setPhoto] = useState<string | null>(null);
   const [showPhotoPicker, setShowPhotoPicker] = useState(false);
   // A newly-picked replacement photo's object URL, awaiting the crop/zoom
@@ -229,18 +233,47 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
   // keeps all three too.
   const formats: Format[] = target.kind === "pb" || isResult ? ["A", "B", "C"] : ["A", "C"];
   const usesPhoto = format === "A" || format === "C";
+  // "Text" (today's plain notes+photo feed post, no rendered card) is only
+  // offered when Feed is the only thing checked — Story and Instagram both
+  // need an actual image to post/hand off, so once either is also checked
+  // the format step only offers the two template cards, same as before
+  // Feed could be combined with them at all.
+  const textFormatAvailable = isWorkout && toFeed && !toStory && !toInstagram;
 
-  // "Post" for Story (an in-app action) vs "Share" for Instagram (a hand-off
-  // to the OS share sheet) — kept as the original wording for either alone,
-  // folded into one phrase when both are picked.
+  useEffect(() => {
+    if (!textFormatAvailable && format === "TEXT") setFormat("A");
+  }, [textFormatAvailable, format]);
+
+  function destinationLabels(): string[] {
+    const labels: string[] = [];
+    if (toFeed) labels.push("Feed");
+    if (toStory) labels.push("Story");
+    if (toInstagram) labels.push("Instagram");
+    return labels;
+  }
+  function joinLabels(labels: string[]): string {
+    if (labels.length <= 1) return labels[0] ?? "";
+    if (labels.length === 2) return `${labels[0]} & ${labels[1]}`;
+    return `${labels[0]}, ${labels[1]} & ${labels[2]}`;
+  }
+  // "Post" for an in-app-only destination (Feed and/or Story) vs "Share"
+  // once Instagram (a hand-off to the OS share sheet) or more than one
+  // destination is involved — kept as the original wording for Story alone
+  // or Instagram alone, generalized to however many of the three are checked.
   function destinationHeading(): string {
     if (destination === "dm") return "Send to someone";
-    if (toStory && toInstagram) return "Share to Story & Instagram";
-    return toInstagram ? "Share to Instagram" : "Share to Story";
+    return `Share to ${joinLabels(destinationLabels())}`;
   }
   function previewHeading(): string {
-    if (toStory && toInstagram) return "Share to Story & Instagram";
-    return toInstagram ? "Share to Instagram" : "Post to Story";
+    const labels = destinationLabels();
+    const verb = labels.length > 1 || toInstagram ? "Share" : "Post";
+    return `${verb} to ${joinLabels(labels)}`;
+  }
+  function postedHeading(): string {
+    if (destination === "dm") return `Sent to ${recipient?.name ?? "them"}`;
+    const labels = destinationLabels();
+    const verb = labels.length > 1 || toInstagram ? "Shared" : "Posted";
+    return `${verb} to ${joinLabels(labels)}`;
   }
 
   function openDestination(dest: Destination) {
@@ -268,10 +301,25 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
     setStep("preview");
   }
 
+  // "Text" posts immediately from here, the same plain share-to-feed call
+  // this used to be before Feed had a format step at all — there's no
+  // template render to preview, and (by textFormatAvailable) Story and
+  // Instagram are guaranteed off, so there's nothing else left to do.
+  function handleFormatContinue() {
+    if (format === "TEXT") {
+      shareToFeed();
+      return;
+    }
+    goToPreview();
+  }
+
   /** The plain template render, fetched once and cached — see rawPhotoFile. */
   async function getRawPhotoFile(): Promise<File> {
     if (rawPhotoFile) return rawPhotoFile;
-    const res = await fetch(imageUrl(target, format, photo, "full", accent, pattern));
+    // Only ever called once a template format is actually in play — "Text"
+    // never reaches the preview step this feeds (see handleFormatContinue),
+    // so `format` is always a real template here despite its wider type.
+    const res = await fetch(imageUrl(target, format as Format, photo, "full", accent, pattern));
     if (!res.ok) throw new Error("render failed");
     const blob = await res.blob();
     const file = new File([blob], "template.png", { type: "image/png" });
@@ -488,6 +536,24 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
     setSharing(true);
     setError(null);
     try {
+      // Feed gets whatever template render Story/Instagram are also using
+      // (resolveFinalBlob caches the raw render after its first fetch, so
+      // this doesn't trigger a second server round trip when Story/
+      // Instagram use it too) — the "Text" format never reaches doShare at
+      // all (see handleFormatContinue), so by the time we're here a
+      // template was actually chosen.
+      if (toFeed && target.kind === "workout" && !target.sharedToFeed) {
+        const blob = await resolveFinalBlob();
+        const formData = new FormData();
+        formData.set("photo", new File([blob], "feed-share.jpg", { type: blob.type || "image/jpeg" }));
+        const feedRes = await fetch(`/api/workouts/${target.workoutId}/share-to-feed`, {
+          method: "POST",
+          body: formData,
+        });
+        if (!feedRes.ok) throw new Error("feed post failed");
+        target.onSharedToFeed();
+      }
+
       // Posting an unedited video straight to Story: have the server copy
       // the file itself rather than fetching it into a Blob here and
       // re-uploading it — see /api/stories/from-post's own comment for why
@@ -555,17 +621,17 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
         }
       }
 
-      if (toStory) {
-        // The in-app Story is the one with lasting on-screen state to
-        // confirm — Instagram's hand-off already showed its own share
-        // sheet, so there's nothing more to show for that half.
+      if (toStory || toFeed) {
+        // Feed and Story are both in-app actions with lasting on-screen
+        // state to confirm — Instagram's hand-off already showed its own
+        // share sheet, so there's nothing more to show for that half alone.
         setStep("posted");
         setTimeout(onClose, 1400);
       } else {
         onClose();
       }
     } catch {
-      setError(toStory ? "Couldn't post that story. Please try again." : "Couldn't generate that image. Please try again.");
+      setError("Couldn't share that. Please try again.");
     } finally {
       setSharing(false);
     }
@@ -611,11 +677,11 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
                     ? "Share this result"
                     : "Share this post"}
             </p>
-            {canShareToFeed && (
+            {canShareToFeed && !isWorkout && (
               <button
                 type="button"
                 onClick={shareToFeed}
-                disabled={feedBusy || (isWorkout && target.sharedToFeed)}
+                disabled={feedBusy}
                 className="flex items-center gap-3 rounded-xl px-2 py-2.5 text-left hover:bg-b2b-bg disabled:opacity-50"
               >
                 <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-b2b-bg text-base">
@@ -623,17 +689,38 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
                 </span>
                 <span>
                   <span className="block text-sm font-semibold text-b2b-ink">
-                    {isWorkout && target.sharedToFeed
-                      ? "Already on your feed"
-                      : feedBusy
-                        ? "Posting..."
-                        : "Share to Feed"}
+                    {feedBusy ? "Posting..." : "Share to Feed"}
                   </span>
                   <span className="block text-xs text-b2b-ink/50">Posts a copy to your own feed</span>
                 </span>
               </button>
             )}
             <div className="flex flex-col gap-1 rounded-xl bg-b2b-bg p-1.5">
+              {isWorkout && (
+                <button
+                  type="button"
+                  onClick={() => !target.sharedToFeed && setToFeed((v) => !v)}
+                  disabled={target.sharedToFeed}
+                  className="flex items-center gap-3 rounded-lg px-1.5 py-2 text-left hover:bg-b2b-pink/10 disabled:opacity-60"
+                >
+                  <span
+                    className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md border-2 text-[10px] font-bold ${
+                      toFeed || target.sharedToFeed ? "border-b2b-pink bg-b2b-pink text-white" : "border-b2b-ink/25 text-transparent"
+                    }`}
+                  >
+                    ✓
+                  </span>
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-b2b-purple/15 text-base text-b2b-purple">
+                    ↪
+                  </span>
+                  <span>
+                    <span className="block text-sm font-semibold text-b2b-ink">
+                      {target.sharedToFeed ? "Already on your feed" : "Share to Feed"}
+                    </span>
+                    <span className="block text-xs text-b2b-ink/50">Posts a copy to your own feed</span>
+                  </span>
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => setToStory((v) => !v)}
@@ -680,7 +767,7 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
               <button
                 type="button"
                 onClick={() => openDestination("share")}
-                disabled={!toStory && !toInstagram}
+                disabled={!toFeed && !toStory && !toInstagram}
                 className="mx-1.5 mt-1 rounded-full bg-b2b-ink px-4 py-2.5 text-center text-sm font-semibold text-b2b-bg disabled:opacity-40"
               >
                 Continue
@@ -712,6 +799,25 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
             <p className="font-semibold text-b2b-ink">{destinationHeading()}
             </p>
             <div className="flex justify-center gap-3">
+              {textFormatAvailable && (
+                <button type="button" onClick={() => setFormat("TEXT")} className="flex flex-col items-center gap-1.5">
+                  <span
+                    className={`flex items-center justify-center overflow-hidden rounded-lg border-2 bg-b2b-bg font-display text-2xl text-b2b-ink/50 ${
+                      format === "TEXT" ? "border-b2b-pink" : "border-transparent"
+                    }`}
+                    style={{ width: 72, height: 128 }}
+                  >
+                    Aa
+                  </span>
+                  <span
+                    className={`flex h-4 w-4 items-center justify-center rounded-full text-[10px] ${
+                      format === "TEXT" ? "bg-b2b-pink text-white" : "border border-b2b-ink/25"
+                    }`}
+                  >
+                    {format === "TEXT" && "✓"}
+                  </span>
+                </button>
+              )}
               {formats.map((f) => (
                 <button key={f} type="button" onClick={() => setFormat(f)} className="flex flex-col items-center gap-1.5">
                   <span
@@ -739,7 +845,7 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
                 </button>
               ))}
             </div>
-            <p className="text-center text-xs text-b2b-ink/50">{labels[format]} selected</p>
+            <p className="text-center text-xs text-b2b-ink/50">{format === "TEXT" ? "Text" : labels[format]} selected</p>
 
             {isResult && format === "B" && (
               <div className="flex flex-col items-center gap-2 rounded-lg bg-b2b-bg p-3">
@@ -799,10 +905,11 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
 
             <button
               type="button"
-              onClick={goToPreview}
-              className="mt-1 rounded-full bg-b2b-ink px-4 py-3 text-center text-sm font-semibold text-b2b-bg"
+              onClick={handleFormatContinue}
+              disabled={feedBusy}
+              className="mt-1 rounded-full bg-b2b-ink px-4 py-3 text-center text-sm font-semibold text-b2b-bg disabled:opacity-50"
             >
-              Continue
+              {feedBusy ? "Posting..." : "Continue"}
             </button>
           </>
         )}
@@ -895,7 +1002,7 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
                   )}
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src={editedPreviewUrl ?? imageUrl(target, format, photo, "full", accent, pattern)}
+                    src={editedPreviewUrl ?? imageUrl(target, format as Format, photo, "full", accent, pattern)}
                     alt="Preview of what will be posted"
                     onLoad={() => setPreviewLoaded(true)}
                     className={`h-full w-full object-cover transition-opacity ${
@@ -1022,13 +1129,7 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
             <span className="flex h-12 w-12 items-center justify-center rounded-full bg-b2b-pink text-2xl text-white">
               ✓
             </span>
-            <p className="font-semibold text-b2b-ink">
-              {destination === "dm"
-                ? `Sent to ${recipient?.name ?? "them"}`
-                : toInstagram
-                  ? "Posted to Story & shared to Instagram"
-                  : "Posted to Story"}
-            </p>
+            <p className="font-semibold text-b2b-ink">{postedHeading()}</p>
           </div>
         )}
 
