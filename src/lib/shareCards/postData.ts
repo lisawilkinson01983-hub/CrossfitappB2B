@@ -113,7 +113,7 @@ export async function loadFeedStoryData(
 
   return {
     kind: "workout",
-    a: { name: post.user.name, photo: postPhoto, score, label, description: w?.description ?? null },
+    a: { name: post.user.name, photo: postPhoto, score, label, description: w?.description ?? null, wodName: w?.wodName ?? "" },
     b: { name: post.user.name, photo: avatar, quote: post.contentText ?? "" },
     c: {
       name: post.user.name,
@@ -122,6 +122,7 @@ export async function loadFeedStoryData(
       scoreLabel,
       score,
       badge,
+      wodName: w?.wodName ?? "",
       description: w?.description ?? null,
       stats,
     },
@@ -161,7 +162,7 @@ export async function loadWorkoutCardData(
       : [];
 
   return {
-    a: { name: w.user.name, photo: cardPhoto, score, label, description: w.description ?? null },
+    a: { name: w.user.name, photo: cardPhoto, score, label, description: w.description ?? null, wodName: w.wodName },
     b: { name: w.user.name, photo: avatar, quote: w.notes ?? "" },
     c: {
       name: w.user.name,
@@ -170,6 +171,7 @@ export async function loadWorkoutCardData(
       scoreLabel: WORKOUT_UNIT_LABELS[w.unit],
       score,
       badge: WORKOUT_INTENSITY_LABELS[w.intensity],
+      wodName: w.wodName,
       description: w.description ?? null,
       stats,
     },

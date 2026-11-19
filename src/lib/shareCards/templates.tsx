@@ -11,6 +11,16 @@ export const CARD_HEIGHT = 480;
 // story-height card was taking up far too much of the feed.
 export const SQUARE_CARD_HEIGHT = CARD_WIDTH;
 
+// FeedStoryA's (tall) and FeedPostA's (square) own bottom-darkening gradient
+// over the full-bleed photo, named so the photo-swap crop step (see
+// AvatarCropper's textGuide prop, wired up in ShareSheet) can paint the
+// exact same gradient over the crop preview — showing where the card's own
+// text is actually going to land before it's baked in for good.
+export const PHOTO_OVERLAY_GRADIENTS = {
+  story: "linear-gradient(to top, #000 0%, #000 24%, rgba(0,0,0,0.75) 34%, rgba(0,0,0,0.25) 46%, transparent 58%)",
+  feed: "linear-gradient(to top, #000 0%, #000 20%, rgba(0,0,0,0.78) 32%, rgba(0,0,0,0.3) 48%, transparent 62%)",
+};
+
 export const COLORS = {
   bg: "#e9e6df",
   ink: "#232223",
@@ -172,12 +182,18 @@ function MultiLineText({ text, style }: { text: string; style: CSSProperties }) 
   );
 }
 
+/** The square feed cards have far less room than the tall story ones — cut a long description down rather than let it overflow the card. */
+function truncate(text: string, max: number): string {
+  return text.length > max ? `${text.slice(0, max - 1).trimEnd()}…` : text;
+}
+
 export type FeedStoryAProps = {
   name: string;
   photo: string | null;
   score: string;
   label: string;
   description: string | null;
+  wodName: string;
 };
 
 export function FeedStoryA({ name, photo, score, label, description, scale }: FeedStoryAProps & { scale: number }) {
@@ -193,11 +209,7 @@ export function FeedStoryA({ name, photo, score, label, description, scale }: Fe
         fontFamily: "Inter",
       }}
     >
-      <PhotoLayer
-        photo={photo}
-        scale={scale}
-        gradient="linear-gradient(to top, #000 0%, #000 24%, rgba(0,0,0,0.75) 34%, rgba(0,0,0,0.25) 46%, transparent 58%)"
-      />
+      <PhotoLayer photo={photo} scale={scale} gradient={PHOTO_OVERLAY_GRADIENTS.story} />
       <div
         style={{
           position: "absolute",
@@ -335,6 +347,7 @@ export type FeedStoryCProps = {
   score: string;
   badge: string;
   description: string | null;
+  wodName: string;
   stats: { value: string; label: string }[];
 };
 
@@ -493,7 +506,7 @@ export function FeedStoryC({ name, photo, date, scoreLabel, score, badge, descri
  * spacing; no room left for the optional description either format can
  * carry, so it's accepted (same prop types) but not rendered here.
  */
-export function FeedPostA({ name, photo, score, label, scale }: FeedStoryAProps & { scale: number }) {
+export function FeedPostA({ name, photo, score, label, wodName, description, scale }: FeedStoryAProps & { scale: number }) {
   return (
     <div
       style={{
@@ -506,12 +519,7 @@ export function FeedPostA({ name, photo, score, label, scale }: FeedStoryAProps 
         fontFamily: "Inter",
       }}
     >
-      <PhotoLayer
-        photo={photo}
-        scale={scale}
-        height={SQUARE_CARD_HEIGHT}
-        gradient="linear-gradient(to top, #000 0%, #000 20%, rgba(0,0,0,0.78) 32%, rgba(0,0,0,0.3) 48%, transparent 62%)"
-      />
+      <PhotoLayer photo={photo} scale={scale} height={SQUARE_CARD_HEIGHT} gradient={PHOTO_OVERLAY_GRADIENTS.feed} />
       <div
         style={{
           position: "absolute",
@@ -526,7 +534,22 @@ export function FeedPostA({ name, photo, score, label, scale }: FeedStoryAProps 
           flexDirection: "column",
         }}
       >
-        <div style={{ fontSize: px(11, scale), fontWeight: 700, display: "flex" }}>{name}</div>
+        {wodName && (
+          <div
+            style={{
+              fontSize: px(10, scale),
+              fontWeight: 700,
+              letterSpacing: "0.04em",
+              textTransform: "uppercase",
+              color: "rgba(255,255,255,0.65)",
+              display: "flex",
+              flexWrap: "wrap",
+            }}
+          >
+            {wodName}
+          </div>
+        )}
+        <div style={{ fontSize: px(11, scale), fontWeight: 700, marginTop: px(2, scale), display: "flex" }}>{name}</div>
         <div
           style={{
             fontFamily: "Bebas Neue",
@@ -551,13 +574,25 @@ export function FeedPostA({ name, photo, score, label, scale }: FeedStoryAProps 
         >
           {label}
         </div>
+        {description && (
+          <MultiLineText
+            text={truncate(description, 85)}
+            style={{
+              width: px(CARD_WIDTH - 28, scale),
+              marginTop: px(4, scale),
+              fontSize: px(8, scale),
+              lineHeight: 1.3,
+              color: "rgba(255,255,255,0.55)",
+            }}
+          />
+        )}
       </div>
       <Footer scale={scale} dark domain />
     </div>
   );
 }
 
-export function FeedPostC({ name, photo, date, scoreLabel, score, badge, stats, scale }: FeedStoryCProps & { scale: number }) {
+export function FeedPostC({ name, photo, date, scoreLabel, score, badge, wodName, description, stats, scale }: FeedStoryCProps & { scale: number }) {
   return (
     <div
       style={{
@@ -619,6 +654,19 @@ export function FeedPostC({ name, photo, date, scoreLabel, score, badge, stats, 
             textAlign: "center",
           }}
         >
+          {wodName && (
+            <div
+              style={{
+                fontSize: px(13, scale),
+                fontWeight: 700,
+                display: "flex",
+                flexWrap: "wrap",
+                justifyContent: "center",
+              }}
+            >
+              {wodName}
+            </div>
+          )}
           <div
             style={{
               fontSize: px(9, scale),
@@ -626,6 +674,7 @@ export function FeedPostC({ name, photo, date, scoreLabel, score, badge, stats, 
               letterSpacing: "0.08em",
               textTransform: "uppercase",
               color: COLORS.gold,
+              marginTop: wodName ? px(6, scale) : 0,
               display: "flex",
             }}
           >
@@ -650,6 +699,20 @@ export function FeedPostC({ name, photo, date, scoreLabel, score, badge, stats, 
           >
             {badge}
           </div>
+          {description && (
+            <MultiLineText
+              text={truncate(description, 70)}
+              style={{
+                width: px(CARD_WIDTH - 48 - 28, scale),
+                marginTop: px(8, scale),
+                fontSize: px(8, scale),
+                lineHeight: 1.35,
+                textAlign: "center",
+                color: "rgba(255,255,255,0.5)",
+                justifyContent: "center",
+              }}
+            />
+          )}
         </div>
 
         {stats.length > 0 && (

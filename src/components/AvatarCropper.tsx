@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
-import Cropper, { type Area } from "react-easy-crop";
+import Cropper, { type Area, type Size } from "react-easy-crop";
 
 function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
@@ -66,6 +66,15 @@ const FILTER_PRESETS: FilterPreset[] = [
  * brightness/contrast/saturation) alongside the existing "Adjust" tab, for
  * call sites editing a photo someone's about to post rather than an avatar —
  * feed photos and story-template photo swaps.
+ *
+ * `textGuide` paints the real template text sits over on top of the crop
+ * preview itself — for a full-bleed template like FeedStoryA/FeedPostA
+ * (photo-highlight story and feed cards), the exported photo gets text
+ * baked directly onto it, and there was previously no way to tell, while
+ * repositioning/zooming, whether that text was about to land on someone's
+ * face. Sized and positioned to exactly match react-easy-crop's own crop
+ * rectangle (tracked via onCropSizeChange) so it lines up with what will
+ * actually be kept.
  */
 export function AvatarCropper({
   imageSrc,
@@ -76,6 +85,7 @@ export function AvatarCropper({
   outputWidth = 512,
   outputHeight = 512,
   enableFilters = false,
+  textGuide,
 }: {
   imageSrc: string;
   onCancel: () => void;
@@ -85,10 +95,12 @@ export function AvatarCropper({
   outputWidth?: number;
   outputHeight?: number;
   enableFilters?: boolean;
+  textGuide?: { gradient: string; bottomPercent: number; sidePercent: number };
 }) {
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
+  const [cropSize, setCropSize] = useState<Size | null>(null);
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -166,9 +178,35 @@ export function AvatarCropper({
           onCropChange={setCrop}
           onZoomChange={setZoom}
           onCropComplete={handleCropComplete}
+          onCropSizeChange={setCropSize}
           style={{ mediaStyle: cssFilter ? { filter: cssFilter } : undefined }}
         />
+        {textGuide && cropSize && (
+          <div
+            className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 overflow-hidden"
+            style={{ width: cropSize.width, height: cropSize.height }}
+          >
+            <div className="absolute inset-0" style={{ backgroundImage: textGuide.gradient }} />
+            <div
+              className="absolute flex flex-col gap-1"
+              style={{
+                left: `${textGuide.sidePercent}%`,
+                right: `${textGuide.sidePercent}%`,
+                bottom: `${textGuide.bottomPercent}%`,
+              }}
+            >
+              <div className="h-[6px] w-[35%] rounded-sm bg-white/80" />
+              <div className="h-4 w-[55%] rounded bg-white/90" />
+              <div className="h-[5px] w-[70%] rounded-sm bg-white/50" />
+            </div>
+          </div>
+        )}
       </div>
+      {textGuide && (
+        <p className="mx-auto mt-2 max-w-sm text-center text-xs text-white/50">
+          The shaded area is roughly where your name and score will sit — keep faces clear of it.
+        </p>
+      )}
 
       <div className="mx-auto mt-4 flex w-full max-w-sm flex-col gap-3">
         {tab === "adjust" || !enableFilters ? (

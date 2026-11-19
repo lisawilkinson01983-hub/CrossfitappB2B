@@ -5,7 +5,7 @@ import { Avatar } from "@/components/Avatar";
 import { AvatarCropper } from "@/components/AvatarCropper";
 import { SendIcon } from "@/components/SendIcon";
 import { StoryEditor, type StoryBase, type StoryEditorHandle, type TextBox } from "@/components/StoryEditor";
-import { CARD_WIDTH, CARD_HEIGHT } from "@/lib/shareCards/templates";
+import { CARD_WIDTH, CARD_HEIGHT, SQUARE_CARD_HEIGHT, PHOTO_OVERLAY_GRADIENTS } from "@/lib/shareCards/templates";
 import { MAX_STORY_MENTIONS } from "@/lib/stories";
 import { useVisualViewportBox } from "@/lib/useVisualViewportBox";
 import type { PbField } from "@/lib/validation";
@@ -1279,6 +1279,21 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
             outputWidth={format === "C" ? 720 : CARD_WIDTH * 4}
             outputHeight={format === "C" ? 720 : (previewLayout === "feed" ? CARD_WIDTH : CARD_HEIGHT) * 4}
             enableFilters
+            // Format C's photo is a small badge with no text over it — only
+            // format A's full-bleed card actually bakes text onto the photo
+            // itself (see FeedStoryA/FeedPostA), so only it needs a guide.
+            // The 48/14 design-unit offsets are those templates' own fixed
+            // overlay position, turned into percentages of whichever card
+            // height this crop is actually headed for.
+            textGuide={
+              format === "A"
+                ? {
+                    gradient: previewLayout === "feed" ? PHOTO_OVERLAY_GRADIENTS.feed : PHOTO_OVERLAY_GRADIENTS.story,
+                    bottomPercent: (48 / (previewLayout === "feed" ? SQUARE_CARD_HEIGHT : CARD_HEIGHT)) * 100,
+                    sidePercent: (14 / CARD_WIDTH) * 100,
+                  }
+                : undefined
+            }
           />
         </div>
       )}
