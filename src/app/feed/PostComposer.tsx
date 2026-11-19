@@ -82,10 +82,43 @@ function PostComposerModal({ onClose, canPostWorkout }: { onClose: () => void; c
   // rather than always restarting from the original upload).
   const [cropTarget, setCropTarget] = useState<{ index: number; src: string } | null>(null);
 
+  // Which attachment the big carousel is currently showing — kept in sync
+  // with the user's own swipe (see handleCarouselScroll) and, the other
+  // direction, used to scroll the carousel to match a thumbnail tap or a
+  // removal that shifted indices (see the effect below).
+  const [activeIndex, setActiveIndex] = useState(0);
+  const carouselRef = useRef<HTMLDivElement>(null);
+  // Set for the duration of a programmatic scrollTo below, so the scroll
+  // events it generates mid-animation (with scrollLeft still partway to
+  // the target) don't get read by handleCarouselScroll as a user swipe and
+  // fed back into setActiveIndex — that feedback loop kept redirecting the
+  // animation toward whatever intermediate index a half-finished scroll
+  // produced, usually snapping straight back to where it started.
+  const programmaticScroll = useRef(false);
+
+  useEffect(() => {
+    const el = carouselRef.current;
+    if (!el || el.clientWidth === 0) return;
+    programmaticScroll.current = true;
+    el.scrollTo({ left: activeIndex * el.clientWidth, behavior: "smooth" });
+    const timeout = setTimeout(() => {
+      programmaticScroll.current = false;
+    }, 400);
+    return () => clearTimeout(timeout);
+  }, [activeIndex]);
+
+  function handleCarouselScroll() {
+    if (programmaticScroll.current) return;
+    const el = carouselRef.current;
+    if (!el || el.clientWidth === 0) return;
+    setActiveIndex(Math.round(el.scrollLeft / el.clientWidth));
+  }
+
   function pickGif(gifUrl: string) {
     setGifPickerOpen(false);
     setError(null);
     setAttachments([]);
+    setActiveIndex(0);
     setStagedGifUrl(gifUrl);
   }
 
@@ -131,11 +164,17 @@ function PostComposerModal({ onClose, canPostWorkout }: { onClose: () => void; c
       }
     }
 
+    if (next.length > 0) setActiveIndex(attachments.length); // jump the carousel to the first newly-added photo
     setAttachments((prev) => [...prev, ...next]);
   }
 
   function removeAttachment(index: number) {
+    const newLength = attachments.length - 1;
     setAttachments((prev) => prev.filter((_, i) => i !== index));
+    setActiveIndex((current) => {
+      const next = index < current ? current - 1 : current;
+      return Math.min(next, Math.max(0, newLength - 1));
+    });
   }
 
   function openCrop(index: number) {
@@ -270,37 +309,109 @@ function PostComposerModal({ onClose, canPostWorkout }: { onClose: () => void; c
           )}
 
           {attachments.length > 0 && (
-            <div className="mt-3 grid grid-cols-3 gap-1.5">
-              {attachments.map((att, i) => (
-                <div key={i} className="relative aspect-square overflow-hidden rounded-lg bg-b2b-ink/5">
-                  {att.kind === "video" ? (
-                    <video src={previewUrls[i]} controls className="h-full w-full object-cover" />
-                  ) : (
-                    // eslint-disable-next-line @next/next/no-img-element -- local object URL preview, not a servable path yet
-                    <img src={previewUrls[i]} alt="" className="h-full w-full object-cover" />
-                  )}
-                  <div className="absolute inset-x-0 top-0 flex justify-end gap-1 p-1">
-                    {att.kind === "photo" && (
-                      <button
-                        type="button"
-                        onClick={() => openCrop(i)}
-                        aria-label="Reposition photo"
-                        className="flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80"
-                      >
-                        <EditIcon className="h-3 w-3" />
-                      </button>
+            <div className="mt-3 flex flex-col gap-2">
+              <div className="relative">
+                <div
+                  ref={carouselRef}
+                  onScroll={handleCarouselScroll}
+                  className="flex aspect-square snap-x snap-mandatory overflow-x-auto rounded-lg bg-b2b-ink/5"
+                >
+                  {attachments.map((att, i) => (
+                    <div key={i} className="relative w-full shrink-0 snap-center">
+                      {att.kind === "video" ? (
+                        <video src={previewUrls[i]} controls className="h-full w-full object-cover" />
+                      ) : (
+                        // eslint-disable-next-line @next/next/no-img-element -- local object URL preview, not a servable path yet
+                        <img src={previewUrls[i]} alt="" className="h-full w-full object-cover" />
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => removeAttachment(activeIndex)}
+                  aria-label="Remove this attachment"
+                  className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-black/60 text-base text-white hover:bg-black/75"
+                >
+                  ×
+                </button>
+                {attachments[activeIndex]?.kind === "photo" && (
+                  <button
+                    type="button"
+                    onClick={() => openCrop(activeIndex)}
+                    className="absolute bottom-2 left-2 flex items-center gap-1.5 rounded-full bg-black/60 px-3 py-1.5 text-sm font-medium text-white hover:bg-black/75"
+                  >
+                    <EditIcon className="h-3.5 w-3.5" />
+                    Edit
+                  </button>
+                )}
+                {attachments.length > 1 && (
+                  <span className="absolute bottom-2 right-2 rounded-full bg-black/60 px-2.5 py-1 text-xs font-semibold text-white">
+                    {activeIndex + 1} / {attachments.length}
+                  </span>
+                )}
+              </div>
+
+              {attachments.length > 1 && (
+                <div className="flex justify-center gap-1.5">
+                  {attachments.map((_, i) => (
+                    <span
+                      key={i}
+                      className={`h-1.5 rounded-full transition-all ${
+                        i === activeIndex ? "w-4 bg-b2b-pink" : "w-1.5 bg-b2b-purple/20"
+                      }`}
+                    />
+                  ))}
+                </div>
+              )}
+
+              <div className="flex gap-2 overflow-x-auto pb-1">
+                {attachments.map((att, i) => (
+                  // A <button> can't nest another <button> (invalid HTML —
+                  // see WallComposer for the same constraint), so the tile
+                  // itself is a div acting as a button, with the remove
+                  // action as the one real nested button.
+                  <div
+                    key={i}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setActiveIndex(i)}
+                    onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && setActiveIndex(i)}
+                    className={`relative h-14 w-14 shrink-0 cursor-pointer overflow-hidden rounded-lg border-2 ${
+                      i === activeIndex ? "border-b2b-pink" : "border-transparent"
+                    }`}
+                  >
+                    {att.kind === "video" ? (
+                      <video src={previewUrls[i]} muted playsInline className="h-full w-full object-cover" />
+                    ) : (
+                      // eslint-disable-next-line @next/next/no-img-element -- local object URL preview, not a servable path yet
+                      <img src={previewUrls[i]} alt="" className="h-full w-full object-cover" />
                     )}
                     <button
                       type="button"
-                      onClick={() => removeAttachment(i)}
                       aria-label="Remove attachment"
-                      className="flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-xs text-white hover:bg-black/80"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removeAttachment(i);
+                      }}
+                      className="absolute right-0.5 top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-black/60 text-[10px] leading-none text-white hover:bg-black/80"
                     >
                       ×
                     </button>
                   </div>
-                </div>
-              ))}
+                ))}
+                {attachments.length < MAX_ATTACHMENTS && (
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    aria-label="Add another photo or video"
+                    className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg border border-dashed border-b2b-purple/30 text-lg text-b2b-ink/40 hover:border-b2b-pink hover:text-b2b-pink"
+                  >
+                    +
+                  </button>
+                )}
+              </div>
             </div>
           )}
 
