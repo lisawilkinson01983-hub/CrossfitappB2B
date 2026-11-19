@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Avatar } from "@/components/Avatar";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { EditIcon } from "@/components/EditIcon";
 import { useVisualViewportBox } from "@/lib/useVisualViewportBox";
 
@@ -61,6 +62,9 @@ export function TeamRosterTrigger({
   const [nameInput, setNameInput] = useState(teamName);
   const [savingName, setSavingName] = useState(false);
   const [nameError, setNameError] = useState<string | null>(null);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const total = members.length + freeformNames.length;
   const viewport = useVisualViewportBox(open);
 
@@ -103,6 +107,21 @@ export function TeamRosterTrigger({
       body: JSON.stringify({ freeformName: name }),
     });
     if (res.ok) router.refresh();
+  }
+
+  async function deleteTeam() {
+    setDeleting(true);
+    setDeleteError(null);
+    const res = await fetch(`/api/teams/${teamId}`, { method: "DELETE" });
+    setDeleting(false);
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      setDeleteError(body.error ?? "Something went wrong. Please try again.");
+      return;
+    }
+    setConfirmingDelete(false);
+    setOpen(false);
+    router.refresh();
   }
 
   return (
@@ -222,6 +241,19 @@ export function TeamRosterTrigger({
               ))}
             </div>
 
+            {isOwner && members.length === 1 && (
+              <div className="mt-3 border-t border-b2b-purple/10 pt-3">
+                {deleteError && <p className="mb-2 text-xs text-red-600">{deleteError}</p>}
+                <button
+                  type="button"
+                  onClick={() => setConfirmingDelete(true)}
+                  className="text-xs font-medium text-red-600/70 hover:text-red-600"
+                >
+                  Delete this team
+                </button>
+              </div>
+            )}
+
             {canInvite && (
               <InviteSection
                 teamId={teamId}
@@ -234,6 +266,15 @@ export function TeamRosterTrigger({
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={confirmingDelete}
+        title="Delete this team?"
+        message={`"${teamName}" will be gone for good. You're the only one on it, so there's no one else to lose it.`}
+        onConfirm={deleteTeam}
+        onCancel={() => setConfirmingDelete(false)}
+        confirming={deleting}
+      />
     </>
   );
 }

@@ -55,6 +55,20 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Teams are only for competitions" }, { status: 400 });
   }
 
+  // Nothing else stopped the same person from starting a second (or third)
+  // team for a competition they already have one for — easy to do by
+  // accident (e.g. tapping "Create a team" twice) and, since each one
+  // marks the creator participating on its own, left duplicates with no
+  // way to tell which is the "real" one. One team per event per creator;
+  // the extra can be deleted (see DELETE above) while it's still solo.
+  const existingTeam = await prisma.team.findFirst({ where: { eventId, createdById: userId } });
+  if (existingTeam) {
+    return NextResponse.json(
+      { error: "You already have a team for this event. Delete it first if you want to start a different one." },
+      { status: 400 }
+    );
+  }
+
   const teammates =
     teammateIds.length > 0
       ? await prisma.user.findMany({ where: { id: { in: teammateIds }, deletedAt: null }, select: { id: true, name: true } })

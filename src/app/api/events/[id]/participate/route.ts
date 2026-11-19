@@ -125,8 +125,14 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       // Teams tile/page lists) — tagging teammates without naming a team still
       // tags them in the join post/notice below, same as always, it just
       // doesn't get its own roster entry.
+      // Shouldn't actually be reachable — having a team already here would
+      // mean EventParticipant already existed, which takes the un-join
+      // branch above instead — but see POST /api/teams for why this check
+      // exists at all: cheap insurance against the same "two teams, same
+      // event, same creator" duplicate either way.
+      const alreadyHasTeam = teamName ? await prisma.team.findFirst({ where: { eventId, createdById: userId } }) : null;
       let newTeamId: string | null = null;
-      if (teamName) {
+      if (teamName && !alreadyHasTeam) {
         const newTeam = await prisma.team.create({
           data: {
             eventId,

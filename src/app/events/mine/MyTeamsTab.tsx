@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { CreateTeamForm } from "@/components/CreateTeamForm";
+import { DuplicateTeamButton } from "@/components/DuplicateTeamButton";
 import { MessageTeamGroupButton } from "@/components/MessageTeamGroupButton";
 import { PendingTeamJoinRequests, type TeamJoinRequestItem } from "@/components/PendingTeamJoinRequests";
 import { TeamRosterTrigger } from "@/components/TeamRosterTrigger";
@@ -81,6 +82,19 @@ export async function MyTeamsTab({ userId, openTeamId }: { userId: string; openT
     otherPerson: req.user,
   }));
 
+  // Events a "Duplicate to another event" (see DuplicateTeamButton) could
+  // actually land on — competitions this viewer already has some
+  // engagement with, same pool CreateTeamForm picks from, minus any event
+  // they've already started a team for themselves (POST /api/teams rejects
+  // a second one from the same creator — see its own doc comment). Each
+  // team card below additionally drops its own event from this list, since
+  // duplicating a team onto the event it's already on isn't duplicating it
+  // anywhere.
+  const eventsICreatedTeamsFor = new Set(
+    myMemberships.filter((m) => m.team.createdById === userId).map((m) => m.team.eventId)
+  );
+  const duplicateTargetPool = competitionEvents.filter((ev) => !eventsICreatedTeamsFor.has(ev.id));
+
   return (
     <div className="mt-4 flex flex-col gap-6">
       {inviteItems.length > 0 && (
@@ -110,6 +124,7 @@ export async function MyTeamsTab({ userId, openTeamId }: { userId: string; openT
         <div className="flex flex-col gap-3">
           {myMemberships.map(({ team }) => {
             const freeformNames: string[] = team.freeformMemberNames ? JSON.parse(team.freeformMemberNames) : [];
+            const duplicateTargets = duplicateTargetPool.filter((ev) => ev.id !== team.event.id);
             return (
               <div key={team.id} className="rounded-2xl border border-b2b-purple/10 bg-b2b-card p-4">
                 <div className="flex items-start justify-between gap-3">
@@ -158,6 +173,14 @@ export async function MyTeamsTab({ userId, openTeamId }: { userId: string; openT
                     </p>
                   </div>
                 </TeamRosterTrigger>
+                <div className="mt-2">
+                  <DuplicateTeamButton
+                    teamName={team.name}
+                    teammateIds={team.members.map((m) => m.user.id).filter((id) => id !== userId)}
+                    teammateNames={freeformNames}
+                    events={duplicateTargets}
+                  />
+                </div>
               </div>
             );
           })}
