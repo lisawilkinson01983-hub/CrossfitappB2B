@@ -128,9 +128,11 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       // Shouldn't actually be reachable — having a team already here would
       // mean EventParticipant already existed, which takes the un-join
       // branch above instead — but see POST /api/teams for why this check
-      // exists at all: cheap insurance against the same "two teams, same
-      // event, same creator" duplicate either way.
-      const alreadyHasTeam = teamName ? await prisma.team.findFirst({ where: { eventId, createdById: userId } }) : null;
+      // exists at all: cheap insurance against the same "two teams for the
+      // same event" duplicate either way.
+      const alreadyHasTeam = teamName
+        ? await prisma.teamMember.findFirst({ where: { userId, team: { eventId } } })
+        : null;
       let newTeamId: string | null = null;
       if (teamName && !alreadyHasTeam) {
         const newTeam = await prisma.team.create({

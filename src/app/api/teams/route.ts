@@ -55,18 +55,26 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Teams are only for competitions" }, { status: 400 });
   }
 
-  // Nothing else stopped the same person from starting a second (or third)
-  // team for a competition they already have one for — easy to do by
-  // accident (e.g. tapping "Create a team" twice) and, since each one
-  // marks the creator participating on its own, left duplicates with no
-  // way to tell which is the "real" one. One team per event per creator;
-  // the extra can be deleted (see DELETE above) while it's still solo.
-  const existingTeam = await prisma.team.findFirst({ where: { eventId, createdById: userId } });
-  if (existingTeam) {
-    return NextResponse.json(
-      { error: "You already have a team for this event. Delete it first if you want to start a different one." },
-      { status: 400 }
-    );
+  // Nothing else stopped the same person from being on two teams for the
+  // same competition at once — easy to do by accident (e.g. tapping
+  // "Create a team" twice, or duplicating a team into an event they're
+  // already rostered on through a different one) and, since every team
+  // marks its members participating on its own, left duplicates with no
+  // way to tell which is the "real" one. One team per event per person;
+  // a creator can delete their own extra while it's still solo (see
+  // DELETE above), and a plain member has to leave the other team first
+  // (un-participate from its event removes just that roster spot, not the
+  // whole team — see POST /api/events/[id]/participate).
+  const existingMembership = await prisma.teamMember.findFirst({
+    where: { userId, team: { eventId } },
+    include: { team: { select: { createdById: true } } },
+  });
+  if (existingMembership) {
+    const message =
+      existingMembership.team.createdById === userId
+        ? "You already have a team for this event. Delete it first if you want to start a different one."
+        : "You're already on a team for this event. Leave that team first if you want to start a different one.";
+    return NextResponse.json({ error: message }, { status: 400 });
   }
 
   const teammates =

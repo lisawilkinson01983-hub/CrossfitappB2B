@@ -85,15 +85,14 @@ export async function MyTeamsTab({ userId, openTeamId }: { userId: string; openT
   // Events a "Duplicate to another event" (see DuplicateTeamButton) could
   // actually land on — competitions this viewer already has some
   // engagement with, same pool CreateTeamForm picks from, minus any event
-  // they've already started a team for themselves (POST /api/teams rejects
-  // a second one from the same creator — see its own doc comment). Each
-  // team card below additionally drops its own event from this list, since
+  // they're already on a team for at all, creator or not (POST /api/teams
+  // rejects a new one there either way — see its own doc comment; a plain
+  // member would need to leave that team first, not delete it). Each team
+  // card below additionally drops its own event from this list, since
   // duplicating a team onto the event it's already on isn't duplicating it
   // anywhere.
-  const eventsICreatedTeamsFor = new Set(
-    myMemberships.filter((m) => m.team.createdById === userId).map((m) => m.team.eventId)
-  );
-  const duplicateTargetPool = competitionEvents.filter((ev) => !eventsICreatedTeamsFor.has(ev.id));
+  const eventsAlreadyOnATeamFor = new Set(myMemberships.map((m) => m.team.eventId));
+  const duplicateTargetPool = competitionEvents.filter((ev) => !eventsAlreadyOnATeamFor.has(ev.id));
 
   return (
     <div className="mt-4 flex flex-col gap-6">
