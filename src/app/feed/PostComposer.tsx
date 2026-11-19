@@ -1,12 +1,14 @@
 "use client";
 
-import { useRef, useState, type ChangeEvent, type FormEvent } from "react";
+import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { MAX_VIDEO_SECONDS, MAX_PHOTO_BYTES, MAX_PHOTO_MB } from "@/lib/media";
 import { readVideoInfo } from "@/lib/readVideoInfo";
 import { MentionTextarea } from "@/components/MentionTextarea";
 import { Avatar } from "@/components/Avatar";
 import { AttachmentMenu } from "@/components/AttachmentMenu";
+import { AvatarCropper } from "@/components/AvatarCropper";
+import { EditIcon } from "@/components/EditIcon";
 import { GifPicker } from "@/components/GifPicker";
 import { useVisualViewportBox } from "@/lib/useVisualViewportBox";
 
@@ -63,6 +65,23 @@ function PostComposerModal({ onClose, canPostWorkout }: { onClose: () => void; c
   const fileInputRef = useRef<HTMLInputElement>(null);
   const viewport = useVisualViewportBox(true);
 
+  // Object URLs for the actual photo/video previews below — recomputed
+  // whenever the attachment list changes (add/remove/crop) and revoked on
+  // the way out, rather than minting a fresh one on every render.
+  const [previewUrls, setPreviewUrls] = useState<string[]>([]);
+  useEffect(() => {
+    const urls = attachments.map((att) => URL.createObjectURL(att.file));
+    setPreviewUrls(urls);
+    return () => urls.forEach((u) => URL.revokeObjectURL(u));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [attachments]);
+
+  // The photo currently open in the crop/reposition step — index into
+  // `attachments`, plus the object URL it should crop from (its current
+  // file, so re-opening "Edit" refines whatever's already been cropped
+  // rather than always restarting from the original upload).
+  const [cropTarget, setCropTarget] = useState<{ index: number; src: string } | null>(null);
+
   function pickGif(gifUrl: string) {
     setGifPickerOpen(false);
     setError(null);
@@ -117,6 +136,25 @@ function PostComposerModal({ onClose, canPostWorkout }: { onClose: () => void; c
 
   function removeAttachment(index: number) {
     setAttachments((prev) => prev.filter((_, i) => i !== index));
+  }
+
+  function openCrop(index: number) {
+    setCropTarget({ index, src: URL.createObjectURL(attachments[index].file) });
+  }
+
+  function closeCrop() {
+    if (cropTarget) URL.revokeObjectURL(cropTarget.src);
+    setCropTarget(null);
+  }
+
+  function applyCrop(blob: Blob) {
+    if (!cropTarget) return;
+    const index = cropTarget.index;
+    URL.revokeObjectURL(cropTarget.src);
+    setCropTarget(null);
+    setAttachments((prev) =>
+      prev.map((att, i) => (i === index ? { ...att, file: new File([blob], att.file.name, { type: "image/jpeg" }) } : att))
+    );
   }
 
   const hasContent = contentText.trim().length > 0 || attachments.length > 0 || !!stagedGifUrl;
@@ -232,23 +270,35 @@ function PostComposerModal({ onClose, canPostWorkout }: { onClose: () => void; c
           )}
 
           {attachments.length > 0 && (
-            <div className="mt-3 flex flex-col gap-2">
+            <div className="mt-3 grid grid-cols-3 gap-1.5">
               {attachments.map((att, i) => (
-                <div
-                  key={i}
-                  className="flex items-center justify-between rounded border border-b2b-purple/10 bg-b2b-bg px-3 py-2 text-sm text-b2b-ink/60"
-                >
-                  <span className="truncate">
-                    {att.kind === "video" ? "🎥" : "📷"} {att.file.name}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => removeAttachment(i)}
-                    aria-label={`Remove ${att.file.name}`}
-                    className="ml-2 text-lg leading-none text-b2b-ink/40 hover:text-b2b-ink"
-                  >
-                    ×
-                  </button>
+                <div key={i} className="relative aspect-square overflow-hidden rounded-lg bg-b2b-ink/5">
+                  {att.kind === "video" ? (
+                    <video src={previewUrls[i]} controls className="h-full w-full object-cover" />
+                  ) : (
+                    // eslint-disable-next-line @next/next/no-img-element -- local object URL preview, not a servable path yet
+                    <img src={previewUrls[i]} alt="" className="h-full w-full object-cover" />
+                  )}
+                  <div className="absolute inset-x-0 top-0 flex justify-end gap-1 p-1">
+                    {att.kind === "photo" && (
+                      <button
+                        type="button"
+                        onClick={() => openCrop(i)}
+                        aria-label="Reposition photo"
+                        className="flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80"
+                      >
+                        <EditIcon className="h-3 w-3" />
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => removeAttachment(i)}
+                      aria-label="Remove attachment"
+                      className="flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-xs text-white hover:bg-black/80"
+                    >
+                      ×
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -265,6 +315,26 @@ function PostComposerModal({ onClose, canPostWorkout }: { onClose: () => void; c
           </div>
         </form>
       </div>
+
+      {cropTarget && (
+        // Wrapped in its own stopPropagation div — AvatarCropper's own
+        // buttons don't stop click propagation themselves (its other call
+        // sites never sit inside another backdrop's onClick), so without
+        // this, tapping any of them here would bubble up to this modal's
+        // own backdrop and close the whole composer instead of just the
+        // crop step.
+        <div onClick={(e) => e.stopPropagation()}>
+          <AvatarCropper
+            imageSrc={cropTarget.src}
+            onCancel={closeCrop}
+            onCropped={applyCrop}
+            aspect={1}
+            cropShape="rect"
+            outputWidth={1200}
+            outputHeight={1200}
+          />
+        </div>
+      )}
     </div>
   );
 }
