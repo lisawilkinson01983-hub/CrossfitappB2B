@@ -38,11 +38,13 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   }
 
   let photoPath = workout.photo;
+  let isShareCard = false;
   const formData = await parseFormData(req);
   const uploadedPhoto = formData?.get("photo");
   if (uploadedPhoto instanceof File && uploadedPhoto.size > 0) {
     try {
       photoPath = await savePhotoUpload(uploadedPhoto, session.user.id);
+      isShareCard = true;
     } catch (err) {
       if (err instanceof PhotoUploadError) {
         return NextResponse.json({ error: err.message }, { status: 400 });
@@ -56,6 +58,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     type: workout.isPb ? ("PR" as const) : ("WORKOUT" as const),
     contentText: workout.notes ?? null,
     photo: photoPath,
+    isShareCard,
     video: workout.video,
     videoThumbnail: workout.videoThumbnail,
   };

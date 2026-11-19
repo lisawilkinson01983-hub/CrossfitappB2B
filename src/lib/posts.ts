@@ -143,6 +143,7 @@ export function toPostCardData(post: PostWithCardData, currentUserId: string): P
     contentText: original.contentText,
     teammateRequests: parseTeammateRequests(original.teammateRequests),
     photo: original.photo,
+    isShareCard: original.isShareCard,
     video: original.video,
     videoThumbnail: original.videoThumbnail,
     gifUrl: original.gifUrl,

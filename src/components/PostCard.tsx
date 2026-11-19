@@ -99,6 +99,10 @@ export type PostCardData = {
   // Legacy single-attachment fields — only ever set on a post created before
   // multi-media support; `media` is what every new post uses (see PostMedia).
   photo: string | null;
+  // True when `photo` is a rendered share-card (see Post.isShareCard) rather
+  // than a real photo — shown full-aspect, with the linkedWorkout stat
+  // block below suppressed since the card already shows that itself.
+  isShareCard: boolean;
   video: string | null;
   videoThumbnail: string | null;
   gifUrl: string | null;
@@ -964,7 +968,7 @@ export function PostCard({
           </div>
         )}
 
-        {post.linkedWorkout && (
+        {post.linkedWorkout && !post.isShareCard && (
           <div className={post.sharedBy ? "" : "mt-3"}>
             <div className="rounded-xl border border-b2b-purple/10 bg-b2b-bg px-4 py-3">
               <div className="flex items-center justify-between gap-3">
@@ -1197,7 +1201,17 @@ export function PostCard({
               <ExpandableImage
                 src={post.photo}
                 alt="Post photo"
-                className={`w-full rounded object-cover ${post.sharedBy ? "mt-2 max-h-72" : "mt-3 max-h-96"}`}
+                // A share-card is baked at its own 9:16 card aspect (see
+                // Post.isShareCard) — the generic photo frame's landscape-ish
+                // max-height crop would cut off whatever's near its top or
+                // bottom, so it gets its own box sized to that aspect
+                // instead, capped to a phone-card width rather than
+                // stretching full-bleed across a wide feed column.
+                className={
+                  post.isShareCard
+                    ? `mx-auto block aspect-[9/16] w-full max-w-[280px] rounded object-cover ${post.sharedBy ? "mt-2" : "mt-3"}`
+                    : `w-full rounded object-cover ${post.sharedBy ? "mt-2 max-h-72" : "mt-3 max-h-96"}`
+                }
               />
             )}
 

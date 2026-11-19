@@ -822,6 +822,15 @@ model Post {
   // just shows a black box until played.
   videoThumbnail String?
 
+  // True when `photo` is a rendered share-card (one of the "Photo
+  // highlight"/"Stat card" templates — see ShareSheet's format step),
+  // baked full-bleed at its own 9:16 card aspect, rather than a real photo
+  // someone actually took. PostCard uses this to show just the card itself
+  // — full aspect, no cropping — instead of the generic photo frame, and
+  // to skip the separate linkedWorkout stat block below it, which the
+  // card's own baked-in text already covers.
+  isShareCard Boolean @default(false)
+
   // A GIF attached to the post (its direct media URL from the GIF provider
   // — see src/lib/tenor.ts), not re-hosted, just linked. Mutually exclusive
   // with media below — a GIF post is sent immediately with no other
