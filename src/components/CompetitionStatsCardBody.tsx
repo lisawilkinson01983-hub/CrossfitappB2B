@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import {
   CompetitionStatsQuickEditor,
@@ -10,19 +10,36 @@ import {
 type OpenResultSummary = { id: string; year: number; division: string; overallRank: number | null; countryRank: number | null };
 type CommunityCupResultSummary = { id: string; year: number; division: string; rank: number | null; competition: string | null };
 
-function ordinal(n: number) {
+function ordinalSuffix(n: number) {
   const mod100 = n % 100;
-  if (mod100 >= 11 && mod100 <= 13) return `${n}th`;
+  if (mod100 >= 11 && mod100 <= 13) return "th";
   switch (n % 10) {
     case 1:
-      return `${n}st`;
+      return "st";
     case 2:
-      return `${n}nd`;
+      return "nd";
     case 3:
-      return `${n}rd`;
+      return "rd";
     default:
-      return `${n}th`;
+      return "th";
   }
+}
+
+/**
+ * A placing like "18,452nd overall" — the number in the display face with a
+ * thousands separator (Open ranks run to six figures), the suffix and label
+ * in lowercase body text so it reads naturally rather than "18452ND OVERALL".
+ */
+function Rank({ n, label }: { n: number; label?: string }) {
+  return (
+    <span className="whitespace-nowrap">
+      <span className="font-display text-2xl leading-none">{n.toLocaleString("en-GB")}</span>
+      <span className="text-sm font-semibold">
+        {ordinalSuffix(n)}
+        {label ? ` ${label}` : ""}
+      </span>
+    </span>
+  );
 }
 
 /**
@@ -41,7 +58,7 @@ function FeaturedBanner({
   onToggle,
 }: {
   label: string;
-  headline: string;
+  headline: ReactNode;
   subtext: string;
   hidden: boolean;
   isOwner: boolean;
@@ -72,7 +89,7 @@ function FeaturedBanner({
         )}
       </div>
       <div className="px-3.5 py-2.5">
-        <p className="font-display text-xl leading-tight text-b2b-ink">{headline}</p>
+        <div className="flex flex-wrap items-baseline gap-x-1.5 text-b2b-ink">{headline}</div>
         <p className="mt-0.5 text-xs text-b2b-ink/50">{subtext}</p>
       </div>
     </div>
@@ -132,14 +149,19 @@ export function CompetitionStatsCardBody({
     <div className="flex flex-col gap-3">
       {latestOpen && (
         <FeaturedBanner
-          label="Latest CrossFit Open"
+          label="Latest Open"
           headline={
-            [
-              latestOpen.overallRank != null && `${ordinal(latestOpen.overallRank)} overall`,
-              latestOpen.countryRank != null && `${ordinal(latestOpen.countryRank)} country`,
-            ]
-              .filter(Boolean)
-              .join(" · ") || "—"
+            latestOpen.overallRank == null && latestOpen.countryRank == null ? (
+              "—"
+            ) : (
+              <>
+                {latestOpen.overallRank != null && <Rank n={latestOpen.overallRank} label="overall" />}
+                {latestOpen.overallRank != null && latestOpen.countryRank != null && (
+                  <span className="text-sm text-b2b-ink/40">·</span>
+                )}
+                {latestOpen.countryRank != null && <Rank n={latestOpen.countryRank} label="in country" />}
+              </>
+            )
           }
           subtext={`${latestOpen.year} · ${latestOpen.division}`}
           hidden={hiddenOpen}
@@ -151,7 +173,7 @@ export function CompetitionStatsCardBody({
       {latestCup && (
         <FeaturedBanner
           label="Latest Community Cup"
-          headline={latestCup.rank != null ? ordinal(latestCup.rank) : "—"}
+          headline={latestCup.rank != null ? <Rank n={latestCup.rank} /> : "—"}
           subtext={[`${latestCup.year}`, latestCup.division, latestCup.competition].filter(Boolean).join(" · ")}
           hidden={hiddenCup}
           isOwner={isOwner}

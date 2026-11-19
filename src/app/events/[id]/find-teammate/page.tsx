@@ -58,6 +58,7 @@ export default async function FindTeammatePage({ params }: { params: Promise<{ i
       where: { id: session.user.id },
       select: {
         id: true,
+        photo: true,
         levels: true,
         openLevel: true,
         gender: true,
@@ -156,7 +157,7 @@ export default async function FindTeammatePage({ params }: { params: Promise<{ i
       }));
 
     suggestedTeams = suggestTeams(
-      { id: me.id, name: "You", photo: null, openLevel: me.openLevel, coords: myCoords },
+      { id: me.id, name: "You", photo: me.photo, openLevel: me.openLevel, coords: myCoords },
       pool,
       applicableTeamFormat
     );
