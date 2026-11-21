@@ -78,3 +78,53 @@ export async function getGalleryItems(userId: string, limit?: number): Promise<G
 
   return limit ? items.slice(0, limit) : items;
 }
+
+export type EventGalleryItem = GalleryItem & { author: { id: string; name: string; photo: string | null } };
+
+/**
+ * An event's own photos/videos — official shots the organizer (or anyone
+ * attending) added straight to the gallery, plus whatever anyone else's
+ * post picked up by tagging this event (see Post.linkedEventId,
+ * POST /api/posts). Unlike getGalleryItems above, this never pulls from
+ * Workout rows — a workout isn't "for" one event the way a post can be
+ * tagged to one.
+ */
+export async function getEventGalleryItems(eventId: string): Promise<EventGalleryItem[]> {
+  const posts = await prisma.post.findMany({
+    where: { linkedEventId: eventId, OR: [{ photo: { not: null } }, { video: { not: null } }, { media: { some: {} } }] },
+    orderBy: { createdAt: "desc" },
+    select: {
+      id: true,
+      photo: true,
+      video: true,
+      videoThumbnail: true,
+      createdAt: true,
+      user: { select: { id: true, name: true, photo: true } },
+      media: { orderBy: { order: "asc" }, select: { id: true, kind: true, url: true, thumbnail: true } },
+    },
+  });
+
+  return posts.flatMap((p) =>
+    p.media.length > 0
+      ? p.media.map((m) => ({
+          key: `post-${p.id}-${m.id}`,
+          type: (m.kind === "VIDEO" ? "video" : "photo") as GalleryItem["type"],
+          url: m.url,
+          thumbnail: m.thumbnail,
+          createdAt: p.createdAt,
+          source: { kind: "postMedia", postId: p.id, mediaId: m.id } as MediaSource,
+          author: p.user,
+        }))
+      : [
+          {
+            key: `post-${p.id}`,
+            type: (p.video ? "video" : "photo") as GalleryItem["type"],
+            url: (p.video ?? p.photo)!,
+            thumbnail: p.videoThumbnail,
+            createdAt: p.createdAt,
+            source: { kind: "postLegacy", postId: p.id } as MediaSource,
+            author: p.user,
+          },
+        ]
+  );
+}

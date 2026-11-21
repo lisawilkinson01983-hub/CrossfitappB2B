@@ -392,6 +392,11 @@ export const postSchema = z.object({
   // The GIF's own direct media URL from the search picker (see
   // src/lib/tenor.ts) — not re-uploaded, just linked.
   gifUrl: z.preprocess(emptyToUndefined, z.string().trim().url().max(500).optional()),
+  // Tags this post to an event — its photos/videos then also show up in
+  // that event's own Gallery (see getEventGalleryItems), same as the
+  // profile Gallery pulling from a user's posts. Existence/visibility is
+  // checked server-side (see /api/posts), not here.
+  eventId: z.preprocess(emptyToUndefined, z.string().optional()),
 });
 
 export const commentSchema = z

@@ -9,6 +9,7 @@ import { Avatar } from "@/components/Avatar";
 import { EventEngagementButtons } from "@/components/EventEngagementButtons";
 import { EventPlatformBadge } from "@/components/EventPlatformBadge";
 import { EventTabs } from "@/components/EventTabs";
+import { EventGalleryEntry } from "@/components/EventGalleryEntry";
 import { EventWorkoutsList } from "@/components/EventWorkoutsList";
 import { ListOrCarousel } from "@/components/ListOrCarousel";
 import { SwipeCardList, type SwipeCardItem } from "@/components/SwipeCardList";
@@ -340,6 +341,11 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
             </Link>
           )}
         </div>
+
+        <EventGalleryEntry
+          eventId={event.id}
+          canAdd={isOrganizer || event.claimedById === session.user.id || isParticipating}
+        />
 
         <EventTabs
           overview={overviewContent}

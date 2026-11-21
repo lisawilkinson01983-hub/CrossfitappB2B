@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import { Avatar } from "@/components/Avatar";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { CommentsPopout } from "@/components/CommentsPopout";
 import { CommentIcon } from "@/components/CommentIcon";
@@ -10,7 +11,23 @@ import { DeleteIcon } from "@/components/DeleteIcon";
 import type { MediaSource } from "@/lib/gallery";
 import type { ReportTargetTypeOption } from "@/lib/validation";
 
-type MediaItem = { key: string; type: "photo" | "video"; url: string; thumbnail?: string | null; source: MediaSource };
+export type MediaItem = {
+  key: string;
+  type: "photo" | "video";
+  url: string;
+  thumbnail?: string | null;
+  source: MediaSource;
+  // Only set for an event's gallery (see getEventGalleryItems) — unused,
+  // and fine left out, for the profile gallery, where every item is
+  // already the viewer's own.
+  author?: { id: string; name: string; photo: string | null };
+  // Per-item override of the `canEdit` prop below — an event's gallery
+  // mixes contributors, so "can delete" has to be worked out per item
+  // server-side (is this one the viewer's own) and passed in as plain
+  // data, rather than as a function: this component is a Client Component,
+  // and a closure built on the server can't cross that boundary as a prop.
+  canEdit?: boolean;
+};
 
 function deleteUrl(source: MediaSource): string {
   switch (source.kind) {
@@ -75,6 +92,7 @@ export function GalleryLightbox({
   autoOpenComments = false,
 }: {
   items: MediaItem[];
+  /** Blanket default for every item — an item's own `canEdit` (see MediaItem) overrides this when set. */
   canEdit?: boolean;
   /** "strip": fixed-width tiles in a horizontal scroller (the profile preview). "grid": fills a responsive grid (the full gallery page). */
   layout?: "strip" | "grid";
@@ -97,6 +115,10 @@ export function GalleryLightbox({
   // auto-opened popout on mount, since it fires once after the initial
   // render too — skip exactly that one run.
   const skipNextCommentsReset = useRef(autoOpenComments);
+
+  function canEditItem(item: MediaItem): boolean {
+    return item.canEdit ?? canEdit;
+  }
 
   useEffect(() => {
     if (openIndex === null || !scrollerRef.current) return;
@@ -185,6 +207,11 @@ export function GalleryLightbox({
                   className="object-cover"
                 />
               )}
+              {item.author && (
+                <span className="absolute bottom-1 left-1 rounded-full ring-2 ring-white/80">
+                  <Avatar photo={item.author.photo} name={item.author.name} size={layout === "strip" ? 18 : 20} />
+                </span>
+              )}
             </button>
           </div>
         ))}
@@ -192,6 +219,15 @@ export function GalleryLightbox({
 
       {openIndex !== null && (
         <div className="fixed inset-0 z-50 flex flex-col bg-black/95">
+          {items[openIndex].author && (
+            <div
+              className="absolute left-4 z-10 flex items-center gap-2"
+              style={{ top: "max(1rem, env(safe-area-inset-top))" }}
+            >
+              <Avatar photo={items[openIndex].author!.photo} name={items[openIndex].author!.name} size={28} />
+              <span className="text-sm font-medium text-white">{items[openIndex].author!.name}</span>
+            </div>
+          )}
           <div className="absolute right-4 z-10 flex gap-2" style={{ top: "max(1rem, env(safe-area-inset-top))" }}>
             <button
               type="button"
@@ -201,7 +237,7 @@ export function GalleryLightbox({
             >
               <CommentIcon className="h-4 w-4" />
             </button>
-            {canEdit && (
+            {canEditItem(items[openIndex]) && (
               <button
                 type="button"
                 onClick={() => setRemoveTargetKey(items[openIndex].key)}

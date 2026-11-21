@@ -12,6 +12,7 @@ import {
 } from "@/lib/uploads";
 import { parseFormData } from "@/lib/http";
 import { notifyMentions } from "@/lib/notify";
+import { assertEventVisible } from "@/lib/eventVisibility";
 
 // A generous cap on how many photos/videos one post can carry — high enough
 // nobody genuinely posting a workout/PB will hit it, low enough to keep a
@@ -33,9 +34,23 @@ export async function POST(req: Request) {
     contentText: formData.get("contentText"),
     sharedToFeed: formData.get("sharedToFeed"),
     gifUrl: formData.get("gifUrl"),
+    eventId: formData.get("eventId"),
   });
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
+  }
+
+  // Tagging an event this post's photos/videos should show up in its
+  // Gallery too (see getEventGalleryItems) — same visibility rule as
+  // anywhere else an event is looked up by id, so this can't be used to
+  // confirm a private event exists.
+  let linkedEventId: string | null = null;
+  if (parsed.data.eventId) {
+    const event = await prisma.event.findUnique({ where: { id: parsed.data.eventId } });
+    if (!event || !(await assertEventVisible(event, session.user.id))) {
+      return NextResponse.json({ error: "Event not found" }, { status: 404 });
+    }
+    linkedEventId = event.id;
   }
 
   const mediaFiles = formData.getAll("media").filter((f): f is File => f instanceof File && f.size > 0);
@@ -99,6 +114,7 @@ export async function POST(req: Request) {
       // the other (a GIF is sent as its own immediate request with no other
       // attachment, same as Comment/Message).
       gifUrl: hasMedia ? null : (parsed.data.gifUrl ?? null),
+      linkedEventId,
       media: { create: media },
     },
   });

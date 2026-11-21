@@ -61,9 +61,39 @@ function PostComposerModal({ onClose, canPostWorkout }: { onClose: () => void; c
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [gifPickerOpen, setGifPickerOpen] = useState(false);
+  // Tagging an event adds this post's photos/videos to that event's own
+  // Gallery too (see POST /api/posts' eventId param) — only offered once
+  // there's a photo/video to actually contribute there.
+  const [taggedEvent, setTaggedEvent] = useState<{ id: string; name: string } | null>(null);
+  const [eventPickerOpen, setEventPickerOpen] = useState(false);
+  const [eventQuery, setEventQuery] = useState("");
+  const [eventResults, setEventResults] = useState<{ id: string; name: string; location: string | null; isOnline: boolean }[]>([]);
+  const eventRequestId = useRef(0);
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const viewport = useVisualViewportBox(true);
+
+  async function handleEventQueryChange(value: string) {
+    setEventQuery(value);
+    if (!value.trim()) {
+      setEventResults([]);
+      return;
+    }
+    const thisRequest = ++eventRequestId.current;
+    const res = await fetch(`/api/events/search-suggest?q=${encodeURIComponent(value.trim())}`);
+    if (thisRequest !== eventRequestId.current) return;
+    if (res.ok) {
+      const body = await res.json();
+      setEventResults(body.matches ?? []);
+    }
+  }
+
+  function pickEvent(ev: { id: string; name: string }) {
+    setTaggedEvent({ id: ev.id, name: ev.name });
+    setEventPickerOpen(false);
+    setEventQuery("");
+    setEventResults([]);
+  }
 
   // Object URLs for the actual photo/video previews below — recomputed
   // whenever the attachment list changes (add/remove/crop) and revoked on
@@ -211,6 +241,7 @@ function PostComposerModal({ onClose, canPostWorkout }: { onClose: () => void; c
 
     const formData = new FormData();
     formData.set("contentText", contentText);
+    if (taggedEvent && attachments.length > 0) formData.set("eventId", taggedEvent.id);
     if (stagedGifUrl) {
       formData.set("gifUrl", stagedGifUrl);
     } else {
@@ -412,6 +443,72 @@ function PostComposerModal({ onClose, canPostWorkout }: { onClose: () => void; c
                   </button>
                 )}
               </div>
+            </div>
+          )}
+
+          {attachments.length > 0 && (
+            <div className="relative mt-3">
+              {taggedEvent ? (
+                <div className="flex items-center justify-between rounded-lg border border-b2b-pink/30 bg-b2b-pink/5 px-3 py-2">
+                  <span className="truncate text-sm font-medium text-b2b-pink-dark">📍 {taggedEvent.name}</span>
+                  <button
+                    type="button"
+                    onClick={() => setEventPickerOpen(true)}
+                    className="shrink-0 text-xs font-semibold text-b2b-ink/50 hover:text-b2b-ink"
+                  >
+                    Change
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setEventPickerOpen(true)}
+                  className="rounded-full border border-b2b-purple/20 px-3 py-1.5 text-sm font-medium text-b2b-ink/60 hover:border-b2b-pink hover:text-b2b-pink"
+                >
+                  📍 Tag an event
+                </button>
+              )}
+              {taggedEvent && (
+                <p className="mt-1 text-xs text-b2b-ink/40">
+                  These photos will also show up in {taggedEvent.name}&rsquo;s Gallery.
+                </p>
+              )}
+              {eventPickerOpen && (
+                <div className="absolute z-10 mt-1 w-full rounded border border-gray-200 bg-b2b-card p-2 shadow-lg">
+                  <input
+                    type="text"
+                    autoFocus
+                    value={eventQuery}
+                    onChange={(e) => handleEventQueryChange(e.target.value)}
+                    placeholder="Search events by name..."
+                    className="w-full rounded border border-gray-300 px-3 py-2 text-base focus:border-b2b-pink focus:outline-none"
+                  />
+                  {eventResults.length > 0 && (
+                    <div className="mt-1 flex flex-col">
+                      {eventResults.map((ev) => (
+                        <button
+                          key={ev.id}
+                          type="button"
+                          onClick={() => pickEvent(ev)}
+                          className="rounded px-3 py-2 text-left text-sm hover:bg-b2b-bg"
+                        >
+                          <span className="block font-medium text-b2b-ink">{ev.name}</span>
+                          <span className="block text-xs text-b2b-ink/40">
+                            {ev.isOnline ? "Online" : ev.location ?? ""}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setEventPickerOpen(false)}
+                    className="mt-1 w-full rounded px-3 py-1.5 text-center text-xs text-b2b-ink/50 hover:underline"
+                  >
+                    Done
+                  </button>
+                </div>
+              )}
             </div>
           )}
 
