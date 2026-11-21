@@ -132,6 +132,13 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
   const [uploading, setUploading] = useState(false);
   const [sharing, setSharing] = useState(false);
   const [previewLoaded, setPreviewLoaded] = useState(false);
+  // Which shape the preview step is actually showing — only meaningful (and
+  // only ever shown as a switcher) when Feed and Story/Instagram are BOTH
+  // checked, since those are two genuinely different renders now (see
+  // previewLayout/getFeedSquareFile) and reviewing only one before posting
+  // both isn't really reviewing both. Reset to previewLayout's own pick
+  // every time the preview step is (re-)entered — see goToPreview.
+  const [previewTab, setPreviewTab] = useState<"story" | "feed">("feed");
   const [feedBusy, setFeedBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [accent, setAccent] = useState(DEFAULT_ACCENT);
@@ -256,6 +263,12 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
   // at share time (see getFeedSquareFile) even when combined with Story/
   // Instagram, which keep using the tall render regardless (see doShare).
   const previewLayout: "story" | "feed" = isWorkout && toFeed ? "feed" : "story";
+  // Feed and Story/Instagram are two different renders once both are
+  // checked (see previewLayout's own comment) — the preview step shows
+  // either one, switched via previewTab, instead of forcing a choice
+  // between reviewing one or the other before posting both.
+  const bothPreviewsAvailable = isWorkout && toFeed && (toStory || toInstagram);
+  const activePreviewLayout: "story" | "feed" = bothPreviewsAvailable ? previewTab : previewLayout;
 
   useEffect(() => {
     if (!textFormatAvailable && format === "TEXT") setFormat("A");
@@ -315,6 +328,7 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
       return;
     }
     setPreviewLoaded(false);
+    setPreviewTab(previewLayout);
     setStep("preview");
   }
 
@@ -1011,9 +1025,30 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
         {step === "preview" && (
           <>
             <p className="font-semibold text-b2b-ink">{previewHeading()}</p>
+            {bothPreviewsAvailable && (
+              <div className="mx-auto flex gap-2 rounded-full bg-b2b-bg p-1">
+                {(["feed", "story"] as const).map((tab) => (
+                  <button
+                    key={tab}
+                    type="button"
+                    onClick={() => {
+                      setPreviewTab(tab);
+                      setPreviewLoaded(false);
+                    }}
+                    className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
+                      activePreviewLayout === tab
+                        ? "bg-b2b-ink text-b2b-bg"
+                        : "text-b2b-ink/60 hover:text-b2b-ink"
+                    }`}
+                  >
+                    {tab === "feed" ? "Feed" : toInstagram ? "Story & Instagram" : "Story"}
+                  </button>
+                ))}
+              </div>
+            )}
             <div
               className={`relative mx-auto overflow-hidden rounded-xl ${isVideo ? "bg-black" : "bg-b2b-bg"}`}
-              style={previewLayout === "feed" ? { width: 220, aspectRatio: "1 / 1" } : { width: 220, aspectRatio: "9 / 16" }}
+              style={activePreviewLayout === "feed" ? { width: 220, aspectRatio: "1 / 1" } : { width: 220, aspectRatio: "9 / 16" }}
             >
               {isVideo ? (
                 // key forces a fresh <video> element when the source URL
@@ -1038,23 +1073,25 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
                   )}
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src={editedPreviewUrl ?? imageUrl(target, format as Format, photo, "full", accent, pattern, previewLayout)}
+                    src={
+                      // editedPreviewUrl (the text-edited version) only ever
+                      // comes from the tall Story/Instagram render — see
+                      // resolveFinalBlob — so it must not leak into the Feed tab.
+                      (activePreviewLayout === "story" ? editedPreviewUrl : null) ??
+                      imageUrl(target, format as Format, photo, "full", accent, pattern, activePreviewLayout)
+                    }
                     alt="Preview of what will be posted"
                     onLoad={() => setPreviewLoaded(true)}
                     className={`h-full w-full object-cover transition-opacity ${
-                      previewLoaded || editedPreviewUrl ? "opacity-100" : "opacity-0"
+                      previewLoaded || (activePreviewLayout === "story" && editedPreviewUrl) ? "opacity-100" : "opacity-0"
                     }`}
                   />
                 </>
               )}
             </div>
-            <p className="text-center text-xs text-b2b-ink/50">
-              {previewLayout === "feed" && (toStory || toInstagram)
-                ? "This is what Feed will get — Story/Instagram use the full card"
-                : "This is exactly what will be posted"}
-            </p>
+            <p className="text-center text-xs text-b2b-ink/50">This is exactly what will be posted</p>
 
-            {previewLayout === "story" && (
+            {activePreviewLayout === "story" && (
               <div className="flex justify-center gap-4">
                 <button
                   type="button"

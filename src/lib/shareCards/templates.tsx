@@ -182,11 +182,6 @@ function MultiLineText({ text, style }: { text: string; style: CSSProperties }) 
   );
 }
 
-/** The square feed cards have far less room than the tall story ones — cut a long description down rather than let it overflow the card. */
-function truncate(text: string, max: number): string {
-  return text.length > max ? `${text.slice(0, max - 1).trimEnd()}…` : text;
-}
-
 export type FeedStoryAProps = {
   name: string;
   photo: string | null;
@@ -506,7 +501,7 @@ export function FeedStoryC({ name, photo, date, scoreLabel, score, badge, descri
  * spacing; no room left for the optional description either format can
  * carry, so it's accepted (same prop types) but not rendered here.
  */
-export function FeedPostA({ name, photo, score, label, wodName, description, scale }: FeedStoryAProps & { scale: number }) {
+export function FeedPostA({ name, photo, score, label, wodName, scale }: FeedStoryAProps & { scale: number }) {
   return (
     <div
       style={{
@@ -574,25 +569,13 @@ export function FeedPostA({ name, photo, score, label, wodName, description, sca
         >
           {label}
         </div>
-        {description && (
-          <MultiLineText
-            text={truncate(description, 85)}
-            style={{
-              width: px(CARD_WIDTH - 28, scale),
-              marginTop: px(4, scale),
-              fontSize: px(8, scale),
-              lineHeight: 1.3,
-              color: "rgba(255,255,255,0.55)",
-            }}
-          />
-        )}
       </div>
       <Footer scale={scale} dark domain />
     </div>
   );
 }
 
-export function FeedPostC({ name, photo, date, scoreLabel, score, badge, wodName, description, stats, scale }: FeedStoryCProps & { scale: number }) {
+export function FeedPostC({ name, photo, date, scoreLabel, score, badge, wodName, stats, scale }: FeedStoryCProps & { scale: number }) {
   return (
     <div
       style={{
@@ -699,20 +682,6 @@ export function FeedPostC({ name, photo, date, scoreLabel, score, badge, wodName
           >
             {badge}
           </div>
-          {description && (
-            <MultiLineText
-              text={truncate(description, 70)}
-              style={{
-                width: px(CARD_WIDTH - 48 - 28, scale),
-                marginTop: px(8, scale),
-                fontSize: px(8, scale),
-                lineHeight: 1.35,
-                textAlign: "center",
-                color: "rgba(255,255,255,0.5)",
-                justifyContent: "center",
-              }}
-            />
-          )}
         </div>
 
         {stats.length > 0 && (

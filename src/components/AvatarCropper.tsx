@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Cropper, { type Area, type Size } from "react-easy-crop";
 
 function loadImage(src: string): Promise<HTMLImageElement> {
@@ -116,6 +116,52 @@ export function AvatarCropper({
     const tune = tuned ? `brightness(${brightness / 100}) contrast(${contrast / 100}) saturate(${saturation / 100})` : "";
     return [preset, tune].filter(Boolean).join(" ");
   }, [presetKey, brightness, contrast, saturation]);
+
+  // The filter-preset row below shows the SAME source photo seven times
+  // (once per preset swatch) to preview each look. Pointing all seven
+  // straight at `imageSrc` means the browser decodes the full-resolution
+  // original seven times over just to paint 48px swatches — on a phone,
+  // especially one already holding several other full-size photos picked
+  // for this same post in memory, that's enough decode/memory pressure for
+  // mobile Safari to start silently failing to paint some of them (reported
+  // as "the filters aren't appearing, only the crop"). A single small,
+  // shared thumbnail removes that cost entirely; the real crop/export below
+  // still reads the full-resolution `imageSrc` so output quality is unaffected.
+  const [swatchSrc, setSwatchSrc] = useState<string | null>(null);
+  useEffect(() => {
+    if (!enableFilters) return;
+    let cancelled = false;
+    let objectUrl: string | null = null;
+    loadImage(imageSrc)
+      .then((image) => {
+        if (cancelled) return;
+        const size = 96;
+        const side = Math.min(image.width, image.height);
+        const canvas = document.createElement("canvas");
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return;
+        ctx.drawImage(image, (image.width - side) / 2, (image.height - side) / 2, side, side, 0, 0, size, size);
+        canvas.toBlob(
+          (blob) => {
+            if (cancelled || !blob) return;
+            objectUrl = URL.createObjectURL(blob);
+            setSwatchSrc(objectUrl);
+          },
+          "image/jpeg",
+          0.7
+        );
+      })
+      .catch(() => {
+        // Swatches fall back to the full image below — still correct, just
+        // without the memory saving.
+      });
+    return () => {
+      cancelled = true;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [imageSrc, enableFilters]);
 
   const handleCropComplete = useCallback((_area: Area, areaPixels: Area) => {
     setCroppedAreaPixels(areaPixels);
@@ -237,7 +283,7 @@ export function AvatarCropper({
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element -- local object URL preview, filtered thumbnail */}
                     <img
-                      src={imageSrc}
+                      src={swatchSrc ?? imageSrc}
                       alt=""
                       className="h-full w-full object-cover"
                       style={preset.filter ? { filter: preset.filter } : undefined}

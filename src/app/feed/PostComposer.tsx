@@ -275,7 +275,15 @@ function PostComposerModal({ onClose, canPostWorkout }: { onClose: () => void; c
       onClick={onClose}
     >
       <div
-        className="w-full max-w-lg rounded-xl bg-b2b-bg p-4 shadow-lg"
+        // max-h-full + overflow-y-auto, not just the viewport-aware height
+        // above: with several photos attached (full-width square carousel +
+        // thumbnail rail) the panel's own content can be taller than the
+        // real visible area, especially once the keyboard is open — without
+        // a scroll container here, that excess used to overflow equally off
+        // the top AND bottom of this flex-centered box, stranding the
+        // textarea above the visible screen with no way to scroll back up
+        // to it. Scrolling internally keeps every control reachable instead.
+        className="flex max-h-full w-full max-w-lg flex-col overflow-y-auto rounded-xl bg-b2b-bg p-4 shadow-lg"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-b2b-purple/10 pb-3">

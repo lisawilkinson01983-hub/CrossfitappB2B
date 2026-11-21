@@ -968,52 +968,60 @@ export function PostCard({
           </div>
         )}
 
-        {post.linkedWorkout && !post.isShareCard && (
+        {post.linkedWorkout && (
           <div className={post.sharedBy ? "" : "mt-3"}>
-            <div className="rounded-xl border border-b2b-purple/10 bg-b2b-bg px-4 py-3">
-              <div className="flex items-center justify-between gap-3">
-                <p className="truncate text-xs font-semibold uppercase tracking-wide text-b2b-ink/40">
-                  {post.linkedWorkout.wodName}
-                </p>
-                <div className="flex shrink-0 items-center gap-1.5">
-                  <Link
-                    href={`/workouts/new?${new URLSearchParams({
-                      wodName: post.linkedWorkout.wodName,
-                      description: post.linkedWorkout.description ?? "",
-                    })}`}
-                    aria-label="Log this WOD"
-                    title="Log this WOD"
-                    className="flex h-6 w-6 items-center justify-center rounded-full border border-b2b-pink/30 bg-b2b-pink/5 text-b2b-pink hover:bg-b2b-pink/15"
-                  >
-                    <LogThisWodIcon className="h-3.5 w-3.5" />
-                  </Link>
-                  <span
-                    className={`rounded-full px-2.5 py-1 text-xs font-semibold ${WORKOUT_INTENSITY_BADGE_CLASSES[post.linkedWorkout.intensity]}`}
-                  >
-                    {WORKOUT_INTENSITY_LABELS[post.linkedWorkout.intensity]}
-                  </span>
-                </div>
-              </div>
-              {post.linkedWorkout.unit === "ROUNDS_REPS" ? (
-                <div className="mt-2.5 flex divide-x divide-b2b-purple/10">
-                  <div className="flex-1 pr-4">
-                    <p className="text-[10px] font-semibold uppercase tracking-wide text-b2b-ink/40">Rounds</p>
-                    <p className="font-display text-2xl leading-none text-b2b-ink">{post.linkedWorkout.rounds}</p>
-                  </div>
-                  <div className="flex-1 pl-4">
-                    <p className="text-[10px] font-semibold uppercase tracking-wide text-b2b-ink/40">Reps</p>
-                    <p className="font-display text-2xl leading-none text-b2b-ink">{post.linkedWorkout.reps}</p>
-                  </div>
-                </div>
-              ) : (
-                <div className="mt-2.5">
-                  <p className="text-[10px] font-semibold uppercase tracking-wide text-b2b-ink/40">
-                    {WORKOUT_UNIT_LABELS[post.linkedWorkout.unit]}
+            {/* The rendered share-card image already shows the WOD name,
+                score and intensity itself (see FeedPostA/FeedPostC in
+                shareCards/templates.tsx) — repeating all of that here would
+                just double it up, so a share-card post skips straight to
+                the description, which the image deliberately leaves out to
+                stay a reasonable size. */}
+            {!post.isShareCard && (
+              <div className="rounded-xl border border-b2b-purple/10 bg-b2b-bg px-4 py-3">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="truncate text-xs font-semibold uppercase tracking-wide text-b2b-ink/40">
+                    {post.linkedWorkout.wodName}
                   </p>
-                  <p className="font-display text-3xl leading-none text-b2b-ink">{post.linkedWorkout.score}</p>
+                  <div className="flex shrink-0 items-center gap-1.5">
+                    <Link
+                      href={`/workouts/new?${new URLSearchParams({
+                        wodName: post.linkedWorkout.wodName,
+                        description: post.linkedWorkout.description ?? "",
+                      })}`}
+                      aria-label="Log this WOD"
+                      title="Log this WOD"
+                      className="flex h-6 w-6 items-center justify-center rounded-full border border-b2b-pink/30 bg-b2b-pink/5 text-b2b-pink hover:bg-b2b-pink/15"
+                    >
+                      <LogThisWodIcon className="h-3.5 w-3.5" />
+                    </Link>
+                    <span
+                      className={`rounded-full px-2.5 py-1 text-xs font-semibold ${WORKOUT_INTENSITY_BADGE_CLASSES[post.linkedWorkout.intensity]}`}
+                    >
+                      {WORKOUT_INTENSITY_LABELS[post.linkedWorkout.intensity]}
+                    </span>
+                  </div>
                 </div>
-              )}
-            </div>
+                {post.linkedWorkout.unit === "ROUNDS_REPS" ? (
+                  <div className="mt-2.5 flex divide-x divide-b2b-purple/10">
+                    <div className="flex-1 pr-4">
+                      <p className="text-[10px] font-semibold uppercase tracking-wide text-b2b-ink/40">Rounds</p>
+                      <p className="font-display text-2xl leading-none text-b2b-ink">{post.linkedWorkout.rounds}</p>
+                    </div>
+                    <div className="flex-1 pl-4">
+                      <p className="text-[10px] font-semibold uppercase tracking-wide text-b2b-ink/40">Reps</p>
+                      <p className="font-display text-2xl leading-none text-b2b-ink">{post.linkedWorkout.reps}</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="mt-2.5">
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-b2b-ink/40">
+                      {WORKOUT_UNIT_LABELS[post.linkedWorkout.unit]}
+                    </p>
+                    <p className="font-display text-3xl leading-none text-b2b-ink">{post.linkedWorkout.score}</p>
+                  </div>
+                )}
+              </div>
+            )}
             {post.linkedWorkout.description && (
               <WorkoutDescriptionToggle description={post.linkedWorkout.description} />
             )}
