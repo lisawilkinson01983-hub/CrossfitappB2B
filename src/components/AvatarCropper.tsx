@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Cropper, { type Area, type Size } from "react-easy-crop";
+import { useVisualViewportBox } from "@/lib/useVisualViewportBox";
 
 function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
@@ -97,6 +98,16 @@ export function AvatarCropper({
   enableFilters?: boolean;
   textGuide?: { gradient: string; bottomPercent: number; sidePercent: number };
 }) {
+  // Same bug WallComposer/PostComposerModal/ShareSheet already fix for
+  // their own `fixed inset-0` overlays: iOS Safari sizes a plain
+  // `inset-0` fixed element against the full "ideal" viewport, not the
+  // actually-visible area once its own toolbar chrome (and here, since
+  // this opens from a share/post flow, often still the keyboard) is
+  // showing — this modal just never got the same treatment, so its own
+  // top-of-screen content (the Adjust/Filters tab row) was the part
+  // ending up rendered above the real visible area, off-screen.
+  const viewport = useVisualViewportBox(true);
+
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
@@ -187,7 +198,10 @@ export function AvatarCropper({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-black/90 p-4">
+    <div
+      className="fixed inset-0 z-50 flex flex-col overflow-hidden bg-black/90 p-4 pt-[max(1rem,env(safe-area-inset-top))]"
+      style={viewport ? { top: viewport.top, height: viewport.height } : undefined}
+    >
       {enableFilters && (
         <div className="mx-auto mb-2 flex w-full max-w-sm gap-1.5">
           <button
