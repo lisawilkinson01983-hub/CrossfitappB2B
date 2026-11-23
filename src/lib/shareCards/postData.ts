@@ -8,6 +8,25 @@ import { photoToDataUri } from "./photo";
 import type { FeedStoryAProps, FeedStoryBProps, FeedStoryCProps, ResultCardProps } from "./templates";
 
 /**
+ * The "name" line a Result card shows, plus who to list underneath it —
+ * "Team {name}" and its full roster (registered teammates' first names,
+ * plus anyone added as a freeform not-on-the-app name) for a team result,
+ * or just the individual's own name with no roster line otherwise. Shared
+ * by loadFeedStoryData and loadEventResultCardData so the feed-share and
+ * leaderboard-share paths always agree on how a team result reads.
+ */
+function resultAttribution(
+  individualName: string,
+  team: { name: string; members: { user: { name: string } }[] } | null,
+  freeformTeammateNames: string | null
+): { name: string; teamMembers: string[] | null } {
+  if (!team) return { name: individualName, teamMembers: null };
+  const freeform: string[] = freeformTeammateNames ? JSON.parse(freeformTeammateNames) : [];
+  const members = [...team.members.map((m) => m.user.name.split(" ")[0]), ...freeform];
+  return { name: `Team ${team.name}`, teamMembers: members.length > 0 ? members : null };
+}
+
+/**
  * Loads a post (with the same visibility rule as viewing it in the feed —
  * its own author, or anyone, since posts aren't otherwise access-controlled
  * here beyond block/mute, which the share action doesn't need to re-check)
@@ -36,7 +55,9 @@ export async function loadFeedStoryData(
           placementType: true,
           totalCompetitors: true,
           division: true,
+          freeformTeammateNames: true,
           event: { select: { name: true, photo: true, isOnline: true, location: true } },
+          team: { select: { name: true, members: { select: { user: { select: { name: true } } } } } },
         },
       },
       linkedEvent: {
@@ -51,10 +72,12 @@ export async function loadFeedStoryData(
     const r = post.linkedEventResult;
     const photoUrl = photoOverride ?? r.event.photo;
     const photo = await photoToDataUri(photoUrl);
+    const { name, teamMembers } = resultAttribution(post.user.name, r.team, r.freeformTeammateNames);
     return {
       kind: "result",
       result: {
-        name: post.user.name,
+        name,
+        teamMembers,
         photo,
         headline: resultHeadline(r),
         competitorsLine:
@@ -188,11 +211,7 @@ export async function loadWorkoutCardData(
  * on that page. A team row uses the team's own name/roster photo instead of
  * a single person's, same simplification TeamResultRow itself makes.
  */
-export async function loadEventResultCardData(
-  resultId: string,
-  viewerId: string,
-  photoOverride: string | null
-): Promise<ResultCardProps | null> {
+async function buildEventResultCardData(resultId: string, photoOverride: string | null) {
   const r = await prisma.eventResult.findUnique({
     where: { id: resultId },
     select: {
@@ -200,20 +219,22 @@ export async function loadEventResultCardData(
       placementType: true,
       totalCompetitors: true,
       division: true,
+      freeformTeammateNames: true,
       user: { select: { name: true } },
-      team: { select: { name: true } },
+      team: { select: { name: true, members: { select: { user: { select: { name: true } } } } } },
       event: {
         select: { id: true, name: true, photo: true, isOnline: true, location: true, isPrivate: true, status: true, createdById: true, submittedById: true },
       },
     },
   });
   if (!r) return null;
-  if (!(await assertEventVisible(r.event, viewerId))) return null;
 
   const photoUrl = photoOverride ?? r.event.photo;
   const photo = await photoToDataUri(photoUrl);
-  return {
-    name: r.team ? r.team.name : r.user.name,
+  const { name, teamMembers } = resultAttribution(r.user.name, r.team, r.freeformTeammateNames);
+  const card: ResultCardProps = {
+    name,
+    teamMembers,
     photo,
     headline: resultHeadline(r),
     competitorsLine:
@@ -223,4 +244,29 @@ export async function loadEventResultCardData(
     eventName: r.event.name,
     divisionLocation: [r.division, r.event.isOnline ? "Online" : r.event.location].filter(Boolean).join(" · "),
   };
+  return { card, event: r.event };
+}
+
+export async function loadEventResultCardData(
+  resultId: string,
+  viewerId: string,
+  photoOverride: string | null
+): Promise<ResultCardProps | null> {
+  const built = await buildEventResultCardData(resultId, photoOverride);
+  if (!built) return null;
+  if (!(await assertEventVisible(built.event, viewerId))) return null;
+  return built.card;
+}
+
+/**
+ * Same card, but for the public (no-login) result share link — see
+ * loadPublicPost's equivalent reasoning on the post side. A private event's
+ * result is never served here, same rule as assertEventVisible's own
+ * public branch, just without a viewer to check participation/invite for.
+ */
+export async function loadPublicEventResultCardData(resultId: string): Promise<ResultCardProps | null> {
+  const built = await buildEventResultCardData(resultId, null);
+  if (!built) return null;
+  if (built.event.isPrivate || built.event.status !== "APPROVED") return null;
+  return built.card;
 }

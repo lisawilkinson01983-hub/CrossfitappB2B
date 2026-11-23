@@ -141,6 +141,14 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
   const [previewTab, setPreviewTab] = useState<"story" | "feed">("feed");
   const [feedBusy, setFeedBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Set once a brand-new workout share creates its own feed Post (see
+  // doShare's share-to-feed call below) — a "post"/"result" target already
+  // has an id to link to from the moment the sheet opens (see
+  // linkablePostId/linkableResultId), but a workout doesn't have one until
+  // that happens, so the off-platform share row for it only appears on the
+  // "posted" step rather than the "destination" step.
+  const [sharedPostId, setSharedPostId] = useState<string | null>(null);
+  const [linkCopied, setLinkCopied] = useState(false);
   const [accent, setAccent] = useState(DEFAULT_ACCENT);
   const [pattern, setPattern] = useState<"stripes" | "solid">("stripes");
   const [recipientQuery, setRecipientQuery] = useState("");
@@ -270,9 +278,94 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
   const bothPreviewsAvailable = isWorkout && toFeed && (toStory || toInstagram);
   const activePreviewLayout: "story" | "feed" = bothPreviewsAvailable ? previewTab : previewLayout;
 
+  // The public, no-login link (see src/app/s/post|result) behind the
+  // "share off Box 2 Box" row below — only ever a Post or an EventResult,
+  // since those are the only kinds with a real public page to point to. A
+  // "post"/"result" target already has an id the moment this sheet opens;
+  // a brand-new "workout" target doesn't until doShare() actually creates
+  // the Post (see sharedPostId). "pb" has no persisted row at all, so it
+  // never gets one.
+  const linkablePostId = target.kind === "post" ? target.postId : sharedPostId;
+  const linkableResultId = target.kind === "result" ? target.resultId : null;
+  const publicShareUrl =
+    typeof window === "undefined"
+      ? null
+      : linkablePostId
+        ? `${window.location.origin}/s/post/${linkablePostId}`
+        : linkableResultId
+          ? `${window.location.origin}/s/result/${linkableResultId}`
+          : null;
+
+  function offPlatformShareText(): string {
+    if (target.kind === "result") return "Check out this result on Box 2 Box!";
+    if (isWorkout) return "Check out my workout on Box 2 Box!";
+    return "Check this out on Box 2 Box!";
+  }
+
+  async function copyShareLink(url: string) {
+    try {
+      await navigator.clipboard.writeText(url);
+      setLinkCopied(true);
+      setTimeout(() => setLinkCopied(false), 2000);
+    } catch {
+      // Clipboard access can be denied — the WhatsApp/X/Facebook buttons
+      // alongside this one still work regardless, so this is a quiet no-op
+      // rather than an error state.
+    }
+  }
+
   useEffect(() => {
     if (!textFormatAvailable && format === "TEXT") setFormat("A");
   }, [textFormatAvailable, format]);
+
+  /** "Copy link"/WhatsApp/X/Facebook — a plain link + prefilled text to
+   * whichever app the person picks, rather than another in-app destination.
+   * Only rendered where publicShareUrl is set (see its own comment). A
+   * plain function returning JSX, not a capitalized component — this is
+   * defined inside ShareSheet's own render and closes over its state
+   * (linkCopied etc.), so making it a nested component would give React a
+   * new component type (and a full remount of this block) on every render. */
+  function offPlatformShareRow(url: string) {
+    const text = offPlatformShareText();
+    return (
+      <div className="flex flex-col gap-1.5 rounded-xl bg-b2b-bg p-3">
+        <span className="text-xs font-semibold uppercase tracking-wide text-b2b-ink/40">Share off Box 2 Box</span>
+        <div className="flex flex-wrap gap-1.5">
+          <button
+            type="button"
+            onClick={() => copyShareLink(url)}
+            className="rounded-full border border-b2b-purple/20 bg-b2b-card px-3 py-1.5 text-xs font-semibold text-b2b-ink hover:border-b2b-pink hover:text-b2b-pink"
+          >
+            {linkCopied ? "Copied!" : "Copy link"}
+          </button>
+          <a
+            href={`https://wa.me/?text=${encodeURIComponent(`${text} ${url}`)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="rounded-full border border-b2b-purple/20 bg-b2b-card px-3 py-1.5 text-xs font-semibold text-b2b-ink hover:border-b2b-pink hover:text-b2b-pink"
+          >
+            WhatsApp
+          </a>
+          <a
+            href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="rounded-full border border-b2b-purple/20 bg-b2b-card px-3 py-1.5 text-xs font-semibold text-b2b-ink hover:border-b2b-pink hover:text-b2b-pink"
+          >
+            X
+          </a>
+          <a
+            href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="rounded-full border border-b2b-purple/20 bg-b2b-card px-3 py-1.5 text-xs font-semibold text-b2b-ink hover:border-b2b-pink hover:text-b2b-pink"
+          >
+            Facebook
+          </a>
+        </div>
+      </div>
+    );
+  }
 
   function destinationLabels(): string[] {
     const labels: string[] = [];
@@ -598,6 +691,8 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
           body: formData,
         });
         if (!feedRes.ok) throw new Error("feed post failed");
+        const feedData = await feedRes.json().catch(() => null);
+        if (feedData?.postId) setSharedPostId(feedData.postId);
         target.onSharedToFeed();
       }
 
@@ -673,7 +768,13 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
         // state to confirm — Instagram's hand-off already showed its own
         // share sheet, so there's nothing more to show for that half alone.
         setStep("posted");
-        setTimeout(onClose, 1400);
+        // A fresh feed Post means a public link row is about to appear here
+        // (see publicShareUrl/sharedPostId) — don't yank the screen away
+        // after 1.4s before anyone's had a chance to tap "Copy link" etc.;
+        // let them close it themselves instead.
+        if (!(toFeed && target.kind === "workout" && !target.sharedToFeed)) {
+          setTimeout(onClose, 1400);
+        }
       } else {
         onClose();
       }
@@ -820,6 +921,7 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
                 Continue
               </button>
             </div>
+            {publicShareUrl && offPlatformShareRow(publicShareUrl)}
             {isWorkout && (
               <button
                 type="button"
@@ -1204,11 +1306,28 @@ export function ShareSheet({ target, onClose }: { target: ShareTarget; onClose: 
         )}
 
         {step === "posted" && (
-          <div className="flex flex-col items-center gap-2 py-6">
+          <div className="flex w-full flex-col items-center gap-2 py-6">
             <span className="flex h-12 w-12 items-center justify-center rounded-full bg-b2b-pink text-2xl text-white">
               ✓
             </span>
             <p className="font-semibold text-b2b-ink">{postedHeading()}</p>
+            {/* Only ever new here for a workout — post/result already showed
+                this on the destination step the moment the sheet opened.
+                Its presence is also why this screen doesn't auto-close
+                itself (see doShare) — someone reading this far deserves a
+                clear way out again. */}
+            {publicShareUrl && (
+              <>
+                <div className="mt-2 w-full">{offPlatformShareRow(publicShareUrl)}</div>
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="mt-1 rounded-full bg-b2b-ink px-4 py-2 text-sm font-semibold text-b2b-bg"
+                >
+                  Done
+                </button>
+              </>
+            )}
           </div>
         )}
 

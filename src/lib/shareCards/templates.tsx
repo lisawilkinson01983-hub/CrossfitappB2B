@@ -1036,9 +1036,11 @@ export type ResultCardProps = {
   divisionLocation: string | null;
   /** Small pill above the headline. Defaults per format below ("Result"/"Competition Result") when unset. */
   badgeLabel?: string;
+  /** First names of the roster, registered teammates and freeform (not-on-the-app) names alike — set only for a team result, so these templates can print who was actually on the team next to its name instead of just the team name alone. */
+  teamMembers?: string[] | null;
 };
 
-export function ResultCardA({ name, photo, headline, competitorsLine, eventName, divisionLocation, badgeLabel, scale }: ResultCardProps & { scale: number }) {
+export function ResultCardA({ name, photo, headline, competitorsLine, eventName, divisionLocation, badgeLabel, teamMembers, scale }: ResultCardProps & { scale: number }) {
   return (
     <div
       style={{
@@ -1090,6 +1092,21 @@ export function ResultCardA({ name, photo, headline, competitorsLine, eventName,
         }}
       >
         <div style={{ fontSize: px(12, scale), fontWeight: 700, display: "flex" }}>{name}</div>
+        {teamMembers && teamMembers.length > 0 && (
+          <div
+            style={{
+              width: px(CARD_WIDTH - 32, scale),
+              fontSize: px(10, scale),
+              fontWeight: 600,
+              color: "rgba(255,255,255,0.6)",
+              marginTop: px(1, scale),
+              display: "flex",
+              flexWrap: "wrap",
+            }}
+          >
+            with {teamMembers.join(", ")}
+          </div>
+        )}
         <MultiLineText
           text={headline}
           style={{ width: px(CARD_WIDTH - 32, scale), fontFamily: "Bebas Neue", fontSize: px(44, scale), lineHeight: 1, marginTop: px(4, scale) }}
@@ -1136,7 +1153,7 @@ export function ResultCardA({ name, photo, headline, competitorsLine, eventName,
 
 export type ResultCardBProps = ResultCardProps & { accent: string; pattern: "stripes" | "solid" };
 
-export function ResultCardB({ name, headline, competitorsLine, eventName, divisionLocation, accent, pattern, badgeLabel, scale }: ResultCardBProps & { scale: number }) {
+export function ResultCardB({ name, headline, competitorsLine, eventName, divisionLocation, accent, pattern, badgeLabel, teamMembers, scale }: ResultCardBProps & { scale: number }) {
   return (
     <div
       style={{
@@ -1252,13 +1269,29 @@ export function ResultCardB({ name, headline, competitorsLine, eventName, divisi
         >
           {name}
         </div>
+        {teamMembers && teamMembers.length > 0 && (
+          <div
+            style={{
+              marginTop: px(2, scale),
+              width: px(CARD_WIDTH - 48, scale),
+              fontSize: px(10, scale),
+              color: "rgba(255,255,255,0.55)",
+              textAlign: "center",
+              display: "flex",
+              flexWrap: "wrap",
+              justifyContent: "center",
+            }}
+          >
+            with {teamMembers.join(", ")}
+          </div>
+        )}
       </div>
       <Footer scale={scale} dark />
     </div>
   );
 }
 
-export function ResultCardC({ name, photo, headline, competitorsLine, eventName, divisionLocation, badgeLabel, scale }: ResultCardProps & { scale: number }) {
+export function ResultCardC({ name, photo, headline, competitorsLine, eventName, divisionLocation, badgeLabel, teamMembers, scale }: ResultCardProps & { scale: number }) {
   const medallionSize = 84;
   return (
     <div
@@ -1375,6 +1408,22 @@ export function ResultCardC({ name, photo, headline, competitorsLine, eventName,
         >
           {name}
         </div>
+        {teamMembers && teamMembers.length > 0 && (
+          <div
+            style={{
+              marginTop: px(2, scale),
+              width: px(CARD_WIDTH - 44, scale),
+              fontSize: px(9, scale),
+              color: "rgba(35,34,35,0.55)",
+              textAlign: "center",
+              display: "flex",
+              flexWrap: "wrap",
+              justifyContent: "center",
+            }}
+          >
+            with {teamMembers.join(", ")}
+          </div>
+        )}
         {eventName && (
           <div
             style={{

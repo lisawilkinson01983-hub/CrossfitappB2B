@@ -28,13 +28,22 @@ export type ResultPromptPayload =
  * on next login — the most-recently-ended event they're an EventParticipant
  * on with no EventResult logged yet and no prior dismissal. Only ever one
  * at a time, so logging/dismissing it is what surfaces the next-oldest.
+ *
+ * Gated to the day AFTER the event ends, not the moment it ends — someone
+ * might still be competing (or just driving home) a few hours after an
+ * event's listed end time, and asking mid-event/mid-travel reads as the app
+ * not knowing what's going on. "lt start of today" rather than "lt now"
+ * means an event that ended at any point yesterday or earlier is fair game,
+ * but one that ended an hour ago (today) still waits until tomorrow.
  */
 function pendingPromptWhere(userId: string, now: Date) {
+  const startOfToday = new Date(now);
+  startOfToday.setHours(0, 0, 0, 0);
   return {
     userId,
     event: {
       AND: [
-        { OR: [{ endDate: null, date: { lt: now } }, { endDate: { lt: now } }] },
+        { OR: [{ endDate: null, date: { lt: startOfToday } }, { endDate: { lt: startOfToday } }] },
         { results: { none: { userId } } },
         { resultPromptDismissals: { none: { userId } } },
       ],
