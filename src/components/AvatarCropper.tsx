@@ -202,31 +202,6 @@ export function AvatarCropper({
       className="fixed inset-0 z-50 flex flex-col overflow-hidden bg-black/90 p-4 pt-[max(1rem,env(safe-area-inset-top))]"
       style={viewport ? { top: viewport.top, height: viewport.height } : undefined}
     >
-      {enableFilters && (
-        <div className="mx-auto mb-2 flex w-full max-w-sm gap-1.5">
-          <button
-            type="button"
-            onClick={() => setTab("adjust")}
-            className={`flex-1 rounded-full px-3 py-1.5 text-xs font-bold transition ${
-              tab === "adjust" ? "bg-white/15 text-white" : "text-white/50"
-            }`}
-          >
-            Adjust
-          </button>
-          <button
-            type="button"
-            onClick={() => setTab("filters")}
-            className={`flex-1 rounded-full px-3 py-1.5 text-xs font-bold transition ${
-              tab === "filters" ? "bg-white/15 text-white" : "text-white/50"
-            }`}
-          >
-            Filters
-          </button>
-        </div>
-      )}
-      <p className="mb-3 text-center text-sm text-white/70">
-        {tab === "filters" ? "Tap a look, then fine-tune below if you want" : "Drag to reposition, pinch or use the slider to zoom"}
-      </p>
       <div className="relative flex-1">
         <Cropper
           image={imageSrc}
@@ -269,6 +244,31 @@ export function AvatarCropper({
       )}
 
       <div className="mx-auto mt-4 flex w-full max-w-sm flex-col gap-3">
+        {enableFilters && (
+          <div className="flex gap-1.5">
+            <button
+              type="button"
+              onClick={() => setTab("adjust")}
+              className={`flex-1 rounded-full px-3 py-1.5 text-xs font-bold transition ${
+                tab === "adjust" ? "bg-white/15 text-white" : "text-white/50"
+              }`}
+            >
+              Adjust
+            </button>
+            <button
+              type="button"
+              onClick={() => setTab("filters")}
+              className={`flex-1 rounded-full px-3 py-1.5 text-xs font-bold transition ${
+                tab === "filters" ? "bg-white/15 text-white" : "text-white/50"
+              }`}
+            >
+              Filters
+            </button>
+          </div>
+        )}
+        <p className="text-center text-sm text-white/70">
+          {tab === "filters" ? "Tap a look, then fine-tune below if you want" : "Drag to reposition, pinch or use the slider to zoom"}
+        </p>
         {tab === "adjust" || !enableFilters ? (
           <input
             type="range"
