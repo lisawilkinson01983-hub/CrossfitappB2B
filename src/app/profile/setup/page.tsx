@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { parseLevels, parseLookingFor } from "@/lib/labels";
+import { parseLevels } from "@/lib/labels";
 import { isProfileSetupComplete } from "@/lib/profileSetup";
 import { ProfileSetupWizard } from "@/components/ProfileSetupWizard";
 
@@ -34,7 +34,6 @@ export default async function ProfileSetupPage() {
         affiliateGymOther: user.affiliateGymOther ?? "",
         levels: parseLevels(user.levels),
         openLevel: user.openLevel,
-        lookingFor: parseLookingFor(user.lookingFor),
       }}
     />
   );

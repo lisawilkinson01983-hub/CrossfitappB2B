@@ -6,8 +6,8 @@ import { useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { AvatarCropper } from "@/components/AvatarCropper";
 import { BackIcon } from "@/components/BackIcon";
-import { LEVELS, LOOKING_FOR_OPTIONS, MAX_LEVELS, type LevelOption, type LookingForOption } from "@/lib/validation";
-import { LEVEL_LABELS, LOOKING_FOR_LABELS } from "@/lib/labels";
+import { LEVELS, MAX_LEVELS, type LevelOption } from "@/lib/validation";
+import { LEVEL_LABELS } from "@/lib/labels";
 import { OTHER_GYM, UNAFFILIATED } from "@/lib/gyms";
 import {
   CompetitionStatsEditor,
@@ -34,10 +34,9 @@ export type ProfileSetupInitial = {
   affiliateGymOther: string;
   levels: LevelOption[];
   openLevel: number | null;
-  lookingFor: LookingForOption[];
 };
 
-const ATHLETE_STEPS = ["type", "basics", "location", "ability", "competitionStats", "lookingFor", "review"] as const;
+const ATHLETE_STEPS = ["type", "basics", "location", "ability", "competitionStats", "review"] as const;
 const AFFILIATE_STEPS = ["type", "basics", "location", "review"] as const;
 type StepId = (typeof ATHLETE_STEPS)[number];
 
@@ -79,7 +78,6 @@ export function ProfileSetupWizard({ initial }: { initial: ProfileSetupInitial }
 
   const [levels, setLevels] = useState<LevelOption[]>(initial.levels);
   const [openLevel, setOpenLevel] = useState<number | null>(initial.openLevel);
-  const [lookingFor, setLookingFor] = useState<LookingForOption[]>(initial.lookingFor);
 
   // Fully optional and skippable — empty by default rather than seeded with
   // one blank row, so "nothing here" reads as "skipped" rather than "an
@@ -128,10 +126,9 @@ export function ProfileSetupWizard({ initial }: { initial: ProfileSetupInitial }
   const basicsOk = accountType === "AFFILIATE" || (firstName.trim().length > 0 && lastName.trim().length > 0 && dateOfBirth.length > 0);
   const locationOk = area.trim().length > 0 && gymOk;
   const abilityOk = levels.length > 0;
-  const lookingForOk = lookingFor.length > 0;
 
   const canAdvance =
-    step === "type" ? true : step === "basics" ? basicsOk : step === "location" ? locationOk : step === "ability" ? abilityOk : step === "lookingFor" ? lookingForOk : true;
+    step === "type" ? true : step === "basics" ? basicsOk : step === "location" ? locationOk : step === "ability" ? abilityOk : true;
 
   function goNext() {
     if (!canAdvance) return;
@@ -178,10 +175,6 @@ export function ProfileSetupWizard({ initial }: { initial: ProfileSetupInitial }
       return [...prev, level];
     });
   }
-  function toggleLookingFor(option: LookingForOption) {
-    setLookingFor((prev) => (prev.includes(option) ? prev.filter((o) => o !== option) : [...prev, option]));
-  }
-
   async function handleCreateProfile() {
     setSubmitting(true);
     setSubmitError(null);
@@ -192,7 +185,6 @@ export function ProfileSetupWizard({ initial }: { initial: ProfileSetupInitial }
       formData.set("dateOfBirth", dateOfBirth);
       for (const level of levels) formData.append("levels", level);
       if (openLevel) formData.set("openLevel", String(openLevel));
-      for (const option of lookingFor) formData.append("lookingFor", option);
     }
     formData.set("accountType", accountType);
     formData.set("bio", bio);
@@ -350,8 +342,6 @@ export function ProfileSetupWizard({ initial }: { initial: ProfileSetupInitial }
           />
         )}
 
-        {step === "lookingFor" && <LookingForStep lookingFor={lookingFor} onToggle={toggleLookingFor} />}
-
         {step === "review" && (
           <ReviewStep
             accountType={accountType}
@@ -362,7 +352,6 @@ export function ProfileSetupWizard({ initial }: { initial: ProfileSetupInitial }
             gymLabel={unaffiliated ? UNAFFILIATED : showOtherGym ? otherGymName : gymSelected}
             levels={levels}
             openLevel={openLevel}
-            lookingFor={lookingFor}
             competitionStatsCount={
               openResultRowsToPayload(openResultRows).length + communityCupResultRowsToPayload(communityCupResultRows).length
             }
@@ -841,39 +830,6 @@ function CompetitionStatsStep({
   );
 }
 
-function LookingForStep({ lookingFor, onToggle }: { lookingFor: LookingForOption[]; onToggle: (o: LookingForOption) => void }) {
-  return (
-    <div>
-      <h1 className="mt-2 text-2xl">What are you here for?</h1>
-      <p className="mt-2 text-sm text-b2b-ink/50">Pick as many as apply.</p>
-      <div className="mt-6 flex flex-col gap-2.5">
-        {LOOKING_FOR_OPTIONS.map((option) => {
-          const selected = lookingFor.includes(option);
-          return (
-            <button
-              key={option}
-              type="button"
-              onClick={() => onToggle(option)}
-              className={`flex items-center justify-between rounded-2xl border-2 p-4 text-left transition-colors ${
-                selected ? "border-b2b-pink bg-b2b-pink/5" : "border-b2b-card"
-              }`}
-            >
-              <span className="font-medium text-b2b-ink">{LOOKING_FOR_LABELS[option]}</span>
-              <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md border-2 ${selected ? "border-b2b-pink bg-b2b-pink" : "border-gray-300"}`}>
-                {selected && (
-                  <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={3} strokeLinecap="round" className="h-3 w-3">
-                    <path d="M4 12l5 5L20 6" />
-                  </svg>
-                )}
-              </span>
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
 function ReviewStep({
   accountType,
   firstName,
@@ -883,7 +839,6 @@ function ReviewStep({
   gymLabel,
   levels,
   openLevel,
-  lookingFor,
   competitionStatsCount,
   error,
   onEditStep,
@@ -896,7 +851,6 @@ function ReviewStep({
   gymLabel: string;
   levels: LevelOption[];
   openLevel: number | null;
-  lookingFor: LookingForOption[];
   competitionStatsCount: number;
   error: string | null;
   onEditStep: (step: StepId) => void;
@@ -930,11 +884,6 @@ function ReviewStep({
               label="Competition stats"
               value={competitionStatsCount > 0 ? `${competitionStatsCount} added` : "Skipped"}
               onEdit={() => onEditStep("competitionStats")}
-            />
-            <ReviewRow
-              label="Looking for"
-              value={lookingFor.map((o) => LOOKING_FOR_LABELS[o]).join(", ") || "—"}
-              onEdit={() => onEditStep("lookingFor")}
             />
           </>
         )}

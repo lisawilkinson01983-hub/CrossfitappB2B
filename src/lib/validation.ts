@@ -263,13 +263,9 @@ export const profileSchema = z
     if (data.accountType === "ATHLETE" && data.levels.length === 0) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Select a level", path: ["levels"] });
     }
-    if (data.accountType === "ATHLETE" && data.lookingFor.length === 0) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Choose at least one",
-        path: ["lookingFor"],
-      });
-    }
+    // lookingFor is no longer asked at signup (see ProfileSetupWizard) —
+    // only required, if at all, by interestedInEditSchema below, for
+    // someone who opts into Settings → Edit profile → Interested in.
   });
 
 // Used by the quick PB editor on the profile page's "Key PBs" card — only
